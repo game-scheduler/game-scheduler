@@ -1,0 +1,19 @@
+[project]
+name = "Game_Scheduler"
+license = "AGPL-3.0-or-later"
+version = "0.1.0"
+authors = [
+  {name = "Bret McKee", email = "bret.mckee@gmail.com"},
+]
+description = "Discord game scheduling system with microservices architecture"
+requires-python = ">=3.11"
+
+[project.urls]
+Repository = "https://github.com/game-scheduler"
+Issues = "https://github.com/game-scheduler/issues"
+
+[dependency-groups]
+dev = [
+    "autocopyright>=1.1.0",
+]
+

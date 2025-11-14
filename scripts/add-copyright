@@ -1,0 +1,8 @@
+#! /bin/bash
+set -u -o pipefail
+uv run autocopyright -s "#" -d alembic -d services -d shared -d tests -g "*.py" -l "./templates/agpl-template.jinja2"
+uv run autocopyright -s "//" -d frontend/src -g "*.ts" -g "*.tsx" -l "./templates/agpl-template.jinja2"
+
+# autocopyright returns 1 if it rewrites anything, so we cannot use set -e and must explicitly exit.
+
+exit 0
