@@ -451,3 +451,14 @@ Implementation of a complete Discord game scheduling system with microservices a
 - Single source of truth for dependencies
 - Prevents synchronization drift between requirements.txt and pyproject.toml
 - Modern uv-native dependency management throughout project
+
+### Infrastructure: Docker Build Fix
+
+**Files Changed:**
+- docker/bot.Dockerfile - Fixed user creation order
+
+**Changes:**
+- Fixed bot.Dockerfile build failure due to incorrect command order
+- User creation now happens before attempting to use the user
+- Corrected sequence: create user → install packages → set ownership → switch to user
+- All Docker builds now complete successfully

@@ -36,13 +36,13 @@ COPY --from=base /usr/local/bin /usr/local/bin
 COPY shared/ ./shared/
 COPY services/bot/ ./services/bot/
 
-# Install shared package in editable mode
-USER root
-RUN pip install -e ./shared
-USER appuser
-
 # Create non-root user
 RUN addgroup --system appgroup && adduser --system --group appuser
+
+# Install shared package in editable mode
+RUN pip install -e ./shared
+
+# Set ownership
 RUN chown -R appuser:appgroup /app
 
 USER appuser
