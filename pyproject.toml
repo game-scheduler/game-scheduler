@@ -29,11 +29,6 @@ dependencies = [
 Repository = "https://github.com/game-scheduler"
 Issues = "https://github.com/game-scheduler/issues"
 
-[dependency-groups]
-dev = [
-    "autocopyright>=1.1.0",
-]
-
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
@@ -63,3 +58,8 @@ python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
+
+[dependency-groups]
+dev = [
+    "autocopyright>=1.1.0",
+]
