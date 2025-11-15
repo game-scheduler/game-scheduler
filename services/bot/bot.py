@@ -61,6 +61,11 @@ class GameSchedulerBot(commands.Bot):
         """Initialize bot components before connecting to Gateway."""
         logger.info("Running bot setup hook")
 
+        from services.bot.commands import setup_commands
+
+        await setup_commands(self)
+        logger.info("Commands registered successfully")
+
         if self.config.environment == "development":
             logger.info("Syncing commands in development mode")
             await self.tree.sync()

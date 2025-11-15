@@ -49,3 +49,17 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             raise
         finally:
             await session.close()
+
+
+def get_db_session() -> AsyncSession:
+    """
+    Get database session as context manager.
+
+    Returns:
+        Async context manager for database session
+
+    Example:
+        async with get_db_session() as db:
+            result = await db.execute(query)
+    """
+    return AsyncSessionLocal()
