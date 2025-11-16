@@ -63,9 +63,6 @@ services:
     container_name: gamebot-bot
     env_file:
       - .env
-    volumes:
-      - ./services/bot:/app/services/bot
-      - ./shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,9 +83,6 @@ services:
       - .env
     ports:
       - "8000:8000"
-    volumes:
-      - ./services/api:/app/services/api
-      - ./shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
@@ -112,9 +106,6 @@ services:
     container_name: gamebot-scheduler
     env_file:
       - .env
-    volumes:
-      - ./services/scheduler:/app/services/scheduler
-      - ./shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
@@ -134,9 +125,6 @@ services:
     env_file:
       - .env
     command: celery -A services.scheduler.app beat --loglevel=info
-    volumes:
-      - ./services/scheduler:/app/services/scheduler
-      - ./shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy

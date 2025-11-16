@@ -455,10 +455,37 @@ Implementation of a complete Discord game scheduling system with microservices a
 ### Infrastructure: Docker Build Fix
 
 **Files Changed:**
+
 - docker/bot.Dockerfile - Fixed user creation order
 
 **Changes:**
+
 - Fixed bot.Dockerfile build failure due to incorrect command order
 - User creation now happens before attempting to use the user
 - Corrected sequence: create user → install packages → set ownership → switch to user
 - All Docker builds now complete successfully
+
+### Infrastructure: Docker Volume Mount Configuration
+
+**Date**: 2025-11-16
+
+**Files Changed:**
+
+- docker-compose.yml - Removed all volume mounts for application code
+
+**Changes:**
+
+- Removed volume mounts that were overriding copied application code
+- Eliminated conflict between Dockerfile COPY instructions and docker-compose volume mounts
+- Services now use files copied during Docker build process instead of bind mounts
+- Volume mounts removed from: bot, api, scheduler, scheduler-beat services
+- Data volumes (postgres_data, rabbitmq_data, redis_data) remain unchanged
+- Configuration mount for rabbitmq/definitions.json preserved
+
+**Impact:**
+
+- Code changes now require `docker compose build` to update containers
+- Eliminates development/production parity issues caused by volume mount conflicts
+- Container startup no longer fails due to missing/conflicting mounted files
+- Infrastructure services (postgres, redis, rabbitmq) start successfully and remain healthy
+- Application services now run with predictable, immutable file systems
