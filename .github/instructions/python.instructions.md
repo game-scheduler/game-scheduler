@@ -44,22 +44,37 @@ applyTo: "**/*.py"
 - Put imports at the top of the file, not in functions, arranged by isort.
 - Follow the recommendations for these sections from the Google style guide:
 
-  - 2.2.4 Imports
+## Imports
+Inspired by the Google Python Style Guide section 2.2.4:
+- Use import for importing packages and modules, but not for importing objects within packages and modules.
+- Import modules and use them with their prefix, do no import module contents (e.g. functions/classes/etc. directly).
+- Use from x import y where x is the package prefix and y is the module name with no prefix.
+- Use from x import y as z in only in the of the following circumstances:
+  - Two modules named y are to be imported.
+  - y conflicts with a top-level name defined in the current module.
+  - y conflicts with a common parameter name that is part of the public API (e.g., features).
+  - y is an inconveniently long name.
+  - y is too generic in the context of your code (e.g., from storage.file_system import options as fs_options).
+  - If import y as z is a standard abbreviation (e.g., import numpy as np).
 
-    ```
-      2.2.4 Decision
 
-    Use import x for importing packages and modules.
-    Use from x import y where x is the package prefix and y is the module name with no prefix.
-    Use from x import y as z in any of the following circumstances:
-    Two modules named y are to be imported.
-    y conflicts with a top-level name defined in the current module.
-    y conflicts with a common parameter name that is part of the public API (e.g., features).
-    y is an inconveniently long name.
-    y is too generic in the context of your code (e.g., from storage.file_system import options as fs_options).
-    Use import y as z only when z is a standard abbreviation (e.g., import numpy as np).
+### Examples of Imports
 
-    ```
+#### Good
+
+```python
+  from a.b import c
+  ...
+  c.DoSomething(input, output)
+```
+
+#### Bad
+
+```python
+  from a.b import c
+  ...
+  c(input, output)
+```
 
 - 3.4.1 Trailing commas in sequences of items?
 
