@@ -40,5 +40,6 @@ When ALL Phases are checked off (`[x]`) and completed you WILL do the following:
 - [ ] All plan items implemented with working code
 - [ ] All detailed specifications satisfied
 - [ ] Project conventions followed
-- [ ] Unit tests are written and passing for all new and modified code
+- [ ] All relevant coding conventions followed
+- [ ] All new and modified code passes lint and has unit tests
 - [ ] Changes file updated continuously
