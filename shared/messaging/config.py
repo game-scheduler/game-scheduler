@@ -25,6 +25,7 @@ and connection pooling for RabbitMQ.
 
 import asyncio
 import logging
+import os
 
 import aio_pika
 from aio_pika.abc import AbstractRobustConnection
@@ -70,7 +71,7 @@ async def get_rabbitmq_connection(
     Get or create RabbitMQ connection with automatic reconnection.
 
     Args:
-        config: RabbitMQ configuration. Uses defaults if not provided.
+        config: RabbitMQ configuration. Uses environment URL or defaults if not provided.
 
     Returns:
         Robust connection that automatically reconnects on failure.
@@ -80,14 +81,20 @@ async def get_rabbitmq_connection(
     async with _connection_lock:
         if _connection is None or _connection.is_closed:
             if config is None:
-                config = RabbitMQConfig()
-
-            logger.info(f"Connecting to RabbitMQ at {config.host}:{config.port}")
+                rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+                logger.info(f"Connecting to RabbitMQ using URL: {rabbitmq_url}")
+                connection_timeout = 60
+                heartbeat = 60
+            else:
+                rabbitmq_url = config.url
+                connection_timeout = config.connection_timeout
+                heartbeat = config.heartbeat
+                logger.info(f"Connecting to RabbitMQ at {config.host}:{config.port}")
 
             _connection = await aio_pika.connect_robust(
-                config.url,
-                timeout=config.connection_timeout,
-                heartbeat=config.heartbeat,
+                rabbitmq_url,
+                timeout=connection_timeout,
+                heartbeat=heartbeat,
             )
 
             logger.info("Successfully connected to RabbitMQ")

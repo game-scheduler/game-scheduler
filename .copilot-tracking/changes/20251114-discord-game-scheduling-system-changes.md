@@ -584,3 +584,32 @@ Implementation of a complete Discord game scheduling system with microservices a
 - Specific recommendation for Game Scheduler Bot (keep disabled)
 - Clarification that OAuth2 Code Grant is for user authentication on web dashboard, not bot authorization
 - Bot authenticates with bot token and only needs bot-level permissions
+
+### Bug Fixes: RabbitMQ Connection in Docker
+
+**Date**: 2025-11-16
+
+**Files Changed:**
+
+- shared/messaging/config.py - Updated `get_rabbitmq_connection()` to read from environment variables
+
+**Problem:**
+
+- Bot service failed to start with error: `AMQPConnectionError: Connect call failed ('127.0.0.1', 5672)`
+- `get_rabbitmq_connection()` was defaulting to `localhost` when no config provided
+- Docker containers need to use service names (e.g., `rabbitmq`) for inter-container communication
+- Environment variable `RABBITMQ_URL` was set correctly but not being read
+
+**Changes:**
+
+- Modified `get_rabbitmq_connection()` to read `RABBITMQ_URL` from environment using `os.getenv()`
+- Added fallback to `amqp://guest:guest@localhost:5672/` for local development
+- Preserved existing behavior when explicit `RabbitMQConfig` is passed
+- Added import for `os` module
+
+**Impact:**
+
+- Bot service now successfully connects to RabbitMQ using Docker service name
+- All services can properly publish and consume events via RabbitMQ
+- Bot completes startup sequence and connects to Discord Gateway
+- Commands registered and event handlers initialized successfully
