@@ -434,6 +434,78 @@ Implementation of a complete Discord game scheduling system with microservices a
 - ✅ User receives confirmation message (ephemeral followup)
 - ⏳ Message editing with updated participant list (handled by Task 2.5 event consumer)
 
+### Phase 2: Discord Bot Service - RabbitMQ Event Publishing and Subscriptions
+
+- services/bot/events/**init**.py - Event handling package initialization
+- services/bot/events/publisher.py - Bot event publisher wrapper for RabbitMQ messaging
+- services/bot/events/handlers.py - Event handlers for consuming RabbitMQ messages
+- services/bot/bot.py - Updated to integrate event handlers and publisher
+- services/bot/handlers/button_handler.py - Updated to use BotEventPublisher
+- services/bot/handlers/join_game.py - Updated to use BotEventPublisher and correct model attributes
+- services/bot/handlers/leave_game.py - Updated to use BotEventPublisher and correct model attributes
+
+**Event Publishing Implementation:**
+
+- BotEventPublisher wraps EventPublisher with bot-specific methods
+- publish_player_joined() - Publishes game.player_joined events
+- publish_player_left() - Publishes game.player_left events
+- publish_game_created() - Publishes game.created events
+- publish_game_updated() - Publishes game.updated events
+- All events wrapped in Event object with EventType and data fields
+- UUID conversion handled for game_id parameters
+- ISO timestamp conversion for scheduled_at parameters
+
+**Event Consumption Implementation:**
+
+- EventHandlers class manages RabbitMQ event subscriptions
+- Binds to game._ and notification._ routing keys
+- Handles GAME_UPDATED events by editing Discord message
+- Handles GAME_CREATED events by posting Discord announcement
+- Handles NOTIFICATION_SEND_DM events by sending DMs to users
+- Uses EventConsumer with register_handler pattern
+- Fetches game data with participants using selectinload for relationships
+- Extracts participant Discord IDs for message formatting
+- Updates Discord messages with format_game_announcement
+
+**Bot Integration:**
+
+- Bot initialization creates BotEventPublisher and EventHandlers instances
+- Event publisher connected in setup_hook before commands
+- Button handler receives BotEventPublisher for publishing events
+- Event handlers initialized with bot client for Discord operations
+- Model attributes corrected: discord_id, max_players, message_id, channel_id, game_session_id, user_id
+
+**Testing and Quality:**
+
+- ✅ All event module files linted with ruff (0 issues)
+- ✅ All event module files formatted with ruff
+- ✅ Type hints on all functions following Python 3.11+ conventions
+- ✅ Comprehensive docstrings following Google style guide (Args, Returns sections)
+- ✅ Error handling with logging throughout
+- ✅ Proper async patterns with asyncio
+- ✅ Comments follow self-explanatory code guidelines (explain WHY, not WHAT)
+- ✅ Created comprehensive unit tests for all event modules:
+  - tests/services/bot/events/**init**.py - Test package initialization
+  - tests/services/bot/events/test_publisher.py - 9 tests for BotEventPublisher (100% pass)
+  - tests/services/bot/events/test_handlers.py - 14 tests for EventHandlers (100% pass)
+- ✅ Total: 23 tests, all passing
+- ✅ Test coverage includes:
+  - Connection and disconnection handling
+  - Event publishing with correct routing keys and data
+  - Event consumption and handler registration
+  - Discord message creation and updates
+  - DM notification sending with error handling
+  - Database queries with relationship loading
+  - Error scenarios (missing data, invalid channels, DMs disabled)
+
+**Success Criteria Met:**
+
+- ✅ Button clicks publish events successfully to RabbitMQ
+- ✅ Bot receives game.updated events and refreshes Discord messages
+- ✅ Bot receives notification.send_dm events (ready for scheduler)
+- ✅ Event processing with proper error handling
+- ✅ Message editing updates participant count and button states
+
 ### Infrastructure: Dependency Management Cleanup
 
 **Files Changed:**

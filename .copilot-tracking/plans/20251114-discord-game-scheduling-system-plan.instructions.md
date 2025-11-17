@@ -82,7 +82,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 161-181)
 
-- [ ] Task 2.5: Set up RabbitMQ event publishing and subscriptions
+- [x] Task 2.5: Set up RabbitMQ event publishing and subscriptions
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 183-200)
 

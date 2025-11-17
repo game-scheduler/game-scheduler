@@ -22,9 +22,9 @@ import logging
 
 import discord
 
+from services.bot.events.publisher import BotEventPublisher
 from services.bot.handlers.join_game import handle_join_game
 from services.bot.handlers.leave_game import handle_leave_game
-from shared.messaging.publisher import EventPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +32,11 @@ logger = logging.getLogger(__name__)
 class ButtonHandler:
     """Handles button interaction routing."""
 
-    def __init__(self, publisher: EventPublisher):
+    def __init__(self, publisher: BotEventPublisher):
         """Initialize button handler.
 
         Args:
-            publisher: RabbitMQ event publisher
+            publisher: Bot event publisher for RabbitMQ
         """
         self.publisher = publisher
 

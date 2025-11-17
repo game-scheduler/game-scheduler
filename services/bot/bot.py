@@ -35,6 +35,8 @@ class GameSchedulerBot(commands.Bot):
     Attributes:
         config: Bot configuration with Discord credentials and service URLs
         button_handler: Handler for button interactions
+        event_handlers: Handler for RabbitMQ events
+        event_publisher: Publisher for bot events
     """
 
     def __init__(self, config: BotConfig) -> None:
@@ -46,6 +48,8 @@ class GameSchedulerBot(commands.Bot):
         """
         self.config = config
         self.button_handler = None
+        self.event_handlers = None
+        self.event_publisher = None
 
         intents = discord.Intents.none()
 
@@ -60,15 +64,25 @@ class GameSchedulerBot(commands.Bot):
         logger.info("Running bot setup hook")
 
         from services.bot.commands import setup_commands
+        from services.bot.events.handlers import EventHandlers
+        from services.bot.events.publisher import BotEventPublisher
         from services.bot.handlers import ButtonHandler
-        from shared.messaging.publisher import EventPublisher
 
         await setup_commands(self)
         logger.info("Commands registered successfully")
 
-        publisher = EventPublisher()
-        self.button_handler = ButtonHandler(publisher)
+        # Initialize event publisher
+        self.event_publisher = BotEventPublisher()
+        await self.event_publisher.connect()
+        logger.info("Event publisher connected")
+
+        # Initialize button handler with publisher
+        self.button_handler = ButtonHandler(self.event_publisher)
         logger.info("Button handler initialized")
+
+        # Initialize event handlers for consuming messages
+        self.event_handlers = EventHandlers(self)
+        logger.info("Event handlers initialized")
 
         if self.config.environment == "development":
             logger.info("Syncing commands in development mode")

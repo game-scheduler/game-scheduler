@@ -25,14 +25,13 @@ import discord
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from services.bot.events.publisher import BotEventPublisher
 from services.bot.handlers.utils import (
     send_deferred_response,
     send_error_message,
     send_success_message,
 )
 from shared.database import get_db_session
-from shared.messaging.events import Event, EventType, PlayerLeftEvent
-from shared.messaging.publisher import EventPublisher
 from shared.models.game import GameSession
 from shared.models.participant import GameParticipant
 from shared.models.user import User
@@ -41,14 +40,14 @@ logger = logging.getLogger(__name__)
 
 
 async def handle_leave_game(
-    interaction: discord.Interaction, game_id: str, publisher: EventPublisher
+    interaction: discord.Interaction, game_id: str, publisher: BotEventPublisher
 ) -> None:
     """Handle leave game button interaction.
 
     Args:
         interaction: Discord interaction from button click
         game_id: Game session ID from custom_id
-        publisher: RabbitMQ event publisher
+        publisher: Bot event publisher
 
     Validates user is participant, publishes event to RabbitMQ,
     and sends confirmation message.
@@ -73,23 +72,13 @@ async def handle_leave_game(
         game = result["game"]
         participant_count = result["participant_count"]
 
-    event_payload = PlayerLeftEvent(
-        game_id=game_uuid,
-        player_id=user_discord_id,
-        player_count=participant_count - 1,
-        max_players=game.maxPlayers or 10,
+    await publisher.publish_player_left(
+        game_id=game_id, player_id=user_discord_id, player_count=participant_count - 1
     )
-
-    event = Event(event_type=EventType.PLAYER_LEFT, data=event_payload.model_dump())
-
-    await publisher.publish(event)
 
     await send_success_message(interaction, f"You've left **{game.title}**")
 
-    logger.info(
-        f"User {user_discord_id} left game {game_id} "
-        f"({participant_count - 1}/{game.maxPlayers or 10})"
-    )
+    logger.info(f"User {user_discord_id} left game {game_id} ({participant_count - 1} remaining)")
 
 
 async def _validate_leave_game(db: AsyncSession, game_id: uuid.UUID, user_discord_id: str) -> dict:
@@ -107,7 +96,7 @@ async def _validate_leave_game(db: AsyncSession, game_id: uuid.UUID, user_discor
         - game: GameSession
         - participant_count: int
     """
-    result = await db.execute(select(GameSession).where(GameSession.id == game_id))
+    result = await db.execute(select(GameSession).where(GameSession.id == str(game_id)))
     game = result.scalar_one_or_none()
 
     if not game:
@@ -116,7 +105,7 @@ async def _validate_leave_game(db: AsyncSession, game_id: uuid.UUID, user_discor
     if game.status == "COMPLETED":
         return {"can_leave": False, "error": "Cannot leave a completed game"}
 
-    result = await db.execute(select(User).where(User.discordId == user_discord_id))
+    result = await db.execute(select(User).where(User.discord_id == user_discord_id))
     user = result.scalar_one_or_none()
 
     if not user:
@@ -124,8 +113,8 @@ async def _validate_leave_game(db: AsyncSession, game_id: uuid.UUID, user_discor
 
     result = await db.execute(
         select(GameParticipant)
-        .where(GameParticipant.gameSessionId == game_id)
-        .where(GameParticipant.userId == user.id)
+        .where(GameParticipant.game_session_id == str(game_id))
+        .where(GameParticipant.user_id == user.id)
     )
     participant = result.scalar_one_or_none()
 
@@ -134,8 +123,8 @@ async def _validate_leave_game(db: AsyncSession, game_id: uuid.UUID, user_discor
 
     result = await db.execute(
         select(GameParticipant)
-        .where(GameParticipant.gameSessionId == game_id)
-        .where(GameParticipant.userId.isnot(None))
+        .where(GameParticipant.game_session_id == str(game_id))
+        .where(GameParticipant.user_id.isnot(None))
     )
     participant_count = len(result.scalars().all())
 
