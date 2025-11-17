@@ -64,7 +64,7 @@ Implement a complete Discord game scheduling system with microservices architect
 - [x] Task 1.5: Create shared data models package
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 81-96)
 
-### [ ] Phase 2: Discord Bot Service
+### [x] Phase 2: Discord Bot Service
 
 - [x] Task 2.1: Initialize discord.py bot with Gateway connection
 
@@ -86,7 +86,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 183-200)
 
-- [ ] Task 2.6: Implement role authorization checks
+- [x] Task 2.6: Implement role authorization checks
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 202-217)
 
 ### [ ] Phase 3: Web API Service

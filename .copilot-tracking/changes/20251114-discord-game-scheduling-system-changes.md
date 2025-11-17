@@ -613,3 +613,105 @@ Implementation of a complete Discord game scheduling system with microservices a
 - All services can properly publish and consume events via RabbitMQ
 - Bot completes startup sequence and connects to Discord Gateway
 - Commands registered and event handlers initialized successfully
+
+### Phase 2: Discord Bot Service - Role Authorization Checks
+
+**Date**: 2025-11-16
+
+- services/bot/auth/**init**.py - Module exports for auth package
+- services/bot/auth/permissions.py - Discord permission flag utilities with bitfield constants
+- services/bot/auth/cache.py - Role caching wrapper for Redis with TTL management
+- services/bot/auth/role_checker.py - Role verification service with Discord API integration
+- tests/services/bot/auth/**init**.py - Test package initialization
+- tests/services/bot/auth/test_permissions.py - Permission utility tests (10 tests, 100% passing)
+- tests/services/bot/auth/test_cache.py - Role cache tests (10 tests, 100% passing)
+- tests/services/bot/auth/test_role_checker.py - Role checker service tests (15 tests, 100% passing)
+
+**Authorization Implementation:**
+
+- DiscordPermissions enum with all Discord permission flags as IntFlag values
+- Permission checking functions: has_permission, has_any_permission, has_all_permissions
+- RoleCache class for caching user roles and guild roles with Redis
+- Cache TTL: 5 minutes for user roles (CacheTTL.USER_ROLES)
+- Cache TTL: 10 minutes for guild configs (CacheTTL.GUILD_CONFIG)
+- Error handling with graceful fallbacks for Redis failures
+
+**RoleChecker Features:**
+
+- get_user_role_ids() - Fetch user roles from Discord API with caching
+- get_guild_roles() - Get all roles in guild
+- check_manage_guild_permission() - Check MANAGE_GUILD permission
+- check_manage_channels_permission() - Check MANAGE_CHANNELS permission
+- check_administrator_permission() - Check ADMINISTRATOR permission
+- check_game_host_permission() - Check game hosting permission with inheritance
+- invalidate_user_roles() - Force cache refresh for critical operations
+
+**Permission Inheritance:**
+
+- Checks channel-specific allowed roles first (channel.allowed_host_role_ids)
+- Falls back to guild allowed roles (guild.allowed_host_role_ids)
+- Falls back to MANAGE_GUILD permission if no roles configured
+- Integrates with database models (ChannelConfiguration, GuildConfiguration)
+
+**Testing and Quality:**
+
+- ✅ All auth module files formatted with ruff (0 issues)
+- ✅ All auth module files linted with ruff (0 issues)
+- ✅ 35 total tests created and passing (100% pass rate)
+- ✅ Comprehensive test coverage including:
+  - Permission bitfield operations
+  - Cache hit/miss scenarios
+  - Redis error handling
+  - Discord API integration (mocked)
+  - Database query scenarios (mocked)
+  - Permission inheritance resolution
+  - Force refresh bypassing cache
+  - Member not found scenarios
+  - Guild not found scenarios
+
+**Success Criteria Met:**
+
+- ✅ Roles fetched from Discord API
+- ✅ Results cached in Redis with 5-minute TTL
+- ✅ Permission checks work for all commands
+- ✅ Cache invalidation on critical operations
+- ✅ Inheritance resolution (channel → guild → MANAGE_GUILD)
+- ✅ Error handling with graceful degradation
+
+**Code Standards Verification (2025-11-16):**
+
+- ✅ **Type Hints**: All functions use modern Python 3.11+ type hints (list[str] | None, union types)
+- ✅ **Function Naming**: snake_case for all functions (get_user_role_ids, set_user_roles)
+- ✅ **Class Naming**: PascalCase for all classes (RoleCache, RoleChecker, DiscordPermissions)
+- ✅ **Constant Naming**: UPPER_SNAKE_CASE for enum values (MANAGE_GUILD, ADMINISTRATOR)
+- ✅ **Docstrings**: Google-style docstrings with Args/Returns sections for all public methods
+- ✅ **Module Docstrings**: All modules have descriptive docstrings explaining purpose
+- ✅ **Import Organization**: Standard library → third-party → local, no unused imports
+- ✅ **TYPE_CHECKING**: Used appropriately for circular import prevention
+- ✅ **PEP 8 Compliance**: Proper indentation, spacing, and formatting throughout
+- ✅ **Self-Explanatory Code**: Descriptive names eliminate need for inline comments
+- ✅ **Ruff Linting**: 0 lint errors in all auth module files
+- ✅ **Ruff Formatting**: All files properly formatted
+- ✅ **Test Coverage**: 35 comprehensive tests with 100% pass rate
+- ✅ **Error Handling**: Graceful degradation with appropriate exception handling
+
+**Import Standards Update (2025-11-16):**
+
+Updated all auth module imports to follow Google Python Style Guide:
+
+- Import modules, not module contents (classes/functions)
+- Use `from package import module` pattern
+- Access contents via module prefix (e.g., `client.RedisClient`, `keys.CacheKeys`)
+
+**Files Updated:**
+
+- services/bot/auth/cache.py - Changed from `from shared.cache.client import RedisClient, get_redis_client` to `from shared.cache import client` with usage `client.RedisClient`, `client.get_redis_client()`
+- services/bot/auth/role_checker.py - Changed from `from services.bot.auth.cache import RoleCache` to `from services.bot.auth import cache` with usage `cache.RoleCache()`
+- services/bot/auth/**init**.py - Exports modules instead of individual classes/functions
+
+**Benefits:**
+
+- Clearer code organization showing which module provides each class/function
+- Prevents namespace pollution
+- Aligns with Google Python Style Guide section 2.2.4
+- Maintains all functionality with no test failures (35/35 tests passing)
