@@ -67,3 +67,4 @@ class CurrentUser(BaseModel):
     """Current authenticated user from token."""
 
     discord_id: str = Field(..., description="Discord user snowflake ID")
+    access_token: str = Field(..., description="Discord API access token")

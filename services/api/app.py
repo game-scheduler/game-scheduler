@@ -30,7 +30,7 @@ from fastapi import FastAPI
 
 from services.api import middleware
 from services.api.config import get_api_config
-from services.api.routes import auth
+from services.api.routes import auth, channels, guilds
 from shared.cache import client as redis_client
 
 logger = logging.getLogger(__name__)
@@ -81,6 +81,8 @@ def create_app() -> FastAPI:
     middleware.error_handler.configure_error_handlers(app)
 
     app.include_router(auth.router)
+    app.include_router(guilds.router)
+    app.include_router(channels.router)
 
     @app.get("/health")
     async def health_check():

@@ -57,4 +57,4 @@ async def get_current_user(
     if await tokens.is_token_expired(token_data["expires_at"]):
         raise HTTPException(status_code=401, detail="Token expired")
 
-    return auth_schemas.CurrentUser(discord_id=x_user_id)
+    return auth_schemas.CurrentUser(discord_id=x_user_id, access_token=token_data["access_token"])

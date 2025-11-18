@@ -103,7 +103,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 259-275)
 
-- [ ] Task 3.4: Build guild and channel configuration endpoints
+- [x] Task 3.4: Build guild and channel configuration endpoints
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 277-297)
 
