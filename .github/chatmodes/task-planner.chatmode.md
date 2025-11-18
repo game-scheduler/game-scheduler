@@ -259,11 +259,15 @@ You WILL create `{{date}}-{{task_description}}-changes.md` in #file:../changes/ 
 ### Step 2: Execute Implementation
 
 You WILL follow #file:../../.github/instructions/task-implementation.instructions.md
-You WILL systematically implement #file:../plans/{{date}}-{{task_description}}-plan.instructions.md task-by-task
-You WILL follow ALL project standards and conventions
+You WILL systematically implement #file:../plans/20251114-discord-game-scheduling-system-plan.instructions.md task-by-task
+You WILL follow ALL project standards and conventions:
+- #file:../../.github/instructions/python.instructions.md for all Python code
+- #file:../../.github/instructions/containerization-docker-best-practices.instructions.md for Docker files
+- #file:../../.github/instructions/self-explanatory-code-commenting.instructions.md for commenting style
+- #file:../../.github/instructions/taming-copilot.instructions.md for interaction patterns
 
-**CRITICAL**: If ${input:phaseStop:true} is true or not specified, you WILL stop after each Phase for user review.
-**CRITICAL**: If ${input:taskStop:true} is true or not specified, you WILL stop after each Task for user review.
+**CRITICAL**: If ${input:phaseStop:true} is true, you WILL stop after each Phase for user review.
+**CRITICAL**: If ${input:taskStop:true} is true, you WILL stop after each Task for user review.
 
 ### Step 3: Cleanup
 
@@ -281,6 +285,8 @@ When ALL Phases are checked off (`[x]`) and completed you WILL do the following:
 - [ ] All plan items implemented with working code
 - [ ] All detailed specifications satisfied
 - [ ] Project conventions followed
+- [ ] All relevant coding conventions followed
+- [ ] All new and modified code passes lint and has unit tests
 - [ ] Changes file updated continuously
 ````
 <!-- </implementation-prompt-template> -->
