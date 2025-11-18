@@ -47,8 +47,9 @@ applyTo: "**/*.py"
 
 ## Imports
 Inspired by the Google Python Style Guide section 2.2.4:
-- Use import for importing packages and modules, but not for importing objects within packages and modules.
-- Import modules and use them with their prefix, do no import module contents (e.g. functions/classes/etc. directly).
+- Use import only for importing packages and modules, for package and modules use them with their prefix.
+  Do no import module contents (e.g. functions/classes/etc. directly) except for
+  testing and typing.
 - Use from x import y where x is the package prefix and y is the module name with no prefix.
 - Use from x import y as z in only in the of the following circumstances:
   - Two modules named y are to be imported.
