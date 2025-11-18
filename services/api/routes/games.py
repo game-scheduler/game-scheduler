@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api.auth import discord_client as discord_client_module
 from services.api.dependencies import auth as auth_deps
+from services.api.services import display_names as display_names_module
 from services.api.services import games as games_service
 from services.api.services import participant_resolver as resolver_module
 from shared import database
@@ -80,11 +81,9 @@ async def create_game(
             access_token=current_user.access_token,
         )
 
-        # Build response
         return await _build_game_response(game)
 
     except resolver_module.ValidationError as e:
-        # Return validation error with suggestions
         raise HTTPException from None(
             status_code=422,
             detail={
@@ -252,27 +251,43 @@ async def leave_game(
 
 async def _build_game_response(game: game_model.GameSession) -> game_schemas.GameResponse:
     """
-    Build GameResponse from GameSession model.
+    Build GameResponse from GameSession model with resolved display names.
 
     Args:
-        game: Game session model with participants loaded
+        game: Game session model with participants and guild loaded
 
     Returns:
-        Game response schema
+        Game response schema with resolved display names
     """
-    # Count non-placeholder participants
     participant_count = sum(1 for p in game.participants if p.user_id is not None)
 
-    # Build participant responses
+    discord_user_ids = [p.user.discord_id for p in game.participants if p.user is not None]
+
+    display_name_resolver = display_names_module.get_display_name_resolver()
+    display_names_map = {}
+
+    if discord_user_ids:
+        if game.guild_id:
+            guild_discord_id = game.guild.guild_id
+            display_names_map = await display_name_resolver.resolve_display_names(
+                guild_discord_id, discord_user_ids
+            )
+
     participant_responses = []
     for participant in game.participants:
+        discord_id = participant.user.discord_id if participant.user else None
+        display_name = participant.display_name
+
+        if discord_id and discord_id in display_names_map:
+            display_name = display_names_map[discord_id]
+
         participant_responses.append(
             participant_schemas.ParticipantResponse(
                 id=participant.id,
                 game_session_id=participant.game_session_id,
                 user_id=participant.user_id,
-                discord_id=participant.user.discord_id if participant.user else None,
-                display_name=participant.display_name,
+                discord_id=discord_id,
+                display_name=display_name,
                 joined_at=participant.joined_at.isoformat(),
                 status=participant.status,
                 is_pre_populated=participant.is_pre_populated,

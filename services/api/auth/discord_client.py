@@ -256,6 +256,34 @@ class DiscordAPIClient:
             logger.error(f"Network error fetching guild member: {e}")
             raise DiscordAPIError(500, f"Network error: {str(e)}") from e
 
+    async def get_guild_members_batch(
+        self, guild_id: str, user_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        """
+        Fetch multiple guild members using bot token.
+
+        Args:
+            guild_id: Discord guild (server) ID
+            user_ids: List of Discord user IDs to fetch
+
+        Returns:
+            List of guild member objects (may be fewer than requested if users left)
+
+        Raises:
+            DiscordAPIError: If fetching members fails
+        """
+        members = []
+        for user_id in user_ids:
+            try:
+                member = await self.get_guild_member(guild_id, user_id)
+                members.append(member)
+            except DiscordAPIError as e:
+                if e.status == 404:
+                    logger.debug(f"User {user_id} not found in guild {guild_id}")
+                    continue
+                raise
+        return members
+
 
 _discord_client_instance: DiscordAPIClient | None = None
 

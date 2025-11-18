@@ -162,10 +162,8 @@ class GameService:
         # Create game session
         # Database stores timestamps as naive UTC, so convert timezone-aware inputs
         if game_data.scheduled_at.tzinfo is not None:
-            scheduled_at_naive = (
-                game_data.scheduled_at
-                .astimezone(datetime.UTC)
-                .replace(tzinfo=None)
+            scheduled_at_naive = game_data.scheduled_at.astimezone(datetime.UTC).replace(
+                tzinfo=None
             )
         else:
             # Already naive, assume UTC
@@ -235,7 +233,7 @@ class GameService:
 
     async def get_game(self, game_id: str) -> game_model.GameSession | None:
         """
-        Get game session by ID with participants loaded.
+        Get game session by ID with participants and guild loaded.
 
         Args:
             game_id: Game session UUID
@@ -247,6 +245,7 @@ class GameService:
             select(game_model.GameSession)
             .options(
                 selectinload(game_model.GameSession.host),
+                selectinload(game_model.GameSession.guild),
                 selectinload(game_model.GameSession.participants).selectinload(
                     participant_model.GameParticipant.user
                 ),
@@ -277,9 +276,11 @@ class GameService:
             Tuple of (games list, total count)
         """
         query = select(game_model.GameSession).options(
+            selectinload(game_model.GameSession.host),
+            selectinload(game_model.GameSession.guild),
             selectinload(game_model.GameSession.participants).selectinload(
                 participant_model.GameParticipant.user
-            )
+            ),
         )
 
         if guild_id:
@@ -346,10 +347,8 @@ class GameService:
         if update_data.scheduled_at is not None:
             # Database stores timestamps as naive UTC, so convert timezone-aware inputs
             if update_data.scheduled_at.tzinfo is not None:
-                game.scheduled_at = (
-                    update_data.scheduled_at
-                    .astimezone(datetime.UTC)
-                    .replace(tzinfo=None)
+                game.scheduled_at = update_data.scheduled_at.astimezone(datetime.UTC).replace(
+                    tzinfo=None
                 )
             else:
                 # Already naive, assume UTC

@@ -226,6 +226,61 @@ class TestDiscordAPIClient:
         assert len(result["roles"]) == 2
 
     @pytest.mark.asyncio
+    async def test_get_guild_members_batch_success(self, discord_client):
+        """Test successful batch guild members fetch."""
+        with patch.object(
+            discord_client, "get_guild_member", new_callable=AsyncMock
+        ) as mock_get_member:
+            mock_get_member.side_effect = [
+                {"user": {"id": "user1"}, "nick": "Nick1"},
+                {"user": {"id": "user2"}, "nick": "Nick2"},
+            ]
+
+            result = await discord_client.get_guild_members_batch(
+                guild_id="guild123", user_ids=["user1", "user2"]
+            )
+
+            assert len(result) == 2
+            assert result[0]["user"]["id"] == "user1"
+            assert result[1]["user"]["id"] == "user2"
+            assert mock_get_member.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_get_guild_members_batch_skip_not_found(self, discord_client):
+        """Test batch fetch skips users who left guild (404 errors)."""
+        with patch.object(
+            discord_client, "get_guild_member", new_callable=AsyncMock
+        ) as mock_get_member:
+            mock_get_member.side_effect = [
+                {"user": {"id": "user1"}, "nick": "Nick1"},
+                DiscordAPIError(404, "Unknown Member"),
+                {"user": {"id": "user3"}, "nick": "Nick3"},
+            ]
+
+            result = await discord_client.get_guild_members_batch(
+                guild_id="guild123", user_ids=["user1", "user2", "user3"]
+            )
+
+            assert len(result) == 2
+            assert result[0]["user"]["id"] == "user1"
+            assert result[1]["user"]["id"] == "user3"
+
+    @pytest.mark.asyncio
+    async def test_get_guild_members_batch_raises_on_other_errors(self, discord_client):
+        """Test batch fetch raises on non-404 API errors."""
+        with patch.object(
+            discord_client, "get_guild_member", new_callable=AsyncMock
+        ) as mock_get_member:
+            mock_get_member.side_effect = DiscordAPIError(500, "Internal Server Error")
+
+            with pytest.raises(DiscordAPIError) as exc_info:
+                await discord_client.get_guild_members_batch(
+                    guild_id="guild123", user_ids=["user1"]
+                )
+
+            assert exc_info.value.status == 500
+
+    @pytest.mark.asyncio
     async def test_close_session(self, discord_client):
         """Test session cleanup."""
         mock_session = AsyncMock()
