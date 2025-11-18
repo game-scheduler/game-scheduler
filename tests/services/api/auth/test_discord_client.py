@@ -63,13 +63,17 @@ class TestDiscordAPIClient:
             }
         )
 
-        mock_session = AsyncMock()
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_session.post = MagicMock(return_value=mock_context_manager)
+        discord_client._session = mock_session
 
-        with patch.object(discord_client, "_get_session", return_value=mock_session):
-            result = await discord_client.exchange_code(
-                code="test_code", redirect_uri="http://localhost:3000/callback"
-            )
+        result = await discord_client.exchange_code(
+            code="test_code", redirect_uri="http://localhost:3000/callback"
+        )
 
         assert result["access_token"] == "test_access_token"
         assert result["refresh_token"] == "test_refresh_token"
@@ -82,8 +86,12 @@ class TestDiscordAPIClient:
         mock_response.status = 400
         mock_response.json = AsyncMock(return_value={"error_description": "Invalid code"})
 
-        mock_session = AsyncMock()
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_session.post = MagicMock(return_value=mock_context_manager)
         discord_client._session = mock_session
 
         with pytest.raises(DiscordAPIError) as exc_info:
@@ -97,10 +105,13 @@ class TestDiscordAPIClient:
     @pytest.mark.asyncio
     async def test_exchange_code_network_error(self, discord_client):
         """Test network error during code exchange."""
-        mock_session = AsyncMock()
-        mock_session.post.return_value.__aenter__.side_effect = aiohttp.ClientError(
-            "Connection failed"
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(
+            side_effect=aiohttp.ClientError("Connection failed")
         )
+        mock_session.post = MagicMock(return_value=mock_context_manager)
         discord_client._session = mock_session
 
         with pytest.raises(DiscordAPIError) as exc_info:
@@ -124,8 +135,12 @@ class TestDiscordAPIClient:
             }
         )
 
-        mock_session = AsyncMock()
-        mock_session.post.return_value.__aenter__.return_value = mock_response
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_session.post = MagicMock(return_value=mock_context_manager)
         discord_client._session = mock_session
 
         result = await discord_client.refresh_token(refresh_token="old_refresh_token")
@@ -146,8 +161,12 @@ class TestDiscordAPIClient:
             }
         )
 
-        mock_session = AsyncMock()
-        mock_session.get.return_value.__aenter__.return_value = mock_response
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context_manager)
         discord_client._session = mock_session
 
         result = await discord_client.get_user_info(access_token="test_token")
@@ -167,8 +186,12 @@ class TestDiscordAPIClient:
             ]
         )
 
-        mock_session = AsyncMock()
-        mock_session.get.return_value.__aenter__.return_value = mock_response
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context_manager)
         discord_client._session = mock_session
 
         result = await discord_client.get_user_guilds(access_token="test_token")
@@ -189,8 +212,12 @@ class TestDiscordAPIClient:
             }
         )
 
-        mock_session = AsyncMock()
-        mock_session.get.return_value.__aenter__.return_value = mock_response
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context_manager)
         discord_client._session = mock_session
 
         result = await discord_client.get_guild_member(guild_id="guild123", user_id="123456789")

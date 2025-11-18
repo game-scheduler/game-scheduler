@@ -63,10 +63,11 @@ class TestGameSchedulerBot:
         """Test that bot has correct intents enabled."""
         bot = GameSchedulerBot(bot_config)
 
-        assert bot.intents.guilds is True
-        assert bot.intents.guild_messages is True
-        assert bot.intents.message_content is True
-        assert bot.intents.members is True
+        # Bot uses minimal intents (none) as it only responds to interactions
+        assert bot.intents.value == 0
+        assert bot.intents.guilds is False
+        assert bot.intents.guild_messages is False
+        assert bot.intents.message_content is False
 
     @pytest.mark.asyncio
     async def test_setup_hook_development(self, bot_config: BotConfig) -> None:
@@ -74,10 +75,19 @@ class TestGameSchedulerBot:
         bot_config.environment = "development"
         bot = GameSchedulerBot(bot_config)
 
-        with patch.object(bot.tree, "sync", new_callable=AsyncMock) as mock_sync:
-            await bot.setup_hook()
+        mock_publisher = MagicMock()
+        mock_publisher.connect = AsyncMock()
 
-            mock_sync.assert_awaited_once()
+        with patch("services.bot.commands.setup_commands", new_callable=AsyncMock):
+            with patch(
+                "services.bot.events.publisher.BotEventPublisher", return_value=mock_publisher
+            ):
+                with patch("services.bot.handlers.ButtonHandler"):
+                    with patch("services.bot.events.handlers.EventHandlers"):
+                        with patch.object(bot.tree, "sync", new_callable=AsyncMock) as mock_sync:
+                            await bot.setup_hook()
+
+                            mock_sync.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_setup_hook_production(self, bot_config: BotConfig) -> None:
@@ -85,10 +95,19 @@ class TestGameSchedulerBot:
         bot_config.environment = "production"
         bot = GameSchedulerBot(bot_config)
 
-        with patch.object(bot.tree, "sync", new_callable=AsyncMock) as mock_sync:
-            await bot.setup_hook()
+        mock_publisher = MagicMock()
+        mock_publisher.connect = AsyncMock()
 
-            mock_sync.assert_not_awaited()
+        with patch("services.bot.commands.setup_commands", new_callable=AsyncMock):
+            with patch(
+                "services.bot.events.publisher.BotEventPublisher", return_value=mock_publisher
+            ):
+                with patch("services.bot.handlers.ButtonHandler"):
+                    with patch("services.bot.events.handlers.EventHandlers"):
+                        with patch.object(bot.tree, "sync", new_callable=AsyncMock) as mock_sync:
+                            await bot.setup_hook()
+
+                            mock_sync.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_on_ready_event(self, bot_config: BotConfig) -> None:

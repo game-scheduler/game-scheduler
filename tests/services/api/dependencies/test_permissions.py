@@ -31,7 +31,7 @@ from shared.schemas import auth as auth_schemas
 @pytest.fixture
 def mock_current_user():
     """Create mock current user."""
-    return auth_schemas.CurrentUser(discord_id="user123")
+    return auth_schemas.CurrentUser(discord_id="user123", access_token="test_token")
 
 
 @pytest.fixture
