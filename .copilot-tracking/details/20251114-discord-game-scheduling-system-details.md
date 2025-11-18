@@ -1,4 +1,5 @@
 <!-- markdownlint-disable-file -->
+
 # Task Details: Discord Game Scheduling System
 
 ## Research Reference
@@ -150,15 +151,17 @@ Create slash commands: /list-games, /my-games, /config-guild, /config-channel wi
   - `services/bot/commands/my_games.py` - User's games command
   - `services/bot/commands/config_guild.py` - Guild config command (admin)
   - `services/bot/commands/config_channel.py` - Channel config command (admin)
-  - `services/bot/commands/decorators.py` - Permission check decorators
+  - `services/bot/commands/decorators.py` - Permission check decorators with `get_permissions()` helper
 - **Success**:
   - All commands registered in Discord
   - Commands respond within 3 seconds
-  - Admin commands check permissions
+  - Admin commands check permissions reliably
   - Error messages display clearly
+  - Permission checks handle both Member and interaction contexts
 - **Research References**:
   - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1361-1389) - Bot command responsibilities
   - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 103-112) - Role permissions
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 138-145) - Permission checking patterns
 - **Dependencies**:
   - Task 2.1 (bot initialization)
   - Task 1.2 (database models)
@@ -233,13 +236,16 @@ Build service to check user's Discord roles against configured allowed roles wit
   - `services/bot/auth/role_checker.py` - Role verification service
   - `services/bot/auth/permissions.py` - Permission flag utilities
   - `services/bot/auth/cache.py` - Role caching wrapper
+  - `services/bot/commands/decorators.py` - Permission check decorators (uses `get_permissions()` helper)
 - **Success**:
   - Roles fetched from Discord API
   - Results cached in Redis with 5-minute TTL
-  - Permission checks work for all commands
+  - Permission checks work reliably for all commands
+  - Handles both Member and interaction permission contexts
   - Cache invalidation on critical operations
 - **Research References**:
   - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 103-123) - Role permissions
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 138-145) - Permission checking patterns
   - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 821-854) - Role authorization
   - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 990-1036) - Middleware implementation
 - **Dependencies**:

@@ -715,3 +715,33 @@ Updated all auth module imports to follow Google Python Style Guide:
 - Prevents namespace pollution
 - Aligns with Google Python Style Guide section 2.2.4
 - Maintains all functionality with no test failures (35/35 tests passing)
+
+#### Refactored Permission Checking in Command Decorators
+
+Created `get_permissions()` helper function to reliably obtain user permissions from interactions, fixing issues where member permissions were not always available.
+
+**Files Updated:**
+
+- services/bot/commands/decorators.py - Added `get_permissions()` function and refactored both decorators
+
+**Changes:**
+
+- Added `get_permissions(interaction: Interaction) -> discord.Permissions` function that:
+  - Prefers interaction.permissions (reflects channel-specific overwrites)
+  - Falls back to member.guild_permissions when interaction permissions are not available
+  - Returns interaction.permissions as final fallback
+- Refactored `require_manage_guild()` decorator:
+  - Removed manual member type checking and error handling
+  - Uses `get_permissions()` for consistent permission retrieval
+- Refactored `require_manage_channels()` decorator:
+  - Removed manual member type checking and error handling
+  - Uses `get_permissions()` for consistent permission retrieval
+
+**Benefits:**
+
+- More reliable permission checking that handles edge cases where member is not set
+- Follows Discord best practices by preferring interaction.permissions
+- Correctly reflects channel-specific permission overwrites
+- Eliminates redundant "Could not verify your permissions" error messages
+- Cleaner, DRY code with centralized permission logic
+- Maintains all security checks while improving robustness

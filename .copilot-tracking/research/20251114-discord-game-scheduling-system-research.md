@@ -139,6 +139,15 @@
 - Messages can be edited to update participant lists and button states in real-time
 - Message components (buttons) persist across bot restarts
 
+**Permission Checking in Interactions**
+
+- `Interaction.permissions` contains computed permissions for the invoking user in the interaction context
+- `Member.guild_permissions` contains server-level permissions (may not reflect channel-specific overwrites)
+- `Interaction.permissions` is more reliable as it reflects actual permissions in the interaction's channel
+- Best practice: Prefer `interaction.permissions` with fallback to `member.guild_permissions` when available
+- In some contexts (DMs, bot restarts), `interaction.user` may not be a full `Member` object
+- Permission checking should handle both guild and DM contexts gracefully
+
 ### Discord User Identity and Display Names
 
 **User Identification Best Practices**

@@ -28,6 +28,26 @@ from discord import Interaction
 logger = logging.getLogger(__name__)
 
 
+def get_permissions(interaction: Interaction) -> discord.Permissions:
+    """
+    Get user permissions from interaction, preferring interaction permissions.
+
+    Args:
+        interaction: Discord interaction object
+
+    Returns:
+        User's permissions in the current context
+    """
+    if interaction.permissions and interaction.permissions.value != 0:
+        return interaction.permissions
+
+    member = interaction.user
+    if isinstance(member, discord.Member):
+        return member.guild_permissions
+
+    return discord.Permissions.none()
+
+
 def require_manage_guild() -> Callable:
     """
     Decorator to require MANAGE_GUILD permission for command execution.
@@ -46,15 +66,8 @@ def require_manage_guild() -> Callable:
                 )
                 return
 
-            member = interaction.user
-            if not isinstance(member, discord.Member):
-                await interaction.response.send_message(
-                    "❌ Could not verify your permissions.",
-                    ephemeral=True,
-                )
-                return
-
-            if not member.guild_permissions.manage_guild:
+            permissions = get_permissions(interaction)
+            if not permissions.manage_guild:
                 await interaction.response.send_message(
                     "❌ You need the **Manage Server** permission to use this command.",
                     ephemeral=True,
@@ -86,15 +99,8 @@ def require_manage_channels() -> Callable:
                 )
                 return
 
-            member = interaction.user
-            if not isinstance(member, discord.Member):
-                await interaction.response.send_message(
-                    "❌ Could not verify your permissions.",
-                    ephemeral=True,
-                )
-                return
-
-            if not member.guild_permissions.manage_channels:
+            permissions = get_permissions(interaction)
+            if not permissions.manage_channels:
                 await interaction.response.send_message(
                     "❌ You need the **Manage Channels** permission to use this command.",
                     ephemeral=True,
