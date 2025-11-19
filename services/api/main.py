@@ -48,6 +48,7 @@ def setup_logging(log_level: str) -> None:
 
     logging.getLogger("uvicorn").setLevel(logging.INFO)
     logging.getLogger("fastapi").setLevel(logging.INFO)
+    logging.getLogger("services.api").setLevel(logging.INFO)
 
 
 async def main() -> None:

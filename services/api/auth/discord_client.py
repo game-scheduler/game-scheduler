@@ -83,6 +83,28 @@ class DiscordAPIClient:
         if self._session and not self._session.closed:
             await self._session.close()
 
+    def _log_request(self, method: str, url: str, operation: str) -> None:
+        """Log Discord API request."""
+        logger.info(f"Discord API: {method} {url} ({operation})")
+
+    def _log_response(
+        self,
+        response: aiohttp.ClientResponse,
+        extra_info: str = "",
+    ) -> None:
+        """Log Discord API response with rate limit information."""
+        rate_limit_info = (
+            f"Rate Limit: "
+            f"remaining={response.headers.get('x-ratelimit-remaining', 'N/A')}, "
+            f"limit={response.headers.get('x-ratelimit-limit', 'N/A')}, "
+            f"reset_after={response.headers.get('x-ratelimit-reset-after', 'N/A')}s"
+        )
+
+        if extra_info:
+            rate_limit_info += f" - {extra_info}"
+
+        logger.info(f"Discord API Response: {response.status} - {rate_limit_info}")
+
     async def exchange_code(self, code: str, redirect_uri: str) -> dict[str, Any]:
         """
         Exchange authorization code for access and refresh tokens.
@@ -107,6 +129,7 @@ class DiscordAPIClient:
             "redirect_uri": redirect_uri,
         }
 
+        self._log_request("POST", DISCORD_TOKEN_URL, "exchange_code")
         try:
             async with session.post(
                 DISCORD_TOKEN_URL,
@@ -114,6 +137,7 @@ class DiscordAPIClient:
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             ) as response:
                 response_data = await response.json()
+                self._log_response(response)
 
                 if response.status != 200:
                     error_msg = response_data.get("error_description", "Unknown error")
@@ -146,6 +170,7 @@ class DiscordAPIClient:
             "refresh_token": refresh_token,
         }
 
+        self._log_request("POST", DISCORD_TOKEN_URL, "refresh_token")
         try:
             async with session.post(
                 DISCORD_TOKEN_URL,
@@ -153,6 +178,7 @@ class DiscordAPIClient:
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             ) as response:
                 response_data = await response.json()
+                self._log_response(response)
 
                 if response.status != 200:
                     error_msg = response_data.get("error_description", "Unknown error")
@@ -178,12 +204,14 @@ class DiscordAPIClient:
         """
         session = await self._get_session()
 
+        self._log_request("GET", DISCORD_USER_URL, "get_user_info")
         try:
             async with session.get(
                 DISCORD_USER_URL,
                 headers={"Authorization": f"Bearer {access_token}"},
             ) as response:
                 response_data = await response.json()
+                self._log_response(response)
 
                 if response.status != 200:
                     error_msg = response_data.get("message", "Unknown error")
@@ -209,15 +237,22 @@ class DiscordAPIClient:
         """
         session = await self._get_session()
 
+        self._log_request("GET", DISCORD_GUILDS_URL, "get_user_guilds")
         try:
             async with session.get(
                 DISCORD_GUILDS_URL,
                 headers={"Authorization": f"Bearer {access_token}"},
             ) as response:
                 response_data = await response.json()
+                guild_count = len(response_data) if isinstance(response_data, list) else "N/A"
+                self._log_response(response, f"Returned {guild_count} guilds")
 
                 if response.status != 200:
-                    error_msg = response_data.get("message", "Unknown error")
+                    error_msg = (
+                        response_data.get("message", "Unknown error")
+                        if isinstance(response_data, dict)
+                        else "Unknown error"
+                    )
                     raise DiscordAPIError(response.status, error_msg, dict(response.headers))
 
                 return response_data
@@ -242,12 +277,14 @@ class DiscordAPIClient:
         session = await self._get_session()
         url = f"{DISCORD_API_BASE}/guilds/{guild_id}/members/{user_id}"
 
+        self._log_request("GET", url, "get_guild_member")
         try:
             async with session.get(
                 url,
                 headers={"Authorization": f"Bot {self.bot_token}"},
             ) as response:
                 response_data = await response.json()
+                self._log_response(response)
 
                 if response.status != 200:
                     error_msg = response_data.get("message", "Unknown error")
@@ -274,6 +311,7 @@ class DiscordAPIClient:
         Raises:
             DiscordAPIError: If fetching members fails
         """
+        logger.info(f"Discord API: Batch fetching {len(user_ids)} members from guild {guild_id}")
         members = []
         for user_id in user_ids:
             try:
@@ -284,6 +322,9 @@ class DiscordAPIClient:
                     logger.debug(f"User {user_id} not found in guild {guild_id}")
                     continue
                 raise
+        logger.info(
+            f"Discord API: Batch completed - fetched {len(members)}/{len(user_ids)} members"
+        )
         return members
 
 

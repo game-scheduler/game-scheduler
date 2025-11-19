@@ -148,7 +148,7 @@ async def get_guild(
 
     service = config_service.ConfigurationService(db)
 
-    token_data = await tokens.get_user_tokens(current_user.discord_id)
+    token_data = await tokens.get_user_tokens(current_user.session_token)
     if not token_data:
         raise HTTPException(status_code=401, detail="No session found")
 
@@ -290,7 +290,7 @@ async def list_guild_channels(
 
     service = config_service.ConfigurationService(db)
 
-    token_data = await tokens.get_user_tokens(current_user.discord_id)
+    token_data = await tokens.get_user_tokens(current_user.session_token)
     if not token_data:
         raise HTTPException(status_code=401, detail="No session found")
 

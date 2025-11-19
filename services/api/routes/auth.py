@@ -30,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.api.auth import oauth2, tokens
 from services.api.config import get_api_config
 from services.api.dependencies import auth as auth_deps
+from shared.cache import client as cache_client
 from shared.database import get_db
 from shared.models import user as user_model
 from shared.schemas import auth as auth_schemas
@@ -143,16 +144,15 @@ async def refresh(
     Returns:
         New access token and expiration
     """
-    token_data = await tokens.get_user_tokens(current_user.discord_id)
+    token_data = await tokens.get_user_tokens(current_user.session_token)
     if not token_data:
         raise HTTPException(status_code=401, detail="No session found")
 
     try:
         new_tokens = await oauth2.refresh_access_token(token_data["refresh_token"])
         await tokens.refresh_user_tokens(
-            current_user.discord_id,
+            current_user.session_token,
             new_tokens["access_token"],
-            new_tokens["refresh_token"],
             new_tokens["expires_in"],
         )
         return auth_schemas.TokenResponse(
@@ -198,7 +198,7 @@ async def get_user_info(
     Returns:
         User info and guild list
     """
-    token_data = await tokens.get_user_tokens(current_user.discord_id)
+    token_data = await tokens.get_user_tokens(current_user.session_token)
     if not token_data:
         raise HTTPException(status_code=401, detail="No session found")
 
@@ -206,9 +206,8 @@ async def get_user_info(
         try:
             new_tokens = await oauth2.refresh_access_token(token_data["refresh_token"])
             await tokens.refresh_user_tokens(
-                current_user.discord_id,
+                current_user.session_token,
                 new_tokens["access_token"],
-                new_tokens["refresh_token"],
                 new_tokens["expires_in"],
             )
             access_token = new_tokens["access_token"]
@@ -220,7 +219,21 @@ async def get_user_info(
 
     try:
         user_info = await oauth2.get_user_from_token(access_token)
-        guilds = await oauth2.get_user_guilds(access_token)
+
+        # Use cached guilds to avoid rate limiting
+        cache_key = f"user_guilds:{current_user.discord_id}"
+        redis = await cache_client.get_redis_client()
+        cached = await redis.get(cache_key)
+
+        if cached:
+            import json
+
+            guilds = json.loads(cached)
+        else:
+            guilds = await oauth2.get_user_guilds(access_token)
+            import json
+
+            await redis.set(cache_key, json.dumps(guilds), ttl=60)
 
         # Get database user record to get UUID
         from sqlalchemy import select

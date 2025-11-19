@@ -134,7 +134,7 @@ async def get_user_tokens(session_token: str) -> dict[str, Any] | None:
     session_data = await redis.get_json(session_key)
 
     if session_data is None:
-        logger.warning(f"No session found for user {user_id}")
+        logger.warning(f"No session found for token {session_token}")
         return None
 
     decrypted_access = decrypt_token(session_data["access_token"])
@@ -163,6 +163,19 @@ async def refresh_user_tokens(
 
     session_key = f"session:{session_token}"
     session_data = await redis.get_json(session_key)
+
+    if session_data is None:
+        logger.warning(f"No session found for token {session_token}")
+        return
+
+    encrypted_access = encrypt_token(new_access_token)
+    expiry = datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=new_expires_in)
+
+    session_data["access_token"] = encrypted_access
+    session_data["expires_at"] = expiry.isoformat()
+
+    await redis.set_json(session_key, session_data, ttl=cache_ttl.CacheTTL.SESSION)
+    logger.info(f"Refreshed tokens for session {session_token}")
 
 
 async def delete_user_tokens(session_token: str) -> None:

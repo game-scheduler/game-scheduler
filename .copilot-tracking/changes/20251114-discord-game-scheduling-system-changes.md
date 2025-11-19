@@ -3648,6 +3648,28 @@ interface ValidationErrorResponse {
 - ✅ Modern Python 3.11+ type hints used throughout
 - ✅ Descriptive function names with proper docstrings
 - ✅ Code is self-explanatory following commenting guidelines
+
+### Bug Fix: Token Storage NameError (2025-11-19)
+
+**Issue**: API service failing with `NameError: name 'user_id' is not defined` in `services/api/auth/tokens.py` line 119
+
+**Root Cause**: Logger was attempting to reference `user_id` variable that doesn't exist in `get_user_tokens()` function scope. The function parameter is `session_token`, not `user_id`.
+
+**Fix Applied**:
+
+- Changed logger warning message from `f"No session found for user {user_id}"` to `f"No session found for token {session_token}"`
+- This matches the function's parameter and provides accurate debugging information
+
+**Files Modified**:
+
+- services/api/auth/tokens.py - Line 119 logger.warning statement
+
+**Impact**:
+
+- ✅ API service no longer crashes when session tokens are missing/expired
+- ✅ Proper error logging with correct variable reference
+- ✅ User receives appropriate 401 Unauthorized response instead of 500 Internal Server Error
+- ✅ Authentication flow handles missing sessions gracefully
 - ✅ Comments explain WHY, not WHAT (business logic, algorithms, constraints)
 - ✅ No obvious, redundant, or outdated comments
 - ✅ Import statements follow Google Python Style Guide ordering

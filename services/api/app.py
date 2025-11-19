@@ -24,6 +24,7 @@ error handlers, and route registration.
 """
 
 import logging
+import sys
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -32,6 +33,19 @@ from services.api import middleware
 from services.api.config import get_api_config
 from services.api.routes import auth, channels, games, guilds
 from shared.cache import client as redis_client
+
+# Configure logging at module level before anything else
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+    force=True,  # Override any existing configuration
+)
+
+# Set log levels for various loggers
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+logging.getLogger("uvicorn.error").setLevel(logging.INFO)
+logging.getLogger("services.api").setLevel(logging.INFO)
 
 logger = logging.getLogger(__name__)
 

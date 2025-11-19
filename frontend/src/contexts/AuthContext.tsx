@@ -44,7 +44,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
       setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch user:', error);
-      throw error;
+      setUser(null);
     }
   };
 
@@ -54,6 +54,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
         await fetchUser();
       } catch (error) {
         console.error('Failed to initialize auth:', error);
+        setUser(null);
       }
 
       setLoading(false);
