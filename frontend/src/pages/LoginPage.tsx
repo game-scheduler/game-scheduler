@@ -31,20 +31,53 @@ export const LoginPage: FC = () => {
     setError(null);
 
     try {
+      console.log('=== LOGIN DEBUG START ===');
+      console.log('Initiating login request to:', '/api/v1/auth/login');
+      console.log('Redirect URI:', REDIRECT_URI);
+      console.log('API Base URL:', apiClient.defaults.baseURL);
+      
       const response = await apiClient.get('/api/v1/auth/login', {
         params: { redirect_uri: REDIRECT_URI }
       });
       
+      console.log('Login response status:', response.status);
+      console.log('Login response headers:', response.headers);
+      console.log('Login response data:', response.data);
+      console.log('Response data type:', typeof response.data);
+      console.log('Response data keys:', Object.keys(response.data || {}));
+      
       const { authorization_url, state } = response.data;
+      
+      console.log('Extracted authorization_url:', authorization_url);
+      console.log('Extracted state:', state);
+      
+      if (!authorization_url || !state) {
+        throw new Error('Invalid response: missing authorization_url or state');
+      }
       
       // Store state in sessionStorage for CSRF validation
       sessionStorage.setItem('oauth_state', state);
       
+      console.log('Redirecting to Discord OAuth...');
+      console.log('=== LOGIN DEBUG END ===');
       // Redirect to Discord OAuth2 authorization page
       window.location.href = authorization_url;
-    } catch (err) {
+    } catch (err: any) {
+      console.error('=== LOGIN ERROR START ===');
       console.error('Login initiation failed:', err);
-      setError('Failed to initiate login. Please try again.');
+      console.error('Error type:', typeof err);
+      console.error('Error constructor:', err?.constructor?.name);
+      console.error('Error string:', String(err));
+      console.error('Error JSON:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+      console.error('Error response:', err.response);
+      console.error('Error response status:', err.response?.status);
+      console.error('Error response data:', err.response?.data);
+      console.error('Error message:', err.message);
+      console.error('Error stack:', err.stack);
+      console.error('=== LOGIN ERROR END ===');
+      
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to initiate login. Please try again.';
+      setError(errorMessage);
       setLoading(false);
     }
   };

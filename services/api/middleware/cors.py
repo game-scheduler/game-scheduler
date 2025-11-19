@@ -42,8 +42,16 @@ def configure_cors(app: FastAPI, config: APIConfig) -> None:
         "http://localhost:3001",
     ]
 
+    # Note: Cannot use "*" wildcard when allow_credentials=True
+    # In debug mode, be more permissive but still specific
     if config.debug:
-        origins.append("*")
+        origins.extend(
+            [
+                "http://localhost:5173",  # Vite default dev port
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:8000",
+            ]
+        )
 
     app.add_middleware(
         CORSMiddleware,

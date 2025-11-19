@@ -2338,6 +2338,101 @@ Fixed all 29 failing tests in the project test suite, achieving 100% test pass r
 **Success Criteria:**
 
 - ✅ No CSRF error messages during login
+
+---
+
+### Bug Fixes - CORS Configuration for Cookie-Based Authentication
+
+**Date**: 2025-11-18
+
+**Issue**: Frontend login failing with error "Failed to initiate login. Please try again."
+
+**Root Cause**: Multiple CORS configuration issues preventing browser from sending cookies and making authenticated requests.
+
+**Problem 1**: API CORS middleware was using wildcard (`*`) origin with `allow_credentials=True`
+
+- When `withCredentials: true` is set in axios, browsers require specific origin in `Access-Control-Allow-Origin` header
+- Wildcard `*` is not allowed with credentials mode per CORS specification
+- Browser blocked all requests with: "The value of the 'Access-Control-Allow-Origin' header in the response must not be the wildcard '\*' when the request's credentials mode is 'include'"
+
+**Files Modified:**
+
+- services/api/middleware/cors.py:
+  - Removed wildcard `*` from allowed origins in debug mode
+  - Added specific localhost origins instead: `http://localhost:5173`, `http://127.0.0.1:3000`, `http://127.0.0.1:8000`
+  - Kept existing origins: `http://localhost:3000`, `http://localhost:3001`, plus `config.frontend_url`
+  - Added comment: "Note: Cannot use '\*' wildcard when allow_credentials=True"
+
+**Problem 2**: Frontend axios client was using incorrect baseURL
+
+- Production build set `API_BASE_URL` to `http://localhost:8000` when `VITE_API_URL` was not set
+- Frontend runs in Docker at `http://localhost:3000` with nginx proxy
+- Requests were trying to reach API directly instead of through nginx proxy at `/api/`
+
+**Files Modified:**
+
+- frontend/src/api/client.ts:
+  - Changed from: `const API_BASE_URL = import.meta.env.MODE === 'development' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000')`
+  - Changed to: `const API_BASE_URL = import.meta.env.VITE_API_URL || ''`
+  - Always use empty baseURL by default to leverage proxy configuration
+  - Only use `VITE_API_URL` if explicitly set for external API access
+
+**Problem 3**: Nginx proxy was not passing CORS headers correctly
+
+- Initial fix attempted to add CORS headers in nginx, but this created conflicts
+- CORS should be handled by FastAPI backend, not nginx proxy
+- Reverted nginx CORS header additions to let backend handle CORS properly
+
+**Files Modified:**
+
+- docker/frontend-nginx.conf:
+  - Reverted to simple proxy configuration without CORS header manipulation
+  - Removed: `proxy_hide_header`, `add_header Access-Control-*` directives
+  - Backend FastAPI CORS middleware now handles all CORS headers correctly
+
+**Debugging Process:**
+
+1. Added extensive console logging to LoginPage.tsx to capture error details
+2. Identified CORS wildcard error via browser console
+3. Fixed API CORS configuration to use specific origins
+4. Fixed frontend API client to use nginx proxy
+5. Verified CORS headers with curl: `access-control-allow-origin: http://localhost:3000`
+6. Removed debug logging after fix confirmed working
+
+**Resolution Steps:**
+
+1. Rebuilt API container: `docker compose build api`
+2. Rebuilt frontend container: `docker compose build frontend`
+3. Restarted services: `docker compose up -d api frontend`
+4. Verified CORS headers: `curl -H "Origin: http://localhost:3000" http://localhost:3000/api/v1/auth/login?redirect_uri=...`
+5. Confirmed login flow works end-to-end
+
+**Success Criteria:**
+
+- ✅ Login button initiates OAuth2 flow without errors
+- ✅ CORS headers return specific origin instead of wildcard
+- ✅ Frontend requests properly routed through nginx proxy
+- ✅ Cookies transmitted correctly with `withCredentials: true`
+- ✅ No CORS policy violations in browser console
+- ✅ OAuth2 callback completes successfully
+- ✅ User session established with HTTPOnly cookies
+- ✅ Protected routes accessible after authentication
+
+**Files Modified:**
+
+- services/api/middleware/cors.py - Fixed CORS origins to disallow wildcard with credentials
+- frontend/src/api/client.ts - Fixed baseURL to use nginx proxy by default
+- docker/frontend-nginx.conf - Reverted to simple proxy without CORS header manipulation
+- frontend/src/pages/LoginPage.tsx - Added then removed debug logging (cleaned up)
+
+**Technical Notes:**
+
+- CORS wildcard `*` cannot be used when `credentials: 'include'` or `withCredentials: true`
+- Browsers enforce this restriction for security (prevent credential leakage to untrusted origins)
+- FastAPI's `CORSMiddleware` properly handles CORS when origins list is specific
+- Nginx should only proxy requests, not manipulate CORS headers (let backend handle it)
+- Empty baseURL in axios makes requests relative to current origin (nginx at `localhost:3000`)
+- HTTPOnly cookies automatically included when `withCredentials: true` is set
 - ✅ No "Authentication failed" errors
 - ✅ OAuth callback processed exactly once
 - ✅ Smooth login experience without flashing errors
