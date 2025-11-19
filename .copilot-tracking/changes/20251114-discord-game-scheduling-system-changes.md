@@ -3561,3 +3561,108 @@ interface ValidationErrorResponse {
 - ✅ Material-UI components used consistently with project patterns
 - ✅ Test coverage includes: rendering, user interactions, callbacks, edge cases
 - ✅ No ESLint configuration present (project uses TypeScript compiler for validation)
+
+### Phase 5: Scheduler Service - Celery Task Queue
+
+**Date**: 2025-11-19
+
+- services/scheduler/**init**.py - Module initialization
+- services/scheduler/config.py - Scheduler configuration with Celery and task settings
+- services/scheduler/celery_app.py - Celery application with beat schedule configuration
+- services/scheduler/worker.py - Celery worker entry point (concurrency=4)
+- services/scheduler/beat.py - Celery beat scheduler entry point
+- services/scheduler/tasks/**init**.py - Tasks module exports
+- services/scheduler/services/**init**.py - Services module initialization
+- services/scheduler/utils/**init**.py - Utils module initialization
+- services/scheduler/utils/notification_windows.py - Time window calculations for notifications
+- services/scheduler/utils/status_transitions.py - Game status lifecycle management
+- services/scheduler/tasks/check_notifications.py - Periodic task to query upcoming games
+- services/scheduler/tasks/send_notification.py - Task to send individual notifications
+- services/scheduler/tasks/update_game_status.py - Task to update game statuses (SCHEDULED → IN_PROGRESS)
+- services/scheduler/services/notification_service.py - Business logic for game reminders
+
+**Scheduler Service Implementation:**
+
+- **Celery Configuration**:
+
+  - RabbitMQ broker: amqp://guest:guest@rabbitmq:5672/
+  - Redis result backend: redis://redis:6379/0
+  - JSON serialization for message portability
+  - Task acknowledgment after execution (acks_late=True)
+  - Worker prefetch multiplier: 1 (prevents task hoarding)
+  - Default retry: max 3 attempts with 60s base delay
+  - UTC timezone for all timestamps
+
+- **Periodic Task Scheduling**:
+
+  - Notification check: Every 5 minutes (300 seconds)
+  - Status update: Every 1 minute (60 seconds)
+  - Uses Celery Beat scheduler for reliable execution
+  - Tasks registered in beat_schedule dict
+
+- **Notification System (Tasks 5.1-5.3)**:
+
+  - check_upcoming_notifications: Queries SCHEDULED games 5min-180min in future
+  - Resolves reminder_minutes using inheritance (game → channel → guild → [60,15])
+  - Redis deduplication: "notification*sent:{game_id}*{user*id}*{reminder_min}" keys (7-day TTL)
+  - Creates send_game_notification tasks for each user
+  - send_game_notification: Publishes NotificationSendDMEvent to RabbitMQ
+  - Discord timestamp format: "<t:{unix}:R>" for relative time display
+  - Retry logic: 3 attempts with exponential backoff (60s \* (retries+1))
+  - NotificationService: Wraps event publishing with proper error handling
+
+- **Status Management (Task 5.4)**:
+
+  - update_game_statuses: Checks games every minute
+  - Transitions SCHEDULED → IN_PROGRESS when scheduled_at <= current_time
+  - Validates state transitions with status_transitions.py
+  - Publishes GAME_STARTED events to notify bot service
+  - Updates game.updated_at timestamp on status change
+  - Supports future COMPLETED transition (infrastructure ready)
+
+- **Architecture Benefits**:
+  - Independent scaling: Worker pool can scale horizontally
+  - Reliable delivery: RabbitMQ persistence ensures no task loss
+  - Deduplication: Redis prevents duplicate notifications
+  - Error recovery: Exponential backoff retry strategy
+  - Monitoring: Celery Flower integration ready
+  - Async database: SQLAlchemy async sessions throughout
+
+**Testing and Quality:**
+
+- ✅ All scheduler files pass ruff linting (0 errors)
+- ✅ Type hints on all functions following Python 3.11+ conventions
+- ✅ Comprehensive docstrings following Google style guide
+- ✅ Proper async patterns with AsyncTask base class
+- ✅ Exception chaining with "from e" throughout
+- ✅ Module imports follow Google Python Style Guide
+- ✅ Self-explanatory code with minimal comments (WHY not WHAT)
+- ✅ 24 unit tests created with 100% pass rate
+- ✅ test_status_transitions.py: 13 tests for state machine validation
+- ✅ test_notification_windows.py: 11 tests for time window calculations
+- ✅ All test files pass lint checks
+
+**Code Standards Verification (2025-11-18):**
+
+- ✅ All code follows Python conventions from `.github/instructions/python.instructions.md`
+- ✅ Modern Python 3.11+ type hints used throughout
+- ✅ Descriptive function names with proper docstrings
+- ✅ Code is self-explanatory following commenting guidelines
+- ✅ Comments explain WHY, not WHAT (business logic, algorithms, constraints)
+- ✅ No obvious, redundant, or outdated comments
+- ✅ Import statements follow Google Python Style Guide ordering
+- ✅ PEP 8 style guide followed for formatting
+- ✅ All functions have docstrings with Args/Returns sections
+- ✅ Consistent snake_case naming for functions and variables
+
+**Success Criteria Met:**
+
+- ✅ Celery worker configured with RabbitMQ broker
+- ✅ Beat scheduler runs periodic checks every 5 minutes
+- ✅ Upcoming games queried based on reminder_minutes inheritance
+- ✅ Notifications sent via RabbitMQ events to bot service
+- ✅ Redis deduplication prevents duplicate notifications
+- ✅ Game statuses automatically transition at scheduled times
+- ✅ GAME_STARTED events published for bot message updates
+- ✅ Retry logic handles transient failures gracefully
+- ✅ All code follows project conventions and standards
