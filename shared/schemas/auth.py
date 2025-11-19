@@ -65,8 +65,9 @@ class UserInfoResponse(BaseModel):
 
 
 class CurrentUser(BaseModel):
-    """Current authenticated user from token."""
+    """Current authenticated user information."""
 
-    discord_id: str = Field(..., description="Discord user ID")
-    access_token: str = Field(..., description="Decrypted access token")
-    session_token: str = Field(..., description="Session token (UUID4)")
+    user_id: str = Field(..., description="User's database ID (UUID)")
+    discord_id: str = Field(..., description="User's Discord snowflake ID")
+    access_token: str = Field(..., description="Discord access token")
+    session_token: str = Field(..., description="Session token for Redis lookup")

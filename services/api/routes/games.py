@@ -77,7 +77,7 @@ async def create_game(
     try:
         game = await game_service.create_game(
             game_data=game_data,
-            host_discord_id=current_user.discord_id,
+            host_user_id=current_user.user_id,
             access_token=current_user.access_token,
         )
 
@@ -160,7 +160,7 @@ async def update_game(
         game = await game_service.update_game(
             game_id=game_id,
             update_data=update_data,
-            host_discord_id=current_user.discord_id,
+            host_user_id=current_user.user_id,
         )
 
         return await _build_game_response(game)
@@ -185,7 +185,7 @@ async def delete_game(
     try:
         await game_service.delete_game(
             game_id=game_id,
-            host_discord_id=current_user.discord_id,
+            host_user_id=current_user.user_id,
         )
     except ValueError as e:
         if "not found" in str(e).lower():
@@ -305,7 +305,6 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
         channel_id=game.channel_id,
         message_id=game.message_id,
         host_id=game.host_id,
-        host_discord_id=game.host.discord_id,
         rules=game.rules,
         reminder_minutes=game.reminder_minutes,
         status=game.status,

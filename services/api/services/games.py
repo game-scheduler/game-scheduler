@@ -72,7 +72,7 @@ class GameService:
     async def create_game(
         self,
         game_data: game_schemas.GameCreateRequest,
-        host_discord_id: str,
+        host_user_id: str,
         access_token: str,
     ) -> game_model.GameSession:
         """
@@ -80,7 +80,7 @@ class GameService:
 
         Args:
             game_data: Game creation data
-            host_discord_id: Host's Discord ID
+            host_user_id: Host's database user ID (UUID)
             access_token: User's access token for Discord API
 
         Returns:
@@ -108,8 +108,13 @@ class GameService:
         if channel_config is None:
             raise ValueError(f"Channel configuration not found for ID: {game_data.channel_id}")
 
-        # Get host user (create if not exists)
-        host_user = await self.participant_resolver.ensure_user_exists(self.db, host_discord_id)
+        # Get host user from database
+        host_result = await self.db.execute(
+            select(user_model.User).where(user_model.User.id == host_user_id)
+        )
+        host_user = host_result.scalar_one_or_none()
+        if host_user is None:
+            raise ValueError(f"Host user not found for ID: {host_user_id}")
 
         # Resolve settings with inheritance
         resolved_max_players = (
@@ -315,7 +320,7 @@ class GameService:
         self,
         game_id: str,
         update_data: game_schemas.GameUpdateRequest,
-        host_discord_id: str,
+        host_user_id: str,
     ) -> game_model.GameSession:
         """
         Update game session (host only).
@@ -323,7 +328,7 @@ class GameService:
         Args:
             game_id: Game session UUID
             update_data: Update data
-            host_discord_id: Host's Discord ID for authorization
+            host_user_id: Host's database user ID (UUID) for authorization
 
         Returns:
             Updated game session
@@ -336,7 +341,7 @@ class GameService:
             raise ValueError("Game not found")
 
         # Verify host
-        if game.host.discord_id != host_discord_id:
+        if game.host_id != host_user_id:
             raise ValueError("Only the host can update this game")
 
         # Update fields
@@ -370,13 +375,13 @@ class GameService:
 
         return game
 
-    async def delete_game(self, game_id: str, host_discord_id: str) -> None:
+    async def delete_game(self, game_id: str, host_user_id: str) -> None:
         """
         Cancel game session (host only).
 
         Args:
             game_id: Game session UUID
-            host_discord_id: Host's Discord ID for authorization
+            host_user_id: Host's database user ID (UUID) for authorization
 
         Raises:
             ValueError: If user is not the host
@@ -386,7 +391,7 @@ class GameService:
             raise ValueError("Game not found")
 
         # Verify host
-        if game.host.discord_id != host_discord_id:
+        if game.host_id != host_user_id:
             raise ValueError("Only the host can cancel this game")
 
         game.status = game_model.GameStatus.CANCELLED.value

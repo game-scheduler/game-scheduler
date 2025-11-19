@@ -50,7 +50,6 @@ describe('EditGame', () => {
     channel_id: 'channel123',
     message_id: null,
     host_id: 'user123',
-    host_discord_id: '123456789',
     rules: 'Test rules',
     reminder_minutes: [60, 15],
     status: 'SCHEDULED',

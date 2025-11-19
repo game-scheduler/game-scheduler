@@ -75,7 +75,6 @@ class GameResponse(BaseModel):
     channel_id: str = Field(..., description="Channel ID (UUID)")
     message_id: str | None = Field(None, description="Discord message snowflake ID")
     host_id: str = Field(..., description="Host user ID (UUID)")
-    host_discord_id: str = Field(..., description="Host Discord snowflake ID")
     rules: str | None = Field(None, description="Game rules (resolved)")
     reminder_minutes: list[int] | None = Field(None, description="Reminder times (resolved)")
     status: str = Field(..., description="Game status")

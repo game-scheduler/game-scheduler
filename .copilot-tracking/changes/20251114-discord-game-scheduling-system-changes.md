@@ -562,7 +562,7 @@ Implementation of a complete Discord game scheduling system with microservices a
 - Infrastructure services (postgres, redis, rabbitmq) start successfully and remain healthy
 - Application services now run with predictable, immutable file systems
 
-### Modified (Post-Implementation)
+### Modified
 
 - services/bot/bot.py - Changed Discord intents from default with privileged flags to Intents.none()
 
@@ -1358,6 +1358,55 @@ Created comprehensive unit test suite with 40 tests:
 - Configuration service uses dependency injection pattern with AsyncSession
 - Settings inheritance implemented in separate SettingsResolver class for reusability
 - Discord API integration via discord_client.get_discord_client() singleton
+
+### Phase 3: Refactoring - Remove Redundant host_discord_id (2025-11-19)
+
+**Problem:**
+
+- GameResponse schema contained both `host_id` (database UUID) and `host_discord_id` (Discord snowflake ID)
+- This redundancy was a potential source of errors and data inconsistency
+- Service methods accepted `host_discord_id` for authorization checks, bypassing the database user relationship
+
+**Solution:**
+
+- Removed `host_discord_id` from GameResponse schema - frontend uses `host_id` instead
+- Changed service methods to accept `host_user_id` (database UUID) instead of `host_discord_id`
+- Authorization checks now compare `game.host_id` with `host_user_id` (database-to-database comparison)
+- Updated CurrentUser schema to include `user_id` field from database
+- Modified get_current_user dependency to fetch user from database and populate `user_id`
+- Routes now pass `current_user.user_id` to service methods instead of `current_user.discord_id`
+
+**Files Modified:**
+
+- shared/schemas/game.py - Removed `host_discord_id` field from GameResponse
+- shared/schemas/auth.py - Added `user_id` field to CurrentUser schema
+- services/api/dependencies/auth.py - Updated get_current_user to fetch user from database and include user_id
+- services/api/services/games.py - Changed create_game, update_game, delete_game to accept host_user_id
+- services/api/services/games.py - Updated host authorization checks to compare game.host_id with host_user_id
+- services/api/routes/games.py - Updated routes to pass current_user.user_id instead of current_user.discord_id
+- services/api/routes/games.py - Removed host_discord_id from _build_game_response
+- frontend/src/types/index.ts - Removed host_discord_id from GameSession TypeScript interface
+- frontend/src/pages/__tests__/EditGame.test.tsx - Removed host_discord_id from test mock data
+- tests/services/api/services/test_games.py - Updated all tests to use host_user_id instead of host_discord_id
+
+**Benefits:**
+
+- Single source of truth: Database user ID is authoritative
+- Eliminates potential inconsistency between Discord ID and database user lookup
+- Cleaner API: Discord ID obtained through database relationship when needed
+- Simpler authorization: Direct database ID comparison instead of Discord ID lookup
+- Reduced coupling: Service layer works with database models, not external Discord IDs
+- Type safety: Service methods explicitly receive database UUIDs, not string Discord IDs
+
+**Success Criteria:**
+
+- ✅ GameResponse no longer exposes redundant host_discord_id field
+- ✅ Service authorization checks use database user IDs
+- ✅ CurrentUser provides both user_id (database) and discord_id (for Discord API calls)
+- ✅ All game creation/update/delete operations use host_user_id
+- ✅ Frontend type definitions reflect schema changes
+- ✅ All backend tests updated and passing
+- ✅ No breaking changes to other service integrations (bot, scheduler use game.host_id relationship)
 - CurrentUser schema updated to include access_token for Discord API calls
 - Module imports follow Google Python Style Guide (import modules, not objects)
 - FastAPI B008 warnings expected and documented (dependency injection pattern)

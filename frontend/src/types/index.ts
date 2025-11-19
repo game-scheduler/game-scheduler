@@ -61,7 +61,6 @@ export interface GameSession {
   channel_id: string;
   message_id: string | null;
   host_id: string;
-  host_discord_id: string;
   rules: string | null;
   reminder_minutes: number[] | null;
   status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
