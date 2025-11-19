@@ -53,6 +53,11 @@ async def get_user_guilds_cached(access_token: str, discord_id: str) -> dict[str
         import json
 
         guilds_list = json.loads(cached)
+
+        logger.info(
+            f"returning {len(guilds_list)} cached guilds for user {discord_id} with key {cache_key}"
+        )
+
         return {g["id"]: g for g in guilds_list}
 
     try:
@@ -62,6 +67,10 @@ async def get_user_guilds_cached(access_token: str, discord_id: str) -> dict[str
         import json
 
         await redis.set(cache_key, json.dumps(user_guilds), ttl=60)
+
+        logger.info(
+            f"Cached {len(user_guild_ids)} guilds for user {discord_id} with key {cache_key}"
+        )
 
         return user_guild_ids
     except discord_client.DiscordAPIError as e:

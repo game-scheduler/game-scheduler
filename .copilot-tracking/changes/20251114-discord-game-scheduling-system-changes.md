@@ -3366,3 +3366,82 @@ $ docker compose up -d api
 - Fixed: All Python syntax warnings eliminated from API container logs
 - Improved: Proper exception chaining suppression working as intended
 - Improved: Cleaner production logs without warning noise
+
+### Feature: Edit Game Functionality
+
+**Issue:** Edit Game button in game details page navigated to undefined route, showing "Discord Game Scheduler" blank page
+
+**Files Added:**
+
+- `frontend/src/pages/EditGame.tsx` - New component for editing existing games (280 lines)
+- `frontend/src/pages/__tests__/EditGame.test.tsx` - Complete test suite with 7 test cases (271 lines)
+
+**Files Modified:**
+
+- `frontend/src/App.tsx` - Added EditGame import and route for `/games/:gameId/edit`
+
+**Implementation Details:**
+
+**EditGame Component:**
+
+- Fetches game data and available channels on mount
+- Pre-populates form with current game values
+- Supports editing: title, description, scheduled time, channel, max players, reminder times, rules
+- Validates required fields (title, description, scheduled time, channel)
+- Calls PUT `/api/v1/games/:gameId` to save changes
+- Displays loading state during data fetch and save operations
+- Shows error messages for fetch failures and validation errors
+- Navigates back to game details on successful save or cancel
+
+**Test Coverage (7 tests, all passing):**
+
+- ✓ Loads and displays game data (pre-populates form fields)
+- ✓ Displays loading state initially (shows spinner)
+- ✓ Displays error when game not found (handles 404 gracefully)
+- ✓ Handles save successfully (calls PUT API and navigates)
+- ✓ Handles cancel button (navigates back without saving)
+- ✓ Has required field validation (marks fields as required)
+- ✓ Handles update error (displays error message from API)
+
+**Routing:**
+
+- Added protected route: `/games/:gameId/edit` renders `<EditGame />`
+- Route placed within `<ProtectedRoute />` requiring authentication
+- Consistent with existing game management routes
+
+**Type Safety:**
+
+- Uses `GameSession` type from `frontend/src/types/index.ts`
+- Properly handles snake_case API response fields (e.g., `guild_id`, `scheduled_at`, `max_players`)
+- Type-safe form data handling with `FormData` interface
+
+**Code Quality:**
+
+- ✅ Zero TypeScript compilation errors
+- ✅ Zero lint errors (follows project ESLint rules)
+- ✅ Follows self-explanatory code principles (no unnecessary comments)
+- ✅ Consistent with existing component patterns (mirrors CreateGame structure)
+- ✅ Material-UI components used consistently with theme
+- ✅ Proper React hooks usage (useState, useEffect with correct dependencies)
+
+**Build Verification:**
+
+- ✅ Frontend Docker build succeeds
+- ✅ TypeScript compilation passes
+- ✅ Vite build completes (756.37 kB bundle)
+- ✅ All test suites pass
+
+**User Experience:**
+
+- Users can now edit scheduled games from game details page
+- Form pre-fills with current values for easy modification
+- Clear visual feedback for loading, saving, and error states
+- Required field validation prevents incomplete submissions
+- Successful saves redirect to game details with updated information
+
+**Impact:**
+
+- Fixed: Edit Game button now navigates to functional edit page
+- Added: Complete game editing workflow with validation
+- Added: Comprehensive test coverage for edit functionality
+- Improved: User can modify game details after creation

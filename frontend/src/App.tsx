@@ -31,6 +31,7 @@ import { ChannelConfig } from './pages/ChannelConfig';
 import { BrowseGames } from './pages/BrowseGames';
 import { GameDetails } from './pages/GameDetails';
 import { CreateGame } from './pages/CreateGame';
+import { EditGame } from './pages/EditGame';
 import { MyGames } from './pages/MyGames';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -56,6 +57,7 @@ function App() {
                 <Route path="/guilds/:guildId/games" element={<BrowseGames />} />
                 <Route path="/guilds/:guildId/games/new" element={<CreateGame />} />
                 <Route path="/games/:gameId" element={<GameDetails />} />
+                <Route path="/games/:gameId/edit" element={<EditGame />} />
                 <Route path="/my-games" element={<MyGames />} />
               </Route>
             </Route>
