@@ -47,7 +47,7 @@ router = APIRouter(prefix="/api/v1/games", tags=["games"])
 
 
 def _get_game_service(
-    db: AsyncSession = Depends(database.get_db_session),
+    db: AsyncSession = Depends(database.get_db),
 ) -> games_service.GameService:
     """Get game service instance with dependencies."""
     event_publisher = messaging_publisher.EventPublisher()
@@ -84,7 +84,7 @@ async def create_game(
         return await _build_game_response(game)
 
     except resolver_module.ValidationError as e:
-        raise HTTPException from None(
+        raise HTTPException(
             status_code=422,
             detail={
                 "error": "invalid_mentions",
@@ -93,9 +93,9 @@ async def create_game(
                 "valid_participants": e.valid_participants,
                 "form_data": game_data.model_dump(),
             },
-        )
+        ) from None
     except ValueError as e:
-        raise HTTPException from None(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from None
 
 
 @router.get("", response_model=game_schemas.GameListResponse)
@@ -139,7 +139,7 @@ async def get_game(
     game = await game_service.get_game(game_id)
 
     if game is None:
-        raise HTTPException from None(status_code=404, detail="Game not found")
+        raise HTTPException(status_code=404, detail="Game not found") from None
 
     return await _build_game_response(game)
 
@@ -167,8 +167,8 @@ async def update_game(
 
     except ValueError as e:
         if "not found" in str(e).lower():
-            raise HTTPException from None(status_code=404, detail=str(e))
-        raise HTTPException from None(status_code=403, detail=str(e))
+            raise HTTPException(status_code=404, detail=str(e)) from None
+        raise HTTPException(status_code=403, detail=str(e)) from None
 
 
 @router.delete("/{game_id}", status_code=204)
@@ -189,8 +189,8 @@ async def delete_game(
         )
     except ValueError as e:
         if "not found" in str(e).lower():
-            raise HTTPException from None(status_code=404, detail=str(e))
-        raise HTTPException from None(status_code=403, detail=str(e))
+            raise HTTPException(status_code=404, detail=str(e)) from None
+        raise HTTPException(status_code=403, detail=str(e)) from None
 
 
 @router.post("/{game_id}/join", response_model=participant_schemas.ParticipantResponse)
@@ -223,8 +223,8 @@ async def join_game(
 
     except ValueError as e:
         if "not found" in str(e).lower():
-            raise HTTPException from None(status_code=404, detail=str(e))
-        raise HTTPException from None(status_code=400, detail=str(e))
+            raise HTTPException(status_code=404, detail=str(e)) from None
+        raise HTTPException(status_code=400, detail=str(e)) from None
 
 
 @router.post("/{game_id}/leave", status_code=204)
@@ -245,8 +245,8 @@ async def leave_game(
         )
     except ValueError as e:
         if "not found" in str(e).lower():
-            raise HTTPException from None(status_code=404, detail=str(e))
-        raise HTTPException from None(status_code=400, detail=str(e))
+            raise HTTPException(status_code=404, detail=str(e)) from None
+        raise HTTPException(status_code=400, detail=str(e)) from None
 
 
 async def _build_game_response(game: game_model.GameSession) -> game_schemas.GameResponse:

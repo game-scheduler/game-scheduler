@@ -39,7 +39,18 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Provide database session for dependency injection."""
+    """
+    Provide database session for FastAPI dependency injection.
+
+    Use this with FastAPI's Depends() for automatic session lifecycle management.
+    FastAPI will handle the async generator properly.
+
+    Example:
+        @app.get("/items")
+        async def get_items(db: AsyncSession = Depends(get_db)):
+            result = await db.execute(select(Item))
+            return result.scalars().all()
+    """
     async with AsyncSessionLocal() as session:
         try:
             yield session
@@ -53,13 +64,19 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 def get_db_session() -> AsyncSession:
     """
-    Get database session as context manager.
+    Get database session for use as async context manager.
 
-    Returns:
-        Async context manager for database session
+    Use this pattern in Discord bot commands and other non-FastAPI code
+    where you need to manage the session lifecycle explicitly.
+
+    DO NOT use this with FastAPI Depends() - use get_db() instead.
 
     Example:
         async with get_db_session() as db:
-            result = await db.execute(query)
+            result = await db.execute(select(Item))
+            await db.commit()
+
+    Returns:
+        AsyncSession that must be used with 'async with' statement
     """
     return AsyncSessionLocal()

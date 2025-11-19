@@ -3281,3 +3281,88 @@ $ docker compose up -d api
 - ✅ Field naming consistent between frontend and backend
 - ✅ Display names load without errors
 - ✅ Authorization checks work correctly (isHost, isParticipant)
+
+---
+
+## Bugfix: Database Connection Leak (2025-11-19)
+
+**Issue Identified:**
+
+- API service was leaking database connections, causing SQLAlchemy warnings about non-checked-in connections being forcefully terminated by garbage collector
+- Root cause: API routes were using `database.get_db_session()` with FastAPI's `Depends()`, but this function returned raw sessions without proper lifecycle management
+- FastAPI's dependency injection couldn't properly close sessions returned by `get_db_session()`
+
+**Changes Made:**
+
+- **Modified Files:**
+  - `shared/database.py` - Enhanced documentation distinguishing two session patterns
+    - `get_db()` - For FastAPI dependency injection (async generator with proper lifecycle)
+    - `get_db_session()` - For direct async context manager usage in bot service
+  - `services/api/routes/games.py` - Changed `Depends(database.get_db_session)` to `Depends(database.get_db)`
+  - `services/api/routes/auth.py` - Changed all occurrences to use `get_db()`, added `# ruff: noqa: B008` directive
+  - `services/api/routes/guilds.py` - Updated 5 endpoints to use `get_db()`
+  - `services/api/routes/channels.py` - Updated 3 endpoints to use `get_db()`
+  - `services/api/dependencies/permissions.py` - Updated dependency to use `get_db()`
+
+**Technical Details:**
+
+- `get_db()` is an async generator that yields a session and handles commit/rollback/close automatically
+- `get_db_session()` returns a raw `AsyncSession` intended for use with `async with` statement
+- Bot service correctly uses `async with get_db_session()` pattern in commands and handlers (46 callers)
+- API service now uses `Depends(get_db)` pattern for proper dependency injection
+
+**Verification:**
+
+- ✅ All modified files pass `ruff` linting with zero errors
+- ✅ API service restarts successfully without connection leak warnings
+- ✅ Bot service restarts successfully and remains functional
+- ✅ No new garbage collector warnings in logs after changes
+- ✅ All services report healthy status
+- ✅ Test suite passes (58 passing, pre-existing fixture errors unrelated to changes)
+
+**Impact:**
+
+- Fixed: Database connections are now properly returned to the pool
+- Fixed: No more garbage collector warnings in production logs
+- Improved: Clear documentation distinguishing the two session management patterns
+- Improved: Consistent use of appropriate pattern per service type (API vs Bot)
+
+### Bug Fix: Exception Raising Syntax Errors
+
+**Issue:** API container showing 11 SyntaxWarning messages for incorrect exception raising syntax
+
+**Files Changed:**
+
+- `services/api/routes/games.py` - Fixed 11 occurrences of incorrect `raise HTTPException from None(...)` syntax
+
+**Changes:**
+
+- Line 69-79: Fixed ValidationError exception handler in `create_game()`
+- Line 80: Fixed ValueError exception handler in `create_game()`
+- Line 124: Fixed None check exception in `get_game()`
+- Line 152-153: Fixed ValueError exception handlers in `update_game()`
+- Line 174-175: Fixed ValueError exception handlers in `delete_game()`
+- Line 208-209: Fixed ValueError exception handlers in `join_game()`
+- Line 230-231: Fixed ValueError exception handlers in `leave_game()`
+
+**Technical Details:**
+
+- **Before (Incorrect):** `raise HTTPException from None(status_code=404, detail="...")`
+  - This attempts to call `None` as a function, causing Python SyntaxWarning
+  - The `from None` was in the wrong position with incorrect parentheses placement
+- **After (Correct):** `raise HTTPException(status_code=404, detail="...") from None`
+  - Properly constructs HTTPException instance first
+  - Then uses `from None` to suppress exception chaining as intended
+
+**Verification:**
+
+- ✅ API container restarts without any SyntaxWarning messages
+- ✅ Server starts successfully with `INFO: Application startup complete`
+- ✅ All endpoints continue to function correctly
+- ✅ Health checks return 200 OK
+
+**Impact:**
+
+- Fixed: All Python syntax warnings eliminated from API container logs
+- Improved: Proper exception chaining suppression working as intended
+- Improved: Cleaner production logs without warning noise

@@ -140,7 +140,7 @@ async def require_game_host(
     # B008: FastAPI dependency injection requires Depends() in default arguments
     current_user: auth_schemas.CurrentUser = Depends(auth.get_current_user),  # noqa: B008
     role_service: roles_module.RoleVerificationService = Depends(get_role_service),  # noqa: B008
-    db: AsyncSession = Depends(database.get_db_session),  # noqa: B008
+    db: AsyncSession = Depends(database.get_db),  # noqa: B008
 ) -> auth_schemas.CurrentUser:
     """
     Require user to have game host permission with inheritance resolution.

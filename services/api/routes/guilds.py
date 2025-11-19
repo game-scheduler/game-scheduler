@@ -86,7 +86,7 @@ async def get_user_guilds_cached(access_token: str, discord_id: str) -> dict[str
 @router.get("", response_model=guild_schemas.GuildListResponse)
 async def list_guilds(
     current_user: auth_schemas.CurrentUser = Depends(dependencies.auth.get_current_user),
-    db: AsyncSession = Depends(database.get_db_session),
+    db: AsyncSession = Depends(database.get_db),
 ) -> guild_schemas.GuildListResponse:
     """
     List all guilds where the bot is present and user is a member.
@@ -127,7 +127,7 @@ async def list_guilds(
 async def get_guild(
     guild_discord_id: str,
     current_user: auth_schemas.CurrentUser = Depends(dependencies.auth.get_current_user),
-    db: AsyncSession = Depends(database.get_db_session),
+    db: AsyncSession = Depends(database.get_db),
 ) -> guild_schemas.GuildConfigResponse:
     """
     Get guild configuration by Discord guild ID.
@@ -185,7 +185,7 @@ async def get_guild(
 async def create_guild_config(
     request: guild_schemas.GuildConfigCreateRequest,
     current_user: auth_schemas.CurrentUser = Depends(permissions.require_manage_guild),
-    db: AsyncSession = Depends(database.get_db_session),
+    db: AsyncSession = Depends(database.get_db),
 ) -> guild_schemas.GuildConfigResponse:
     """
     Create guild configuration.
@@ -230,7 +230,7 @@ async def update_guild_config(
     guild_discord_id: str,
     request: guild_schemas.GuildConfigUpdateRequest,
     current_user: auth_schemas.CurrentUser = Depends(permissions.require_manage_guild),
-    db: AsyncSession = Depends(database.get_db_session),
+    db: AsyncSession = Depends(database.get_db),
 ) -> guild_schemas.GuildConfigResponse:
     """
     Update guild configuration.
@@ -269,7 +269,7 @@ async def update_guild_config(
 async def list_guild_channels(
     guild_discord_id: str,
     current_user: auth_schemas.CurrentUser = Depends(dependencies.auth.get_current_user),
-    db: AsyncSession = Depends(database.get_db_session),
+    db: AsyncSession = Depends(database.get_db),
 ) -> list[channel_schemas.ChannelConfigResponse]:
     """
     List all configured channels for a guild.

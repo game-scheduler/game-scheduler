@@ -30,13 +30,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.api.auth import oauth2, tokens
 from services.api.config import get_api_config
 from services.api.dependencies import auth as auth_deps
-from shared.database import get_db_session
+from shared.database import get_db
 from shared.models import user as user_model
 from shared.schemas import auth as auth_schemas
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+
+# ruff: noqa: B008
 
 
 @router.get("/login")
@@ -63,7 +65,7 @@ async def callback(
     response: Response,
     code: str = Query(...),
     state: str = Query(...),
-    db: AsyncSession = Depends(get_db_session),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Handle Discord OAuth2 callback.
@@ -184,7 +186,7 @@ async def logout(
 @router.get("/user", response_model=auth_schemas.UserInfoResponse)
 async def get_user_info(
     current_user: Annotated[auth_schemas.CurrentUser, Depends(auth_deps.get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db_session)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> auth_schemas.UserInfoResponse:
     """
     Get current user information and guilds.
