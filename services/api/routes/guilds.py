@@ -19,6 +19,8 @@
 """Guild configuration endpoints."""
 
 # ruff: noqa: B008
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,11 +28,59 @@ from services.api import dependencies
 from services.api.dependencies import permissions
 from services.api.services import config as config_service
 from shared import database
+from shared.cache import client as cache_client
 from shared.schemas import auth as auth_schemas
 from shared.schemas import channel as channel_schemas
 from shared.schemas import guild as guild_schemas
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/guilds", tags=["guilds"])
+
+
+async def get_user_guilds_cached(access_token: str, discord_id: str) -> dict[str, dict]:
+    """
+    Get user guilds with caching to avoid Discord rate limits.
+
+    Caches results for 60 seconds since guild membership changes infrequently.
+    """
+    from services.api.auth import discord_client, oauth2
+
+    cache_key = f"user_guilds:{discord_id}"
+    redis = await cache_client.get_redis_client()
+
+    cached = await redis.get(cache_key)
+    if cached:
+        import json
+
+        guilds_list = json.loads(cached)
+        return {g["id"]: g for g in guilds_list}
+
+    try:
+        user_guilds = await oauth2.get_user_guilds(access_token)
+        user_guild_ids = {g["id"]: g for g in user_guilds}
+
+        import json
+
+        await redis.set(cache_key, json.dumps(user_guilds), ttl=60)
+
+        return user_guild_ids
+    except discord_client.DiscordAPIError as e:
+        error_detail = f"Failed to fetch user guilds: {e}"
+
+        if e.status == 429:
+            logger.error(f"Rate limit headers: {dict(e.headers)}")
+            reset_after = e.headers.get("x-ratelimit-reset-after")
+            reset_at = e.headers.get("x-ratelimit-reset")
+            if reset_after:
+                error_detail += f" | Rate limit resets in {reset_after} seconds"
+            if reset_at:
+                error_detail += f" | Reset at Unix timestamp {reset_at}"
+
+        logger.error(error_detail)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to verify guild membership at this time. Please try again in a moment.",
+        ) from e
 
 
 @router.get("", response_model=guild_schemas.GuildListResponse)
@@ -83,14 +133,18 @@ async def get_guild(
     Get guild configuration by Discord guild ID.
 
     Requires user to be member of the guild.
+    Auto-creates configuration with defaults if it doesn't exist.
     """
-    from services.api.auth import discord_client
+    from services.api.auth import tokens
 
-    client = discord_client.get_discord_client()
     service = config_service.ConfigurationService(db)
 
-    user_guilds = await client.get_user_guilds(current_user.access_token)
-    user_guild_ids = {g["id"] for g in user_guilds}
+    token_data = await tokens.get_user_tokens(current_user.discord_id)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="No session found")
+
+    access_token = token_data["access_token"]
+    user_guild_ids = await get_user_guilds_cached(access_token, current_user.discord_id)
 
     if guild_discord_id not in user_guild_ids:
         raise HTTPException(
@@ -100,8 +154,15 @@ async def get_guild(
 
     guild_config = await service.get_guild_by_discord_id(guild_discord_id)
     if not guild_config:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Guild configuration not found"
+        guild_data = user_guild_ids[guild_discord_id]
+        guild_config = await service.create_guild_config(
+            guild_discord_id=guild_discord_id,
+            guild_name=guild_data["name"],
+            default_max_players=10,
+            default_reminder_minutes=[60, 15],
+            default_rules=None,
+            allowed_host_role_ids=[],
+            require_host_role=False,
         )
 
     return guild_schemas.GuildConfigResponse(
@@ -214,14 +275,18 @@ async def list_guild_channels(
     List all configured channels for a guild.
 
     Returns channels with their settings and inheritance information.
+    Auto-creates guild configuration if it doesn't exist.
     """
-    from services.api.auth import discord_client
+    from services.api.auth import tokens
 
-    client = discord_client.get_discord_client()
     service = config_service.ConfigurationService(db)
 
-    user_guilds = await client.get_user_guilds(current_user.access_token)
-    user_guild_ids = {g["id"] for g in user_guilds}
+    token_data = await tokens.get_user_tokens(current_user.discord_id)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="No session found")
+
+    access_token = token_data["access_token"]
+    user_guild_ids = await get_user_guilds_cached(access_token, current_user.discord_id)
 
     if guild_discord_id not in user_guild_ids:
         raise HTTPException(
@@ -231,8 +296,15 @@ async def list_guild_channels(
 
     guild_config = await service.get_guild_by_discord_id(guild_discord_id)
     if not guild_config:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Guild configuration not found"
+        guild_data = user_guild_ids[guild_discord_id]
+        guild_config = await service.create_guild_config(
+            guild_discord_id=guild_discord_id,
+            guild_name=guild_data["name"],
+            default_max_players=10,
+            default_reminder_minutes=[60, 15],
+            default_rules=None,
+            allowed_host_role_ids=[],
+            require_host_role=False,
         )
 
     channels = await service.get_channels_by_guild(guild_config.id)

@@ -40,16 +40,18 @@ DISCORD_GUILDS_URL = f"{DISCORD_API_BASE}/users/@me/guilds"
 class DiscordAPIError(Exception):
     """Exception raised for Discord API errors."""
 
-    def __init__(self, status: int, message: str):
+    def __init__(self, status: int, message: str, headers: dict[str, str] | None = None):
         """
         Initialize Discord API error.
 
         Args:
             status: HTTP status code from Discord API
             message: Error message or response body
+            headers: Response headers (may contain rate limit info)
         """
         self.status = status
         self.message = message
+        self.headers = headers or {}
         super().__init__(f"Discord API error {status}: {message}")
 
 
@@ -185,7 +187,7 @@ class DiscordAPIClient:
 
                 if response.status != 200:
                     error_msg = response_data.get("message", "Unknown error")
-                    raise DiscordAPIError(response.status, error_msg)
+                    raise DiscordAPIError(response.status, error_msg, dict(response.headers))
 
                 return response_data
         except aiohttp.ClientError as e:
@@ -216,7 +218,7 @@ class DiscordAPIClient:
 
                 if response.status != 200:
                     error_msg = response_data.get("message", "Unknown error")
-                    raise DiscordAPIError(response.status, error_msg)
+                    raise DiscordAPIError(response.status, error_msg, dict(response.headers))
 
                 return response_data
         except aiohttp.ClientError as e:
@@ -249,7 +251,7 @@ class DiscordAPIClient:
 
                 if response.status != 200:
                     error_msg = response_data.get("message", "Unknown error")
-                    raise DiscordAPIError(response.status, error_msg)
+                    raise DiscordAPIError(response.status, error_msg, dict(response.headers))
 
                 return response_data
         except aiohttp.ClientError as e:

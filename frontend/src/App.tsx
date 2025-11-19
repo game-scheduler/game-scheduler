@@ -26,6 +26,8 @@ import { LoginPage } from './pages/LoginPage';
 import { AuthCallback } from './pages/AuthCallback';
 import { GuildListPage } from './pages/GuildListPage';
 import { GuildDashboard } from './pages/GuildDashboard';
+import { GuildConfig } from './pages/GuildConfig';
+import { ChannelConfig } from './pages/ChannelConfig';
 import { BrowseGames } from './pages/BrowseGames';
 import { GameDetails } from './pages/GameDetails';
 import { CreateGame } from './pages/CreateGame';
@@ -49,6 +51,8 @@ function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="/guilds" element={<GuildListPage />} />
                 <Route path="/guilds/:guildId" element={<GuildDashboard />} />
+                <Route path="/guilds/:guildId/config" element={<GuildConfig />} />
+                <Route path="/channels/:channelId/config" element={<ChannelConfig />} />
                 <Route path="/guilds/:guildId/games" element={<BrowseGames />} />
                 <Route path="/guilds/:guildId/games/new" element={<CreateGame />} />
                 <Route path="/games/:gameId" element={<GameDetails />} />
