@@ -66,7 +66,8 @@ async def handle_leave_game(
         result = await _validate_leave_game(db, game_uuid, user_discord_id)
 
         if not result["can_leave"]:
-            await send_error_message(interaction, result["error"])
+            if result["error"]:
+                await send_error_message(interaction, result["error"])
             return
 
         game = result["game"]
@@ -79,7 +80,7 @@ async def handle_leave_game(
 
     await publisher.publish_game_updated(game_id=game_id, updated_fields={"participants": True})
 
-    await send_success_message(interaction, f"You've left **{game.title}**")
+    await send_success_message(interaction, f"❌ You've left **{game.title}**")
 
     logger.info(f"User {user_discord_id} left game {game_id} ({participant_count - 1} remaining)")
 
@@ -112,7 +113,7 @@ async def _validate_leave_game(db: AsyncSession, game_id: uuid.UUID, user_discor
     user = result.scalar_one_or_none()
 
     if not user:
-        return {"can_leave": False, "error": "You're not part of this game"}
+        return {"can_leave": False, "error": None}
 
     result = await db.execute(
         select(GameParticipant)
@@ -122,7 +123,7 @@ async def _validate_leave_game(db: AsyncSession, game_id: uuid.UUID, user_discor
     participant = result.scalar_one_or_none()
 
     if not participant:
-        return {"can_leave": False, "error": "You're not part of this game"}
+        return {"can_leave": False, "error": None}
 
     result = await db.execute(
         select(GameParticipant)

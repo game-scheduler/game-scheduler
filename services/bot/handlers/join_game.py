@@ -83,13 +83,12 @@ async def handle_join_game(
         try:
             await db.commit()
         except IntegrityError:
-            await send_error_message(interaction, "You've already joined this game!")
             logger.info(f"User {user_discord_id} attempted duplicate join for game {game_id}")
             return
 
     await publisher.publish_game_updated(game_id=game_id, updated_fields={"participants": True})
 
-    await send_success_message(interaction, f"You've joined **{game.title}**!")
+    await send_success_message(interaction, f"✅ You've joined **{game.title}**!")
 
     logger.info(
         f"User {user_discord_id} joined game {game_id} "

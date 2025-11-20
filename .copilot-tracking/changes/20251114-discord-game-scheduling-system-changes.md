@@ -9,6 +9,22 @@
 
 Implementation of a complete Discord game scheduling system with microservices architecture, featuring Discord bot with button interactions, web dashboard with OAuth2 authentication, role-based authorization, multi-channel support with settings inheritance, and automated notifications.
 
+### Recent Updates (2025-11-19)
+
+**Join/Leave Notifications Changed to Direct Messages**
+
+Modified the bot's join and leave game notifications to send as direct messages (DMs) instead of ephemeral channel messages:
+
+- **`services/bot/handlers/utils.py`**: Updated `send_success_message()` to send DMs without emoji prefix, allowing callers to include custom emojis in message text
+- **`services/bot/handlers/join_game.py`**:
+  - Modified join success message to include ✅ emoji: "✅ You've joined **[game title]**!"
+  - Removed error message for duplicate join attempts - now silently ignores if user already joined
+- **`services/bot/handlers/leave_game.py`**:
+  - Modified leave success message to include ❌ emoji: "❌ You've left **[game title]**"
+  - Removed error messages for invalid leave attempts (user not in game) - now silently ignores
+
+**Behavior**: Users receive private DM confirmations for successful join/leave actions. If DMs fail (user has DMs disabled), the action still completes and users see the updated participant list in the game announcement message. Duplicate/invalid actions are silently ignored without sending messages.
+
 ## Changes
 
 ### Added
@@ -4675,10 +4691,12 @@ if host_discord_id and host_discord_id in display_names_map:
 **Root Cause**: Message refresh implementation was using incorrect channel ID reference - `game.channel_id` (UUID foreign key) instead of `game.channel.channel_id` (actual Discord channel ID string).
 
 **Files Modified**:
+
 - `services/bot/events/handlers.py` - Fixed `_refresh_game_message()` and `_get_game_with_participants()`
 - `tests/services/bot/events/test_handlers.py` - Updated test mocks to include channel relationship
 
 **Changes**:
+
 ```python
 # BEFORE (Line 191):
 channel = await self.bot.fetch_channel(int(game.channel_id))  # Wrong: UUID not Discord ID
@@ -4701,6 +4719,7 @@ channel = await self.bot.fetch_channel(int(game.channel.channel_id))  # Correct:
 **Root Cause**: Race condition where Discord message refresh (triggered by GAME_UPDATED event) invalidates in-flight button interactions by recreating button views with new interaction tokens.
 
 **Timeline of Race Condition**:
+
 ```
 T+0ms:  User clicks button
 T+10ms: Bot tries to defer response
@@ -4712,9 +4731,11 @@ T+35ms: Discord rejects - "interaction doesn't exist anymore"
 ```
 
 **Files Modified**:
+
 - `services/bot/handlers/utils.py` - Added HTTPException handling to all interaction response functions
 
 **Changes**:
+
 ```python
 # send_deferred_response() - Wrap defer in try/except
 if not interaction.response.is_done():
@@ -4746,19 +4767,22 @@ except discord.HTTPException:
 **Solution**: Added unique constraint at database level + IntegrityError handling in application.
 
 **Files Modified**:
+
 - `shared/models/participant.py` - Added UniqueConstraint on (game_session_id, user_id)
 - `services/bot/handlers/join_game.py` - Added IntegrityError handling with user-friendly message
 - `services/api/services/games.py` - Added IntegrityError handling that raises ValueError
 - `alembic/versions/002_add_unique_game_participant.py` - Created migration for constraint
 
 **Database Change**:
+
 ```sql
-ALTER TABLE game_participants 
-ADD CONSTRAINT unique_game_participant 
+ALTER TABLE game_participants
+ADD CONSTRAINT unique_game_participant
 UNIQUE (game_session_id, user_id);
 ```
 
 **Application Handling**:
+
 ```python
 # Bot Handler (services/bot/handlers/join_game.py):
 try:
@@ -4777,12 +4801,14 @@ except IntegrityError:
 ```
 
 **Behavior**:
+
 - ✅ Two different users clicking simultaneously → Both succeed
 - ✅ Same user double-clicking → Second request shows "You've already joined this game!"
 - ✅ No duplicate entries in database
 - ✅ Database integrity maintained at constraint level
 
-**Testing**: 
+**Testing**:
+
 - Unique constraint verified in database schema
 - API service tests passing (test_join_game_success)
 - Services rebuilt and deployed successfully
@@ -4793,24 +4819,26 @@ except IntegrityError:
 ### Architecture Notes
 
 **Discord Message Refresh Pattern**:
+
 - Button handlers publish GAME_UPDATED events to RabbitMQ
-- Event consumer receives events and calls _refresh_game_message()
+- Event consumer receives events and calls \_refresh_game_message()
 - Message views are properly re-attached with same custom_ids
 - Persistent button views maintain functionality across refreshes
 
 **Race Condition Handling Philosophy**:
+
 - Database-level constraints provide ultimate protection
 - Application-level checks provide user-friendly error messages
 - Silent HTTPException handling prevents log spam from Discord timing issues
 - Try/except pattern is Discord bot best practice for real-time collaborative systems
 
 **Benefits**:
+
 - Real-time message updates when participants join/leave
 - Graceful handling of Discord API timing edge cases
 - Database integrity protected by unique constraints
 - User-friendly error messages for duplicate actions
 - Clean logs without spurious errors
-
 
 ## Bug Fix: Simplified Participant Validation with Database Constraints
 
@@ -4869,26 +4897,26 @@ async def _validate_join_game(
     db: AsyncSession, game: game_model.GameSession, user: user_model.User
 ) -> None:
     # Pre-check removed - database constraint handles duplicates
-    
+
     # Validate game status
     if game.status != "SCHEDULED":
         raise ValueError("Cannot join a game that is not scheduled")
 ```
 
 ```python
-# services/api/services/games.py  
+# services/api/services/games.py
 async def join_game(self, game_id: str, user_discord_id: str) -> game_model.GameSession:
     # Pre-check removed - database constraint handles duplicates
-    
+
     # Validate game is joinable
     await self._validate_game_joinable(game, user)
-    
+
     # Create participant (database constraint prevents duplicates)
     participant = participant_model.GameParticipant(
         game_session_id=game_id, user_id=user.id
     )
     self.db.add(participant)
-    
+
     try:
         await self.db.commit()
     except IntegrityError:
@@ -4922,7 +4950,7 @@ async def test_join_game_already_joined(game_service, mock_db, mock_participant_
     game_result = MagicMock()
     game_result.scalar_one_or_none.return_value = mock_game
     mock_db.execute = AsyncMock(return_value=game_result)
-    
+
     with pytest.raises(ValueError, match="Already joined this game"):
         await game_service.join_game(game_id=game_id, user_discord_id=sample_user.discord_id)
 ```
@@ -4934,13 +4962,13 @@ async def test_join_game_already_joined(game_service, mock_db, mock_participant_
 async def test_join_game_already_joined(game_service, mock_db, ...):
     """Test joining same game twice raises ValueError due to IntegrityError."""
     from sqlalchemy.exc import IntegrityError
-    
+
     # Mock successful queries
     mock_db.execute = AsyncMock(side_effect=[game_result, count_result, guild_result, channel_result])
-    
+
     # Simulate IntegrityError on commit (duplicate key violation)
     mock_db.commit = AsyncMock(side_effect=IntegrityError("statement", {}, "orig"))
-    
+
     with pytest.raises(ValueError, match="User has already joined this game"):
         await game_service.join_game(game_id=game_id, user_discord_id=sample_user.discord_id)
 ```
@@ -4981,7 +5009,6 @@ tests/services/api/services/test_games.py::test_join_game_full PASSED           
 - **Code Maintainability**: Simpler validation logic, easier to understand and maintain
 - **Reliability**: Eliminates race condition window that could have caused duplicate participants
 
-
 ## Performance Fix: Adaptive Rate Limiting for Discord Message Updates
 
 **Date**: 2025-11-19
@@ -5006,6 +5033,7 @@ First attempt used a simple 2-second delay for all updates, but this caused noti
 Implemented **adaptive backoff** that balances instant updates when idle with progressive rate limiting during bursts:
 
 **Backoff Schedule**: `[0.0, 1.0, 1.5, 1.5]` seconds
+
 - **1st update**: 0s (instant) - immediate refresh when idle
 - **2nd update**: 1s delay - starting to apply rate limiting
 - **3rd+ updates**: 1.5s delay - steady state rate limiting
@@ -5019,7 +5047,7 @@ Implemented **adaptive backoff** that balances instant updates when idle with pr
 class EventHandlers:
     def __init__(self, bot: discord.Client):
         # ... existing code ...
-        
+
         # Adaptive rate limiting for message refreshes
         self._pending_refreshes: set[str] = set()  # Track games with pending refreshes
         self._refresh_counts: dict[str, int] = {}  # Track consecutive updates per game
@@ -5030,23 +5058,23 @@ class EventHandlers:
     async def _handle_game_updated(self, data: dict[str, Any]) -> None:
         """Handle game.updated event with adaptive backoff."""
         game_id = data.get("game_id")
-        
+
         if not game_id:
             logger.error("Missing game_id in game.updated event")
             return
-        
+
         # Skip if refresh already scheduled for this game
         if game_id in self._pending_refreshes:
             logger.debug(f"Game {game_id} refresh already scheduled, skipping")
             return
-        
+
         current_time = asyncio.get_event_loop().time()
-        
+
         # Reset counter if game has been idle (no updates for threshold period)
         last_update = self._last_update_time.get(game_id, 0)
         if current_time - last_update > self._idle_reset_threshold:
             self._refresh_counts[game_id] = 0
-            
+
             # Clean up stale entries (3x idle threshold = 15s)
             cleanup_threshold = self._idle_reset_threshold * 3
             stale_games = [
@@ -5056,11 +5084,11 @@ class EventHandlers:
             for gid in stale_games:
                 self._last_update_time.pop(gid, None)
                 self._refresh_counts.pop(gid, None)
-        
+
         # Calculate adaptive delay based on consecutive update count
         update_count = self._refresh_counts.get(game_id, 0)
         delay = self._backoff_delays[min(update_count, len(self._backoff_delays) - 1)]
-        
+
         self._pending_refreshes.add(game_id)
         self._last_update_time[game_id] = current_time
         self._refresh_counts[game_id] = update_count + 1
@@ -5093,6 +5121,7 @@ t=2.0s: User E joins → skipped (refresh pending)
 **Result**: 5 rapid updates = 2 Discord API calls (instead of 5)
 
 **After idle period (5+ seconds with no updates)**:
+
 - Counter resets to 0
 - Next update gets instant refresh (0s delay)
 
@@ -5108,6 +5137,7 @@ Added automatic cleanup of stale tracking entries:
 ### Files Modified
 
 1. **services/bot/events/handlers.py**:
+
    - Changed from `dict[str, asyncio.Task]` to `set[str]` for pending refreshes
    - Added `_refresh_counts` dict to track consecutive updates per game
    - Added `_last_update_time` dict to track last update timestamp per game
@@ -5142,6 +5172,7 @@ Test suite now runs 2.7x faster (2.43s vs 6.62s) due to instant first updates.
 **Discord Limit**: 5 edits per 5 seconds per message
 
 **Adaptive Backoff Rate**:
+
 - Worst case burst: 0s + 1s + 1.5s + 1.5s = 4 refreshes in ~4s ✅
 - Typical idle: Instant refresh (0s delay) ✅
 - Sustained activity: Settles at 1 refresh per 1.5s (~3.3 per 5s) ✅
@@ -5165,4 +5196,3 @@ All scenarios stay well under Discord's 5 edits/5s limit.
 - **Reliability**: Eliminates rate limit errors that were causing update failures
 - **User Experience**: Instant updates when idle (0s), progressive delays only during bursts
 - **Scalability**: Bounded memory usage even for long-running bots with thousands of games
-
