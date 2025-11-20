@@ -30,7 +30,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.api.auth import oauth2, tokens
 from services.api.config import get_api_config
 from services.api.dependencies import auth as auth_deps
-from shared.cache import client as cache_client
 from shared.database import get_db
 from shared.models import user as user_model
 from shared.schemas import auth as auth_schemas
@@ -219,21 +218,7 @@ async def get_user_info(
 
     try:
         user_info = await oauth2.get_user_from_token(access_token)
-
-        # Use cached guilds to avoid rate limiting
-        cache_key = f"user_guilds:{current_user.user.discord_id}"
-        redis = await cache_client.get_redis_client()
-        cached = await redis.get(cache_key)
-
-        if cached:
-            import json
-
-            guilds = json.loads(cached)
-        else:
-            guilds = await oauth2.get_user_guilds(access_token)
-            import json
-
-            await redis.set(cache_key, json.dumps(guilds), ttl=60)
+        guilds = await oauth2.get_user_guilds(access_token, current_user.user.discord_id)
 
         return auth_schemas.UserInfoResponse(
             id=user_info["id"],

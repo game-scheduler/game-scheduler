@@ -130,7 +130,8 @@ class EventHandlers:
             return
 
         try:
-            channel = self.bot.get_channel(int(channel_id))
+            channel = await self.bot.fetch_channel(int(channel_id))
+
             if not channel or not isinstance(channel, discord.TextChannel):
                 logger.error(f"Invalid or inaccessible channel: {channel_id}")
                 return
@@ -192,7 +193,8 @@ class EventHandlers:
                     logger.warning(f"Game or message not found: {game_id}")
                     return
 
-                channel = self.bot.get_channel(int(game.channel_id))
+                channel = await self.bot.fetch_channel(int(game.channel_id))
+
                 if not channel or not isinstance(channel, discord.TextChannel):
                     logger.error(f"Invalid channel: {game.channel_id}")
                     return
@@ -243,6 +245,7 @@ class EventHandlers:
 
         try:
             user = await self.bot.fetch_user(int(notification.user_id))
+
             if not user:
                 logger.error(f"User not found: {notification.user_id}")
                 return

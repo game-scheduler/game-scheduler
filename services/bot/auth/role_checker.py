@@ -73,7 +73,11 @@ class RoleChecker:
                 return cached_roles
 
         try:
-            guild = self.bot.get_guild(int(guild_id))
+            if self.api_cache:
+                guild = await self.api_cache.fetch_guild(int(guild_id))
+            else:
+                guild = await self.bot.fetch_guild(int(guild_id))
+
             if guild is None:
                 logger.warning(f"Guild {guild_id} not found")
                 return []
@@ -109,7 +113,8 @@ class RoleChecker:
             List of Discord role objects
         """
         try:
-            guild = self.bot.get_guild(int(guild_id))
+            guild = await self.bot.fetch_guild(int(guild_id))
+
             if guild is None:
                 logger.warning(f"Guild {guild_id} not found")
                 return []
@@ -132,7 +137,8 @@ class RoleChecker:
             True if user has MANAGE_GUILD permission
         """
         try:
-            guild = self.bot.get_guild(int(guild_id))
+            guild = await self.bot.fetch_guild(int(guild_id))
+
             if guild is None:
                 return False
 
@@ -158,7 +164,8 @@ class RoleChecker:
             True if user has MANAGE_CHANNELS permission
         """
         try:
-            guild = self.bot.get_guild(int(guild_id))
+            guild = await self.bot.fetch_guild(int(guild_id))
+
             if guild is None:
                 return False
 
@@ -184,7 +191,8 @@ class RoleChecker:
             True if user has ADMINISTRATOR permission
         """
         try:
-            guild = self.bot.get_guild(int(guild_id))
+            guild = await self.bot.fetch_guild(int(guild_id))
+
             if guild is None:
                 return False
 

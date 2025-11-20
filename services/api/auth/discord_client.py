@@ -22,12 +22,16 @@ Discord API client for OAuth2 and user data fetching.
 Provides async HTTP client for Discord REST API operations.
 """
 
+import asyncio
+import json
 import logging
 from typing import Any
 
 import aiohttp
 
 from services.api import config
+from shared.cache import client as cache_client
+from shared.cache import ttl
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +75,8 @@ class DiscordAPIClient:
         self.client_secret = client_secret
         self.bot_token = bot_token
         self._session: aiohttp.ClientSession | None = None
+        self._guild_locks: dict[str, asyncio.Lock] = {}
+        self._locks_lock = asyncio.Lock()
 
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""
@@ -222,15 +228,65 @@ class DiscordAPIClient:
             logger.error(f"Network error fetching user info: {e}")
             raise DiscordAPIError(500, f"Network error: {str(e)}") from e
 
-    async def get_user_guilds(self, access_token: str) -> list[dict[str, Any]]:
+    async def get_user_guilds(
+        self, access_token: str, user_id: str | None = None
+    ) -> list[dict[str, Any]]:
         """
-        Fetch guilds the user is a member of.
+        Fetch guilds the user is a member of with Redis caching.
+
+        Uses double-checked locking to prevent duplicate API calls for concurrent requests.
+        Caches results for 300 seconds to avoid Discord rate limits.
+
+        Args:
+            access_token: User's OAuth2 access token
+            user_id: Discord user ID for cache key (optional, improves cache efficiency)
+
+        Returns:
+            List of guild objects with id, name, icon, permissions, etc.
+
+        Raises:
+            DiscordAPIError: If fetching guilds fails
+        """
+        # Fast path: check cache without lock if user_id provided
+        if user_id:
+            cache_key = f"user_guilds:{user_id}"
+            redis = await cache_client.get_redis_client()
+            cached = await redis.get(cache_key)
+            if cached:
+                logger.debug(f"Cache hit for user guilds: {user_id}")
+                return json.loads(cached)
+
+            # Get or create per-user lock
+            async with self._locks_lock:
+                if user_id not in self._guild_locks:
+                    self._guild_locks[user_id] = asyncio.Lock()
+                user_lock = self._guild_locks[user_id]
+
+            # Slow path: check cache again after acquiring lock
+            async with user_lock:
+                cached = await redis.get(cache_key)
+                if cached:
+                    logger.debug(f"Cache hit after lock for user guilds: {user_id}")
+                    return json.loads(cached)
+
+                # Fetch from Discord and cache
+                guilds_data = await self._fetch_user_guilds_uncached(access_token)
+                await redis.set(cache_key, json.dumps(guilds_data), ttl=ttl.CacheTTL.USER_GUILDS)
+                logger.debug(f"Cached {len(guilds_data)} guilds for user: {user_id}")
+                return guilds_data
+        else:
+            # No user_id provided, skip caching
+            return await self._fetch_user_guilds_uncached(access_token)
+
+    async def _fetch_user_guilds_uncached(self, access_token: str) -> list[dict[str, Any]]:
+        """
+        Internal method to fetch guilds from Discord API without caching.
 
         Args:
             access_token: User's OAuth2 access token
 
         Returns:
-            List of guild objects with id, name, icon, permissions, etc.
+            List of guild objects from Discord API
 
         Raises:
             DiscordAPIError: If fetching guilds fails
@@ -258,6 +314,160 @@ class DiscordAPIClient:
                 return response_data
         except aiohttp.ClientError as e:
             logger.error(f"Network error fetching guilds: {e}")
+            raise DiscordAPIError(500, f"Network error: {str(e)}") from e
+
+    async def fetch_channel(self, channel_id: str) -> dict[str, Any]:
+        """
+        Fetch channel information using bot token with Redis caching.
+
+        Args:
+            channel_id: Discord channel ID
+
+        Returns:
+            Channel object with id, name, type, guild_id, etc.
+
+        Raises:
+            DiscordAPIError: If fetching channel fails
+        """
+        cache_key = f"discord:channel:{channel_id}"
+        redis = await cache_client.get_redis_client()
+
+        # Check cache first
+        cached = await redis.get(cache_key)
+        if cached:
+            logger.debug(f"Cache hit for channel: {channel_id}")
+            return json.loads(cached)
+
+        # Fetch from Discord API
+        session = await self._get_session()
+        url = f"{DISCORD_API_BASE}/channels/{channel_id}"
+
+        self._log_request("GET", url, "fetch_channel")
+        try:
+            async with session.get(
+                url,
+                headers={"Authorization": f"Bot {self.bot_token}"},
+            ) as response:
+                response_data = await response.json()
+                self._log_response(response)
+
+                if response.status != 200:
+                    error_msg = response_data.get("message", "Unknown error")
+                    if response.status == 404:
+                        # Cache negative result briefly
+                        await redis.set(cache_key, json.dumps({"error": "not_found"}), ttl=60)
+                    raise DiscordAPIError(response.status, error_msg, dict(response.headers))
+
+                # Cache successful result
+                await redis.set(
+                    cache_key, json.dumps(response_data), ttl=ttl.CacheTTL.DISCORD_CHANNEL
+                )
+                logger.debug(f"Cached channel: {channel_id}")
+                return response_data
+        except aiohttp.ClientError as e:
+            logger.error(f"Network error fetching channel: {e}")
+            raise DiscordAPIError(500, f"Network error: {str(e)}") from e
+
+    async def fetch_guild(self, guild_id: str) -> dict[str, Any]:
+        """
+        Fetch guild information using bot token with Redis caching.
+
+        Args:
+            guild_id: Discord guild (server) ID
+
+        Returns:
+            Guild object with id, name, icon, features, etc.
+
+        Raises:
+            DiscordAPIError: If fetching guild fails
+        """
+        cache_key = f"discord:guild:{guild_id}"
+        redis = await cache_client.get_redis_client()
+
+        # Check cache first
+        cached = await redis.get(cache_key)
+        if cached:
+            logger.debug(f"Cache hit for guild: {guild_id}")
+            return json.loads(cached)
+
+        # Fetch from Discord API
+        session = await self._get_session()
+        url = f"{DISCORD_API_BASE}/guilds/{guild_id}"
+
+        self._log_request("GET", url, "fetch_guild")
+        try:
+            async with session.get(
+                url,
+                headers={"Authorization": f"Bot {self.bot_token}"},
+            ) as response:
+                response_data = await response.json()
+                self._log_response(response)
+
+                if response.status != 200:
+                    error_msg = response_data.get("message", "Unknown error")
+                    if response.status == 404:
+                        # Cache negative result briefly
+                        await redis.set(cache_key, json.dumps({"error": "not_found"}), ttl=60)
+                    raise DiscordAPIError(response.status, error_msg, dict(response.headers))
+
+                # Cache successful result
+                await redis.set(
+                    cache_key, json.dumps(response_data), ttl=ttl.CacheTTL.DISCORD_GUILD
+                )
+                logger.debug(f"Cached guild: {guild_id}")
+                return response_data
+        except aiohttp.ClientError as e:
+            logger.error(f"Network error fetching guild: {e}")
+            raise DiscordAPIError(500, f"Network error: {str(e)}") from e
+
+    async def fetch_user(self, user_id: str) -> dict[str, Any]:
+        """
+        Fetch user information using bot token with Redis caching.
+
+        Args:
+            user_id: Discord user ID
+
+        Returns:
+            User object with id, username, avatar, discriminator, etc.
+
+        Raises:
+            DiscordAPIError: If fetching user fails
+        """
+        cache_key = f"discord:user:{user_id}"
+        redis = await cache_client.get_redis_client()
+
+        # Check cache first
+        cached = await redis.get(cache_key)
+        if cached:
+            logger.debug(f"Cache hit for user: {user_id}")
+            return json.loads(cached)
+
+        # Fetch from Discord API
+        session = await self._get_session()
+        url = f"{DISCORD_API_BASE}/users/{user_id}"
+
+        self._log_request("GET", url, "fetch_user")
+        try:
+            async with session.get(
+                url,
+                headers={"Authorization": f"Bot {self.bot_token}"},
+            ) as response:
+                response_data = await response.json()
+                self._log_response(response)
+
+                if response.status != 200:
+                    error_msg = response_data.get("message", "Unknown error")
+                    if response.status == 404:
+                        # Cache negative result briefly
+                        await redis.set(cache_key, json.dumps({"error": "not_found"}), ttl=60)
+                    raise DiscordAPIError(response.status, error_msg, dict(response.headers))
+
+                # Cache successful result
+                await redis.set(cache_key, json.dumps(response_data), ttl=ttl.CacheTTL.DISCORD_USER)
+                logger.debug(f"Cached user: {user_id}")
+                return response_data
+        except aiohttp.ClientError as e:
+            logger.error(f"Network error fetching user: {e}")
             raise DiscordAPIError(500, f"Network error: {str(e)}") from e
 
     async def get_guild_member(self, guild_id: str, user_id: str) -> dict[str, Any]:

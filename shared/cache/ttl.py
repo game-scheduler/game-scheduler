@@ -28,3 +28,7 @@ class CacheTTL:
     GUILD_CONFIG = 600  # 10 minutes
     CHANNEL_CONFIG = 600  # 10 minutes
     GAME_DETAILS = 60  # 1 minute
+    USER_GUILDS = 300  # 5 minutes - Discord user guild membership
+    DISCORD_CHANNEL = 300  # 5 minutes - Discord channel objects
+    DISCORD_GUILD = 600  # 10 minutes - Discord guild objects
+    DISCORD_USER = 300  # 5 minutes - Discord user objects

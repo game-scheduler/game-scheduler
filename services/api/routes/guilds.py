@@ -19,109 +19,22 @@
 """Guild configuration endpoints."""
 
 # ruff: noqa: B008
-import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api import dependencies
+from services.api.auth import oauth2
 from services.api.dependencies import permissions
 from services.api.services import config as config_service
 from shared import database
-from shared.cache import client as cache_client
 from shared.schemas import auth as auth_schemas
 from shared.schemas import channel as channel_schemas
 from shared.schemas import guild as guild_schemas
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/guilds", tags=["guilds"])
-
-# In-memory locks for preventing duplicate Discord API calls
-_guild_fetch_locks: dict[str, asyncio.Lock] = {}
-_locks_lock = asyncio.Lock()
-
-
-async def get_user_guilds_cached(access_token: str, discord_id: str) -> dict[str, dict]:
-    """
-    Get user guilds with caching to avoid Discord rate limits.
-
-    Caches results for 5 minutes since guild membership changes very infrequently.
-    Uses locking to prevent race conditions where multiple requests hit Discord API simultaneously.
-    """
-    from services.api.auth import discord_client, oauth2
-
-    cache_key = f"user_guilds:{discord_id}"
-    redis = await cache_client.get_redis_client()
-
-    # Check cache first (fast path without lock)
-    cached = await redis.get(cache_key)
-    if cached:
-        import json
-
-        guilds_list = json.loads(cached)
-
-        logger.info(
-            f"returning {len(guilds_list)} cached guilds for user {discord_id} with key {cache_key}"
-        )
-
-        return {g["id"]: g for g in guilds_list}
-
-    # Get or create lock for this user
-    async with _locks_lock:
-        if discord_id not in _guild_fetch_locks:
-            _guild_fetch_locks[discord_id] = asyncio.Lock()
-        user_lock = _guild_fetch_locks[discord_id]
-
-    # Acquire lock to prevent duplicate requests
-    async with user_lock:
-        # Check cache again in case another request just populated it
-        cached = await redis.get(cache_key)
-        if cached:
-            import json
-
-            guilds_list = json.loads(cached)
-
-            logger.info(
-                f"returning {len(guilds_list)} cached guilds for user {discord_id} "
-                f"(fetched by another request)"
-            )
-
-            return {g["id"]: g for g in guilds_list}
-
-        # Make the actual Discord API call
-        try:
-            user_guilds = await oauth2.get_user_guilds(access_token)
-            user_guild_ids = {g["id"]: g for g in user_guilds}
-
-            import json
-
-            await redis.set(cache_key, json.dumps(user_guilds), ttl=300)
-
-            logger.info(
-                f"Cached {len(user_guild_ids)} guilds for user {discord_id} with key {cache_key}"
-            )
-
-            return user_guild_ids
-        except discord_client.DiscordAPIError as e:
-            error_detail = f"Failed to fetch user guilds: {e}"
-
-            if e.status == 429:
-                logger.error(f"Rate limit headers: {dict(e.headers)}")
-                reset_after = e.headers.get("x-ratelimit-reset-after")
-                reset_at = e.headers.get("x-ratelimit-reset")
-                if reset_after:
-                    error_detail += f" | Rate limit resets in {reset_after} seconds"
-                if reset_at:
-                    error_detail += f" | Reset at Unix timestamp {reset_at}"
-
-            logger.error(error_detail)
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=(
-                    "Unable to verify guild membership at this time. Please try again in a moment."
-                ),
-            ) from e
 
 
 @router.get("", response_model=guild_schemas.GuildListResponse)
@@ -136,11 +49,11 @@ async def list_guilds(
     """
     service = config_service.ConfigurationService(db)
 
-    # Use cached guilds to avoid Discord rate limits
-    user_guilds_dict = await get_user_guilds_cached(
-        current_user.access_token,
-        current_user.user.discord_id,
+    # Get guilds with automatic caching from discord client
+    user_guilds = await oauth2.get_user_guilds(
+        current_user.access_token, current_user.user.discord_id
     )
+    user_guilds_dict = {g["id"]: g for g in user_guilds}
 
     guild_configs = []
     for guild_id, discord_guild_data in user_guilds_dict.items():
@@ -193,26 +106,27 @@ async def get_guild(
         raise HTTPException(status_code=401, detail="No session found")
 
     access_token = token_data["access_token"]
-    user_guild_ids = await get_user_guilds_cached(access_token, current_user.user.discord_id)
+    user_guilds = await oauth2.get_user_guilds(access_token, current_user.user.discord_id)
+    user_guilds_dict = {g["id"]: g for g in user_guilds}
 
     discord_guild_id = guild_config.guild_id
 
     logger.info(
         f"get_guild: UUID {guild_id} maps to Discord guild {discord_guild_id}. "
-        f"User has access to {len(user_guild_ids)} guilds"
+        f"User has access to {len(user_guilds_dict)} guilds"
     )
 
-    if discord_guild_id not in user_guild_ids:
+    if discord_guild_id not in user_guilds_dict:
         logger.warning(
             f"get_guild: Discord guild {discord_guild_id} not found in "
-            f"user's {len(user_guild_ids)} guilds"
+            f"user's {len(user_guilds_dict)} guilds"
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not a member of this guild",
         )
 
-    guild_name = user_guild_ids[discord_guild_id].get("name", "Unknown Guild")
+    guild_name = user_guilds_dict[discord_guild_id].get("name", "Unknown Guild")
 
     return guild_schemas.GuildConfigResponse(
         id=guild_config.id,
@@ -259,10 +173,11 @@ async def create_guild_config(
         require_host_role=request.require_host_role,
     )
 
-    user_guild_ids = await get_user_guilds_cached(
+    user_guilds = await oauth2.get_user_guilds(
         current_user.access_token, current_user.user.discord_id
     )
-    guild_name = user_guild_ids.get(request.guild_id, {}).get("name", "Unknown Guild")
+    user_guilds_dict = {g["id"]: g for g in user_guilds}
+    guild_name = user_guilds_dict.get(request.guild_id, {}).get("name", "Unknown Guild")
 
     return guild_schemas.GuildConfigResponse(
         id=guild_config.id,
@@ -301,10 +216,11 @@ async def update_guild_config(
     updates = request.model_dump(exclude_unset=True)
     guild_config = await service.update_guild_config(guild_config, **updates)
 
-    user_guild_ids = await get_user_guilds_cached(
+    user_guilds = await oauth2.get_user_guilds(
         current_user.access_token, current_user.user.discord_id
     )
-    guild_name = user_guild_ids.get(guild_config.guild_id, {}).get("name", "Unknown Guild")
+    user_guilds_dict = {g["id"]: g for g in user_guilds}
+    guild_name = user_guilds_dict.get(guild_config.guild_id, {}).get("name", "Unknown Guild")
 
     return guild_schemas.GuildConfigResponse(
         id=guild_config.id,
@@ -350,19 +266,20 @@ async def list_guild_channels(
         raise HTTPException(status_code=401, detail="No session found")
 
     access_token = token_data["access_token"]
-    user_guild_ids = await get_user_guilds_cached(access_token, current_user.user.discord_id)
+    user_guilds = await oauth2.get_user_guilds(access_token, current_user.user.discord_id)
+    user_guilds_dict = {g["id"]: g for g in user_guilds}
 
     discord_guild_id = guild_config.guild_id
 
     logger.info(
         f"list_guild_channels: UUID {guild_id} maps to Discord guild {discord_guild_id}. "
-        f"User has access to {len(user_guild_ids)} guilds"
+        f"User has access to {len(user_guilds_dict)} guilds"
     )
 
-    if discord_guild_id not in user_guild_ids:
+    if discord_guild_id not in user_guilds_dict:
         logger.warning(
             f"list_guild_channels: Discord guild {discord_guild_id} not found in "
-            f"user's {len(user_guild_ids)} guilds"
+            f"user's {len(user_guilds_dict)} guilds"
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

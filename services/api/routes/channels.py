@@ -25,6 +25,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api import dependencies
+from services.api.auth import oauth2
 from services.api.dependencies import permissions
 from services.api.services import config as config_service
 from shared import database
@@ -46,7 +47,6 @@ async def get_channel(
 
     Requires user to be member of the parent guild.
     """
-    from services.api.routes import guilds
 
     service = config_service.ConfigurationService(db)
     channel_config = await service.get_channel_by_id(channel_id)
@@ -56,15 +56,17 @@ async def get_channel(
             status_code=status.HTTP_404_NOT_FOUND, detail="Channel configuration not found"
         )
 
-    user_guild_ids = await guilds.get_user_guilds_cached(
+    user_guilds = await oauth2.get_user_guilds(
         current_user.access_token, current_user.user.discord_id
     )
+    user_guild_ids = {g["id"] for g in user_guilds}
 
     # channel_config.guild.guild_id is the Discord guild ID (snowflake)
     discord_guild_id = channel_config.guild.guild_id
 
     logger.info(
-        f"Channel UUID {channel_id} (Discord ID {channel_config.channel_id}) belongs to Discord guild {discord_guild_id}, "
+        f"Channel UUID {channel_id} (Discord ID {channel_config.channel_id}) "
+        f"belongs to Discord guild {discord_guild_id}, "
         f"User has access to {len(user_guild_ids)} guilds"
     )
 

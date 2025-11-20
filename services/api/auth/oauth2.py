@@ -162,12 +162,13 @@ async def get_user_from_token(access_token: str) -> dict[str, Any]:
     return user_data
 
 
-async def get_user_guilds(access_token: str) -> list[dict[str, Any]]:
+async def get_user_guilds(access_token: str, user_id: str | None = None) -> list[dict[str, Any]]:
     """
-    Fetch guilds the user is a member of.
+    Fetch guilds the user is a member of with automatic caching.
 
     Args:
         access_token: User's OAuth2 access token
+        user_id: Discord user ID for cache key (optional, enables caching)
 
     Returns:
         List of guild data with id, name, icon, permissions, etc.
@@ -176,7 +177,7 @@ async def get_user_guilds(access_token: str) -> list[dict[str, Any]]:
         DiscordAPIError: If fetching guilds fails
     """
     discord = discord_client.get_discord_client()
-    guilds_data = await discord.get_user_guilds(access_token)
+    guilds_data = await discord.get_user_guilds(access_token, user_id)
 
     logger.info(f"Fetched {len(guilds_data)} guilds for user")
     return guilds_data

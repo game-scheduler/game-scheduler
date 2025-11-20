@@ -547,7 +547,7 @@ class GameService:
             game_id=uuid.UUID(game.id),
             title=game.title,
             guild_id=game.guild_id,
-            channel_id=game.channel_id,
+            channel_id=channel_config.channel_id,
             host_id=game.host_id,
             scheduled_at=game.scheduled_at,
             scheduled_at_unix=int(game.scheduled_at.timestamp()),

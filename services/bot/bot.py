@@ -50,6 +50,7 @@ class GameSchedulerBot(commands.Bot):
         self.button_handler = None
         self.event_handlers = None
         self.event_publisher = None
+        self.api_cache = None
 
         intents = discord.Intents.none()
 
@@ -93,6 +94,11 @@ class GameSchedulerBot(commands.Bot):
         logger.info(f"Bot connected as {self.user} (ID: {self.user.id})")
         logger.info(f"Connected to {len(self.guilds)} guilds")
         logger.info("Bot is ready to receive events")
+
+        if self.event_handlers and not hasattr(self, "_event_consumer_started"):
+            self._event_consumer_started = True
+            self.loop.create_task(self.event_handlers.start_consuming())
+            logger.info("Started event consumer task")
 
     async def on_disconnect(self) -> None:
         """Handle Gateway disconnection."""
@@ -143,6 +149,13 @@ class GameSchedulerBot(commands.Bot):
     async def close(self) -> None:
         """Cleanup resources before bot shutdown."""
         logger.info("Shutting down bot")
+
+        if self.event_handlers:
+            await self.event_handlers.stop_consuming()
+
+        if self.event_publisher:
+            await self.event_publisher.close()
+
         await super().close()
 
 

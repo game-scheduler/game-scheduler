@@ -131,6 +131,7 @@ class EventConsumer:
                             f"Handler error for event {event.event_type}: {e}",
                             exc_info=True,
                         )
+                        raise
 
             except Exception as e:
                 logger.error(f"Failed to process message: {e}", exc_info=True)
