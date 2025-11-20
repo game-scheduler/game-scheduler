@@ -192,17 +192,7 @@ class GameService:
         self.db.add(game)
         await self.db.flush()
 
-        # Add host as first participant
-        host_participant = participant_model.GameParticipant(
-            game_session_id=game.id,
-            user_id=host_user.id,
-            display_name=None,
-            status=participant_model.ParticipantStatus.JOINED.value,
-            is_pre_populated=False,
-        )
-        self.db.add(host_participant)
-
-        # Add pre-populated participants
+        # Add pre-populated participants (host not included)
         for participant_data in valid_participants:
             if participant_data["type"] == "discord":
                 user = await self.participant_resolver.ensure_user_exists(

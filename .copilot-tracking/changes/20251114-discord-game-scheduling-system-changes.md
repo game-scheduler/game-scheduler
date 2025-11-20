@@ -192,6 +192,36 @@ Modified the bot's join and leave game notifications to send as direct messages 
 - alembic.ini - Updated database URL to use correct credentials from .env
 - docker/bot.Dockerfile - Added bot-specific requirements installation and shared package setup
 
+### Phase 6: Refactor Host from Participants (Task 6.1 Complete)
+
+**Date**: 2025-11-20
+
+- services/api/services/games.py - Removed host participant creation during game creation (lines 176-188)
+
+**Changes:**
+
+- Removed code block that created GameParticipant record for game host
+- Host is now ONLY stored in GameSession.host_id field
+- Host no longer appears in game_participants table
+- Updated comment from "Add host as first participant" to "Add pre-populated participants (host not included)"
+- Only pre-populated participants from initial_participants list are added to game_participants
+
+**Testing:**
+
+- All 4 test_create_game\* tests passing (100% pass rate)
+- test_create_game_without_participants: Validates basic game creation without host in participants
+- test_create_game_with_valid_participants: Tests with @mentions and placeholders, no host duplication
+- test_create_game_with_invalid_participants: Error handling verified
+- test_create_game_timezone_conversion: UTC timezone handling verified
+- No regression issues detected
+
+**Impact:**
+
+- Cleaner data model: Host stored separately from participants
+- More accurate participant count: Host not counted in participants list
+- Eliminates redundant host entry in game_participants table
+- Prepares codebase for Task 6.2 (API response changes) and Task 6.3 (database migration)
+
 ### Removed
 
 **Task 2.1 Testing:**
@@ -5290,4 +5320,3 @@ Fixed all failing unit tests (467/467 tests now passing, 100% pass rate) by upda
 - `tests/services/api/services/test_config.py`
 - `tests/services/api/routes/test_guilds.py` (complete rewrite)
 - `services/bot/auth/role_checker.py`
-

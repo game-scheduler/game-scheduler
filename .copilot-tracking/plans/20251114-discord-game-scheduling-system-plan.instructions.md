@@ -158,7 +158,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
 ### [ ] Phase 6: Refactor Host from Participants
 
-- [ ] Task 6.1: Remove host from participants during game creation
+- [x] Task 6.1: Remove host from participants during game creation
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 691-707)
 
