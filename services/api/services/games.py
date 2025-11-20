@@ -504,11 +504,14 @@ class GameService:
         Raises:
             ValueError: If not a participant or game completed
         """
+        logger.info(f"leave_game service: game_id={game_id}, user_discord_id={user_discord_id}")
         game = await self.get_game(game_id)
         if game is None:
+            logger.error(f"Game not found: {game_id}")
             raise ValueError("Game not found")
 
         if game.status == game_model.GameStatus.COMPLETED.value:
+            logger.error(f"Cannot leave completed game: {game_id}")
             raise ValueError("Cannot leave completed game")
 
         # Get user
@@ -517,7 +520,10 @@ class GameService:
         )
         user = user_result.scalar_one_or_none()
         if user is None:
+            logger.error(f"User not found: discord_id={user_discord_id}")
             raise ValueError("User not found")
+
+        logger.info(f"Found user: id={user.id}, discord_id={user.discord_id}")
 
         # Find participant
         participant_result = await self.db.execute(
@@ -528,11 +534,15 @@ class GameService:
         )
         participant = participant_result.scalar_one_or_none()
         if participant is None:
+            logger.error(f"Participant not found: game_id={game_id}, user_id={user.id}")
             raise ValueError("Not a participant of this game")
+
+        logger.info(f"Found participant: id={participant.id}, deleting...")
 
         # Remove participant
         await self.db.delete(participant)
         await self.db.commit()
+        logger.info("Participant deleted and committed")
 
         # Publish player.left event
         await self._publish_player_left(game, user)

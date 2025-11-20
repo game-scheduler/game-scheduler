@@ -70,7 +70,16 @@ async def handle_join_game(
             return
 
         game = result["game"]
+        user = result["user"]
         participant_count = result["participant_count"]
+
+        # Create participant in database
+        participant = GameParticipant(
+            game_session_id=str(game_id),
+            user_id=user.id,
+        )
+        db.add(participant)
+        await db.commit()
 
     await publisher.publish_player_joined(
         game_id=game_id,

@@ -238,12 +238,17 @@ async def leave_game(
 
     Validates user is a participant and game not completed.
     """
+    logger.info(
+        f"Leave game request: game_id={game_id}, user_discord_id={current_user.user.discord_id}"
+    )
     try:
         await game_service.leave_game(
             game_id=game_id,
             user_discord_id=current_user.user.discord_id,
         )
+        logger.info(f"User {current_user.user.discord_id} successfully left game {game_id}")
     except ValueError as e:
+        logger.error(f"Leave game error: {e}")
         if "not found" in str(e).lower():
             raise HTTPException(status_code=404, detail=str(e)) from None
         raise HTTPException(status_code=400, detail=str(e)) from None

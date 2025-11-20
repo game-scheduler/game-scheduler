@@ -4472,3 +4472,76 @@ channel = await self.bot.fetch_channel(int(channel_id))
 - No compilation errors in type checking
 - Python coding conventions followed (PEP 8, type hints, docstrings)
 - Backward compatible - existing functionality preserved
+
+---
+
+### Bug Fix: Discord Bot Button Handlers Not Persisting Database Changes (2025-11-20)
+
+**Issue**: When users clicked "Join Game" or "Leave Game" buttons in Discord, the bot would validate the action and publish RabbitMQ events, but the database was never updated. Participants were not actually added or removed from games.
+
+**Root Cause**: The bot handlers (`handle_join_game` and `handle_leave_game`) were designed to only publish events to RabbitMQ, expecting another service to consume those events and perform the database operations. However, no event handlers were registered for `PLAYER_JOINED` or `PLAYER_LEFT` events in the bot's event consumer, so the events were published but never processed.
+
+**Solution**: Modified the bot handlers to directly perform database operations before publishing events, matching the pattern used by the API service:
+
+**Files Modified**:
+
+- `services/bot/handlers/leave_game.py`:
+  - Added database deletion of participant record within the handler
+  - Modified `_validate_leave_game` to return the participant object
+  - Handler now deletes participant and commits transaction before publishing event
+  
+- `services/bot/handlers/join_game.py`:
+  - Added database creation of participant record within the handler
+  - Handler now creates GameParticipant, adds to session, and commits before publishing event
+  - User object already returned from validation, used directly for participant creation
+
+**Technical Details**:
+
+```python
+# services/bot/handlers/leave_game.py changes:
+# 1. Return participant from validation
+return {
+    "can_leave": True,
+    "game": game,
+    "participant_count": participant_count,
+    "participant": participant,  # Added
+}
+
+# 2. Delete participant in handler
+participant = result["participant"]
+await db.delete(participant)
+await db.commit()
+
+# services/bot/handlers/join_game.py changes:
+# 1. Create participant in handler
+user = result["user"]
+participant = GameParticipant(
+    game_session_id=str(game_id),
+    user_id=user.id,
+)
+db.add(participant)
+await db.commit()
+```
+
+**Event Flow (After Fix)**:
+
+1. User clicks Discord button
+2. Bot validates the action (game exists, user eligible, etc.)
+3. Bot performs database operation (insert/delete participant)
+4. Bot commits transaction
+5. Bot publishes event to RabbitMQ (for message updates, notifications, etc.)
+6. Bot sends success message to user
+
+**Benefits**:
+
+- **Immediate Consistency**: Database reflects reality immediately after button click
+- **No Lost Actions**: Even if event processing fails, the database is already updated
+- **Simpler Architecture**: No need for event handlers just to perform CRUD operations
+- **Matches API Pattern**: Both bot and API services now handle database operations synchronously
+
+**Testing Verified**:
+
+- Clicking "Leave Game" button now removes participant from `game_participants` table
+- Clicking "Join Game" button now adds participant to `game_participants` table
+- Events still published for downstream processing (message updates, etc.)
+- No functional regressions in validation or error handling
