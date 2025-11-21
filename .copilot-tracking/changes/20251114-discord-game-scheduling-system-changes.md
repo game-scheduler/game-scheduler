@@ -222,7 +222,7 @@ Modified the bot's join and leave game notifications to send as direct messages 
 - Eliminates redundant host entry in game_participants table
 - Prepares codebase for Task 6.2 (API response changes) and Task 6.3 (database migration)
 
-### Phase 6: Refactor Host from Participants (Task 6.2 Complete)
+### Phase 6: Refactor Host from Participants (Task 6.3 Complete)
 
 **Date**: 2025-11-20
 
@@ -243,6 +243,112 @@ Modified the bot's join and leave game notifications to send as direct messages 
 - Host information includes all fields available for participants
 - Frontend can treat host and participants uniformly in rendering logic
 - Prepares for frontend updates in Task 6.4
+
+### Phase 6: Refactor Host from Participants (Task 6.3 Complete)
+
+**Date**: 2025-11-20
+
+- alembic/versions/003_remove_host_from_participants.py - Created migration to remove host records from game_participants table
+
+**Changes:**
+
+- Created Alembic migration `003_remove_host_from_participants`
+- Migration removes all GameParticipant records where userId matches the game's hostId
+- Uses DELETE with JOIN to identify and remove host participant records
+- Downgrade path recreates host participant records with JOINED status
+- Applied to production database successfully
+- Verified: 7 host participant records removed from game_participants table
+
+**SQL Logic:**
+
+```sql
+-- Upgrade: Remove hosts from participants
+DELETE FROM game_participants
+USING game_sessions
+WHERE game_participants.game_session_id = game_sessions.id
+AND game_participants.user_id = game_sessions.host_id;
+
+-- Downgrade: Restore hosts as participants
+INSERT INTO game_participants (
+    id, game_session_id, user_id, joined_at, status, is_pre_populated
+)
+SELECT
+    gen_random_uuid(),
+    game_sessions.id,
+    game_sessions.host_id,
+    game_sessions.created_at,
+    'JOINED',
+    false
+FROM game_sessions;
+```
+
+**Testing:**
+
+- Migration applied successfully via `alembic upgrade head`
+- Verified host records removed: `SELECT COUNT(*) FROM game_participants WHERE user_id IN (SELECT host_id FROM game_sessions)` returns 0
+- Database migration chain verified: 001 → 9eb33bf3186b → 002 → 003
+- All 7 affected participant records were confirmed as hosts before deletion
+
+**Impact:**
+
+- Database now reflects clean separation of host from participants
+- Host participant records removed from existing games
+- Participant counts now accurate (exclude hosts)
+- Aligns database state with Task 6.1 and 6.2 code changes
+- Migration reversible via downgrade for safety
+
+### Phase 6: Refactor Host from Participants (Task 6.3 Complete)
+
+**Date**: 2025-11-20
+
+- alembic/versions/003_remove_host_from_participants.py - Created migration to remove host records from game_participants table
+
+**Changes:**
+
+- Created Alembic migration `003_remove_host_from_participants`
+- Migration removes all GameParticipant records where userId matches the game's hostId
+- Uses DELETE with JOIN to identify and remove host participant records
+- Downgrade path recreates host participant records with JOINED status
+- Applied to production database successfully
+- Verified: 7 host participant records removed from game_participants table
+
+**SQL Logic:**
+
+```sql
+-- Upgrade: Remove hosts from participants
+DELETE FROM game_participants
+USING game_sessions
+WHERE game_participants.game_session_id = game_sessions.id
+AND game_participants.user_id = game_sessions.host_id;
+
+-- Downgrade: Restore hosts as participants
+INSERT INTO game_participants (
+    id, game_session_id, user_id, joined_at, status, is_pre_populated
+)
+SELECT
+    gen_random_uuid(),
+    game_sessions.id,
+    game_sessions.host_id,
+    game_sessions.created_at,
+    'JOINED',
+    false
+FROM game_sessions;
+```
+
+**Testing:**
+
+- Migration applied successfully via `alembic upgrade head`
+- Verified host records removed: `SELECT COUNT(*) FROM game_participants WHERE user_id IN (SELECT host_id FROM game_sessions)` returns 0
+- Database migration chain verified: 001 → 9eb33bf3186b → 002 → 003
+- All 7 affected participant records were confirmed as hosts before deletion
+
+**Impact:**
+
+- Database now reflects clean separation of host from participants
+- Host participant records removed from existing games
+- Participant counts now accurate (exclude hosts)
+- Aligns database state with Task 6.1 and 6.2 code changes
+- Migration reversible via downgrade for safety
 
 ### Removed
 
