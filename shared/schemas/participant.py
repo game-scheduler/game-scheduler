@@ -36,7 +36,7 @@ class ParticipantResponse(BaseModel):
     discord_id: str | None = Field(None, description="Discord snowflake ID - None for placeholders")
     display_name: str | None = Field(
         None,
-        description="Resolved display name (guild-specific or placeholder text) - None if not resolved",
+        description="Resolved display name (guild-specific or placeholder text)",
     )
     joined_at: str = Field(..., description="Join timestamp (UTC ISO)")
     status: str = Field(

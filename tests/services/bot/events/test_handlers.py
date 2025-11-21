@@ -291,7 +291,7 @@ async def test_handle_game_updated_debouncing(event_handlers, mock_bot, sample_g
 
                 # Simulate 5 rapid updates (e.g., 5 users joining quickly)
                 # First schedules refresh (0s delay), rest are skipped as duplicates
-                for i in range(5):
+                for _i in range(5):
                     await event_handlers._handle_game_updated(data)
 
                 # Verify refresh is pending (not yet executed)

@@ -34,10 +34,13 @@ from shared.schemas import auth as auth_schemas
 
 logger = logging.getLogger(__name__)
 
+# Module-level singleton for database dependency
+_db_dependency = Depends(database.get_db)
+
 
 async def get_current_user(
     session_token: str = Cookie(..., description="Session token from HTTPOnly cookie"),
-    db: AsyncSession = Depends(database.get_db),
+    db: AsyncSession = _db_dependency,
 ) -> auth_schemas.CurrentUser:
     """
     Get current authenticated user from cookie.
