@@ -622,9 +622,401 @@ Create tasks to update game status from SCHEDULED → IN_PROGRESS → COMPLETED 
   - Task 5.1 (Celery setup)
   - Task 1.2 (database models)
 
+## Phase 6: Refactor Host from Participants
+
+### Task 6.1: Remove host from participants during game creation
+
+Stop adding the game host as a GameParticipant record when creating games.
+
+- **Files**:
+  - `services/api/services/games.py` - Remove host from initial participant creation (lines 176-184)
+  - `services/api/routes/games.py` - Update join endpoint documentation if needed
+  - `tests/services/api/services/test_games.py` - Update game creation tests
+  - `tests/services/api/routes/test_games.py` - Update game creation tests
+- **Success**:
+  - Game creation no longer adds host as GameParticipant
+  - Host stored only in GameSession.host_id
+  - Participant count excludes host
+  - Existing games' hosts removed from participant list via data migration
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1652-1680) - Host field separation requirement
+- **Dependencies**:
+  - None (straightforward removal)
+
+### Task 6.2: Update API responses to show host separately
+
+Update GameResponse schema and service to return host information separately.
+
+- **Files**:
+  - `shared/schemas/game.py` - Add `host` field to GameResponse (ParticipantResponse format)
+  - `services/api/services/games.py` - Load host user data for response
+  - `services/api/routes/games.py` - Ensure host data included in responses
+- **Success**:
+  - GameResponse includes `host: ParticipantResponse` field
+  - Host information includes discord_id, display_name, resolved_display_name
+  - Participant list does not include host
+  - All game endpoints return consistent structure
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1652-1680) - Desired API structure
+- **Dependencies**:
+  - Task 6.1 completion
+
+### Task 6.3: Update database migration for existing data
+
+Create migration to remove any existing host records from game_participants table.
+
+- **Files**:
+  - `alembic/versions/YYYYMM01_remove_host_from_participants.py` - Data migration
+- **Success**:
+  - Migration identifies GameParticipant records where user_id matches GameSession.host_id
+  - All such records deleted safely
+  - Migration includes rollback logic
+  - No data loss for non-host participants
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1652-1680) - Data structure changes
+- **Dependencies**:
+  - Task 6.1 completion (code change first, then data migration)
+
+### Task 6.4: Update frontend to display host separately
+
+Update game card and details components to show host distinctly.
+
+- **Files**:
+  - `frontend/src/types/index.ts` - Update Game type with separate host field
+  - `frontend/src/components/GameCard.tsx` - Show host badge separate from participants
+  - `frontend/src/pages/GameDetails.tsx` - Display host info prominently
+  - `frontend/src/components/ParticipantList.tsx` - Ensure host not in list
+- **Success**:
+  - Game cards show "Host: @username" separately
+  - Participant list excludes host
+  - Participant count accurate (doesn't include host)
+  - Host can be distinguished visually from regular participants
+  - Host information visible on game details page
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1652-1680) - UI requirements
+- **Dependencies**:
+  - Task 6.2 completion (API changes first)
+
+## Dependencies
+
+- Python 3.11+ with type hints and async/await
+- PostgreSQL 15+ with TIMESTAMPTZ support
+- RabbitMQ 3.12+ for message broker
+- Redis 7+ for caching
+- Docker and Docker Compose for development
+- Discord Application with bot token and OAuth2 client credentials
+
+## Success Criteria
+
+## Phase 7: Min Players Field Implementation
+
+### Task 7.1: Add min_players field to GameSession model
+
+Add `min_players` integer field to GameSession with default value of 1 and appropriate constraints.
+
+- **Files**:
+  - `shared/models/game.py` - Add min_players field to GameSession model
+  - `alembic/versions/YYYYMMDD_add_min_players_field.py` - Create Alembic migration (new file)
+- **Success**:
+  - min_players column exists in database with NOT NULL constraint
+  - Default value is 1 for all new games
+  - Existing games updated to have min_players=1
+  - Migration is reversible (downgrade removes column)
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1715-1745) - Min players requirement details
+- **Dependencies**:
+  - Task 1.2 completion (database setup)
+
+### Task 7.2: Update schemas to include min_players
+
+Add min_players field to request and response schemas with proper validation.
+
+- **Files**:
+  - `shared/schemas/game.py` - Add min_players to CreateGameRequest (optional, default 1)
+  - `shared/schemas/game.py` - Add min_players to UpdateGameRequest (optional)
+  - `shared/schemas/game.py` - Add min_players to GameResponse
+- **Success**:
+  - min_players accepts integer input in create/update requests
+  - min_players defaults to 1 if not provided
+  - min_players appears in all game responses
+  - Validation errors clear if invalid values provided
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1740-1745) - Validation rules
+- **Dependencies**:
+  - Task 7.1 completion (model field exists)
+
+### Task 7.3: Implement validation and service logic
+
+Add validation to ensure min_players ≤ max_players and update service methods.
+
+- **Files**:
+  - `services/api/routes/games.py` - Add min_players validation to POST/PUT endpoints
+  - `services/api/services/games.py` - Update create_game() to accept and store min_players
+  - `services/api/services/games.py` - Update update_game() to accept and store min_players
+- **Success**:
+  - Validation rejects min_players > max_players with 422 error
+  - Validation rejects min_players < 1 with 422 error
+  - Service methods properly store min_players in database
+  - Error messages are clear and actionable
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1738-1745) - Validation rules
+- **Dependencies**:
+  - Task 7.2 completion (schemas updated)
+
+### Task 7.4: Update frontend to handle min_players
+
+Add min_players input to game creation form and display in participant count format.
+
+- **Files**:
+  - `frontend/src/types/index.ts` - Add minPlayers to Game interface
+  - `frontend/src/pages/CreateGame.tsx` - Add input field for min_players (optional, default 1)
+  - `frontend/src/components/GameCard.tsx` - Display participant count as "X/min-max" format
+  - `frontend/src/components/ParticipantDisplay.tsx` - Show min-max format in all places
+- **Success**:
+  - Game creation form includes min_players field (optional, defaults to 1)
+  - Game cards show "X/1-5" format instead of just "X/5"
+  - Validation prevents min > max in form before submission
+  - API validation errors displayed clearly to user
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1725-1730) - Display format
+- **Dependencies**:
+  - Task 7.3 completion (API validation working)
+
+## Phase 8: Description and Signup Instructions Fields
+
+### Task 8.1: Add description and signup_instructions fields to GameSession model
+
+- **Files**:
+  - `shared/models/game.py` - Add description (TEXT, nullable) and signup_instructions (TEXT, nullable) fields
+  - `alembic/versions/YYYYMMDD_add_description_signup_instructions.py` - Create Alembic migration (new file)
+- **Success**:
+  - Both columns exist in database as TEXT type with nullable constraint
+  - Existing games have NULL values for both fields
+  - Migration is reversible (downgrade removes both columns)
+  - No default values (NULL allowed)
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1763-1810) - Description and signup instructions requirement
+- **Dependencies**:
+  - Task 1.2 completion (database setup)
+
+### Task 8.2: Update schemas to include description and signup_instructions
+
+Add both fields to request and response schemas with length validation.
+
+- **Files**:
+  - `shared/schemas/game.py` - Add description to CreateGameRequest (optional, max 4000 chars)
+  - `shared/schemas/game.py` - Add signup_instructions to CreateGameRequest (optional, max 1000 chars)
+  - `shared/schemas/game.py` - Add description to UpdateGameRequest (optional)
+  - `shared/schemas/game.py` - Add signup_instructions to UpdateGameRequest (optional)
+  - `shared/schemas/game.py` - Add both fields to GameResponse
+- **Success**:
+  - Both fields accept text input in create/update requests
+  - Validation enforces max length constraints
+  - Both fields appear in all game responses (may be null)
+  - Clear validation errors if length limits exceeded
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1800-1805) - Validation rules
+- **Dependencies**:
+  - Task 8.1 completion (model fields exist)
+
+### Task 8.3: Update service and bot logic to handle new fields
+
+Update game creation, updates, and Discord message formatting to include new fields.
+
+- **Files**:
+  - `services/api/services/games.py` - Update create_game() to accept and store both fields
+  - `services/api/services/games.py` - Update update_game() to accept and store both fields
+  - `services/bot/formatters/game_message.py` - Include truncated description in Discord messages
+- **Success**:
+  - Service methods properly store both fields in database
+  - Discord messages show first 100 chars of description with "..." if longer
+  - Both fields handled correctly in all game operations
+  - NULL values handled gracefully (don't break formatting)
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1795-1800) - Display guidelines
+- **Dependencies**:
+  - Task 8.2 completion (schemas updated)
+
+### Task 8.4: Update frontend to display and edit new fields
+
+Add description and signup_instructions to game creation form and display components.
+
+- **Files**:
+  - `frontend/src/types/index.ts` - Add description and signupInstructions to Game interface
+  - `frontend/src/pages/CreateGame.tsx` - Add textarea fields for both (optional)
+  - `frontend/src/components/GameCard.tsx` - Display truncated description (first 200 chars)
+  - `frontend/src/pages/GameDetails.tsx` - Display full description and signup instructions
+  - `frontend/src/components/GameCard.tsx` - Show signup instructions near participant count
+- **Success**:
+  - Game creation form includes both fields with appropriate textarea inputs
+  - Game cards show truncated description with "Read more..." if truncated
+  - Detail page shows full description and signup instructions
+  - Signup instructions appear near Join/Leave buttons
+  - Markdown rendering supported for description field
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1795-1800) - Display guidelines
+- **Dependencies**:
+  - Task 8.3 completion (API returns new fields)
+
+## Phase 9: Bot Managers Role List
+
+### Task 9.1: Add botManagerRoleIds field to GuildConfiguration model
+
+Add `botManagerRoleIds` JSON array field to GuildConfiguration for managing game moderation permissions.
+
+- **Files**:
+  - `shared/models/guild.py` - Add botManagerRoleIds (JSON array, nullable) field
+  - `alembic/versions/YYYYMMDD_add_bot_manager_roles.py` - Create Alembic migration (new file)
+- **Success**:
+  - bot_manager_role_ids column exists in database as JSON type with nullable constraint
+  - Existing guilds have NULL values for this field
+  - JSON array can store multiple Discord role IDs (snowflake strings)
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1833-1900) - Bot Managers requirement
+- **Dependencies**:
+  - Task 1.2 completion (database setup)
+
+### Task 9.2: Update schemas and permissions middleware
+
+Add botManagerRoleIds to guild schemas and create permission check helpers.
+
+- **Files**:
+  - `shared/schemas/guild.py` - Add botManagerRoleIds to GuildConfigUpdateRequest (optional)
+  - `shared/schemas/guild.py` - Add botManagerRoleIds to GuildConfigResponse
+  - `services/api/middleware/permissions.py` - Add has_bot_manager_permission() helper
+  - `services/api/middleware/permissions.py` - Add can_manage_game() authorization function
+- **Success**:
+  - Guild configuration accepts botManagerRoleIds in update requests
+  - Guild responses include botManagerRoleIds (may be null)
+  - Permission helpers correctly identify Bot Manager role membership
+  - Authorization checks distinguish between host, Bot Manager, and admin
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1860-1880) - Authorization logic
+- **Dependencies**:
+  - Task 9.1 completion (model field exists)
+
+### Task 9.3: Implement Bot Manager authorization in game routes
+
+Update game edit/delete endpoints to check Bot Manager permissions.
+
+- **Files**:
+  - `services/api/routes/games.py` - Update PUT /games/{id} to check Bot Manager roles
+  - `services/api/routes/games.py` - Update DELETE /games/{id} to check Bot Manager roles
+  - `services/api/services/games.py` - Add authorization checks in update_game() and delete_game()
+- **Success**:
+  - Bot Managers can edit any game in their guild
+  - Bot Managers can delete any game in their guild
+  - Hosts retain ability to manage their own games
+  - Guild admins (MANAGE_GUILD) retain full permissions
+  - Clear 403 error if user lacks permissions
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1860-1880) - Authorization logic
+- **Dependencies**:
+  - Task 9.2 completion (permission helpers exist)
+
+### Task 9.4: Update bot commands and frontend for Bot Manager configuration
+
+Add Bot Manager role management to Discord bot commands and web dashboard.
+
+- **Files**:
+  - `services/bot/commands/config_guild.py` - Add bot_managers parameter to guild config command
+  - `frontend/src/pages/GuildConfig.tsx` - Add UI for selecting Bot Manager roles
+  - `frontend/src/components/RoleSelector.tsx` - Reusable role selection component
+- **Success**:
+  - Guild admins can configure Bot Manager roles via Discord bot
+  - Guild admins can configure Bot Manager roles via web dashboard
+  - Multiple roles can be selected/deselected
+  - Changes persist to database and take effect immediately
+  - Clear indication of which roles have Bot Manager permissions
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1850-1860) - Configuration requirements
+- **Dependencies**:
+  - Task 9.3 completion (authorization logic working)
+- Bot Manager roles can be configured by guild admins
+- Bot Managers have permission to edit/delete any game in their guild
+- Authorization correctly distinguishes between hosts, Bot Managers, and admins
+- Permission checks cached and performant
+
+## Phase 10: Notify Roles Field
+
+### Task 10.1: Add notifyRoleIds field to GameSession model
+
+Add `notifyRoleIds` JSON array field to GameSession for role-based notifications.
+
+- **Files**:
+  - `shared/models/game.py` - Add notifyRoleIds (JSON array, nullable) field
+  - `alembic/versions/YYYYMMDD_add_notify_roles.py` - Create Alembic migration (new file)
+- **Success**:
+  - notify_role_ids column exists in database as JSON type with nullable constraint
+  - Existing games have NULL or empty array values for this field
+  - Migration is reversible (downgrade removes column)
+  - JSON array can store multiple Discord role IDs (snowflake strings)
+- **Research References**:
+- **Dependencies**:
+  - Task 1.2 completion (database setup)
+
+### Task 10.2: Update schemas to include notifyRoleIds
+
+Add notifyRoleIds to game schemas with validation.
+
+- **Files**:
+  - `shared/schemas/game.py` - Add notifyRoleIds to CreateGameRequest (optional, max 10 items)
+  - `shared/schemas/game.py` - Add notifyRoleIds to UpdateGameRequest (optional, max 10 items)
+  - `shared/schemas/game.py` - Add notifyRoleIds to GameResponse
+- **Success**:
+  - Game creation accepts notifyRoleIds in request body
+  - Game updates accept notifyRoleIds in request body
+  - API responses include notifyRoleIds (may be null or empty array)
+  - Pydantic validation enforces max 10 roles
+  - Role IDs validated as valid snowflake format
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 2000-2010) - Validation rules
+- **Dependencies**:
+  - Task 10.1 completion (model field exists)
+
+### Task 10.3: Implement role mention formatting in bot announcements
+
+Update Discord message formatting to include role mentions when game is created.
+
+- **Files**:
+  - `services/bot/formatters/game_message.py` - Add role mention formatting at top of message
+  - `services/bot/events/game_events.py` - Ensure role mentions included in game_created handler
+  - `services/api/services/games.py` - Pass notifyRoleIds when publishing game.created events
+- **Success**:
+  - Role mentions appear at top of game announcement messages
+  - Multiple roles mentioned with space separation: `<@&role1> <@&role2>`
+  - Users with mentioned roles receive Discord notification
+  - Messages without notifyRoleIds don't include mentions (graceful handling)
+  - Role mentions don't break message formatting
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1965-1990) - Discord message format
+- **Dependencies**:
+  - Task 10.2 completion (schemas updated)
+
+### Task 10.4: Update frontend for role selection
+
+Add role selection UI to game creation form.
+
+- **Files**:
+  - `frontend/src/pages/CreateGame.tsx` - Add role multi-select component
+  - `frontend/src/components/RoleSelector.tsx` - Create reusable role selector (if not exists)
+  - `frontend/src/api/client.ts` - Add endpoint to fetch guild roles
+  - `services/api/routes/guilds.py` - Add GET /guilds/{id}/roles endpoint
+- **Success**:
+  - Game creation form shows role selection dropdown
+  - Dropdown populated with guild roles (excluding @everyone and managed roles)
+  - Multiple roles can be selected
+  - Selected roles displayed with role name and color indicator
+  - Role selection optional (can create game without notifications)
+  - Selected roles submitted as notifyRoleIds array to API
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1990-2000) - Frontend role selection
+- **Dependencies**:
+  - Task 10.3 completion (backend handling works)
+
 ## Phase 11: Integration & Testing
 
-### Task 6.1: Integration tests for inter-service communication
+### Task 11.1: Integration tests for inter-service communication
 
 Test event publishing and consumption between services using test containers.
 
@@ -644,9 +1036,9 @@ Test event publishing and consumption between services using test containers.
 - **Dependencies**:
   - pytest 7.4+
   - testcontainers 3.7+
-  - All Phase 1-4 services
+  - All Phase 1-5 services
 
-### Task 6.2: End-to-end tests for user workflows
+### Task 11.2: End-to-end tests for user workflows
 
 Test complete user journeys from login through game creation, joining, and notifications.
 
@@ -668,7 +1060,7 @@ Test complete user journeys from login through game creation, joining, and notif
   - Playwright or Selenium for browser automation
   - All services running
 
-### Task 6.3: Load testing for concurrent operations
+### Task 11.3: Load testing for concurrent operations
 
 Test system performance under concurrent Discord button clicks and API requests.
 
@@ -689,7 +1081,7 @@ Test system performance under concurrent Discord button clicks and API requests.
   - Locust or k6 for load generation
   - Monitoring tools
 
-### Task 6.4: Test display name resolution scenarios
+### Task 11.4: Test display name resolution scenarios
 
 Test display name resolution with various user states and edge cases.
 
@@ -710,7 +1102,7 @@ Test display name resolution with various user states and edge cases.
   - Task 3.6 (display name service)
   - Mock Discord API responses
 
-### Task 6.5: Test pre-populated participants feature
+### Task 11.5: Test pre-populated participants feature
 
 Test all scenarios for pre-populating participants with validation and error handling.
 
@@ -732,11 +1124,11 @@ Test all scenarios for pre-populating participants with validation and error han
   - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 615-750) - Error recovery
 - **Dependencies**:
   - Task 3.5 (game API)
-  - Task 5.5 (frontend validation)
+  - Task 4.5 (frontend validation)
 
 ## Phase 12: Advanced Features
 
-### Task 7.1: Implement waitlist support
+### Task 12.1: Implement waitlist support
 
 Add waitlist functionality when games reach maxPlayers capacity.
 
@@ -755,7 +1147,7 @@ Add waitlist functionality when games reach maxPlayers capacity.
 - **Dependencies**:
   - All Phase 2-5 services
 
-### Task 7.2: Add game templates for recurring sessions
+### Task 12.2: Add game templates for recurring sessions
 
 Create template system for games that repeat weekly/monthly with same settings.
 
@@ -772,9 +1164,9 @@ Create template system for games that repeat weekly/monthly with same settings.
 - **Research References**:
   - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1569-1612) - Advanced features list
 - **Dependencies**:
-  - Phase 3 and 5 (API and frontend)
+  - Phase 3 and 4 (API and frontend)
 
-### Task 7.3: Build calendar export functionality
+### Task 12.3: Build calendar export functionality
 
 Generate iCal format calendar files for users to import into their calendar apps.
 
@@ -793,7 +1185,7 @@ Generate iCal format calendar files for users to import into their calendar apps
   - icalendar Python library
   - Task 3.5 (game API)
 
-### Task 7.4: Create statistics dashboard
+### Task 12.4: Create statistics dashboard
 
 Build dashboard showing game history, participation rates, and trends per guild/channel.
 
@@ -813,427 +1205,3 @@ Build dashboard showing game history, participation rates, and trends per guild/
 - **Dependencies**:
   - Chart library (recharts or chart.js)
   - Task 3.5 (game API)
-
-## Phase 6: Refactor Host from Participants
-
-### Task 4.1: Remove host from participants during game creation
-
-Stop adding the game host as a GameParticipant record when creating games.
-
-- **Files**:
-  - `services/api/services/games.py` - Remove host from initial participant creation (lines 176-184)
-  - `services/api/routes/games.py` - Update join endpoint documentation if needed
-  - `tests/services/api/services/test_games.py` - Update game creation tests
-  - `tests/services/api/routes/test_games.py` - Update game creation tests
-- **Success**:
-  - Game creation no longer adds host as GameParticipant
-  - Host stored only in GameSession.host_id
-  - Participant count excludes host
-  - Existing games' hosts removed from participant list via data migration
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1652-1680) - Host field separation requirement
-- **Dependencies**:
-  - None (straightforward removal)
-
-### Task 4.2: Update API responses to show host separately
-
-Update GameResponse schema and service to return host information separately.
-
-- **Files**:
-  - `shared/schemas/game.py` - Add `host` field to GameResponse (ParticipantResponse format)
-  - `services/api/services/games.py` - Load host user data for response
-  - `services/api/routes/games.py` - Ensure host data included in responses
-- **Success**:
-  - GameResponse includes `host: ParticipantResponse` field
-  - Host information includes discord_id, display_name, resolved_display_name
-  - Participant list does not include host
-  - All game endpoints return consistent structure
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1652-1680) - Desired API structure
-- **Dependencies**:
-  - Task 4.1 completion
-
-### Task 4.3: Update database migration for existing data
-
-Create migration to remove any existing host records from game_participants table.
-
-- **Files**:
-  - `alembic/versions/YYYYMM01_remove_host_from_participants.py` - Data migration
-- **Success**:
-  - Migration identifies GameParticipant records where user_id matches GameSession.host_id
-  - All such records deleted safely
-  - Migration includes rollback logic
-  - No data loss for non-host participants
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1652-1680) - Data structure changes
-- **Dependencies**:
-  - Task 4.1 completion (code change first, then data migration)
-
-### Task 4.4: Update frontend to display host separately
-
-Update game card and details components to show host distinctly.
-
-- **Files**:
-  - `frontend/src/types/index.ts` - Update Game type with separate host field
-  - `frontend/src/components/GameCard.tsx` - Show host badge separate from participants
-  - `frontend/src/pages/GameDetails.tsx` - Display host info prominently
-  - `frontend/src/components/ParticipantList.tsx` - Ensure host not in list
-- **Success**:
-  - Game cards show "Host: @username" separately
-  - Participant list excludes host
-  - Participant count accurate (doesn't include host)
-  - Host can be distinguished visually from regular participants
-  - Host information visible on game details page
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1652-1680) - UI requirements
-- **Dependencies**:
-  - Task 4.2 completion (API changes first)
-
-## Dependencies
-
-- Python 3.11+ with type hints and async/await
-- PostgreSQL 15+ with TIMESTAMPTZ support
-- RabbitMQ 3.12+ for message broker
-- Redis 7+ for caching
-- Docker and Docker Compose for development
-- Discord Application with bot token and OAuth2 client credentials
-
-## Success Criteria
-
-- All microservices start and communicate successfully
-- Discord bot posts messages with buttons that work reliably
-- Web dashboard authenticates users via Discord OAuth2
-- Game creation works with all settings inheritance options
-- Display names resolve correctly for all guild contexts
-- Pre-populated participants validate with clear error messages
-- Notifications send at correct times based on inherited settings
-- Button clicks respond within 3 seconds consistently
-- Role-based authorization prevents unauthorized actions
-- System handles service failures gracefully with message persistence
-- Load tests pass with 100+ concurrent users
-- All test suites pass (unit, integration, e2e, load)
-- Host is stored separately from participants list
-- Host does not appear in participant count
-- API responses clearly separate host from participants
-- Frontend displays host with visual distinction from players
-- Min players field persists and validates correctly
-- API returns clear validation errors for min_players violations
-- Frontend displays min-max participant count format
-- Description and signup instructions fields stored and displayed correctly
-- Discord messages include truncated description
-- Game cards show description preview with "Read more" option
-- Signup instructions visible near Join button
-
-## Phase 7: Min Players Field Implementation
-
-### Task 5.1: Add min_players field to GameSession model
-
-Add `min_players` integer field to GameSession with default value of 1 and appropriate constraints.
-
-- **Files**:
-  - `shared/models/game.py` - Add min_players field to GameSession model
-  - `alembic/versions/YYYYMMDD_add_min_players_field.py` - Create Alembic migration (new file)
-- **Success**:
-  - min_players column exists in database with NOT NULL constraint
-  - Default value is 1 for all new games
-  - Existing games updated to have min_players=1
-  - Migration is reversible (downgrade removes column)
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1715-1745) - Min players requirement details
-- **Dependencies**:
-  - Task 1.2 completion (database setup)
-
-### Task 5.2: Update schemas to include min_players
-
-Add min_players field to request and response schemas with proper validation.
-
-- **Files**:
-  - `shared/schemas/game.py` - Add min_players to CreateGameRequest (optional, default 1)
-  - `shared/schemas/game.py` - Add min_players to UpdateGameRequest (optional)
-  - `shared/schemas/game.py` - Add min_players to GameResponse
-- **Success**:
-  - min_players accepts integer input in create/update requests
-  - min_players defaults to 1 if not provided
-  - min_players appears in all game responses
-  - Validation errors clear if invalid values provided
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1740-1745) - Validation rules
-- **Dependencies**:
-  - Task 5.1 completion (model field exists)
-
-### Task 5.3: Implement validation and service logic
-
-Add validation to ensure min_players ≤ max_players and update service methods.
-
-- **Files**:
-  - `services/api/routes/games.py` - Add min_players validation to POST/PUT endpoints
-  - `services/api/services/games.py` - Update create_game() to accept and store min_players
-  - `services/api/services/games.py` - Update update_game() to accept and store min_players
-- **Success**:
-  - Validation rejects min_players > max_players with 422 error
-  - Validation rejects min_players < 1 with 422 error
-  - Service methods properly store min_players in database
-  - Error messages are clear and actionable
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1738-1745) - Validation rules
-- **Dependencies**:
-  - Task 5.2 completion (schemas updated)
-
-### Task 5.4: Update frontend to handle min_players
-
-Add min_players input to game creation form and display in participant count format.
-
-- **Files**:
-  - `frontend/src/types/index.ts` - Add minPlayers to Game interface
-  - `frontend/src/pages/CreateGame.tsx` - Add input field for min_players (optional, default 1)
-  - `frontend/src/components/GameCard.tsx` - Display participant count as "X/min-max" format
-  - `frontend/src/components/ParticipantDisplay.tsx` - Show min-max format in all places
-- **Success**:
-  - Game creation form includes min_players field (optional, defaults to 1)
-  - Game cards show "X/1-5" format instead of just "X/5"
-  - Validation prevents min > max in form before submission
-  - API validation errors displayed clearly to user
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1725-1730) - Display format
-- **Dependencies**:
-  - Task 5.3 completion (API validation working)
-
-## Phase 8: Description and Signup Instructions Fields
-
-### Task 6.1: Add description and signup_instructions fields to GameSession model
-
-Add `description` and `signup_instructions` text fields to GameSession for rich game information.
-
-- **Files**:
-  - `shared/models/game.py` - Add description (TEXT, nullable) and signup_instructions (TEXT, nullable) fields
-  - `alembic/versions/YYYYMMDD_add_description_signup_instructions.py` - Create Alembic migration (new file)
-- **Success**:
-  - Both columns exist in database as TEXT type with nullable constraint
-  - Existing games have NULL values for both fields
-  - Migration is reversible (downgrade removes both columns)
-  - No default values (NULL allowed)
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1763-1810) - Description and signup instructions requirement
-- **Dependencies**:
-  - Task 1.2 completion (database setup)
-
-### Task 6.2: Update schemas to include description and signup_instructions
-
-Add both fields to request and response schemas with length validation.
-
-- **Files**:
-  - `shared/schemas/game.py` - Add description to CreateGameRequest (optional, max 4000 chars)
-  - `shared/schemas/game.py` - Add signup_instructions to CreateGameRequest (optional, max 1000 chars)
-  - `shared/schemas/game.py` - Add description to UpdateGameRequest (optional)
-  - `shared/schemas/game.py` - Add signup_instructions to UpdateGameRequest (optional)
-  - `shared/schemas/game.py` - Add both fields to GameResponse
-- **Success**:
-  - Both fields accept text input in create/update requests
-  - Validation enforces max length constraints
-  - Both fields appear in all game responses (may be null)
-  - Clear validation errors if length limits exceeded
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1800-1805) - Validation rules
-- **Dependencies**:
-  - Task 6.1 completion (model fields exist)
-
-### Task 6.3: Update service and bot logic to handle new fields
-
-Update game creation, updates, and Discord message formatting to include new fields.
-
-- **Files**:
-  - `services/api/services/games.py` - Update create_game() to accept and store both fields
-  - `services/api/services/games.py` - Update update_game() to accept and store both fields
-  - `services/bot/formatters/game_message.py` - Include truncated description in Discord messages
-- **Success**:
-  - Service methods properly store both fields in database
-  - Discord messages show first 100 chars of description with "..." if longer
-  - Both fields handled correctly in all game operations
-  - NULL values handled gracefully (don't break formatting)
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1795-1800) - Display guidelines
-- **Dependencies**:
-  - Task 6.2 completion (schemas updated)
-
-### Task 6.4: Update frontend to display and edit new fields
-
-Add description and signup_instructions to game creation form and display components.
-
-- **Files**:
-  - `frontend/src/types/index.ts` - Add description and signupInstructions to Game interface
-  - `frontend/src/pages/CreateGame.tsx` - Add textarea fields for both (optional)
-  - `frontend/src/components/GameCard.tsx` - Display truncated description (first 200 chars)
-  - `frontend/src/pages/GameDetails.tsx` - Display full description and signup instructions
-  - `frontend/src/components/GameCard.tsx` - Show signup instructions near participant count
-- **Success**:
-  - Game creation form includes both fields with appropriate textarea inputs
-  - Game cards show truncated description with "Read more..." if truncated
-  - Detail page shows full description and signup instructions
-  - Signup instructions appear near Join/Leave buttons
-  - Markdown rendering supported for description field
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1795-1800) - Display guidelines
-- **Dependencies**:
-  - Task 6.3 completion (API returns new fields)
-
-## Phase 9: Bot Managers Role List
-
-### Task 7.1: Add botManagerRoleIds field to GuildConfiguration model
-
-Add `botManagerRoleIds` JSON array field to GuildConfiguration for managing game moderation permissions.
-
-- **Files**:
-  - `shared/models/guild.py` - Add botManagerRoleIds (JSON array, nullable) field
-  - `alembic/versions/YYYYMMDD_add_bot_manager_roles.py` - Create Alembic migration (new file)
-- **Success**:
-  - bot_manager_role_ids column exists in database as JSON type with nullable constraint
-  - Existing guilds have NULL values for this field
-  - Migration is reversible (downgrade removes column)
-  - JSON array can store multiple Discord role IDs (snowflake strings)
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1833-1900) - Bot Managers requirement
-- **Dependencies**:
-  - Task 1.2 completion (database setup)
-
-### Task 7.2: Update schemas and permissions middleware
-
-Add botManagerRoleIds to guild schemas and create permission check helpers.
-
-- **Files**:
-  - `shared/schemas/guild.py` - Add botManagerRoleIds to GuildConfigUpdateRequest (optional)
-  - `shared/schemas/guild.py` - Add botManagerRoleIds to GuildConfigResponse
-  - `services/api/middleware/permissions.py` - Add has_bot_manager_permission() helper
-  - `services/api/middleware/permissions.py` - Add can_manage_game() authorization function
-- **Success**:
-  - Guild configuration accepts botManagerRoleIds in update requests
-  - Guild responses include botManagerRoleIds (may be null)
-  - Permission helpers correctly identify Bot Manager role membership
-  - Authorization checks distinguish between host, Bot Manager, and admin
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1860-1880) - Authorization logic
-- **Dependencies**:
-  - Task 7.1 completion (model field exists)
-
-### Task 7.3: Implement Bot Manager authorization in game routes
-
-Update game edit/delete endpoints to check Bot Manager permissions.
-
-- **Files**:
-  - `services/api/routes/games.py` - Update PUT /games/{id} to check Bot Manager roles
-  - `services/api/routes/games.py` - Update DELETE /games/{id} to check Bot Manager roles
-  - `services/api/services/games.py` - Add authorization checks in update_game() and delete_game()
-- **Success**:
-  - Bot Managers can edit any game in their guild
-  - Bot Managers can delete any game in their guild
-  - Hosts retain ability to manage their own games
-  - Guild admins (MANAGE_GUILD) retain full permissions
-  - Clear 403 error if user lacks permissions
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1860-1880) - Authorization logic
-- **Dependencies**:
-  - Task 7.2 completion (permission helpers exist)
-
-### Task 7.4: Update bot commands and frontend for Bot Manager configuration
-
-Add Bot Manager role management to Discord bot commands and web dashboard.
-
-- **Files**:
-  - `services/bot/commands/config_guild.py` - Add bot_managers parameter to guild config command
-  - `frontend/src/pages/GuildConfig.tsx` - Add UI for selecting Bot Manager roles
-  - `frontend/src/components/RoleSelector.tsx` - Reusable role selection component
-- **Success**:
-  - Guild admins can configure Bot Manager roles via Discord bot
-  - Guild admins can configure Bot Manager roles via web dashboard
-  - Multiple roles can be selected/deselected
-  - Changes persist to database and take effect immediately
-  - Clear indication of which roles have Bot Manager permissions
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1850-1860) - Configuration requirements
-- **Dependencies**:
-  - Task 7.3 completion (authorization logic working)
-- Bot Manager roles can be configured by guild admins
-- Bot Managers have permission to edit/delete any game in their guild
-- Authorization correctly distinguishes between hosts, Bot Managers, and admins
-- Permission checks cached and performant
-
-## Phase 10: Notify Roles Field
-
-### Task 8.1: Add notifyRoleIds field to GameSession model
-
-Add `notifyRoleIds` JSON array field to GameSession for role-based notifications.
-
-- **Files**:
-  - `shared/models/game.py` - Add notifyRoleIds (JSON array, nullable) field
-  - `alembic/versions/YYYYMMDD_add_notify_roles.py` - Create Alembic migration (new file)
-- **Success**:
-  - notify_role_ids column exists in database as JSON type with nullable constraint
-  - Existing games have NULL or empty array values for this field
-  - Migration is reversible (downgrade removes column)
-  - JSON array can store multiple Discord role IDs (snowflake strings)
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1917-2020) - Notify Roles requirement
-- **Dependencies**:
-  - Task 1.2 completion (database setup)
-
-### Task 8.2: Update schemas to include notifyRoleIds
-
-Add notifyRoleIds to game schemas with validation.
-
-- **Files**:
-  - `shared/schemas/game.py` - Add notifyRoleIds to CreateGameRequest (optional, max 10 items)
-  - `shared/schemas/game.py` - Add notifyRoleIds to UpdateGameRequest (optional, max 10 items)
-  - `shared/schemas/game.py` - Add notifyRoleIds to GameResponse
-- **Success**:
-  - Game creation accepts notifyRoleIds in request body
-  - Game updates accept notifyRoleIds in request body
-  - API responses include notifyRoleIds (may be null or empty array)
-  - Pydantic validation enforces max 10 roles
-  - Role IDs validated as valid snowflake format
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 2000-2010) - Validation rules
-- **Dependencies**:
-  - Task 8.1 completion (model field exists)
-
-### Task 8.3: Implement role mention formatting in bot announcements
-
-Update Discord message formatting to include role mentions when game is created.
-
-- **Files**:
-  - `services/bot/formatters/game_message.py` - Add role mention formatting at top of message
-  - `services/bot/events/game_events.py` - Ensure role mentions included in game_created handler
-  - `services/api/services/games.py` - Pass notifyRoleIds when publishing game.created events
-- **Success**:
-  - Role mentions appear at top of game announcement messages
-  - Multiple roles mentioned with space separation: `<@&role1> <@&role2>`
-  - Users with mentioned roles receive Discord notification
-  - Messages without notifyRoleIds don't include mentions (graceful handling)
-  - Role mentions don't break message formatting
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1965-1990) - Discord message format
-- **Dependencies**:
-  - Task 8.2 completion (schemas updated)
-
-### Task 8.4: Update frontend for role selection
-
-Add role selection UI to game creation form.
-
-- **Files**:
-  - `frontend/src/pages/CreateGame.tsx` - Add role multi-select component
-  - `frontend/src/components/RoleSelector.tsx` - Create reusable role selector (if not exists)
-  - `frontend/src/api/client.ts` - Add endpoint to fetch guild roles
-  - `services/api/routes/guilds.py` - Add GET /guilds/{id}/roles endpoint
-- **Success**:
-  - Game creation form shows role selection dropdown
-  - Dropdown populated with guild roles (excluding @everyone and managed roles)
-  - Multiple roles can be selected
-  - Selected roles displayed with role name and color indicator
-  - Role selection optional (can create game without notifications)
-  - Selected roles submitted as notifyRoleIds array to API
-- **Research References**:
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1990-2000) - Frontend role selection
-- **Dependencies**:
-  - Task 8.3 completion (backend handling works)
-- Notify roles field validated and stored correctly
-- Role mentions appear in Discord game announcements
-- Users with mentioned roles receive Discord notifications
-- Frontend allows role selection with visual indicators
