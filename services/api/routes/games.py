@@ -304,10 +304,21 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
             )
         )
 
-    # Resolve host display name
+    # Build host participant response
     host_display_name = None
     if host_discord_id and host_discord_id in display_names_map:
         host_display_name = display_names_map[host_discord_id]
+
+    host_response = participant_schemas.ParticipantResponse(
+        id=game.host_id,
+        game_session_id=game.id,
+        user_id=game.host_id,
+        discord_id=host_discord_id,
+        display_name=host_display_name,
+        joined_at=game.created_at.isoformat(),
+        status="JOINED",
+        is_pre_populated=False,
+    )
 
     return game_schemas.GameResponse(
         id=game.id,
@@ -319,9 +330,7 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
         guild_id=game.guild_id,
         channel_id=game.channel_id,
         message_id=game.message_id,
-        host_id=game.host_id,
-        host_discord_id=host_discord_id,
-        host_display_name=host_display_name,
+        host=host_response,
         rules=game.rules,
         reminder_minutes=game.reminder_minutes,
         status=game.status,

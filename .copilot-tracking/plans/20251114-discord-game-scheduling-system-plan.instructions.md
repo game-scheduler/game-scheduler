@@ -162,7 +162,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 627-644)
 
-- [ ] Task 6.2: Update API responses to show host separately
+- [x] Task 6.2: Update API responses to show host separately
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 646-662)
 

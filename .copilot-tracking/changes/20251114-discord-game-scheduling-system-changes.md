@@ -222,6 +222,28 @@ Modified the bot's join and leave game notifications to send as direct messages 
 - Eliminates redundant host entry in game_participants table
 - Prepares codebase for Task 6.2 (API response changes) and Task 6.3 (database migration)
 
+### Phase 6: Refactor Host from Participants (Task 6.2 Complete)
+
+**Date**: 2025-11-20
+
+- shared/schemas/game.py - Updated GameResponse to include host as ParticipantResponse
+- services/api/routes/games.py - Modified \_build_game_response to create host participant response
+
+**Changes:**
+
+- Removed individual host fields (host_id, host_discord_id, host_display_name) from GameResponse
+- Added `host: ParticipantResponse` field to GameResponse schema
+- Updated \_build_game_response to create ParticipantResponse object for host
+- Host response includes: id=host_id, user_id=host_id, discord_id, display_name, joined_at=game.created_at, status="JOINED", is_pre_populated=False
+- Host display name resolved using same display_name_resolver as participants
+
+**Impact:**
+
+- API responses now have consistent structure for host and participants
+- Host information includes all fields available for participants
+- Frontend can treat host and participants uniformly in rendering logic
+- Prepares for frontend updates in Task 6.4
+
 ### Removed
 
 **Task 2.1 Testing:**
