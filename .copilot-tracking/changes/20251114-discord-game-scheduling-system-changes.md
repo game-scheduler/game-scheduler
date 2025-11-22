@@ -7278,3 +7278,83 @@ Previously relied on database insertion order (not guaranteed) to maintain prior
 
 - **services/api/services/games.py**: Added comment before participant creation loop explaining that the code depends on sequential creation resulting in incrementing `joined_at` timestamps, which `participant_sorting.py` relies on for maintaining order
 - **tests/services/api/services/test_participant_creation_order.py**: NEW - Unit test that verifies participants created sequentially receive incrementing timestamps and that sorting by `joined_at` preserves creation order. This documents and validates the critical assumption that participant ordering depends on.
+
+### Task 12.2: Explicit Position Field for Pre-filled Participants (Complete)
+
+**Date**: 2025-11-22
+
+Replaced timestamp-based ordering of pre-populated participants with an explicit integer position field, enabling proper reordering when participant list editing is implemented in future tasks.
+
+**Added:**
+- alembic/versions/009_add_pre_filled_position.py - Database migration adding pre_filled_position field to game_participants table
+  - Migrates existing pre-populated participants to have positions based on their joined_at timestamps
+  - Position field is nullable (NULL for regular participants who join via button)
+
+**Modified:**
+- shared/models/participant.py - Added pre_filled_position: int | None field to GameParticipant model
+- shared/schemas/participant.py - Added pre_filled_position field to ParticipantResponse schema
+- services/api/services/games.py - Updated pre-population logic to assign sequential positions (1, 2, 3...) to participants
+  - Removed comment about relying on database timestamps
+  - Now explicitly sets position during creation using enumerate(valid_participants, start=1)
+- shared/utils/participant_sorting.py - Updated sort_participants() to use position field for ordering
+  - Pre-populated/placeholder participants now sorted by pre_filled_position (fallback to joined_at if position is null)
+  - Regular participants still sorted by joined_at as before
+- frontend/src/types/index.ts - Added pre_filled_position: number | null to Participant interface
+- frontend/src/components/ParticipantList.tsx - Added client-side sorting logic using position field
+  - Implements failsafe sorting: priority participants by position, regular participants by joined_at
+  - Handles null position values gracefully with Infinity fallback
+
+**Tests Updated:**
+- tests/shared/utils/test_participant_sorting.py - Updated all test cases to include pre_filled_position values
+  - Mock participant fixture now accepts pre_filled_position parameter
+  - Tests verify position-based sorting (not timestamp-based)
+  - All 11 tests passing
+
+**Implementation Details:**
+
+Position assignment during game creation:
+```python
+for position, participant_data in enumerate(valid_participants, start=1):
+    if participant_data["type"] == "discord":
+        participant = participant_model.GameParticipant(
+            # ... other fields ...
+            pre_filled_position=position,
+        )
+```
+
+Sorting logic:
+```python
+priority_participants = sorted(
+    [p for p in participants if p.is_pre_populated or p.status == "PLACEHOLDER"],
+    key=lambda p: (
+        p.pre_filled_position if p.pre_filled_position is not None else float("inf"),
+        p.joined_at,
+    ),
+)
+```
+
+**Benefits:**
+1. **Explicit Ordering**: Position is now a direct property, not inferred from timestamps
+2. **Future-Proof**: Enables drag-and-drop reordering in future UI implementations
+3. **Database Agnostic**: No longer depends on database INSERT timing behavior
+4. **Clear Intent**: Position field explicitly documents participant ordering
+5. **Migration Safe**: Existing pre-populated participants get positions calculated from timestamps
+6. **Backward Compatible**: Regular (non-pre-filled) participants work exactly as before (position=NULL)
+
+**Database Migration:**
+- Adds nullable integer column `pre_filled_position` to `game_participants` table
+- Calculates positions for existing pre-populated participants using ROW_NUMBER() window function
+- Downgrade safely removes the column
+
+**Testing:**
+- All participant sorting tests updated and passing
+- Python linting passes (ruff check)
+- TypeScript linting passes (existing warnings unrelated to changes)
+- Database migration executed successfully
+
+**Impact:**
+- Pre-populated participants now have stable, explicit ordering
+- Future tasks can implement participant reordering by updating position values
+- No breaking changes to API or frontend behavior
+- Frontend displays participants in correct order with client-side failsafe
+

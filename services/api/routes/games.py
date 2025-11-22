@@ -249,8 +249,7 @@ async def join_game(
             discord_id=participant.user.discord_id if participant.user else None,
             display_name=participant.display_name,
             joined_at=participant.joined_at.isoformat(),
-            status=participant.status,
-            is_pre_populated=participant.is_pre_populated,
+            pre_filled_position=participant.pre_filled_position,
         )
 
     except ValueError as e:
@@ -333,8 +332,7 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
                 discord_id=discord_id,
                 display_name=display_name,
                 joined_at=participant.joined_at.isoformat(),
-                status=participant.status,
-                is_pre_populated=participant.is_pre_populated,
+                pre_filled_position=participant.pre_filled_position,
             )
         )
 
@@ -350,8 +348,7 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
         discord_id=host_discord_id,
         display_name=host_display_name,
         joined_at=game.created_at.isoformat(),
-        status="JOINED",
-        is_pre_populated=False,
+        pre_filled_position=None,
     )
 
     return game_schemas.GameResponse(

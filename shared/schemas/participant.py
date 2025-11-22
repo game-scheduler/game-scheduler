@@ -39,9 +39,9 @@ class ParticipantResponse(BaseModel):
         description="Resolved display name (guild-specific or placeholder text)",
     )
     joined_at: str = Field(..., description="Join timestamp (UTC ISO)")
-    status: str = Field(
-        ..., description="Participant status (JOINED, DROPPED, WAITLIST, PLACEHOLDER)"
+    pre_filled_position: int | None = Field(
+        None,
+        description="Position in pre-populated list (1-indexed, None for regular participants)",
     )
-    is_pre_populated: bool = Field(..., description="True if added at game creation time")
 
     model_config = {"from_attributes": True}

@@ -48,30 +48,11 @@ export const ParticipantList: FC<ParticipantListProps> = ({
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'JOINED':
-        return 'success';
-      case 'PLACEHOLDER':
-        return 'default';
-      case 'DROPPED':
-        return 'error';
-      case 'WAITLIST':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
-
   // Backend returns participants already sorted (priority participants first, then regular by join time)
-  // Just filter active participants and split by max_players
-  const activeParticipants = participants.filter(
-    (p) => p.status === 'JOINED' || p.status === 'PLACEHOLDER'
-  );
-
+  // All participants in the list are active (no status filtering needed)
   const maxSlots = maxPlayers || 10;
-  const confirmedParticipants = activeParticipants.slice(0, maxSlots);
-  const waitlistParticipants = activeParticipants.slice(maxSlots);
+  const confirmedParticipants = participants.slice(0, maxSlots);
+  const waitlistParticipants = participants.slice(maxSlots);
 
   const joinedCount = confirmedParticipants.length;
   const playerDisplay = maxPlayers
@@ -94,12 +75,9 @@ export const ParticipantList: FC<ParticipantListProps> = ({
             </ListItemAvatar>
             <ListItemText
               primary={participant.display_name || 'Unknown User'}
-              secondary={participant.is_pre_populated ? 'Pre-populated' : 'Joined via button'}
-            />
-            <Chip
-              label={participant.status}
-              color={getStatusColor(participant.status)}
-              size="small"
+              secondary={
+                participant.pre_filled_position !== null ? 'Pre-populated' : 'Joined via button'
+              }
             />
           </ListItem>
         ))}
@@ -118,7 +96,9 @@ export const ParticipantList: FC<ParticipantListProps> = ({
                 </ListItemAvatar>
                 <ListItemText
                   primary={participant.display_name || 'Unknown User'}
-                  secondary={participant.is_pre_populated ? 'Pre-populated' : 'Joined via button'}
+                  secondary={
+                    participant.pre_filled_position !== null ? 'Pre-populated' : 'Joined via button'
+                  }
                 />
                 <Chip label="Waitlist" color="warning" size="small" />
               </ListItem>

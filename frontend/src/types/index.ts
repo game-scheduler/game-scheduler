@@ -79,8 +79,7 @@ export interface Participant {
   discord_id: string | null;
   display_name: string | null;
   joined_at: string;
-  status: 'JOINED' | 'DROPPED' | 'WAITLIST' | 'PLACEHOLDER';
-  is_pre_populated: boolean;
+  pre_filled_position: number | null;
 }
 
 export interface GameListResponse {

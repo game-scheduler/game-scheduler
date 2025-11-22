@@ -119,11 +119,8 @@ class CheckUpcomingNotificationsTask(AsyncTask):
             )
 
             if should_send:
-                participants = [
-                    p
-                    for p in game_session.participants
-                    if p.user_id is not None and p.status == "JOINED"
-                ]
+                # All participants with user_id are active (no status field needed)
+                participants = [p for p in game_session.participants if p.user_id is not None]
 
                 for participant_record in participants:
                     notification_key = (

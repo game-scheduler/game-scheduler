@@ -19,10 +19,9 @@
 """Game participant model."""
 
 from datetime import datetime
-from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
@@ -30,15 +29,6 @@ from .base import Base, generate_uuid, utc_now
 if TYPE_CHECKING:
     from .game import GameSession
     from .user import User
-
-
-class ParticipantStatus(str, Enum):
-    """Participant status in game session."""
-
-    JOINED = "JOINED"
-    DROPPED = "DROPPED"
-    WAITLIST = "WAITLIST"
-    PLACEHOLDER = "PLACEHOLDER"
 
 
 class GameParticipant(Base):
@@ -60,8 +50,7 @@ class GameParticipant(Base):
     )
     display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     joined_at: Mapped[datetime] = mapped_column(default=utc_now)
-    status: Mapped[str] = mapped_column(String(20), default=ParticipantStatus.JOINED.value)
-    is_pre_populated: Mapped[bool] = mapped_column(Boolean, default=False)
+    pre_filled_position: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Relationships
     game: Mapped["GameSession"] = relationship("GameSession", back_populates="participants")
@@ -82,4 +71,4 @@ class GameParticipant(Base):
 
     def __repr__(self) -> str:
         identity = f"user_id={self.user_id}" if self.user_id else f"placeholder={self.display_name}"
-        return f"<GameParticipant(id={self.id}, {identity}, status={self.status})>"
+        return f"<GameParticipant(id={self.id}, {identity})>"

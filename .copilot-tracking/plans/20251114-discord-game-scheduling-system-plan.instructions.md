@@ -354,7 +354,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1311-1328)
 
-- [ ] Task 12.2: Change pre-filled participant ordering to use explicit position
+- [x] Task 12.2: Change pre-filled participant ordering to use explicit position
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1330-1356)
 

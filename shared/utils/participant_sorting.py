@@ -27,29 +27,24 @@ if TYPE_CHECKING:
 def sort_participants(participants: list["GameParticipant"]) -> list["GameParticipant"]:
     """Sort participants by priority and join time.
 
-    Priority order:
-    1. Pre-populated participants (sorted by joined_at/creation time)
-    2. Placeholder participants (sorted by joined_at/creation time)
-    3. Regular participants (sorted by joined_at)
-
-    Note: All participants are ultimately sorted by joined_at within their priority group.
-    For pre-populated/placeholder participants, joined_at represents creation time,
-    which preserves the order the host specified them.
+    Two classes of participants:
+    1. Priority participants (pre_filled_position set) - sorted by pre_filled_position
+    2. Regular participants (pre_filled_position NULL) - sorted by joined_at
 
     Args:
         participants: List of GameParticipant models to sort
 
     Returns:
-        Sorted list of participants with priority participants first,
-        sorted by joined_at within each priority level
+        Sorted list with priority participants first (by position),
+        followed by regular participants (by join time)
     """
     priority_participants = sorted(
-        [p for p in participants if p.is_pre_populated or p.status == "PLACEHOLDER"],
-        key=lambda p: p.joined_at,
+        [p for p in participants if p.pre_filled_position is not None],
+        key=lambda p: p.pre_filled_position,
     )
 
     regular_participants = sorted(
-        [p for p in participants if not (p.is_pre_populated or p.status == "PLACEHOLDER")],
+        [p for p in participants if p.pre_filled_position is None],
         key=lambda p: p.joined_at,
     )
 

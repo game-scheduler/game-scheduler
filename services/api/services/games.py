@@ -193,10 +193,9 @@ class GameService:
         self.db.add(game)
         await self.db.flush()
 
-        # IMPORTANT: Sequential creation order determines participant priority.
-        # Database timestamps (joined_at) increment with each INSERT, and the sorting
-        # utility relies on this to preserve the host's specified participant order.
-        for participant_data in valid_participants:
+        # Assign sequential positions to pre-populated participants
+        # Position starts at 1 and increments for each pre-filled participant
+        for position, participant_data in enumerate(valid_participants, start=1):
             if participant_data["type"] == "discord":
                 user = await self.participant_resolver.ensure_user_exists(
                     self.db, participant_data["discord_id"]
@@ -205,16 +204,14 @@ class GameService:
                     game_session_id=game.id,
                     user_id=user.id,
                     display_name=None,
-                    status=participant_model.ParticipantStatus.JOINED.value,
-                    is_pre_populated=True,
+                    pre_filled_position=position,
                 )
             else:  # placeholder
                 participant = participant_model.GameParticipant(
                     game_session_id=game.id,
                     user_id=None,
                     display_name=participant_data["display_name"],
-                    status=participant_model.ParticipantStatus.PLACEHOLDER.value,
-                    is_pre_populated=True,
+                    pre_filled_position=position,
                 )
             self.db.add(participant)
 
@@ -518,8 +515,6 @@ class GameService:
             game_session_id=game_id,
             user_id=user.id,
             display_name=None,
-            status=participant_model.ParticipantStatus.JOINED.value,
-            is_pre_populated=False,
         )
         self.db.add(participant)
         try:

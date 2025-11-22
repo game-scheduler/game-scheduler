@@ -49,10 +49,7 @@ async def test_sequential_participant_creation_preserves_order():
             game_session_id="test-game-id",
             user_id=f"user{i}" if i % 2 == 0 else None,
             display_name=name if i % 2 == 1 else None,
-            status=participant_model.ParticipantStatus.PLACEHOLDER.value
-            if i % 2 == 1
-            else participant_model.ParticipantStatus.JOINED.value,
-            is_pre_populated=True,
+            pre_filled_position=i + 1,
         )
         # Simulate database assigning joined_at timestamp
         # In reality, database assigns server_default=func.now()
