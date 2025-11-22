@@ -247,7 +247,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 802-820)
 
-- [ ] Task 8.3: Update service and bot logic to handle new fields
+- [x] Task 8.3: Update service and bot logic to handle new fields
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 822-838)
 

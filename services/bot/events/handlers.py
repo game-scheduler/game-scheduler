@@ -173,6 +173,7 @@ class EventHandlers:
                     max_players=game.max_players or 10,
                     status=game.status,
                     rules=game.rules,
+                    signup_instructions=game.signup_instructions,
                 )
 
                 message = await channel.send(embed=embed, view=view)
@@ -307,6 +308,7 @@ class EventHandlers:
                     max_players=game.max_players or 10,
                     status=game.status,
                     rules=game.rules,
+                    signup_instructions=game.signup_instructions,
                 )
 
                 await message.edit(embed=embed, view=view)

@@ -187,6 +187,7 @@ class GameService:
             id=game_model.generate_uuid(),
             title=game_data.title,
             description=game_data.description,
+            signup_instructions=game_data.signup_instructions,
             scheduled_at=scheduled_at_naive,
             guild_id=guild_config.id,
             channel_id=channel_config.id,
@@ -349,6 +350,8 @@ class GameService:
             game.title = update_data.title
         if update_data.description is not None:
             game.description = update_data.description
+        if update_data.signup_instructions is not None:
+            game.signup_instructions = update_data.signup_instructions
         if update_data.scheduled_at is not None:
             # Database stores timestamps as naive UTC, so convert timezone-aware inputs
             if update_data.scheduled_at.tzinfo is not None:

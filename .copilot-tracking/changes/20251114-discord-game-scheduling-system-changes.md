@@ -200,6 +200,51 @@ Modified the bot's join and leave game notifications to send as direct messages 
 - frontend/src/components/GameCard.tsx - Updated to display X/min-max participant count format (Task 7.4)
 - frontend/src/components/ParticipantList.tsx - Updated to display X/min-max format (Task 7.4)
 - frontend/src/pages/GameDetails.tsx - Passed minPlayers prop to ParticipantList component (Task 7.4)
+- services/api/services/games.py - Added signup_instructions field to create_game and update_game methods (Task 8.3)
+- services/bot/formatters/game_message.py - Added signup_instructions parameter to create_game_embed and format_game_announcement functions with description truncation (Task 8.3)
+- services/bot/events/handlers.py - Updated both format_game_announcement calls to pass signup_instructions field (Task 8.3)
+
+### Phase 8: Description and Signup Instructions Fields (Task 8.3 Complete)
+
+**Date**: 2025-11-21
+
+- services/api/services/games.py - Added signup_instructions field handling in create_game and update_game
+- services/bot/formatters/game_message.py - Added signup_instructions parameter and description truncation
+- services/bot/events/handlers.py - Updated game announcement calls to include signup_instructions
+
+**Changes:**
+
+- `create_game()` method now stores `signup_instructions` field from request data
+- `update_game()` method now handles updates to `signup_instructions` field
+- Discord embed formatter truncates description to first 100 characters with "..." if longer
+- Signup instructions displayed in Discord embed with ℹ️ icon before Rules section
+- Signup instructions truncated to 400 characters in Discord embed
+- Both game creation and game update handlers pass signup_instructions to formatter
+
+**Display Logic:**
+
+```python
+# Description truncation in Discord messages
+truncated_description = description
+if description and len(description) > 100:
+    truncated_description = description[:97] + "..."
+
+# Signup instructions field in embed (before rules)
+if signup_instructions:
+    embed.add_field(
+        name="ℹ️ Signup Instructions",
+        value=signup_instructions[:400] if len(signup_instructions) > 400 else signup_instructions,
+        inline=False,
+    )
+```
+
+**Impact:**
+
+- Discord announcements now show truncated game description (max 100 chars)
+- Signup instructions appear in Discord embed when provided
+- Database stores full description and signup_instructions without truncation
+- Backend properly handles NULL values for both optional fields
+- Message formatting gracefully handles missing description/signup_instructions
 
 ### Phase 7: Min Players Field Implementation (Task 7.4 Complete)
 
