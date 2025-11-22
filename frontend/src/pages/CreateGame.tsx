@@ -33,6 +33,7 @@ import {
   SelectChangeEvent,
   Chip,
   OutlinedInput,
+  Grid,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -306,31 +307,34 @@ export const CreateGame: FC = () => {
               disabled={loading}
             />
 
-            <TextField
-              fullWidth
-              label="Min Players"
-              name="minPlayers"
-              type="number"
-              value={formData.minPlayers}
-              onChange={handleChange}
-              margin="normal"
-              helperText="Minimum players required (default: 1)"
-              disabled={loading}
-              inputProps={{ min: 1, max: 100 }}
-            />
-
-            <TextField
-              fullWidth
-              label="Max Players"
-              name="maxPlayers"
-              type="number"
-              value={formData.maxPlayers}
-              onChange={handleChange}
-              margin="normal"
-              helperText="Leave empty to use channel/guild default"
-              disabled={loading}
-              inputProps={{ min: 1, max: 100 }}
-            />
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Min Players"
+                  name="minPlayers"
+                  type="number"
+                  value={formData.minPlayers}
+                  onChange={handleChange}
+                  helperText="Minimum players required (default: 1)"
+                  disabled={loading}
+                  inputProps={{ min: 1, max: 100 }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Max Players"
+                  name="maxPlayers"
+                  type="number"
+                  value={formData.maxPlayers}
+                  onChange={handleChange}
+                  helperText="Leave empty to use channel/guild default"
+                  disabled={loading}
+                  inputProps={{ min: 1, max: 100 }}
+                />
+              </Grid>
+            </Grid>
 
             <TextField
               fullWidth

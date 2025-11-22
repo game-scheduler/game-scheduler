@@ -233,6 +233,9 @@ export const GameDetails: FC = () => {
             </Box>
           )}
           <Typography variant="body2" paragraph>
+            <strong>Min Players:</strong> {game.min_players || 1}
+          </Typography>
+          <Typography variant="body2" paragraph>
             <strong>Max Players:</strong> {game.max_players || 10}
           </Typography>
           {game.rules && (

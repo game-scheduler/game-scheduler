@@ -210,8 +210,8 @@ Modified the bot's join and leave game notifications to send as direct messages 
 - frontend/src/pages/MyGames.tsx - Fixed unescaped apostrophes in alert messages (Task 11.8)
 - frontend/src/pages/LoginPage.tsx - Removed debug console.log statements and improved error handling with unknown type (Task 11.8)
 - All frontend source files - Applied automatic ESLint formatting fixes (128 fixes) for consistent code style (Task 11.8)
-- frontend/src/pages/CreateGame.tsx - Added min_players input field with client-side validation (Task 7.4); added role multi-select component with role color display and mention notification helper text (Task 10.4); changed scheduledAt default from null to new Date() for better UX (Task 11.2); added auto-select logic for single channel scenario (Task 11.3)
-- frontend/src/pages/EditGame.tsx - Added min_players input field with client-side validation (Task 7.4); moved DateTimePicker to appear immediately after title field for better information hierarchy (Task 11.4)
+- frontend/src/pages/CreateGame.tsx - Added min_players input field with client-side validation (Task 7.4); added role multi-select component with role color display and mention notification helper text (Task 10.4); changed scheduledAt default from null to new Date() for better UX (Task 11.2); added auto-select logic for single channel scenario (Task 11.3); updated to display min and max players fields side-by-side using Grid layout (Task 11.9)
+- frontend/src/pages/EditGame.tsx - Added min_players input field with client-side validation (Task 7.4); moved DateTimePicker to appear immediately after title field for better information hierarchy (Task 11.4); updated to display min and max players fields side-by-side using Grid layout (Task 11.9)
 - frontend/src/pages/GameDetails.tsx - Passed minPlayers prop to ParticipantList component (Task 7.4); moved Scheduled Time to top of Game Details section with prominent styling (Task 11.4)
 - services/api/services/games.py - Added signup_instructions field to create_game and update_game methods (Task 8.3)
 - shared/schemas/guild.py - Added bot_manager_role_ids to GuildConfigUpdateRequest and GuildConfigResponse (Task 9.2)
@@ -6655,3 +6655,91 @@ Installed and configured ESLint and Prettier for the frontend with React and Typ
 - React best practices enforced (hooks, JSX, component patterns)
 - Developer experience improved with auto-fix on save capability
 - No breaking changes - all warnings are non-critical and tracked for future improvement
+
+### Phase 11: Bug Fixes - Task 11.9 Completed (2025-11-21)
+
+**Display Min and Max Players on Same Line**
+
+Updated the CreateGame and EditGame forms to display min and max players fields side-by-side on the same line using Material-UI Grid layout. This creates a more compact and visually appealing layout that reinforces the relationship between these two fields as a range.
+
+**Changes:**
+
+- **`frontend/src/pages/CreateGame.tsx`**:
+  - Added Grid import from Material-UI
+  - Wrapped min and max players fields in Grid container with 2-column layout
+  - Each field occupies 50% width on desktop (sm={6}), stacks vertically on mobile (xs={12})
+  - Removed margin="normal" props (spacing handled by Grid)
+  - Maintained all existing validation, helper text, and functionality
+- **`frontend/src/pages/EditGame.tsx`**:
+  - Added Grid import from Material-UI
+  - Applied identical Grid layout for min/max players fields
+  - Each field occupies 50% width on desktop (sm={6}), stacks vertically on mobile (xs={12})
+  - Removed margin="normal" props (spacing handled by Grid)
+  - Maintained all existing validation, helper text, and functionality
+
+**Layout Implementation:**
+
+```tsx
+<Grid container spacing={2} sx={{ mt: 1 }}>
+  <Grid item xs={12} sm={6}>
+    <TextField
+      fullWidth
+      label="Min Players"
+      name="minPlayers"
+      type="number"
+      value={formData.minPlayers}
+      onChange={handleChange}
+      helperText="Minimum players required (default: 1)"
+      disabled={loading}
+      inputProps={{ min: 1, max: 100 }}
+    />
+  </Grid>
+  <Grid item xs={12} sm={6}>
+    <TextField
+      fullWidth
+      label="Max Players"
+      name="maxPlayers"
+      type="number"
+      value={formData.maxPlayers}
+      onChange={handleChange}
+      helperText="Leave empty to use channel/guild default"
+      disabled={loading}
+      inputProps={{ min: 1, max: 100 }}
+    />
+  </Grid>
+</Grid>
+```
+
+**Responsive Behavior:**
+
+- **Desktop (≥600px)**: Fields appear side-by-side with equal width (50% each)
+- **Mobile (<600px)**: Fields stack vertically with full width (100% each)
+- **Spacing**: Grid spacing={2} provides consistent 16px gap between fields
+- **Alignment**: Fields maintain proper alignment with other form fields
+
+**User Experience Improvements:**
+
+- More compact form layout reduces vertical scrolling
+- Visual grouping reinforces that min/max are related range values
+- Helper text remains visible under each field
+- Validation messages display correctly for each field
+- Mobile users get optimized stacked layout for easier touch input
+- Maintains accessibility with proper field labels and ARIA attributes
+
+**Testing:**
+
+- ESLint passes with 0 errors (18 pre-existing warnings remain)
+- All TypeScript types correct (Grid imported from Material-UI)
+- Responsive layout tested at various breakpoints
+- Form validation still works correctly (min ≤ max check)
+- Helper text displays appropriately for both fields
+- All existing functionality preserved (defaults, constraints, disabled states)
+
+**Impact:**
+
+- Improved form layout with better use of horizontal space
+- Better visual indication that min/max are a range pair
+- Enhanced user experience with cleaner, more professional appearance
+- Mobile-friendly responsive design maintains usability on all devices
+- No breaking changes - all field behavior remains identical
+- Consistent with Material-UI design patterns and best practices
