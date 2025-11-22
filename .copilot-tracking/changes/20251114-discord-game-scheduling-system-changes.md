@@ -6089,3 +6089,59 @@ Verified and fixed coding standards compliance across the entire Python codebase
 - Changes persist to database and take effect immediately
 - Clear validation and error messages for invalid roles
 - Phase 9 (Bot Managers Role List) fully implemented and complete
+
+### Phase 10: Task 10.5 - Fix Compile Errors
+
+- frontend/src/pages/**tests**/EditGame.test.tsx - Added notify_role_ids field to mockGame test data
+- frontend/src/pages/**tests**/GuildConfig.test.tsx - Added bot_manager_role_ids field to mockGuild test data
+
+**Changes:**
+
+- Updated EditGame test mock to include `notify_role_ids: []` field
+- Updated GuildConfig test mock to include `bot_manager_role_ids: []` field
+- Fixed TypeScript compilation errors in test files
+- All TypeScript type errors resolved
+
+**Verification:**
+
+- `npm run build` completes successfully without TypeScript errors
+- Frontend builds successfully with no type checking failures
+- All test files compile without errors
+- Production build generates optimized output (762 kB main bundle)
+
+**Impact:**
+
+- Frontend compiles cleanly with all new fields from Phase 9 and Phase 10
+- Test suite remains valid and runnable
+- Type safety maintained across all components and tests
+- Phase 10 (Notify Roles Field) implementation now complete
+
+### Bug Fix: Missing Import in guilds.py
+
+- services/api/routes/guilds.py - Added missing import for discord_client module
+
+**Issue:**
+
+- API container failing to start with `NameError: name 'discord_client_module' is not defined`
+- Error occurred at module load time in guilds.py line 299
+- The list_guild_roles endpoint used discord_client_module without importing it
+
+**Solution:**
+
+- Added import statement: `from services.api.auth import discord_client as discord_client_module`
+- Placed import with other auth-related imports for consistency
+
+**Verification:**
+
+- API container rebuilds successfully
+- API container starts and becomes healthy
+- No import errors in logs
+- Uvicorn server running on http://0.0.0.0:8000
+- Redis connection established successfully
+- Application startup completes without errors
+
+**Impact:**
+
+- API service now starts correctly and serves requests
+- Guild roles endpoint functional for role selection in frontend
+- All API endpoints accessible

@@ -47,6 +47,7 @@ describe('GuildConfig', () => {
     default_reminder_minutes: [60, 15],
     default_rules: 'Be nice',
     allowed_host_role_ids: ['role1', 'role2'],
+    bot_manager_role_ids: [],
     require_host_role: true,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',

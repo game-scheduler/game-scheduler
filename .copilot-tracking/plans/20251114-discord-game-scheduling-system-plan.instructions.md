@@ -275,7 +275,7 @@ Implement a complete Discord game scheduling system with microservices architect
 - Authorization correctly distinguishes between hosts, Bot Managers, and admins
 - Permission checks cached and performant
 
-### [ ] Phase 10: Notify Roles Field
+### [x] Phase 10: Notify Roles Field
 
 - [x] Task 10.1: Add notifyRoleIds field to GameSession model
 
@@ -293,7 +293,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 996-1019)
 
-- [ ] Task 10.5: Fix compile errors
+- [x] Task 10.5: Fix compile errors
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1021-1032)
 

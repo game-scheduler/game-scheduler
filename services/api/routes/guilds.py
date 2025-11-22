@@ -25,6 +25,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api import dependencies
+from services.api.auth import discord_client as discord_client_module
 from services.api.auth import oauth2
 from services.api.dependencies import permissions
 from services.api.services import config as config_service

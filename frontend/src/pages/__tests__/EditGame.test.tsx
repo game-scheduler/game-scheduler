@@ -63,6 +63,7 @@ describe('EditGame', () => {
     },
     rules: 'Test rules',
     reminder_minutes: [60, 15],
+    notify_role_ids: [],
     status: 'SCHEDULED',
     participant_count: 3,
     participants: [],
