@@ -6145,3 +6145,37 @@ Verified and fixed coding standards compliance across the entire Python codebase
 - API service now starts correctly and serves requests
 - Guild roles endpoint functional for role selection in frontend
 - All API endpoints accessible
+
+### Phase 11: Bug Fixes
+
+#### Task 11.1: Fix missing default values for min/max players in create game form
+
+- frontend/src/pages/CreateGame.tsx - Added default values for minPlayers (2) and maxPlayers (8) in form state
+
+**Issue:**
+
+- Create game form required users to manually enter min/max players every time
+- Form fields started empty, creating friction in user experience
+- No sensible defaults provided even though backend has defaults
+
+**Solution:**
+
+- Set default minPlayers to '2' (common minimum for multiplayer games)
+- Set default maxPlayers to '8' (reasonable default for most game types)
+- Users can still modify these values as needed
+- Default values consistent with typical game session sizes
+
+**Verification:**
+
+- Create game form now shows pre-filled min_players value of 2
+- Create game form now shows pre-filled max_players value of 8
+- Users can still modify the default values
+- Form validation still enforces min <= max constraint
+- Default values improve UX without restricting flexibility
+
+**Impact:**
+
+- Faster game creation workflow with sensible defaults
+- Reduced friction for hosts creating standard-sized games
+- Users still have full control to customize player counts
+- Better user experience with pre-populated common values

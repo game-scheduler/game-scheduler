@@ -304,7 +304,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
 ### [ ] Phase 11: Bug Fixes
 
-- [ ] Task 11.1: Fix missing default values for min/max players in create game form
+- [x] Task 11.1: Fix missing default values for min/max players in create game form
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1036-1052)
 
