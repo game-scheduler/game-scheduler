@@ -1355,7 +1355,25 @@ Replace timestamp-based ordering of pre-populated and placeholder participants w
   - Task 4.5 completion (pre-population feature)
   - Database migration capability
 
-### Task 12.3: Include participants on the game edit page
+### Task 12.3: Fix default_rules related problem in bot
+
+Remove or update references to the deprecated `default_rules` field from bot commands and configuration logic, as this field was removed from guild and channel configurations in migration 008.
+
+- **Files**:
+  - `services/bot/commands/config.py` - Update config commands to remove default_rules parameter
+  - `services/bot/handlers/config_handler.py` - Remove default_rules handling logic if present
+- **Success**:
+  - Bot config commands no longer reference default_rules
+  - No errors when running /config-guild or /config-channel commands
+  - Configuration help text updated to reflect removal
+  - All bot tests pass without default_rules references
+- **Research References**:
+  - #file:../changes/20251114-discord-game-scheduling-system-changes.md (Lines 6758-6791) - Migration 008 removal of default_rules
+  - #file:../../services/bot/commands/config.py - Current config command implementation
+- **Dependencies**:
+  - Migration 008 completion (default_rules removal)
+
+### Task 12.4: Include participants on the game edit page
 
 Display current participants list on game edit page to allow hosts and bot managers to see who has joined while editing game details.
 
@@ -1375,7 +1393,7 @@ Display current participants list on game edit page to allow hosts and bot manag
   - Task 4.4 completion (game management interface)
   - Task 6.4 completion (host displayed separately)
 
-### Task 12.4: Add game templates for recurring sessions
+### Task 12.5: Add game templates for recurring sessions
 
 Create template system for games that repeat weekly/monthly with same settings.
 
@@ -1394,7 +1412,7 @@ Create template system for games that repeat weekly/monthly with same settings.
 - **Dependencies**:
   - Phase 3 and 4 (API and frontend)
 
-### Task 12.5: Build calendar export functionality
+### Task 12.6: Build calendar export functionality
 
 Generate iCal format calendar files for users to import into their calendar apps.
 
@@ -1413,7 +1431,7 @@ Generate iCal format calendar files for users to import into their calendar apps
   - icalendar Python library
   - Task 3.5 (game API)
 
-### Task 12.6: Create statistics dashboard
+### Task 12.7: Create statistics dashboard
 
 Build dashboard showing game history, participation rates, and trends per guild/channel.
 

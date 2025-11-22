@@ -358,23 +358,27 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1330-1356)
 
-- [ ] Task 12.3: Include participants on the game edit page
+- [ ] Task 12.3: Fix default_rules related problem in bot
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1358-1376)
 
-- [ ] Task 12.4: Add game templates for recurring sessions
+- [ ] Task 12.4: Include participants on the game edit page
 
-  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1378-1395)
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1378-1396)
 
-- [ ] Task 12.5: Build calendar export functionality
+- [ ] Task 12.5: Add game templates for recurring sessions
 
-  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1397-1414)
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1398-1415)
 
-- [ ] Task 12.6: Create statistics dashboard
+- [ ] Task 12.6: Build calendar export functionality
 
-  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1416-1436)
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1417-1434)
 
-- [ ] Task 12.7: Replace adaptive backoff with Redis-based rate limiting
+- [ ] Task 12.7: Create statistics dashboard
+
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1436-1456)
+
+- [ ] Task 12.8: Replace adaptive backoff with Redis-based rate limiting
 
   - Simplify message update throttling by replacing in-memory state tracking with Redis cache
   - Use Redis key existence check with 1.5s TTL for rate limiting
