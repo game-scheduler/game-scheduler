@@ -45,7 +45,7 @@ export const AuthCallback: FC = () => {
 
     const handleCallback = async () => {
       const successParam = searchParams.get('success');
-      
+
       if (successParam === 'true') {
         await completeLogin();
         return;
@@ -81,7 +81,7 @@ export const AuthCallback: FC = () => {
         // Call the API callback endpoint through the Vite proxy
         // This ensures cookies are set correctly for localhost:3000
         const response = await fetch(`/api/v1/auth/callback?code=${code}&state=${state}`, {
-          credentials: 'include'
+          credentials: 'include',
         });
 
         if (response.ok) {
@@ -105,7 +105,15 @@ export const AuthCallback: FC = () => {
 
   return (
     <Container maxWidth="sm">
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '50vh',
+        }}
+      >
         {error ? (
           <Typography variant="h6" color="error">
             {error}

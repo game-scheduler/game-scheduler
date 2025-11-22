@@ -59,9 +59,7 @@ export const GameDetails: FC = () => {
         setGame(response.data);
       } catch (err: any) {
         console.error('Failed to fetch game:', err);
-        setError(
-          err.response?.data?.detail || 'Failed to load game. Please try again.'
-        );
+        setError(err.response?.data?.detail || 'Failed to load game. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -77,14 +75,12 @@ export const GameDetails: FC = () => {
       setActionLoading(true);
       setError(null);
       await apiClient.post(`/api/v1/games/${gameId}/join`);
-      
+
       const response = await apiClient.get<GameSession>(`/api/v1/games/${gameId}`);
       setGame(response.data);
     } catch (err: any) {
       console.error('Failed to join game:', err);
-      setError(
-        err.response?.data?.detail || 'Failed to join game. Please try again.'
-      );
+      setError(err.response?.data?.detail || 'Failed to join game. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -97,14 +93,12 @@ export const GameDetails: FC = () => {
       setActionLoading(true);
       setError(null);
       await apiClient.post(`/api/v1/games/${gameId}/leave`);
-      
+
       const response = await apiClient.get<GameSession>(`/api/v1/games/${gameId}`);
       setGame(response.data);
     } catch (err: any) {
       console.error('Failed to leave game:', err);
-      setError(
-        err.response?.data?.detail || 'Failed to leave game. Please try again.'
-      );
+      setError(err.response?.data?.detail || 'Failed to leave game. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -120,9 +114,7 @@ export const GameDetails: FC = () => {
       navigate('/my-games');
     } catch (err: any) {
       console.error('Failed to cancel game:', err);
-      setError(
-        err.response?.data?.detail || 'Failed to cancel game. Please try again.'
-      );
+      setError(err.response?.data?.detail || 'Failed to cancel game. Please try again.');
       setActionLoading(false);
     }
   };
@@ -152,9 +144,7 @@ export const GameDetails: FC = () => {
 
   const isHost = user && game && game.host?.user_id === user.user_uuid;
   const isParticipant =
-    user &&
-    game &&
-    game.participants?.some((p) => p.user_id === user.user_uuid);
+    user && game && game.participants?.some((p) => p.user_id === user.user_uuid);
 
   if (loading) {
     return (
@@ -183,11 +173,7 @@ export const GameDetails: FC = () => {
           <Typography variant="h4" component="h1">
             {game.title}
           </Typography>
-          <Chip
-            label={game.status}
-            color={getStatusColor(game.status)}
-            size="medium"
-          />
+          <Chip label={game.status} color={getStatusColor(game.status)} size="medium" />
         </Box>
 
         {error && (
@@ -229,8 +215,7 @@ export const GameDetails: FC = () => {
           </Typography>
           {game.reminder_minutes && game.reminder_minutes.length > 0 && (
             <Typography variant="body2" paragraph>
-              <strong>Reminders:</strong>{' '}
-              {game.reminder_minutes.join(', ')} minutes before
+              <strong>Reminders:</strong> {game.reminder_minutes.join(', ')} minutes before
             </Typography>
           )}
           <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem' }}>
@@ -274,11 +259,7 @@ export const GameDetails: FC = () => {
 
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           {!isHost && !isParticipant && game.status === 'SCHEDULED' && (
-            <Button
-              variant="contained"
-              onClick={handleJoinGame}
-              disabled={actionLoading}
-            >
+            <Button variant="contained" onClick={handleJoinGame} disabled={actionLoading}>
               Join Game
             </Button>
           )}

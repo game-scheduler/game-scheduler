@@ -36,15 +36,18 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     // Skip interceptor logic if we're already on login or callback pages
-    const isAuthPage = window.location.pathname === '/login' || 
-                       window.location.pathname === '/auth/callback' ||
-                       window.location.pathname === '/';
+    const isAuthPage =
+      window.location.pathname === '/login' ||
+      window.location.pathname === '/auth/callback' ||
+      window.location.pathname === '/';
 
     // Don't retry if this is already a retry, or if this is the refresh endpoint itself
-    if (error.response?.status === 401 && 
-        !originalRequest._retry && 
-        !originalRequest.url?.includes('/auth/refresh') &&
-        !isAuthPage) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/refresh') &&
+      !isAuthPage
+    ) {
       originalRequest._retry = true;
 
       try {

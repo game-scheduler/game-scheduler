@@ -35,10 +35,7 @@ interface ValidationErrorsProps {
   onSuggestionClick: (originalInput: string, newUsername: string) => void;
 }
 
-export const ValidationErrors: FC<ValidationErrorsProps> = ({ 
-  errors, 
-  onSuggestionClick 
-}) => {
+export const ValidationErrors: FC<ValidationErrorsProps> = ({ errors, onSuggestionClick }) => {
   return (
     <Alert severity="error" sx={{ mb: 2 }}>
       <AlertTitle>Could not resolve some @mentions</AlertTitle>

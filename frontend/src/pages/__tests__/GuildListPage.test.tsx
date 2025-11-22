@@ -142,10 +142,7 @@ describe('GuildListPage', () => {
     renderWithAuth();
     const icon = screen.getByAltText('Test Guild 1');
     expect(icon).toBeInTheDocument();
-    expect(icon).toHaveAttribute(
-      'src',
-      'https://cdn.discordapp.com/icons/guild1/icon1.png'
-    );
+    expect(icon).toHaveAttribute('src', 'https://cdn.discordapp.com/icons/guild1/icon1.png');
   });
 
   it('displays guild without icon with first letter avatar', () => {

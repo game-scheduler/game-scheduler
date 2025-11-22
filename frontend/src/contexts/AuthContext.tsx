@@ -77,7 +77,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Logout API call failed:', error);
     }
-    
+
     setUser(null);
   };
 

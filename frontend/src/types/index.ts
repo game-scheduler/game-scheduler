@@ -101,7 +101,7 @@ export interface CurrentUser {
   id: string;
   user_uuid: string;
   username: string;
-  discordId?: string;  // For backward compatibility
+  discordId?: string; // For backward compatibility
   discriminator?: string;
   avatar?: string | null;
   guilds?: DiscordGuild[];

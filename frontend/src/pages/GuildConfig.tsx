@@ -43,7 +43,7 @@ export const GuildConfig: FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  
+
   const [guild, setGuild] = useState<Guild | null>(null);
   const [formData, setFormData] = useState({
     defaultMaxPlayers: 10,
@@ -64,7 +64,7 @@ export const GuildConfig: FC = () => {
 
         const response = await apiClient.get<Guild>(`/api/v1/guilds/${guildId}`);
         const guildData = response.data;
-        
+
         setGuild(guildData);
         setFormData({
           defaultMaxPlayers: guildData.default_max_players,
@@ -151,16 +151,17 @@ export const GuildConfig: FC = () => {
   return (
     <Container sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate(`/guilds/${guildId}`)}
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(`/guilds/${guildId}`)}>
           Back
         </Button>
         <Typography variant="h4">Guild Configuration</Typography>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
           Configuration saved successfully! Redirecting...
@@ -173,8 +174,8 @@ export const GuildConfig: FC = () => {
             Default Game Settings
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            These settings will be used as defaults for all new games in this guild.
-            Individual channels and games can override these values.
+            These settings will be used as defaults for all new games in this guild. Individual
+            channels and games can override these values.
           </Typography>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -193,9 +194,7 @@ export const GuildConfig: FC = () => {
             <TextField
               label="Default Reminder Times (minutes)"
               value={formData.defaultReminderMinutes}
-              onChange={(e) =>
-                setFormData({ ...formData, defaultReminderMinutes: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, defaultReminderMinutes: e.target.value })}
               helperText="Comma-separated list of minutes before game to send reminders (e.g., 60, 15)"
               fullWidth
             />
@@ -203,9 +202,7 @@ export const GuildConfig: FC = () => {
             <TextField
               label="Default Rules"
               value={formData.defaultRules}
-              onChange={(e) =>
-                setFormData({ ...formData, defaultRules: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, defaultRules: e.target.value })}
               multiline
               rows={4}
               helperText="Default rules or guidelines that apply to all games"
@@ -215,9 +212,7 @@ export const GuildConfig: FC = () => {
             <TextField
               label="Allowed Host Role IDs"
               value={formData.allowedHostRoleIds}
-              onChange={(e) =>
-                setFormData({ ...formData, allowedHostRoleIds: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, allowedHostRoleIds: e.target.value })}
               helperText="Comma-separated Discord role IDs that can host games. Leave empty to allow users with MANAGE_GUILD permission."
               fullWidth
             />
@@ -225,9 +220,7 @@ export const GuildConfig: FC = () => {
             <TextField
               label="Bot Manager Role IDs"
               value={formData.botManagerRoleIds}
-              onChange={(e) =>
-                setFormData({ ...formData, botManagerRoleIds: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, botManagerRoleIds: e.target.value })}
               helperText="Comma-separated Discord role IDs for Bot Managers (can edit/delete any game in this guild). Leave empty for none."
               fullWidth
             />
@@ -236,9 +229,7 @@ export const GuildConfig: FC = () => {
               control={
                 <Checkbox
                   checked={formData.requireHostRole}
-                  onChange={(e) =>
-                    setFormData({ ...formData, requireHostRole: e.target.checked })
-                  }
+                  onChange={(e) => setFormData({ ...formData, requireHostRole: e.target.checked })}
                 />
               }
               label="Require host role to create games"

@@ -45,20 +45,12 @@ export const HomePage: FC = () => {
               >
                 View My Guilds
               </Button>
-              <Button
-                variant="outlined"
-                size="large"
-                onClick={() => navigate('/my-games')}
-              >
+              <Button variant="outlined" size="large" onClick={() => navigate('/my-games')}>
                 My Games
               </Button>
             </>
           ) : (
-            <Button
-              variant="contained"
-              size="large"
-              onClick={() => navigate('/login')}
-            >
+            <Button variant="contained" size="large" onClick={() => navigate('/login')}>
               Login with Discord
             </Button>
           )}

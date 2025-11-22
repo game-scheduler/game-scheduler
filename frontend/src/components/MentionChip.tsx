@@ -30,12 +30,12 @@ export const MentionChip: FC<MentionChipProps> = ({ username, displayName, onCli
     <Chip
       label={`@${username} (${displayName})`}
       onClick={onClick}
-      sx={{ 
-        m: 0.5, 
+      sx={{
+        m: 0.5,
         cursor: 'pointer',
         '&:hover': {
-          backgroundColor: 'primary.dark'
-        }
+          backgroundColor: 'primary.dark',
+        },
       }}
       color="primary"
       variant="outlined"

@@ -74,9 +74,7 @@ describe('GuildConfig', () => {
   });
 
   it('displays loading state initially', () => {
-    vi.mocked(apiClient.get).mockImplementation(
-      () => new Promise(() => {})
-    );
+    vi.mocked(apiClient.get).mockImplementation(() => new Promise(() => {}));
 
     render(
       <BrowserRouter>
@@ -149,7 +147,7 @@ describe('GuildConfig', () => {
     const maxPlayersInput = screen.getByLabelText(/Default Max Players/) as HTMLInputElement;
     const reminderInput = screen.getByLabelText(/Default Reminder Times/) as HTMLInputElement;
     const rulesInput = screen.getByLabelText(/Default Rules/) as HTMLTextAreaElement;
-    
+
     expect(maxPlayersInput.value).toBe('10');
     expect(reminderInput.value).toBe('60, 15');
     expect(rulesInput.value).toBe('Be respectful');

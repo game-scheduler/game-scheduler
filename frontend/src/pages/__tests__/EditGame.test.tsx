@@ -122,9 +122,7 @@ describe('EditGame', () => {
   });
 
   it('displays loading state initially', () => {
-    vi.mocked(apiClient.get).mockImplementation(
-      () => new Promise(() => {})
-    );
+    vi.mocked(apiClient.get).mockImplementation(() => new Promise(() => {}));
 
     render(
       <BrowserRouter>
@@ -136,9 +134,7 @@ describe('EditGame', () => {
   });
 
   it('displays error when game not found', async () => {
-    vi.mocked(apiClient.get).mockRejectedValueOnce(
-      new Error('Game not found')
-    );
+    vi.mocked(apiClient.get).mockRejectedValueOnce(new Error('Game not found'));
 
     render(
       <BrowserRouter>
@@ -249,7 +245,7 @@ describe('EditGame', () => {
 
     const titleInput = screen.getByLabelText(/Game Title/i);
     const descriptionInput = screen.getByLabelText(/Description/i);
-    
+
     expect(titleInput).toHaveAttribute('required');
     expect(descriptionInput).toHaveAttribute('required');
   });

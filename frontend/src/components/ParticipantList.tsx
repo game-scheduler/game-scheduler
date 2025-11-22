@@ -65,9 +65,9 @@ export const ParticipantList: FC<ParticipantListProps> = ({
 
   const joinedCount = participants.filter((p) => p.status === 'JOINED').length;
   const playerDisplay = maxPlayers
-    ? (minPlayers === maxPlayers
-        ? `${joinedCount}/${maxPlayers}`
-        : `${joinedCount}/${minPlayers}-${maxPlayers}`)
+    ? minPlayers === maxPlayers
+      ? `${joinedCount}/${maxPlayers}`
+      : `${joinedCount}/${minPlayers}-${maxPlayers}`
     : `${joinedCount}`;
 
   return (
@@ -80,15 +80,11 @@ export const ParticipantList: FC<ParticipantListProps> = ({
         {participants.map((participant) => (
           <ListItem key={participant.id}>
             <ListItemAvatar>
-              <Avatar>
-                {participant.display_name?.[0]?.toUpperCase() || '?'}
-              </Avatar>
+              <Avatar>{participant.display_name?.[0]?.toUpperCase() || '?'}</Avatar>
             </ListItemAvatar>
             <ListItemText
               primary={participant.display_name || 'Unknown User'}
-              secondary={
-                participant.is_pre_populated ? 'Pre-populated' : 'Joined via button'
-              }
+              secondary={participant.is_pre_populated ? 'Pre-populated' : 'Joined via button'}
             />
             <Chip
               label={participant.status}

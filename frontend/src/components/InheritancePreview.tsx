@@ -33,9 +33,7 @@ export const InheritancePreview: FC<InheritancePreviewProps> = ({
   inherited,
   inheritedFrom = 'guild',
 }) => {
-  const displayValue = Array.isArray(value)
-    ? value.join(', ')
-    : value ?? 'Not set';
+  const displayValue = Array.isArray(value) ? value.join(', ') : (value ?? 'Not set');
 
   return (
     <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>

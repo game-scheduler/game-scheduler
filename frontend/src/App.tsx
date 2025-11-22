@@ -45,10 +45,10 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
-            
+
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
-              
+
               <Route element={<ProtectedRoute />}>
                 <Route path="/guilds" element={<GuildListPage />} />
                 <Route path="/guilds/:guildId" element={<GuildDashboard />} />
@@ -61,7 +61,7 @@ function App() {
                 <Route path="/my-games" element={<MyGames />} />
               </Route>
             </Route>
-            
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthProvider>

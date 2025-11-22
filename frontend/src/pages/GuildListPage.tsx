@@ -50,7 +50,7 @@ export const GuildListPage: FC = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await apiClient.get<{ guilds: Guild[] }>('/api/v1/guilds');
         setGuilds(response.data.guilds);
       } catch (err) {
@@ -86,7 +86,8 @@ export const GuildListPage: FC = () => {
     return (
       <Container sx={{ mt: 4 }}>
         <Alert severity="info">
-          No guilds with bot configurations found. Make sure the bot is added to your Discord server.
+          No guilds with bot configurations found. Make sure the bot is added to your Discord
+          server.
         </Alert>
       </Container>
     );

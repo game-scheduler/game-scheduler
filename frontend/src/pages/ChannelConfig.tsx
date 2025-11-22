@@ -44,7 +44,7 @@ export const ChannelConfig: FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  
+
   const [channel, setChannel] = useState<Channel | null>(null);
   const [guild, setGuild] = useState<Guild | null>(null);
   const [formData, setFormData] = useState({
@@ -66,12 +66,12 @@ export const ChannelConfig: FC = () => {
 
         const channelResponse = await apiClient.get<Channel>(`/api/v1/channels/${channelUuid}`);
         const channelData = channelResponse.data;
-        
+
         setChannel(channelData);
 
         const guildResponse = await apiClient.get<Guild>(`/api/v1/guilds/${channelData.guild_id}`);
         setGuild(guildResponse.data);
-        
+
         setFormData({
           isActive: channelData.is_active,
           maxPlayers: channelData.max_players?.toString() || '',
@@ -178,7 +178,11 @@ export const ChannelConfig: FC = () => {
         <Typography variant="h4">Channel Configuration</Typography>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
           Configuration saved successfully! Redirecting...
@@ -194,9 +198,7 @@ export const ChannelConfig: FC = () => {
             control={
               <Checkbox
                 checked={formData.isActive}
-                onChange={(e) =>
-                  setFormData({ ...formData, isActive: e.target.checked })
-                }
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
               />
             }
             label="Active (enable game posting in this channel)"
@@ -218,9 +220,7 @@ export const ChannelConfig: FC = () => {
               label="Max Players (override)"
               type="number"
               value={formData.maxPlayers}
-              onChange={(e) =>
-                setFormData({ ...formData, maxPlayers: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, maxPlayers: e.target.value })}
               inputProps={{ min: 1, max: 100 }}
               helperText="Leave empty to inherit guild default"
               fullWidth
@@ -229,9 +229,7 @@ export const ChannelConfig: FC = () => {
             <TextField
               label="Reminder Times (override)"
               value={formData.reminderMinutes}
-              onChange={(e) =>
-                setFormData({ ...formData, reminderMinutes: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, reminderMinutes: e.target.value })}
               helperText="Comma-separated minutes (e.g., 60, 15). Leave empty to inherit guild default."
               fullWidth
             />
@@ -239,9 +237,7 @@ export const ChannelConfig: FC = () => {
             <TextField
               label="Default Rules (override)"
               value={formData.defaultRules}
-              onChange={(e) =>
-                setFormData({ ...formData, defaultRules: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, defaultRules: e.target.value })}
               multiline
               rows={4}
               helperText="Leave empty to inherit guild default"
@@ -251,9 +247,7 @@ export const ChannelConfig: FC = () => {
             <TextField
               label="Allowed Host Role IDs (override)"
               value={formData.allowedHostRoleIds}
-              onChange={(e) =>
-                setFormData({ ...formData, allowedHostRoleIds: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, allowedHostRoleIds: e.target.value })}
               helperText="Comma-separated role IDs. Leave empty to inherit guild default."
               fullWidth
             />
@@ -261,9 +255,7 @@ export const ChannelConfig: FC = () => {
             <TextField
               label="Game Category"
               value={formData.gameCategory}
-              onChange={(e) =>
-                setFormData({ ...formData, gameCategory: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, gameCategory: e.target.value })}
               helperText="Category for filtering games (e.g., 'D&D', 'Board Games')"
               fullWidth
             />
@@ -302,12 +294,7 @@ export const ChannelConfig: FC = () => {
       </Card>
 
       <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
-        <Button
-          variant="contained"
-          startIcon={<SaveIcon />}
-          onClick={handleSave}
-          disabled={saving}
-        >
+        <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={saving}>
           {saving ? 'Saving...' : 'Save Configuration'}
         </Button>
         <Button
