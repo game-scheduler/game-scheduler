@@ -57,6 +57,7 @@ Modified the bot's join and leave game notifications to send as direct messages 
 - alembic.ini - Alembic configuration file with PostgreSQL connection settings
 - alembic/script.py.mako - Alembic migration template
 - alembic/versions/001_initial_schema.py - Initial database schema migration with all tables and constraints
+- alembic/versions/006_add_bot_manager_roles.py - Database migration for bot_manager_role_ids field (Task 9.1)
 - .env - Environment configuration file (created from .env.example)
 
 **Database Schema Configured:**
@@ -198,14 +199,23 @@ Modified the bot's join and leave game notifications to send as direct messages 
 - frontend/src/pages/CreateGame.tsx - Added min_players input field with client-side validation (Task 7.4)
 - frontend/src/pages/EditGame.tsx - Added min_players input field with client-side validation (Task 7.4)
 - frontend/src/components/GameCard.tsx - Updated to display X/min-max participant count format (Task 7.4)
+- shared/models/guild.py - Added bot_manager_role_ids field to GuildConfiguration model for Bot Managers feature (Task 9.1)
 - frontend/src/components/ParticipantList.tsx - Updated to display X/min-max format (Task 7.4)
 - frontend/src/pages/GameDetails.tsx - Passed minPlayers prop to ParticipantList component (Task 7.4)
 - services/api/services/games.py - Added signup_instructions field to create_game and update_game methods (Task 8.3)
+- shared/schemas/guild.py - Added bot_manager_role_ids to GuildConfigUpdateRequest and GuildConfigResponse (Task 9.2)
+- services/api/auth/roles.py - Added check_bot_manager_permission() method to RoleVerificationService (Task 9.2)
+- services/api/dependencies/permissions.py - Added can_manage_game() authorization helper function (Task 9.2)
 - services/bot/formatters/game_message.py - Added signup_instructions parameter to create_game_embed and format_game_announcement functions with description truncation (Task 8.3)
 - services/bot/events/handlers.py - Updated both format_game_announcement calls to pass signup_instructions field (Task 8.3)
+- services/api/routes/games.py - Updated update_game and delete_game endpoints to inject role_service and db for Bot Manager authorization (Task 9.3)
+- services/api/services/games.py - Updated update_game and delete_game methods to use can_manage_game() authorization (Task 9.3)
 - frontend/src/types/index.ts - Added signup_instructions field to GameSession interface (Task 8.4)
 - frontend/src/pages/CreateGame.tsx - Added signupInstructions field to FormData and form with textarea input (Task 8.4)
 - frontend/src/pages/EditGame.tsx - Added signupInstructions field to FormData and form with textarea input (Task 8.4)
+- services/bot/commands/config_guild.py - Added bot_managers parameter with role parsing and display (Task 9.4)
+- frontend/src/types/index.ts - Added bot_manager_role_ids field to Guild interface (Task 9.4)
+- frontend/src/pages/GuildConfig.tsx - Added botManagerRoleIds input field with comma-separated role IDs (Task 9.4)
 - frontend/src/components/GameCard.tsx - Added truncateDescription function and updated description display to show truncated text with "..." (Task 8.4)
 - frontend/src/pages/GameDetails.tsx - Added signup instructions display in highlighted info box between description and game details (Task 8.4)
 - frontend/src/pages/**tests**/EditGame.test.tsx - Updated mock data to include signup_instructions and min_players fields, updated test assertions (Task 8.4)
@@ -5865,3 +5875,208 @@ Verified and fixed coding standards compliance across the entire Python codebase
 - Prepares for Task 8.3 (service and bot logic) and Task 8.4 (frontend display)
 
 - shared/schemas/game.py - Updated GameCreateRequest, GameUpdateRequest, and GameResponse schemas to include description and signup_instructions fields with proper validation (Task 8.2)
+
+### Phase 9: Bot Managers Role List (Task 9.1 Complete)
+
+**Date**: 2025-11-21
+
+- shared/models/guild.py - Added bot_manager_role_ids field to GuildConfiguration model
+- alembic/versions/006_add_bot_manager_roles.py - Created database migration for Bot Managers feature
+
+**Changes:**
+
+- **GuildConfiguration Model**:
+  - Added `bot_manager_role_ids: Mapped[list[str] | None]` field with JSON type (nullable)
+  - Field stores Discord role IDs (snowflake strings) for users with game moderation permissions
+  - Nullable field allows guilds to opt-in to Bot Manager feature
+  - Positioned between `allowed_host_role_ids` and `require_host_role` fields for logical grouping
+- **Database Migration (006_bot_mgr_roles)**:
+  - Adds `bot_manager_role_ids` column as JSON type, nullable
+  - Existing guilds will have NULL values (opt-in feature)
+  - Migration is reversible (downgrade removes column)
+
+**Database Schema:**
+
+- `bot_manager_role_ids` column: JSON array, nullable
+- Stores array of Discord role ID strings (snowflakes like "123456789012345678")
+- NULL or empty array means no Bot Managers configured
+- Multiple role IDs supported for flexible permission delegation
+
+**Impact:**
+
+- Database now supports Bot Manager role configuration per guild
+- Existing guilds unaffected (NULL values mean feature not enabled)
+- Model ready for Task 9.2 (schema updates and permissions middleware)
+- Prepares for Task 9.3 (authorization checks in game routes)
+- Enables guild admins to delegate game moderation to trusted roles
+
+### Phase 9: Bot Managers Role List (Task 9.2 Complete)
+
+**Date**: 2025-11-21
+
+- shared/schemas/guild.py - Added bot_manager_role_ids to guild schemas
+- services/api/auth/roles.py - Added check_bot_manager_permission() helper method
+- services/api/dependencies/permissions.py - Added can_manage_game() authorization function
+
+**Changes:**
+
+- **Guild Schemas** (`shared/schemas/guild.py`):
+
+  - Added `bot_manager_role_ids: list[str] | None` to `GuildConfigUpdateRequest` (optional field)
+  - Added `bot_manager_role_ids: list[str] | None` to `GuildConfigResponse` with description
+  - Field description: "Role IDs with Bot Manager permissions (can edit/delete any game)"
+  - Allows guilds to configure Bot Manager roles via API
+
+- **Role Verification Service** (`services/api/auth/roles.py`):
+
+  - Added `check_bot_manager_permission(user_id, guild_id, db)` method
+  - Fetches user's role IDs and checks against guild's bot_manager_role_ids
+  - Returns True if user has any Bot Manager role
+  - Returns False if no Bot Manager roles configured or user lacks permission
+
+- **Permission Helpers** (`services/api/dependencies/permissions.py`):
+  - Added `can_manage_game(game_host_id, guild_id, current_user, role_service, db)` function
+  - Three-tier authorization check: host → Bot Manager → administrator
+  - Returns True if user is game host, has Bot Manager role, or has MANAGE_GUILD permission
+  - Used for edit/delete game authorization (Task 9.3)
+
+**Authorization Logic:**
+
+1. **Game Host**: User who created the game (always can manage own games)
+2. **Bot Manager**: User with role ID in guild's bot_manager_role_ids (can manage all games in guild)
+3. **Administrator**: User with MANAGE_GUILD Discord permission (can manage all games in guild)
+
+**Impact:**
+
+- Guild configuration API now supports Bot Manager role management
+- Permission checking distinguishes between host, Bot Manager, and admin
+- Ready for Task 9.3 (integrate authorization in game routes)
+- Enables flexible delegation of game moderation to trusted guild members
+
+### Phase 9: Bot Managers Role List (Task 9.3 Complete)
+
+**Date**: 2025-11-21
+
+- services/api/routes/games.py - Updated update_game and delete_game endpoints to use Bot Manager authorization
+- services/api/services/games.py - Updated update_game and delete_game methods to use can_manage_game() authorization
+
+**Changes:**
+
+- **Game Routes** (`services/api/routes/games.py`):
+
+  - Added imports for `roles_module` and `permissions_deps`
+  - Updated `PUT /games/{game_id}` endpoint:
+    - Injects `role_service` and `db` dependencies
+    - Passes authorization parameters to service method
+    - Updated docstring to document three-tier authorization (host, Bot Manager, admin)
+  - Updated `DELETE /games/{game_id}` endpoint:
+    - Injects `role_service` and `db` dependencies
+    - Passes authorization parameters to service method
+    - Updated docstring to document three-tier authorization (host, Bot Manager, admin)
+
+- **Game Service** (`services/api/services/games.py`):
+  - Updated `update_game()` method signature:
+    - Changed from `host_user_id: str` to `current_user, role_service, db: AsyncSession`
+    - Imports `permissions_deps.can_manage_game()` to avoid circular dependency
+    - Calls `can_manage_game()` with game host's discord_id and guild_id
+    - Raises clear error message if user lacks permission
+  - Updated `delete_game()` method signature:
+    - Changed from `host_user_id: str` to `current_user, role_service, db: AsyncSession`
+    - Imports `permissions_deps.can_manage_game()` to avoid circular dependency
+    - Calls `can_manage_game()` with game host's discord_id and guild_id
+    - Raises clear error message if user lacks permission
+
+**Authorization Flow:**
+
+1. Route receives request with authenticated user
+2. Route injects role_service and db dependencies
+3. Service method calls `can_manage_game()` helper
+4. Helper checks in order:
+   - Is user the game host? → Allow
+   - Does user have Bot Manager role? → Allow
+   - Does user have MANAGE_GUILD permission? → Allow
+   - Otherwise → Deny (403 Forbidden)
+
+**Error Messages:**
+
+- 403: "You don't have permission to update/cancel this game. Only the host, Bot Managers, or guild admins can edit/cancel games."
+- 404: "Game not found"
+- 422: "Minimum players cannot be greater than maximum players" (update only)
+
+**Impact:**
+
+- Bot Managers can now edit and delete any game in their configured guild
+- Guild admins retain full permissions via MANAGE_GUILD
+- Game hosts retain ability to manage their own games
+- Clear, informative error messages for authorization failures
+- Phase 9 (Bot Managers) implementation complete
+
+### Phase 9: Bot Managers Role List (Task 9.4 Complete)
+
+**Date**: 2025-11-21
+
+- services/bot/commands/config_guild.py - Added bot_managers parameter to guild configuration command
+- frontend/src/types/index.ts - Added bot_manager_role_ids field to Guild interface
+- frontend/src/pages/GuildConfig.tsx - Added UI for managing Bot Manager role IDs
+
+**Changes:**
+
+- **Bot Command** (`services/bot/commands/config_guild.py`):
+
+  - Added `bot_managers: str | None` parameter to `config_guild_command()`
+  - Added `_parse_role_mentions()` helper function:
+    - Accepts role mentions (@Role), role IDs, or 'clear'/'none' to remove roles
+    - Validates roles exist in guild
+    - Returns list of validated role IDs
+    - Provides clear error messages for invalid roles
+  - Updated `_create_config_display_embed()`:
+    - Added "Bot Managers" field showing configured roles with mentions
+    - Shows "Not set" when no Bot Manager roles configured
+  - Updated command registration:
+    - Added `bot_managers` parameter to slash command
+    - Added description: "Role mentions/IDs for Bot Managers (can edit/delete any game), or 'clear'"
+  - Updated `_get_or_create_guild_config()`:
+    - Initializes `bot_manager_role_ids=None` for new guilds
+
+- **Frontend Types** (`frontend/src/types/index.ts`):
+
+  - Added `bot_manager_role_ids: string[] | null` field to `Guild` interface
+  - Supports null (not configured) or array of Discord role ID strings
+
+- **Frontend Guild Config** (`frontend/src/pages/GuildConfig.tsx`):
+  - Added `botManagerRoleIds` field to form state
+  - Initializes from `guildData.bot_manager_role_ids` (handles null)
+  - Added TextField input for Bot Manager role IDs:
+    - Label: "Bot Manager Role IDs"
+    - Helper text: "Comma-separated Discord role IDs for Bot Managers (can edit/delete any game in this guild). Leave empty for none."
+    - Positioned after "Allowed Host Role IDs" field
+  - Updated save handler:
+    - Parses comma-separated role IDs
+    - Sends as `bot_manager_role_ids` (null if empty)
+    - Validates and trims input
+
+**Usage:**
+
+**Discord Bot:**
+
+- `/config-guild bot_managers:@Role1 @Role2` - Set Bot Manager roles
+- `/config-guild bot_managers:123456789012345678` - Set using role ID
+- `/config-guild bot_managers:clear` - Remove all Bot Manager roles
+- `/config-guild` - View current configuration (shows Bot Managers)
+
+**Web Dashboard:**
+
+- Navigate to Guild Configuration page
+- Enter comma-separated Discord role IDs in "Bot Manager Role IDs" field
+- Click "Save Configuration"
+- Leave empty to clear Bot Manager roles
+
+**Impact:**
+
+- Guild admins can configure Bot Manager roles via Discord bot
+- Guild admins can configure Bot Manager roles via web dashboard
+- Bot Manager roles display in guild configuration embed
+- Multiple roles supported (comma-separated in web, space-separated mentions in bot)
+- Changes persist to database and take effect immediately
+- Clear validation and error messages for invalid roles
+- Phase 9 (Bot Managers Role List) fully implemented and complete

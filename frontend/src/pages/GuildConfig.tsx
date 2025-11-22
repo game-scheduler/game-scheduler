@@ -50,6 +50,7 @@ export const GuildConfig: FC = () => {
     defaultReminderMinutes: '60, 15',
     defaultRules: '',
     allowedHostRoleIds: '',
+    botManagerRoleIds: '',
     requireHostRole: false,
   });
 
@@ -70,6 +71,7 @@ export const GuildConfig: FC = () => {
           defaultReminderMinutes: guildData.default_reminder_minutes.join(', '),
           defaultRules: guildData.default_rules || '',
           allowedHostRoleIds: guildData.allowed_host_role_ids.join(', '),
+          botManagerRoleIds: (guildData.bot_manager_role_ids || []).join(', '),
           requireHostRole: guildData.require_host_role,
         });
       } catch (err: any) {
@@ -101,11 +103,17 @@ export const GuildConfig: FC = () => {
         .map((s) => s.trim())
         .filter((s) => s.length > 0);
 
+      const botManagerRoleIds = formData.botManagerRoleIds
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+
       await apiClient.put(`/api/v1/guilds/${guildId}`, {
         default_max_players: formData.defaultMaxPlayers,
         default_reminder_minutes: reminderMinutes,
         default_rules: formData.defaultRules || null,
         allowed_host_role_ids: allowedRoleIds,
+        bot_manager_role_ids: botManagerRoleIds.length > 0 ? botManagerRoleIds : null,
         require_host_role: formData.requireHostRole,
       });
 
@@ -211,6 +219,16 @@ export const GuildConfig: FC = () => {
                 setFormData({ ...formData, allowedHostRoleIds: e.target.value })
               }
               helperText="Comma-separated Discord role IDs that can host games. Leave empty to allow users with MANAGE_GUILD permission."
+              fullWidth
+            />
+
+            <TextField
+              label="Bot Manager Role IDs"
+              value={formData.botManagerRoleIds}
+              onChange={(e) =>
+                setFormData({ ...formData, botManagerRoleIds: e.target.value })
+              }
+              helperText="Comma-separated Discord role IDs for Bot Managers (can edit/delete any game in this guild). Leave empty for none."
               fullWidth
             />
 

@@ -189,6 +189,52 @@ async def require_game_host(
     return current_user
 
 
+async def can_manage_game(
+    game_host_id: str,
+    guild_id: str,
+    current_user: auth_schemas.CurrentUser,
+    role_service: roles_module.RoleVerificationService,
+    db: AsyncSession,
+) -> bool:
+    """
+    Check if user can manage (edit/delete) a game.
+
+    User can manage game if they are:
+    1. The game host
+    2. A Bot Manager (has bot_manager_role_ids)
+    3. An administrator (MANAGE_GUILD permission)
+
+    Args:
+        game_host_id: Discord ID of the game host
+        guild_id: Discord guild ID
+        current_user: Current authenticated user
+        role_service: Role verification service
+        db: Database session
+
+    Returns:
+        True if user can manage the game
+    """
+    if current_user.user.discord_id == game_host_id:
+        return True
+
+    is_bot_manager = await role_service.check_bot_manager_permission(
+        current_user.user.discord_id, guild_id, db
+    )
+    if is_bot_manager:
+        return True
+
+    token_data = await tokens.get_user_tokens(current_user.session_token)
+    if not token_data:
+        return False
+
+    access_token = token_data["access_token"]
+    is_admin = await role_service.check_manage_guild_permission(
+        current_user.user.discord_id, guild_id, access_token
+    )
+
+    return is_admin
+
+
 async def require_administrator(
     guild_id: str,
     # B008: FastAPI dependency injection requires Depends() in default arguments

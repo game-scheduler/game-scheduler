@@ -51,6 +51,7 @@ class GuildConfigUpdateRequest(BaseModel):
     default_reminder_minutes: list[int] | None = None
     default_rules: str | None = None
     allowed_host_role_ids: list[str] | None = None
+    bot_manager_role_ids: list[str] | None = None
     require_host_role: bool | None = None
 
 
@@ -66,6 +67,9 @@ class GuildConfigResponse(BaseModel):
     )
     default_rules: str | None = Field(None, description="Default game rules")
     allowed_host_role_ids: list[str] | None = Field(None, description="Allowed host role IDs")
+    bot_manager_role_ids: list[str] | None = Field(
+        None, description="Role IDs with Bot Manager permissions (can edit/delete any game)"
+    )
     require_host_role: bool = Field(..., description="Whether host role is required")
     created_at: str = Field(..., description="Creation timestamp (UTC ISO)")
     updated_at: str = Field(..., description="Last update timestamp (UTC ISO)")

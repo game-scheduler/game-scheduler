@@ -254,21 +254,21 @@ Implement a complete Discord game scheduling system with microservices architect
 - [x] Task 8.4: Update frontend to display and edit new fields
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 840-861)
 
-### [ ] Phase 9: Bot Managers Role List
+### [x] Phase 9: Bot Managers Role List
 
-- [ ] Task 9.1: Add botManagerRoleIds field to GuildConfiguration model
+- [x] Task 9.1: Add botManagerRoleIds field to GuildConfiguration model
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 863-877)
 
-- [ ] Task 9.2: Update schemas and permissions middleware
+- [x] Task 9.2: Update schemas and permissions middleware
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 879-896)
 
-- [ ] Task 9.3: Implement Bot Manager authorization in game routes
+- [x] Task 9.3: Implement Bot Manager authorization in game routes
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 898-915)
 
-- [ ] Task 9.4: Update bot commands and frontend for Bot Manager configuration
+- [x] Task 9.4: Update bot commands and frontend for Bot Manager configuration
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 917-940)
 - Bot Manager roles can be configured by guild admins
 - Bot Managers have permission to edit/delete any game in their guild

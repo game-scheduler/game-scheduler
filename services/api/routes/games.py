@@ -28,7 +28,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api.auth import discord_client as discord_client_module
+from services.api.auth import roles as roles_module
 from services.api.dependencies import auth as auth_deps
+from services.api.dependencies import permissions as permissions_deps
 from services.api.services import display_names as display_names_module
 from services.api.services import games as games_service
 from services.api.services import participant_resolver as resolver_module
@@ -158,18 +160,26 @@ async def update_game(
     update_data: game_schemas.GameUpdateRequest,
     current_user: auth_schemas.CurrentUser = Depends(auth_deps.get_current_user),
     game_service: games_service.GameService = Depends(_get_game_service),
+    role_service: roles_module.RoleVerificationService = Depends(permissions_deps.get_role_service),
+    db: AsyncSession = Depends(database.get_db),
 ) -> game_schemas.GameResponse:
     """
     Update game session.
 
-    Only the game host can update. All fields are optional.
-    Validates min_players <= max_players if both are provided.
+    Authorization:
+    - Game host can update their own game
+    - Bot Managers can update any game in the guild
+    - Guild admins (MANAGE_GUILD) can update any game in the guild
+
+    All fields are optional. Validates min_players <= max_players if both are provided.
     """
     try:
         game = await game_service.update_game(
             game_id=game_id,
             update_data=update_data,
-            host_user_id=current_user.user.id,
+            current_user=current_user,
+            role_service=role_service,
+            db=db,
         )
 
         return await _build_game_response(game)
@@ -188,16 +198,25 @@ async def delete_game(
     game_id: str,
     current_user: auth_schemas.CurrentUser = Depends(auth_deps.get_current_user),
     game_service: games_service.GameService = Depends(_get_game_service),
+    role_service: roles_module.RoleVerificationService = Depends(permissions_deps.get_role_service),
+    db: AsyncSession = Depends(database.get_db),
 ) -> None:
     """
     Cancel game session.
 
-    Only the game host can cancel. Sets status to CANCELLED and publishes event.
+    Authorization:
+    - Game host can cancel their own game
+    - Bot Managers can cancel any game in the guild
+    - Guild admins (MANAGE_GUILD) can cancel any game in the guild
+
+    Sets status to CANCELLED and publishes event.
     """
     try:
         await game_service.delete_game(
             game_id=game_id,
-            host_user_id=current_user.user.id,
+            current_user=current_user,
+            role_service=role_service,
+            db=db,
         )
     except ValueError as e:
         if "not found" in str(e).lower():

@@ -321,29 +321,47 @@ class GameService:
         self,
         game_id: str,
         update_data: game_schemas.GameUpdateRequest,
-        host_user_id: str,
+        current_user,
+        role_service,
+        db: AsyncSession,
     ) -> game_model.GameSession:
         """
-        Update game session (host only).
+        Update game session with Bot Manager authorization.
 
         Args:
             game_id: Game session UUID
             update_data: Update data
-            host_user_id: Host's database user ID (UUID) for authorization
+            current_user: Current authenticated user (CurrentUser schema)
+            role_service: Role verification service
+            db: Database session for authorization queries
 
         Returns:
             Updated game session
 
         Raises:
-            ValueError: If user is not the host
+            ValueError: If game not found or user lacks permission
         """
         game = await self.get_game(game_id)
         if game is None:
             raise ValueError("Game not found")
 
-        # Verify host
-        if game.host_id != host_user_id:
-            raise ValueError("Only the host can update this game")
+        # Import here to avoid circular dependency
+        from services.api.dependencies import permissions as permissions_deps
+
+        # Check authorization: host, Bot Manager, or admin
+        can_manage = await permissions_deps.can_manage_game(
+            game_host_id=game.host.discord_id,
+            guild_id=game.guild.guild_id,
+            current_user=current_user,
+            role_service=role_service,
+            db=db,
+        )
+
+        if not can_manage:
+            raise ValueError(
+                "You don't have permission to update this game. "
+                "Only the host, Bot Managers, or guild admins can edit games."
+            )
 
         # Update fields
         if update_data.title is not None:
@@ -387,24 +405,46 @@ class GameService:
 
         return game
 
-    async def delete_game(self, game_id: str, host_user_id: str) -> None:
+    async def delete_game(
+        self,
+        game_id: str,
+        current_user,
+        role_service,
+        db: AsyncSession,
+    ) -> None:
         """
-        Cancel game session (host only).
+        Cancel game session with Bot Manager authorization.
 
         Args:
             game_id: Game session UUID
-            host_user_id: Host's database user ID (UUID) for authorization
+            current_user: Current authenticated user (CurrentUser schema)
+            role_service: Role verification service
+            db: Database session for authorization queries
 
         Raises:
-            ValueError: If user is not the host
+            ValueError: If game not found or user lacks permission
         """
         game = await self.get_game(game_id)
         if game is None:
             raise ValueError("Game not found")
 
-        # Verify host
-        if game.host_id != host_user_id:
-            raise ValueError("Only the host can cancel this game")
+        # Import here to avoid circular dependency
+        from services.api.dependencies import permissions as permissions_deps
+
+        # Check authorization: host, Bot Manager, or admin
+        can_manage = await permissions_deps.can_manage_game(
+            game_host_id=game.host.discord_id,
+            guild_id=game.guild.guild_id,
+            current_user=current_user,
+            role_service=role_service,
+            db=db,
+        )
+
+        if not can_manage:
+            raise ValueError(
+                "You don't have permission to cancel this game. "
+                "Only the host, Bot Managers, or guild admins can cancel games."
+            )
 
         game.status = game_model.GameStatus.CANCELLED.value
         await self.db.commit()

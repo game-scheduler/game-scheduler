@@ -46,6 +46,7 @@ class GuildConfiguration(Base):
     default_reminder_minutes: Mapped[list[int]] = mapped_column(JSON, default=lambda: [60, 15])
     default_rules: Mapped[str | None] = mapped_column(Text, nullable=True)
     allowed_host_role_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    bot_manager_role_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     require_host_role: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)

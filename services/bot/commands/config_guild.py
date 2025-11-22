@@ -42,6 +42,7 @@ async def config_guild_command(
     max_players: int | None = None,
     reminder_minutes: str | None = None,
     default_rules: str | None = None,
+    bot_managers: str | None = None,
 ) -> None:
     """
     Configure guild-level default settings for games.
@@ -51,6 +52,7 @@ async def config_guild_command(
         max_players: Default max players for games (1-100)
         reminder_minutes: Comma-separated reminder times in minutes (e.g., "60,15")
         default_rules: Default rules text for all games
+        bot_managers: Space-separated role mentions/IDs for Bot Managers (e.g., "@Role1 @Role2")
     """
     await interaction.response.defer(ephemeral=True)
 
@@ -98,6 +100,22 @@ async def config_guild_command(
                     default_rules[:50] + "..." if len(default_rules) > 50 else default_rules
                 )
                 updated_fields.append(f"Rules: {rules_preview}")
+
+            if bot_managers is not None:
+                try:
+                    role_ids = _parse_role_mentions(bot_managers, interaction.guild)
+                    guild_config.bot_manager_role_ids = role_ids
+                    if role_ids:
+                        role_mentions = " ".join(f"<@&{role_id}>" for role_id in role_ids)
+                        updated_fields.append(f"Bot Managers: {role_mentions}")
+                    else:
+                        updated_fields.append("Bot Managers: Cleared (none)")
+                except ValueError as e:
+                    await interaction.followup.send(
+                        f"❌ Invalid role format: {e!s}",
+                        ephemeral=True,
+                    )
+                    return
 
             if not updated_fields:
                 embed = _create_config_display_embed(interaction.guild, guild_config)
@@ -151,6 +169,7 @@ async def _get_or_create_guild_config(db: AsyncSession, guild_id: str) -> GuildC
             default_reminder_minutes=[60, 15],
             default_rules="",
             allowed_host_role_ids=[],
+            bot_manager_role_ids=None,
             require_host_role=False,
         )
         db.add(config)
@@ -158,6 +177,56 @@ async def _get_or_create_guild_config(db: AsyncSession, guild_id: str) -> GuildC
         await db.refresh(config)
 
     return config
+
+
+def _parse_role_mentions(role_string: str, guild: discord.Guild) -> list[str]:
+    """
+    Parse role mentions or IDs from string.
+
+    Accepts role mentions (@Role), IDs, or 'clear'/'none' to remove all roles.
+
+    Args:
+        role_string: String containing role mentions, IDs, or 'clear'
+        guild: Discord guild to validate roles
+
+    Returns:
+        List of validated role IDs
+
+    Raises:
+        ValueError: If roles are invalid or not found
+    """
+    role_string = role_string.strip().lower()
+
+    if role_string in ("clear", "none", ""):
+        return []
+
+    import re
+
+    role_ids = []
+    role_pattern = r"<@&(\d+)>"
+
+    for match in re.finditer(role_pattern, role_string):
+        role_ids.append(match.group(1))
+
+    parts = role_string.split()
+    for part in parts:
+        if part.isdigit() and len(part) >= 17:
+            role_ids.append(part)
+
+    if not role_ids:
+        raise ValueError(
+            "No valid roles found. Use role mentions (@Role) or role IDs, "
+            "or 'clear' to remove all Bot Managers."
+        )
+
+    validated_ids = []
+    for role_id in role_ids:
+        role = guild.get_role(int(role_id))
+        if role is None:
+            raise ValueError(f"Role with ID {role_id} not found in this server.")
+        validated_ids.append(role_id)
+
+    return validated_ids
 
 
 def _create_config_display_embed(guild: discord.Guild, config: GuildConfiguration) -> discord.Embed:
@@ -203,6 +272,15 @@ def _create_config_display_embed(guild: discord.Guild, config: GuildConfiguratio
         inline=False,
     )
 
+    bot_managers_value = "Not set"
+    if config.bot_manager_role_ids:
+        bot_managers_value = " ".join(f"<@&{role_id}>" for role_id in config.bot_manager_role_ids)
+    embed.add_field(
+        name="Bot Managers",
+        value=bot_managers_value,
+        inline=False,
+    )
+
     return embed
 
 
@@ -222,14 +300,18 @@ async def setup(bot: "GameSchedulerBot") -> None:
         max_players="Default max players for games (1-100)",
         reminder_minutes="Comma-separated reminder times in minutes (e.g., '60,15')",
         default_rules="Default rules text for all games",
+        bot_managers="Role mentions/IDs for Bot Managers (can edit/delete any game), or 'clear'",
     )
     async def config_guild_slash(
         interaction: Interaction,
         max_players: int | None = None,
         reminder_minutes: str | None = None,
         default_rules: str | None = None,
+        bot_managers: str | None = None,
     ) -> None:
-        await config_guild_command(interaction, max_players, reminder_minutes, default_rules)
+        await config_guild_command(
+            interaction, max_players, reminder_minutes, default_rules, bot_managers
+        )
 
     logger.info("Registered /config-guild command")
 

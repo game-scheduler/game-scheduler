@@ -228,6 +228,36 @@ class RoleVerificationService:
 
         return False
 
+    async def check_bot_manager_permission(
+        self, user_id: str, guild_id: str, db: AsyncSession
+    ) -> bool:
+        """
+        Check if user has Bot Manager role in guild.
+
+        Bot Managers can edit/delete any game in the guild.
+
+        Args:
+            user_id: Discord user ID
+            guild_id: Discord guild ID
+            db: Database session for configuration queries
+
+        Returns:
+            True if user has Bot Manager role
+        """
+        user_role_ids = await self.get_user_role_ids(user_id, guild_id)
+
+        result = await db.execute(
+            select(guild_model.GuildConfiguration).where(
+                guild_model.GuildConfiguration.guild_id == guild_id
+            )
+        )
+        guild_config = result.scalar_one_or_none()
+
+        if not guild_config or not guild_config.bot_manager_role_ids:
+            return False
+
+        return any(role_id in guild_config.bot_manager_role_ids for role_id in user_role_ids)
+
     async def invalidate_user_roles(self, user_id: str, guild_id: str) -> None:
         """
         Invalidate cached user roles.

@@ -30,6 +30,7 @@ export interface Guild {
   default_reminder_minutes: number[];
   default_rules: string;
   allowed_host_role_ids: string[];
+  bot_manager_role_ids: string[] | null;
   require_host_role: boolean;
   created_at: string;
   updated_at: string;
