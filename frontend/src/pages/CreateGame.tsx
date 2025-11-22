@@ -251,6 +251,17 @@ export const CreateGame: FC = () => {
               sx={{ width: '100%', mt: 2, mb: 1 }}
             />
 
+            <TextField
+              fullWidth
+              label="Reminder Times (minutes)"
+              name="reminderMinutes"
+              value={formData.reminderMinutes}
+              onChange={handleChange}
+              margin="normal"
+              helperText="Comma-separated (e.g., 60, 15). Leave empty for default"
+              disabled={loading}
+            />
+
             <FormControl fullWidth margin="normal" required>
               <InputLabel>Channel</InputLabel>
               <Select
@@ -328,17 +339,6 @@ export const CreateGame: FC = () => {
               helperText="Leave empty to use channel/guild default"
               disabled={loading}
               inputProps={{ min: 1, max: 100 }}
-            />
-
-            <TextField
-              fullWidth
-              label="Reminder Times (minutes)"
-              name="reminderMinutes"
-              value={formData.reminderMinutes}
-              onChange={handleChange}
-              margin="normal"
-              helperText="Comma-separated (e.g., 60, 15). Leave empty for default"
-              disabled={loading}
             />
 
             <TextField

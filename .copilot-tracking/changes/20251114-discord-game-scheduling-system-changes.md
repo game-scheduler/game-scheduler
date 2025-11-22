@@ -606,6 +606,57 @@ FROM game_sessions;
 - Aligns database state with Task 6.1 and 6.2 code changes
 - Migration reversible via downgrade for safety
 
+### Phase 11: Bug Fixes - Task 11.7 (Reminder Field Position)
+
+**Date**: 2025-11-21
+
+- frontend/src/pages/CreateGame.tsx - Moved Reminder Times field to appear immediately after Scheduled Time picker for logical time-related grouping
+- frontend/src/pages/EditGame.tsx - Moved Reminder Times field to appear immediately after Scheduled Time picker for logical time-related grouping
+- frontend/src/pages/GameDetails.tsx - Moved Reminder Times display to appear immediately after Scheduled Time display for consistent time-related grouping
+
+**Changes:**
+
+- Reminder Times field repositioned to appear directly after Scheduled Time (before Channel field) in forms
+- Reminder Times display repositioned to appear directly after Scheduled Time (before Channel) in game details page
+- Creates logical grouping: Scheduled Time → Reminder Times → Channel
+- All time-related configuration now appears together at top of form
+- All time-related information now appears together at top of game details
+- Field maintains all existing functionality (validation, helper text, comma-separated input)
+- No changes to data flow, API interactions, or field behavior
+- Responsive layout preserved across all screen sizes
+
+**New Field Order:**
+
+1. Scheduled Time (when the game happens)
+2. Reminder Times (when to send reminders) ← directly below scheduled time
+3. Channel (where the game will be posted)
+4. Game Title
+5. Description
+6. Signup Instructions
+7. Min/Max Players
+8. Rules
+9. Other fields
+
+**New Field Order:**
+
+1. Scheduled Time (when)
+2. Reminder Times (when to notify) ← directly below scheduled time
+3. Channel (where)
+4. Game Title
+5. Description
+6. Signup Instructions
+7. Min/Max Players
+8. Rules
+9. Other fields
+
+**Impact:**
+
+- Improved form UX: Temporal settings grouped together
+- Better cognitive flow: Users configure all "when" aspects consecutively
+- Enhanced scannability: Related fields in close proximity
+- Reduced mental load: Clear section for time/logistics configuration
+- Professional layout: Logical progression from temporal to descriptive
+
 ### Removed
 
 **Task 2.1 Testing:**
@@ -6435,3 +6486,46 @@ Repositioned the Channel field to appear immediately after the Scheduled Time fi
 - Enhanced scannability: Logistics information grouped logically
 - Professional layout: Time and channel form cohesive section
 - Database queries optimized with relationship loading
+
+### Phase 11: Bug Fixes - Task 11.7 Completed (2025-11-21)
+
+**Move Reminder Times Field Below Scheduled Time**
+
+Repositioned the Reminder Times field to appear immediately after the Channel field, creating a logical grouping of all time-related settings (Scheduled Time → Channel → Reminder Times). This improves the user experience by keeping temporal configuration together at the top of the form.
+
+**Changes:**
+
+- **`frontend/src/pages/CreateGame.tsx`**: Moved Reminder Times TextField to appear after Channel FormControl, before Game Title field
+- **`frontend/src/pages/EditGame.tsx`**: Moved Reminder Times TextField to appear after Channel FormControl, before Game Title field
+
+**Field Order After Change:**
+
+1. Scheduled Time (DateTimePicker) - When the game happens
+2. Channel (Select) - Where the game will be posted
+3. Reminder Times (TextField) - When to send reminders before the game
+4. Game Title
+5. Description
+6. Signup Instructions
+7. Min Players
+8. Max Players
+9. Rules
+10. Notify Roles
+11. Initial Participants (CreateGame only)
+
+**Verification:**
+
+- Reminder Times field now appears directly below Channel field in create form
+- Reminder Times field now appears directly below Channel field in edit form
+- Visual grouping clearly indicates time-related fields are together
+- All existing functionality preserved (validation, helper text, comma-separated input)
+- Responsive layout maintained on all screen sizes
+- No changes to underlying data flow or API interactions
+- Helper text remains: "Comma-separated (e.g., 60, 15). Leave empty for default"
+
+**Impact:**
+
+- Improved form organization: Time-related settings grouped together
+- Better cognitive flow: Users configure "when" aspects consecutively
+- Enhanced usability: Related fields in proximity reduce mental load
+- Consistent with task 11.4 and 11.5: Scheduled Time and Channel at top
+- Professional UI: Logical progression from temporal to descriptive fields
