@@ -384,4 +384,12 @@ Implement a complete Discord game scheduling system with microservices architect
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1461-1478)
 
 - [ ] Task 13.4: Create statistics dashboard
+
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1480-1500)
+
+- [ ] Task 13.5: Replace adaptive backoff with Redis-based rate limiting
+
+  - Simplify message update throttling by replacing in-memory state tracking with Redis cache
+  - Use Redis key existence check with 1.5s TTL for rate limiting
+  - Maintains instant updates when idle, simpler code, multi-instance ready
+  - Research: .copilot-tracking/research/20251122-redis-rate-limiting-research.md
