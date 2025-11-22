@@ -312,7 +312,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1054-1070)
 
-- [ ] Task 11.3: Auto-select channel when only one is available
+- [x] Task 11.3: Auto-select channel when only one is available
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1072-1092)
 

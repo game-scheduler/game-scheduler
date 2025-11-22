@@ -203,7 +203,7 @@ Modified the bot's join and leave game notifications to send as direct messages 
 - tests/services/bot/formatters/test_game_message.py - Updated test assertions to expect 3-tuple return from format_game_announcement (Task 10.3)
 - frontend/src/types/index.ts - Added minPlayers field to GameSession interface (Task 7.4)
 - frontend/src/types/index.ts - Added notify_role_ids field to GameSession interface and created DiscordRole interface (Task 10.4)
-- frontend/src/pages/CreateGame.tsx - Added min_players input field with client-side validation (Task 7.4); added role multi-select component with role color display and mention notification helper text (Task 10.4); changed scheduledAt default from null to new Date() for better UX (Task 11.2)
+- frontend/src/pages/CreateGame.tsx - Added min_players input field with client-side validation (Task 7.4); added role multi-select component with role color display and mention notification helper text (Task 10.4); changed scheduledAt default from null to new Date() for better UX (Task 11.2); added auto-select logic for single channel scenario (Task 11.3)
 - frontend/src/pages/EditGame.tsx - Added min_players input field with client-side validation (Task 7.4)
 - frontend/src/components/GameCard.tsx - Updated to display X/min-max participant count format (Task 7.4)
 - shared/models/guild.py - Added bot_manager_role_ids field to GuildConfiguration model for Bot Managers feature (Task 9.1)

@@ -115,6 +115,13 @@ export const CreateGame: FC = () => {
     fetchData();
   }, [guildId]);
 
+  // Auto-select channel when only one is available
+  useEffect(() => {
+    if (channels.length === 1 && !formData.channelId && channels[0]) {
+      setFormData((prev) => ({ ...prev, channelId: channels[0]!.id }));
+    }
+  }, [channels, formData.channelId]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
