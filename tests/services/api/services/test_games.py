@@ -82,7 +82,6 @@ def sample_guild():
         guild_id="123456789",
         default_max_players=5,
         default_reminder_minutes=[60],
-        default_rules="Guild rules",
     )
 
 
@@ -116,7 +115,6 @@ def sample_game_data(sample_guild, sample_channel):
         scheduled_at=datetime.datetime.now(datetime.UTC),
         max_players=4,
         reminder_minutes=[60],
-        rules="Test rules",
     )
 
 
@@ -326,7 +324,6 @@ async def test_create_game_timezone_conversion(
         scheduled_at=scheduled_time_est,
         max_players=4,
         reminder_minutes=[60],
-        rules="Test rules",
     )
 
     created_game = game_model.GameSession(

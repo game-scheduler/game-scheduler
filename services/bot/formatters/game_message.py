@@ -31,7 +31,6 @@ from services.bot.utils.discord_format import (
     format_discord_timestamp,
     format_game_status_emoji,
     format_participant_list,
-    format_rules_section,
 )
 from services.bot.views.game_view import GameView
 
@@ -53,7 +52,6 @@ class GameMessageFormatter:
         current_count: int,
         max_players: int,
         status: str,
-        rules: str | None = None,
         channel_id: str | None = None,
         signup_instructions: str | None = None,
     ) -> discord.Embed:
@@ -68,7 +66,6 @@ class GameMessageFormatter:
             current_count: Current participant count
             max_players: Maximum allowed participants
             status: Game status
-            rules: Optional game rules
             channel_id: Optional Discord channel ID
             signup_instructions: Optional signup instructions
 
@@ -117,11 +114,6 @@ class GameMessageFormatter:
                 if len(signup_instructions) > 400
                 else signup_instructions,
                 inline=False,
-            )
-
-        if rules:
-            embed.add_field(
-                name="📋 Rules", value=format_rules_section(rules, max_length=400), inline=False
             )
 
         embed.set_footer(text=f"Status: {status}")
@@ -189,7 +181,6 @@ def format_game_announcement(
     current_count: int,
     max_players: int,
     status: str,
-    rules: str | None = None,
     channel_id: str | None = None,
     signup_instructions: str | None = None,
     notify_role_ids: list[str] | None = None,
@@ -206,7 +197,6 @@ def format_game_announcement(
         current_count: Current participant count
         max_players: Maximum allowed participants
         status: Game status
-        rules: Optional game rules
         channel_id: Optional voice channel ID
         signup_instructions: Optional signup instructions
         notify_role_ids: Optional list of Discord role IDs to mention
@@ -226,7 +216,6 @@ def format_game_announcement(
         current_count=current_count,
         max_players=max_players,
         status=status,
-        rules=rules,
         channel_id=channel_id,
         signup_instructions=signup_instructions,
     )

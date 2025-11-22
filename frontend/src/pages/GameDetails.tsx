@@ -238,11 +238,6 @@ export const GameDetails: FC = () => {
           <Typography variant="body2" paragraph>
             <strong>Max Players:</strong> {game.max_players || 10}
           </Typography>
-          {game.rules && (
-            <Typography variant="body2" paragraph>
-              <strong>Rules:</strong> {game.rules}
-            </Typography>
-          )}
         </Box>
 
         <Divider sx={{ my: 3 }} />

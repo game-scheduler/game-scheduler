@@ -48,7 +48,6 @@ def sample_guild():
         guild_id="123456789",
         default_max_players=10,
         default_reminder_minutes=[60, 15],
-        default_rules="Default guild rules",
         allowed_host_role_ids=["role1", "role2"],
         require_host_role=False,
         created_at=datetime.utcnow(),
@@ -68,7 +67,6 @@ def sample_channel():
         is_active=True,
         max_players=8,
         reminder_minutes=[30, 10],
-        default_rules="Channel rules",
         allowed_host_role_ids=["role3"],
         game_category="D&D",
         created_at=datetime.utcnow(),
@@ -89,7 +87,6 @@ def sample_game():
         host_id=str(uuid.uuid4()),
         max_players=6,
         reminder_minutes=[45],
-        rules="Game rules",
         status="SCHEDULED",
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
@@ -148,30 +145,6 @@ class TestSettingsResolver:
         resolver = config.SettingsResolver()
         result = resolver.resolve_reminder_minutes(None, None, None)
         assert result == [60, 15]
-
-    def test_resolve_rules_game_override(self, sample_game, sample_channel, sample_guild):
-        """Game-level rules override channel and guild."""
-        resolver = config.SettingsResolver()
-        result = resolver.resolve_rules(sample_game, sample_channel, sample_guild)
-        assert result == "Game rules"
-
-    def test_resolve_rules_channel_override(self, sample_channel, sample_guild):
-        """Channel-level rules override guild."""
-        resolver = config.SettingsResolver()
-        result = resolver.resolve_rules(None, sample_channel, sample_guild)
-        assert result == "Channel rules"
-
-    def test_resolve_rules_guild_default(self, sample_guild):
-        """Guild-level rules are fallback."""
-        resolver = config.SettingsResolver()
-        result = resolver.resolve_rules(None, None, sample_guild)
-        assert result == "Default guild rules"
-
-    def test_resolve_rules_empty_default(self):
-        """Empty string when no rules configured."""
-        resolver = config.SettingsResolver()
-        result = resolver.resolve_rules(None, None, None)
-        assert result == ""
 
     def test_resolve_allowed_host_roles_channel_override(self, sample_channel, sample_guild):
         """Channel-level roles override guild."""

@@ -51,7 +51,6 @@ export const ChannelConfig: FC = () => {
     isActive: true,
     maxPlayers: '',
     reminderMinutes: '',
-    defaultRules: '',
     allowedHostRoleIds: '',
     gameCategory: '',
   });
@@ -76,7 +75,6 @@ export const ChannelConfig: FC = () => {
           isActive: channelData.is_active,
           maxPlayers: channelData.max_players?.toString() || '',
           reminderMinutes: channelData.reminder_minutes?.join(', ') || '',
-          defaultRules: channelData.default_rules || '',
           allowedHostRoleIds: channelData.allowed_host_role_ids?.join(', ') || '',
           gameCategory: channelData.game_category || '',
         });
@@ -117,7 +115,6 @@ export const ChannelConfig: FC = () => {
         is_active: formData.isActive,
         max_players: formData.maxPlayers ? parseInt(formData.maxPlayers) : null,
         reminder_minutes: reminderMinutes,
-        default_rules: formData.defaultRules || null,
         allowed_host_role_ids: allowedRoleIds,
         game_category: formData.gameCategory || null,
       });
@@ -163,8 +160,6 @@ export const ChannelConfig: FC = () => {
         .map((s) => parseInt(s.trim()))
         .filter((n) => !isNaN(n))
     : guild?.default_reminder_minutes || [60, 15];
-
-  const resolvedRules = formData.defaultRules || guild?.default_rules || '';
 
   return (
     <Container sx={{ mt: 4, mb: 4 }}>
@@ -235,16 +230,6 @@ export const ChannelConfig: FC = () => {
             />
 
             <TextField
-              label="Default Rules (override)"
-              value={formData.defaultRules}
-              onChange={(e) => setFormData({ ...formData, defaultRules: e.target.value })}
-              multiline
-              rows={4}
-              helperText="Leave empty to inherit guild default"
-              fullWidth
-            />
-
-            <TextField
               label="Allowed Host Role IDs (override)"
               value={formData.allowedHostRoleIds}
               onChange={(e) => setFormData({ ...formData, allowedHostRoleIds: e.target.value })}
@@ -282,12 +267,6 @@ export const ChannelConfig: FC = () => {
             label="Reminder Times"
             value={resolvedReminders}
             inherited={!formData.reminderMinutes}
-            inheritedFrom="guild"
-          />
-          <InheritancePreview
-            label="Default Rules"
-            value={resolvedRules || 'Not set'}
-            inherited={!formData.defaultRules}
             inheritedFrom="guild"
           />
         </CardContent>

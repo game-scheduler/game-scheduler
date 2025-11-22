@@ -156,12 +156,6 @@ export const GuildDashboard: FC = () => {
                       secondary={`${guild.default_reminder_minutes.join(', ')} minutes before`}
                     />
                   </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Default Rules"
-                      secondary={guild.default_rules || 'Not set'}
-                    />
-                  </ListItem>
                 </List>
               </CardContent>
             </Card>

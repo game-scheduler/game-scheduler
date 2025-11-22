@@ -81,31 +81,6 @@ class SettingsResolver:
             return guild.default_reminder_minutes
         return [60, 15]
 
-    def resolve_rules(
-        self,
-        game: "game.GameSession | None",
-        channel: "channel.ChannelConfiguration | None",
-        guild: "guild.GuildConfiguration | None",
-    ) -> str:
-        """
-        Resolve rules text using inheritance: game > channel > guild > default.
-
-        Args:
-            game: Game session configuration
-            channel: Channel configuration
-            guild: Guild configuration
-
-        Returns:
-            Resolved rules text
-        """
-        if game and game.rules:
-            return game.rules
-        if channel and channel.default_rules:
-            return channel.default_rules
-        if guild and guild.default_rules:
-            return guild.default_rules
-        return ""
-
     def resolve_allowed_host_roles(
         self,
         channel: "channel.ChannelConfiguration | None",

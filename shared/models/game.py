@@ -63,7 +63,6 @@ class GameSession(Base):
     channel_id: Mapped[str] = mapped_column(ForeignKey("channel_configurations.id"))
     message_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
     host_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
-    rules: Mapped[str | None] = mapped_column(Text, nullable=True)
     reminder_minutes: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
     notify_role_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default=GameStatus.SCHEDULED.value, index=True)

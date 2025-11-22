@@ -42,7 +42,6 @@ async def config_channel_command(
     channel: discord.TextChannel | None = None,
     max_players: int | None = None,
     reminder_minutes: str | None = None,
-    default_rules: str | None = None,
     game_category: str | None = None,
     is_active: bool | None = None,
 ) -> None:
@@ -54,7 +53,6 @@ async def config_channel_command(
         channel: Channel to configure (defaults to current channel)
         max_players: Max players override (1-100, None to use guild default)
         reminder_minutes: Reminder times override (comma-separated minutes)
-        default_rules: Rules override for this channel
         game_category: Game category for this channel (e.g., "D&D", "Board Games")
         is_active: Enable/disable game posting in this channel
     """
@@ -118,13 +116,6 @@ async def config_channel_command(
                         ephemeral=True,
                     )
                     return
-
-            if default_rules is not None:
-                channel_config.default_rules = default_rules
-                rules_preview = (
-                    default_rules[:50] + "..." if len(default_rules) > 50 else default_rules
-                )
-                updated_fields.append(f"Rules: {rules_preview}")
 
             if game_category is not None:
                 channel_config.game_category = game_category
@@ -212,7 +203,6 @@ async def _get_or_create_channel_config(
             is_active=True,
             max_players=None,
             reminder_minutes=None,
-            default_rules=None,
             allowed_host_role_ids=None,
             game_category=None,
         )
@@ -280,18 +270,6 @@ def _create_config_display_embed(
         inline=True,
     )
 
-    rules_value = config.default_rules or guild_config.default_rules or "Not set"
-    if len(rules_value) > 100:
-        rules_value = rules_value[:100] + "..."
-    if not config.default_rules and guild_config.default_rules:
-        rules_value += " (guild default)"
-
-    embed.add_field(
-        name="Default Rules",
-        value=rules_value,
-        inline=False,
-    )
-
     return embed
 
 
@@ -320,7 +298,6 @@ async def setup(bot: "GameSchedulerBot") -> None:
         channel: discord.TextChannel | None = None,
         max_players: int | None = None,
         reminder_minutes: str | None = None,
-        default_rules: str | None = None,
         game_category: str | None = None,
         is_active: bool | None = None,
     ) -> None:
@@ -329,7 +306,6 @@ async def setup(bot: "GameSchedulerBot") -> None:
             channel,
             max_players,
             reminder_minutes,
-            default_rules,
             game_category,
             is_active,
         )

@@ -56,7 +56,6 @@ def mock_guild_config():
     config.guild_id = "987654321"
     config.default_max_players = 10
     config.default_reminder_minutes = [60, 15]
-    config.default_rules = "Be respectful"
     config.allowed_host_role_ids = ["role_123"]
     config.require_host_role = False
     config.created_at = datetime(2024, 1, 1, 12, 0, 0)
@@ -247,7 +246,6 @@ class TestCreateGuildConfig:
             new_config.guild_id = "987654321"
             new_config.default_max_players = 12
             new_config.default_reminder_minutes = [60, 15]
-            new_config.default_rules = "New rules"
             new_config.allowed_host_role_ids = []
             new_config.require_host_role = False
             new_config.created_at = datetime.now()
@@ -259,7 +257,6 @@ class TestCreateGuildConfig:
                 guild_id="987654321",
                 default_max_players=12,
                 default_reminder_minutes=[60, 15],
-                default_rules="New rules",
                 allowed_host_role_ids=[],
                 require_host_role=False,
             )
@@ -320,7 +317,6 @@ class TestUpdateGuildConfig:
             updated_config.guild_id = "987654321"
             updated_config.default_max_players = 15
             updated_config.default_reminder_minutes = [60, 15]
-            updated_config.default_rules = "Updated rules"
             updated_config.allowed_host_role_ids = ["role_123"]
             updated_config.require_host_role = False
             updated_config.created_at = datetime.now()
@@ -330,7 +326,6 @@ class TestUpdateGuildConfig:
 
             request = guild_schemas.GuildConfigUpdateRequest(
                 default_max_players=15,
-                default_rules="Updated rules",
             )
 
             result = await guilds.update_guild_config(
@@ -341,7 +336,6 @@ class TestUpdateGuildConfig:
             )
 
             assert result.default_max_players == 15
-            assert result.default_rules == "Updated rules"
             mock_service.update_guild_config.assert_called_once()
 
     @pytest.mark.asyncio
@@ -391,7 +385,6 @@ class TestListGuildChannels:
             mock_channel.is_active = True
             mock_channel.max_players = None
             mock_channel.reminder_minutes = None
-            mock_channel.default_rules = None
             mock_channel.allowed_host_role_ids = None
             mock_channel.game_category = None
             mock_channel.created_at = datetime.now()

@@ -167,7 +167,6 @@ async def _get_or_create_guild_config(db: AsyncSession, guild_id: str) -> GuildC
             guild_id=guild_id,
             default_max_players=10,
             default_reminder_minutes=[60, 15],
-            default_rules="",
             allowed_host_role_ids=[],
             bot_manager_role_ids=None,
             require_host_role=False,
@@ -260,16 +259,6 @@ def _create_config_display_embed(guild: discord.Guild, config: GuildConfiguratio
         name="Default Reminders",
         value=reminders_text,
         inline=True,
-    )
-
-    rules_value = config.default_rules or "Not set"
-    if len(config.default_rules or "") > 100:
-        rules_value = config.default_rules[:100] + "..."
-
-    embed.add_field(
-        name="Default Rules",
-        value=rules_value,
-        inline=False,
     )
 
     bot_managers_value = "Not set"

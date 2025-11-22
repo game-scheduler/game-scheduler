@@ -340,7 +340,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1219-1240)
 
-- [ ] Task 11.10: Remove the rules field
+- [x] Task 11.10: Remove the rules field
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1241-1281)
 

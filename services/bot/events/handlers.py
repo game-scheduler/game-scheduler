@@ -172,7 +172,6 @@ class EventHandlers:
                     current_count=len([p for p in game.participants if p.user_id]),
                     max_players=game.max_players or 10,
                     status=game.status,
-                    rules=game.rules,
                     signup_instructions=game.signup_instructions,
                     notify_role_ids=game.notify_role_ids,
                 )
@@ -308,7 +307,6 @@ class EventHandlers:
                     current_count=len([p for p in game.participants if p.user_id]),
                     max_players=game.max_players or 10,
                     status=game.status,
-                    rules=game.rules,
                     signup_instructions=game.signup_instructions,
                     notify_role_ids=game.notify_role_ids,
                 )

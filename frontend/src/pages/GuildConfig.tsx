@@ -48,7 +48,6 @@ export const GuildConfig: FC = () => {
   const [formData, setFormData] = useState({
     defaultMaxPlayers: 10,
     defaultReminderMinutes: '60, 15',
-    defaultRules: '',
     allowedHostRoleIds: '',
     botManagerRoleIds: '',
     requireHostRole: false,
@@ -69,7 +68,6 @@ export const GuildConfig: FC = () => {
         setFormData({
           defaultMaxPlayers: guildData.default_max_players,
           defaultReminderMinutes: guildData.default_reminder_minutes.join(', '),
-          defaultRules: guildData.default_rules || '',
           allowedHostRoleIds: guildData.allowed_host_role_ids.join(', '),
           botManagerRoleIds: (guildData.bot_manager_role_ids || []).join(', '),
           requireHostRole: guildData.require_host_role,
@@ -111,7 +109,6 @@ export const GuildConfig: FC = () => {
       await apiClient.put(`/api/v1/guilds/${guildId}`, {
         default_max_players: formData.defaultMaxPlayers,
         default_reminder_minutes: reminderMinutes,
-        default_rules: formData.defaultRules || null,
         allowed_host_role_ids: allowedRoleIds,
         bot_manager_role_ids: botManagerRoleIds.length > 0 ? botManagerRoleIds : null,
         require_host_role: formData.requireHostRole,
@@ -196,16 +193,6 @@ export const GuildConfig: FC = () => {
               value={formData.defaultReminderMinutes}
               onChange={(e) => setFormData({ ...formData, defaultReminderMinutes: e.target.value })}
               helperText="Comma-separated list of minutes before game to send reminders (e.g., 60, 15)"
-              fullWidth
-            />
-
-            <TextField
-              label="Default Rules"
-              value={formData.defaultRules}
-              onChange={(e) => setFormData({ ...formData, defaultRules: e.target.value })}
-              multiline
-              rows={4}
-              helperText="Default rules or guidelines that apply to all games"
               fullWidth
             />
 

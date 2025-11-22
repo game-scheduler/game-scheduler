@@ -68,7 +68,6 @@ def sample_guild_config():
         guild_id="123456789",
         default_max_players=10,
         default_reminder_minutes=[60, 15],
-        default_rules="Be respectful",
         allowed_host_role_ids=[],
         require_host_role=False,
     )
@@ -223,12 +222,6 @@ async def test_config_guild_update_rules(
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.commit = AsyncMock()
 
-        new_rules = "New rules for games"
-        await config_guild_command(mock_interaction, default_rules=new_rules)
-
-    assert sample_guild_config.default_rules == new_rules
-    mock_session.commit.assert_called_once()
-
 
 @pytest.mark.asyncio
 async def test_config_guild_creates_new_config(mock_interaction, mock_guild, mock_member_admin):
@@ -273,23 +266,10 @@ def test_create_config_display_embed(mock_guild, sample_guild_config):
     embed = _create_config_display_embed(mock_guild, sample_guild_config)
 
     assert "Test Guild" in embed.title
-    assert len(embed.fields) == 4  # Updated to include Bot Managers field
+    assert len(embed.fields) == 3  # Max Players, Reminders, Bot Managers
     assert embed.fields[0].name == "Default Max Players"
     assert "10" in embed.fields[0].value
     assert embed.fields[1].name == "Default Reminders"
     assert "60, 15" in embed.fields[1].value
-    assert embed.fields[2].name == "Default Rules"
-    assert "Be respectful" in embed.fields[2].value
-    assert embed.fields[3].name == "Bot Managers"
-    assert "Not set" in embed.fields[3].value
-
-
-def test_create_config_display_embed_long_rules(mock_guild, sample_guild_config):
-    """Test _create_config_display_embed truncates long rules."""
-    sample_guild_config.default_rules = "A" * 200
-
-    embed = _create_config_display_embed(mock_guild, sample_guild_config)
-
-    rules_field = embed.fields[2]
-    assert "..." in rules_field.value
-    assert len([c for c in rules_field.value if c == "A"]) == 100
+    assert embed.fields[2].name == "Bot Managers"
+    assert "Not set" in embed.fields[2].value

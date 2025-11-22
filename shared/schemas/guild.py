@@ -32,9 +32,6 @@ class GuildConfigCreateRequest(BaseModel):
         None,
         description="Default reminder times in minutes before game start (e.g., [60, 15])",
     )
-    default_rules: str | None = Field(
-        None, description="Default game rules (inherited by channels/games)"
-    )
     allowed_host_role_ids: list[str] | None = Field(
         None, description="Discord role IDs allowed to create games"
     )
@@ -49,7 +46,6 @@ class GuildConfigUpdateRequest(BaseModel):
 
     default_max_players: int | None = None
     default_reminder_minutes: list[int] | None = None
-    default_rules: str | None = None
     allowed_host_role_ids: list[str] | None = None
     bot_manager_role_ids: list[str] | None = None
     require_host_role: bool | None = None
@@ -65,7 +61,6 @@ class GuildConfigResponse(BaseModel):
     default_reminder_minutes: list[int] | None = Field(
         None, description="Default reminder times in minutes"
     )
-    default_rules: str | None = Field(None, description="Default game rules")
     allowed_host_role_ids: list[str] | None = Field(None, description="Allowed host role IDs")
     bot_manager_role_ids: list[str] | None = Field(
         None, description="Role IDs with Bot Manager permissions (can edit/delete any game)"

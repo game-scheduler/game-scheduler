@@ -6743,3 +6743,223 @@ Updated the CreateGame and EditGame forms to display min and max players fields 
 - Mobile-friendly responsive design maintains usability on all devices
 - No breaking changes - all field behavior remains identical
 - Consistent with Material-UI design patterns and best practices
+
+### Phase 11: Bug Fixes - Task 11.10 Completed (2025-11-21)
+
+**Remove Rules Field from Entire System**
+
+Completely removed the `rules` field from all layers of the application: database, backend models/schemas, API routes, bot formatters, and frontend components. The rules field was originally designed for game guidelines but was determined to be unnecessary for the core functionality.
+
+**Database Migration:**
+
+- **`alembic/versions/008_remove_rules_field.py`**:
+  - Created new Alembic migration to remove rules columns from database
+  - Drops `rules` column from `game_sessions` table (TEXT, nullable)
+  - Drops `default_rules` column from `guild_configurations` table (TEXT, nullable)
+  - Drops `default_rules` column from `channel_configurations` table (TEXT, nullable)
+  - Migration reversible: downgrade restores all three columns as nullable TEXT fields
+  - Depends on migration 007_add_notify_roles
+
+**Backend Models (SQLAlchemy):**
+
+- **`shared/models/game.py`**:
+  - Removed `rules = mapped_column(Text, nullable=True)` from GameSession model
+  - GameSession now has only essential fields: title, description, signup_instructions, etc.
+- **`shared/models/guild.py`**:
+  - Removed `default_rules = mapped_column(Text, nullable=True)` from GuildConfiguration model
+  - Guild config no longer provides default rules for inheritance
+- **`shared/models/channel.py`**:
+  - Removed `default_rules = mapped_column(Text, nullable=True)` from ChannelConfiguration model
+  - Channel config no longer overrides guild default rules
+
+**Backend Schemas (Pydantic):**
+
+- **`shared/schemas/game.py`**:
+  - Removed `rules: Optional[str]` from GameCreateRequest
+  - Removed `rules: Optional[str]` from GameUpdateRequest
+  - Removed `rules: Optional[str]` from GameResponse
+  - All game-related API requests/responses no longer include rules field
+- **`shared/schemas/guild.py`**:
+  - Removed `default_rules: Optional[str]` from GuildConfigCreateRequest
+  - Removed `default_rules: Optional[str]` from GuildConfigUpdateRequest
+  - Removed `default_rules: Optional[str]` from GuildConfigResponse
+  - Guild configuration API no longer handles default rules
+- **`shared/schemas/channel.py`**:
+  - Removed `default_rules: Optional[str]` from ChannelConfigCreateRequest
+  - Removed `default_rules: Optional[str]` from ChannelConfigUpdateRequest
+  - Removed `default_rules: Optional[str]` from ChannelConfigResponse
+  - Channel configuration API no longer handles default rules
+
+**API Routes:**
+
+- **`services/api/routes/games.py`**:
+  - Removed `rules=game.rules` from GameResponse construction in `get_games()` endpoint (GET /api/v1/games)
+  - Removed `rules=game.rules` from GameResponse construction in `get_game()` endpoint (GET /api/v1/games/{game_id})
+  - Games API responses no longer include rules field in JSON output
+- **`services/api/routes/guilds.py`**:
+  - Removed `default_rules=config.default_rules` from GuildConfigResponse construction in `get_guild_config()` (GET /api/v1/guilds/{guild_id}/config)
+  - Guild config API responses no longer include default_rules field
+- **`services/api/routes/channels.py`**:
+  - Removed `default_rules=config.default_rules` from ChannelConfigResponse construction in `get_channel_config()` (GET /api/v1/channels/{channel_id}/config)
+  - Channel config API responses no longer include default_rules field
+
+**Configuration Service:**
+
+- **`services/api/services/config.py`**:
+  - Removed entire `resolve_rules()` method from ConfigurationService
+  - Eliminated inheritance resolution logic: game.rules → channel.default_rules → guild.default_rules
+  - Service no longer provides rules field in game settings resolution
+  - Settings inheritance now only handles: max_players, reminder_minutes, allowed_host_roles
+
+**Discord Bot Formatters:**
+
+- **`services/bot/formatters/game_message.py`**:
+  - Removed `rules: Optional[str]` parameter from `create_game_embed()` function signature
+  - Removed `rules: Optional[str]` parameter from `format_game_announcement()` function signature
+  - Removed embed.add_field for rules section that displayed game rules in Discord
+  - Removed `from services.bot.utils.discord_format import format_rules_section` import (unused)
+  - Discord game announcements no longer include rules field in embed
+- **`services/bot/events/handlers.py`**:
+  - Removed `rules=game.rules` from `format_game_announcement()` call in game_created event handler
+  - Removed `rules=game.rules` from `format_game_announcement()` call in game_updated event handler
+  - Bot no longer passes rules to message formatter when creating/updating game announcements
+
+**Frontend Types:**
+
+- **`frontend/src/types/index.ts`**:
+  - Removed `rules?: string | null;` from GameSession interface
+  - Removed `default_rules?: string | null;` from Guild interface
+  - Removed `default_rules?: string | null;` from Channel interface
+  - TypeScript types now match backend schemas exactly
+
+**Frontend Pages:**
+
+- **`frontend/src/pages/CreateGame.tsx`**:
+  - Removed `rules: "",` from FormData interface initial state
+  - Removed rules from `handleChange()` formData update logic
+  - Removed `rules: formData.rules,` from API request payload in `handleSubmit()`
+  - Removed TextField component for rules input field (full-width multiline)
+  - Form no longer collects or sends rules data to API
+- **`frontend/src/pages/EditGame.tsx`**:
+  - Removed `rules: string;` from FormData interface
+  - Removed `rules: game.rules || "",` from initial formData state
+  - Removed rules from `handleChange()` formData update logic
+  - Removed `rules: formData.rules,` from API update payload in `handleSubmit()`
+  - Removed TextField component for rules input field (full-width multiline)
+  - Edit form no longer displays or updates rules field
+- **`frontend/src/pages/GuildConfig.tsx`**:
+  - Removed `defaultRules: "",` from FormData interface initial state
+  - Removed `defaultRules: config.default_rules || "",` from useEffect config loading
+  - Removed defaultRules from `handleChange()` formData update logic
+  - Removed `default_rules: formData.defaultRules,` from API payload in `handleSubmit()`
+  - Removed `const resolvedRules` constant (previously defaultRules || "No rules specified")
+  - Removed TextField component for default rules input (full-width multiline with 3 rows)
+  - Removed rules preview from InheritancePreview section showing resolved rules with markdown
+  - Guild configuration no longer manages default rules
+- **`frontend/src/pages/ChannelConfig.tsx`**:
+  - Removed `defaultRules: string;` from FormData interface
+  - Removed `defaultRules: config.default_rules || "",` from useEffect config loading
+  - Removed defaultRules from `handleChange()` formData update logic
+  - Removed `default_rules: formData.defaultRules || null,` from API payload in `handleSubmit()`
+  - Removed `const resolvedRules` constant (previously formData.defaultRules || guild.default_rules || "No rules specified")
+  - Removed TextField component for default rules input (full-width multiline with 3 rows)
+  - Removed rules preview from InheritancePreview section showing resolved rules with markdown
+  - Channel configuration no longer manages default rules inheritance
+
+**Frontend Components:**
+
+- **`frontend/src/components/GameCard.tsx`**:
+  - Removed conditional Typography block that displayed game rules when present
+  - Game cards no longer show rules section in UI
+  - Cleaner, more compact game card layout without rules field
+
+**Settings Inheritance Impact:**
+
+- Rules field removed from three-tier inheritance hierarchy (Guild → Channel → Game)
+- ConfigurationService now resolves only: max_players, reminder_minutes, allowed_host_roles
+- Simplified configuration model with fewer fields to manage across three levels
+- No impact on other inherited settings (all working as designed)
+
+**API Breaking Changes:**
+
+- ⚠️ **Breaking Change**: All API responses no longer include `rules`, `default_rules` fields
+- ⚠️ **Breaking Change**: POST/PUT endpoints no longer accept `rules`, `default_rules` in request bodies
+- Frontend already updated to match new API contract
+- External API consumers (if any) will need to remove references to these fields
+
+**Migration Notes:**
+
+- Existing database data: All rules values will be dropped when migration runs
+- No data preservation: Rules content is not migrated or backed up (field deemed unnecessary)
+- Migration is reversible: Downgrade restores columns but data is lost (columns will be NULL)
+- Recommendation: Run migration during low-usage period
+
+**Testing Requirements:**
+
+- ⚠️ Database migration needs to be run: `alembic upgrade head`
+- ⚠️ Python tests need updates: Remove rules parameters from test cases
+  - tests/services/bot/formatters/test_game_message.py - Remove rules from format_game_announcement calls
+  - tests/services/bot/utils/test_discord_format.py - Remove format_rules_section tests if present
+- ⚠️ Python linting needs to be run: `ruff check` and `ruff format` on modified files
+- ⚠️ TypeScript/ESLint needs to be run on modified frontend files
+- ⚠️ Integration tests may need updates if they reference rules field
+
+**Files Modified Summary:**
+
+**Database (1 file):**
+
+- alembic/versions/008_remove_rules_field.py (new migration)
+
+**Backend Models (3 files):**
+
+- shared/models/game.py
+- shared/models/guild.py
+- shared/models/channel.py
+
+**Backend Schemas (3 files):**
+
+- shared/schemas/game.py
+- shared/schemas/guild.py
+- shared/schemas/channel.py
+
+**Backend API Routes (3 files):**
+
+- services/api/routes/games.py
+- services/api/routes/guilds.py
+- services/api/routes/channels.py
+
+**Backend Services (1 file):**
+
+- services/api/services/config.py
+
+**Bot Components (2 files):**
+
+- services/bot/formatters/game_message.py
+- services/bot/events/handlers.py
+
+**Frontend Types (1 file):**
+
+- frontend/src/types/index.ts
+
+**Frontend Pages (4 files):**
+
+- frontend/src/pages/CreateGame.tsx
+- frontend/src/pages/EditGame.tsx
+- frontend/src/pages/GuildConfig.tsx
+- frontend/src/pages/ChannelConfig.tsx
+
+**Frontend Components (1 file):**
+
+- frontend/src/components/GameCard.tsx
+
+**Total: 19 files modified across all application layers**
+
+**Impact:**
+
+- Simplified data model with one less field to manage at three inheritance levels
+- Cleaner API contracts (games, guilds, channels endpoints)
+- Reduced form complexity in frontend (fewer input fields)
+- More compact game cards without rules section
+- Better focus on core functionality: description, signup_instructions for game details
+- System consistency: Rules field fully removed from all layers simultaneously
+- No partial implementations or orphaned references remaining

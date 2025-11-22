@@ -187,11 +187,10 @@ class TestGameMessageFormatter:
                 current_count=0,
                 max_players=5,
                 status="SCHEDULED",
-                rules="Be respectful",
             )
 
-            calls = [str(call) for call in mock_embed.add_field.call_args_list]
-            assert any("Rules" in str(call) for call in calls)
+            # Verify embed was created successfully
+            assert mock_embed.add_field.called
 
     def test_get_status_color_for_scheduled(self):
         """Test status color for scheduled games."""
@@ -340,7 +339,6 @@ class TestFormatGameAnnouncement:
                     current_count=2,
                     max_players=5,
                     status="SCHEDULED",
-                    rules="Be nice",
                     channel_id="voice123",
                 )
 
@@ -349,5 +347,4 @@ class TestFormatGameAnnouncement:
                 assert call_kwargs["game_title"] == "My Game"
                 assert call_kwargs["description"] == "Fun times"
                 assert call_kwargs["host_id"] == "host123"
-                assert call_kwargs["rules"] == "Be nice"
                 assert call_kwargs["channel_id"] == "voice123"

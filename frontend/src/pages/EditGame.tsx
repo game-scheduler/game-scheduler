@@ -49,7 +49,6 @@ interface FormData {
   minPlayers: string;
   maxPlayers: string;
   reminderMinutes: string;
-  rules: string;
 }
 
 export const EditGame: FC = () => {
@@ -69,7 +68,6 @@ export const EditGame: FC = () => {
     minPlayers: '',
     maxPlayers: '',
     reminderMinutes: '',
-    rules: '',
   });
 
   useEffect(() => {
@@ -96,7 +94,6 @@ export const EditGame: FC = () => {
           minPlayers: gameData.min_players?.toString() || '',
           maxPlayers: gameData.max_players?.toString() || '',
           reminderMinutes: gameData.reminder_minutes?.join(', ') || '',
-          rules: gameData.rules || '',
         });
       } catch (err: any) {
         console.error('Failed to fetch game:', err);
@@ -153,7 +150,6 @@ export const EditGame: FC = () => {
         reminder_minutes: formData.reminderMinutes
           ? formData.reminderMinutes.split(',').map((m) => parseInt(m.trim()))
           : null,
-        rules: formData.rules || null,
       };
 
       await apiClient.put(`/api/v1/games/${gameId}`, payload);
@@ -298,19 +294,6 @@ export const EditGame: FC = () => {
                 />
               </Grid>
             </Grid>
-
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="Rules"
-              name="rules"
-              value={formData.rules}
-              onChange={handleChange}
-              margin="normal"
-              helperText="Leave empty to use channel/guild default"
-              disabled={saving}
-            />
 
             <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
               <Button type="submit" variant="contained" disabled={saving} fullWidth>

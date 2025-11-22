@@ -25,7 +25,6 @@ from services.bot.utils.discord_format import (
     format_discord_timestamp,
     format_game_status_emoji,
     format_participant_list,
-    format_rules_section,
 )
 
 
@@ -135,36 +134,3 @@ class TestFormatGameStatusEmoji:
         """Test emoji for unknown status."""
         result = format_game_status_emoji("UNKNOWN")
         assert result == "❓"
-
-
-class TestFormatRulesSection:
-    """Tests for format_rules_section function."""
-
-    def test_formats_short_rules(self):
-        """Test formatting short rules text."""
-        rules = "Be respectful to all players"
-        result = format_rules_section(rules)
-        assert result == rules
-
-    def test_handles_none_rules(self):
-        """Test handling None rules."""
-        result = format_rules_section(None)
-        assert result == "No rules specified"
-
-    def test_handles_empty_rules(self):
-        """Test handling empty rules string."""
-        result = format_rules_section("")
-        assert result == "No rules specified"
-
-    def test_handles_whitespace_only_rules(self):
-        """Test handling whitespace-only rules."""
-        result = format_rules_section("   ")
-        assert result == "No rules specified"
-
-    def test_truncates_long_rules(self):
-        """Test truncation of long rules text."""
-        rules = "A" * 600
-        result = format_rules_section(rules, max_length=100)
-        assert len(result) == 100
-        assert result.endswith("...")
-        assert result == "A" * 97 + "..."

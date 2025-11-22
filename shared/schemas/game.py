@@ -44,9 +44,6 @@ class GameCreateRequest(BaseModel):
         None,
         description="Reminder times override (uses channel/guild default if None)",
     )
-    rules: str | None = Field(
-        None, description="Game rules override (uses channel/guild default if None)"
-    )
     initial_participants: list[str] = Field(
         default_factory=list,
         description="Pre-populated participants (@mentions or placeholder strings)",
@@ -81,7 +78,6 @@ class GameUpdateRequest(BaseModel):
     max_players: int | None = None
     min_players: int | None = Field(None, ge=1)
     reminder_minutes: list[int] | None = None
-    rules: str | None = None
     status: str | None = Field(
         None,
         description="Game status (SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED)",
@@ -124,7 +120,6 @@ class GameResponse(BaseModel):
     channel_name: str | None = Field(None, description="Channel name")
     message_id: str | None = Field(None, description="Discord message snowflake ID)")
     host: "ParticipantResponse" = Field(..., description="Game host information")
-    rules: str | None = Field(None, description="Game rules (resolved)")
     reminder_minutes: list[int] | None = Field(None, description="Reminder times (resolved)")
     status: str = Field(..., description="Game status")
     participant_count: int = Field(..., description="Current number of participants")

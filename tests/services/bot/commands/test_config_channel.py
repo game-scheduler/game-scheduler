@@ -77,7 +77,6 @@ def sample_guild_config():
         guild_id="123456789",
         default_max_players=10,
         default_reminder_minutes=[60, 15],
-        default_rules="Guild rules",
         allowed_host_role_ids=[],
         require_host_role=False,
     )
@@ -94,7 +93,6 @@ def sample_channel_config():
         is_active=True,
         max_players=None,
         reminder_minutes=None,
-        default_rules=None,
         allowed_host_role_ids=None,
         game_category=None,
     )
@@ -327,7 +325,7 @@ def test_create_config_display_embed(mock_channel, sample_channel_config, sample
     embed = _create_config_display_embed(mock_channel, sample_channel_config, sample_guild_config)
 
     assert "#general" in embed.title
-    assert len(embed.fields) == 5
+    assert len(embed.fields) == 4  # Status, Category, Max Players, Reminders (no Rules)
 
 
 def test_create_config_display_embed_with_overrides(

@@ -28,7 +28,6 @@ export interface Guild {
   guild_name: string;
   default_max_players: number;
   default_reminder_minutes: number[];
-  default_rules: string;
   allowed_host_role_ids: string[];
   bot_manager_role_ids: string[] | null;
   require_host_role: boolean;
@@ -44,7 +43,6 @@ export interface Channel {
   is_active: boolean;
   max_players: number | null;
   reminder_minutes: number[] | null;
-  default_rules: string | null;
   allowed_host_role_ids: string[] | null;
   game_category: string | null;
   created_at: string;
@@ -65,7 +63,6 @@ export interface GameSession {
   channel_name: string | null;
   message_id: string | null;
   host: Participant;
-  rules: string | null;
   reminder_minutes: number[] | null;
   notify_role_ids: string[] | null;
   status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';

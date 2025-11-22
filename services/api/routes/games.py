@@ -365,7 +365,6 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
         channel_name=game.channel.channel_name if game.channel else None,
         message_id=game.message_id,
         host=host_response,
-        rules=game.rules,
         reminder_minutes=game.reminder_minutes,
         notify_role_ids=game.notify_role_ids,
         status=game.status,

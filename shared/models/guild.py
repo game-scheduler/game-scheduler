@@ -21,7 +21,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, Boolean, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
@@ -44,7 +44,6 @@ class GuildConfiguration(Base):
     guild_id: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     default_max_players: Mapped[int | None] = mapped_column(Integer, nullable=True)
     default_reminder_minutes: Mapped[list[int]] = mapped_column(JSON, default=lambda: [60, 15])
-    default_rules: Mapped[str | None] = mapped_column(Text, nullable=True)
     allowed_host_role_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     bot_manager_role_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     require_host_role: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -100,12 +100,6 @@ export const GameCard: FC<GameCardProps> = ({ game, showActions = true }) => {
             />
           </Box>
         )}
-
-        {game.rules && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            <strong>Rules:</strong> {game.rules}
-          </Typography>
-        )}
       </CardContent>
 
       {showActions && (

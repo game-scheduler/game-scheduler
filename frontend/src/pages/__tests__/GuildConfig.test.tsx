@@ -45,7 +45,6 @@ describe('GuildConfig', () => {
     guild_name: 'Test Guild',
     default_max_players: 10,
     default_reminder_minutes: [60, 15],
-    default_rules: 'Be nice',
     allowed_host_role_ids: ['role1', 'role2'],
     bot_manager_role_ids: [],
     require_host_role: true,
