@@ -1327,7 +1327,27 @@ Add waitlist functionality when games reach maxPlayers capacity.
 - **Dependencies**:
   - All Phase 2-5 services
 
-### Task 12.2: Add game templates for recurring sessions
+### Task 12.2: Include participants on the game edit page
+
+Display current participants list on game edit page to allow hosts and bot managers to see who has joined while editing game details.
+
+- **Files**:
+  - `frontend/src/pages/EditGame.tsx` - Add ParticipantList component to edit page
+  - `frontend/src/components/ParticipantList.tsx` - Reuse existing component for display
+- **Success**:
+  - Game edit page displays current participants below game details form
+  - Participant list updates reflect database state
+  - Host shown separately from regular participants
+  - Participant count displayed correctly (min/max format)
+  - Read-only display (no join/leave functionality on edit page)
+- **Research References**:
+  - #file:../../frontend/src/pages/GameDetails.tsx - Existing participant display implementation
+  - #file:../../frontend/src/components/ParticipantList.tsx - Reusable participant list component
+- **Dependencies**:
+  - Task 4.4 completion (game management interface)
+  - Task 6.4 completion (host displayed separately)
+
+### Task 12.3: Add game templates for recurring sessions
 
 Create template system for games that repeat weekly/monthly with same settings.
 
@@ -1346,7 +1366,7 @@ Create template system for games that repeat weekly/monthly with same settings.
 - **Dependencies**:
   - Phase 3 and 4 (API and frontend)
 
-### Task 12.3: Build calendar export functionality
+### Task 12.4: Build calendar export functionality
 
 Generate iCal format calendar files for users to import into their calendar apps.
 
@@ -1365,7 +1385,7 @@ Generate iCal format calendar files for users to import into their calendar apps
   - icalendar Python library
   - Task 3.5 (game API)
 
-### Task 12.4: Create statistics dashboard
+### Task 12.5: Create statistics dashboard
 
 Build dashboard showing game history, participation rates, and trends per guild/channel.
 
