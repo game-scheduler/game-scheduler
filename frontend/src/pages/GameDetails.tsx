@@ -227,6 +227,9 @@ export const GameDetails: FC = () => {
           <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
             <strong>When:</strong> {formatDateTime(game.scheduled_at)}
           </Typography>
+          <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem' }}>
+            <strong>Channel:</strong> {game.channel_name || 'Unknown Channel'}
+          </Typography>
           {game.host && game.host.display_name && (
             <Box sx={{ mb: 2 }}>
               <Chip

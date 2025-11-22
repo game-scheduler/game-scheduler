@@ -62,6 +62,7 @@ export interface GameSession {
   max_players: number | null;
   guild_id: string;
   channel_id: string;
+  channel_name: string | null;
   message_id: string | null;
   host: Participant;
   rules: string | null;

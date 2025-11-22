@@ -320,7 +320,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1094-1115)
 
-- [ ] Task 11.5: Move Channel field under Scheduled Time field on game display and edit pages
+- [x] Task 11.5: Move Channel field under Scheduled Time field on game display and edit pages
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1117-1138)
 

@@ -50,6 +50,7 @@ describe('EditGame', () => {
     max_players: 8,
     guild_id: 'guild123',
     channel_id: 'channel123',
+    channel_name: 'Test Channel',
     message_id: null,
     host: {
       id: 'host-participant-id',

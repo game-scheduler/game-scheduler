@@ -6341,3 +6341,97 @@ useEffect(() => {
 - Enhanced scannability: Time stands out visually
 - Reduced cognitive load: No searching for scheduling info
 - Professional appearance: Logical, hierarchical layout
+
+### Phase 11: Bug Fixes - Task 11.5 (2025-11-21)
+
+**Move Channel Field Under Scheduled Time Field**
+
+Repositioned the Channel field to appear immediately after the Scheduled Time field on game display and edit pages, creating a logical grouping of primary game logistics (where and when).
+
+**Files Modified:**
+
+- `frontend/src/pages/GameDetails.tsx` - Added channel name display immediately after scheduled time
+- `frontend/src/pages/EditGame.tsx` - Moved channel selector to appear after time picker
+- `frontend/src/pages/CreateGame.tsx` - Moved channel selector to appear after time picker
+- `shared/schemas/game.py` - Added channel_name field to GameResponse schema
+- `services/api/routes/games.py` - Updated \_build_game_response to include channel_name
+- `services/api/services/games.py` - Added channel relationship loading in get_game and list_games methods
+- `frontend/src/types/index.ts` - Added channel_name field to GameSession interface
+
+**Game Details Page:**
+
+- Added channel name display immediately after scheduled time
+- Format: **Channel:** [channel name]
+- Positioned before host information for logical flow
+- Uses existing game.channel_name from API response
+- Fallback to "Unknown Channel" if channel name not available
+
+**Edit Game Page:**
+
+- Moved Channel selector to appear immediately after Scheduled Time picker
+- Logical grouping: Time → Channel → Title → Description → Other details
+- Maintains full-width Material-UI FormControl styling
+- Removed duplicate channel selector from old position (after signup instructions)
+- Preserved all functionality and validation
+
+**Create Game Page:**
+
+- Moved Channel selector to appear immediately after Scheduled Time picker
+- Consistent with edit form layout: Time → Channel → Title → Description → Other details
+- Maintains full-width Material-UI FormControl styling
+- Removed duplicate channel selector from old position (after signup instructions)
+- Auto-select logic for single channel still works correctly
+- Preserved all functionality and validation
+
+**Backend Changes:**
+
+- Added `channel_name: str | None` field to GameResponse schema
+- Updated `_build_game_response()` to include `game.channel.channel_name`
+- Added `selectinload(GameSession.channel)` to get_game() query
+- Added `selectinload(GameSession.channel)` to list_games() query
+- Channel relationship now loaded for all game API responses
+
+**Implementation:**
+
+```tsx
+// GameDetails.tsx - Channel display after time
+<Typography variant="body1" paragraph sx={{ fontSize: '1.1rem' }}>
+  <strong>Channel:</strong> {game.channel_name || 'Unknown Channel'}
+</Typography>
+
+// EditGame.tsx - Channel selector after time picker
+<DateTimePicker label="Scheduled Time *" ... />
+<FormControl fullWidth margin="normal" required>
+  <InputLabel>Channel</InputLabel>
+  <Select value={formData.channelId} ...>
+</FormControl>
+<TextField label="Game Title" ... />
+
+// CreateGame.tsx - Channel selector after time picker
+<DateTimePicker label="Scheduled Time *" ... />
+<FormControl fullWidth margin="normal" required>
+  <InputLabel>Channel</InputLabel>
+  <Select value={formData.channelId} ...>
+</FormControl>
+<TextField label="Game Title" ... />
+```
+
+**Verification:**
+
+- Game details page shows channel name right after scheduled time
+- Edit form has channel selector right after time picker, before title
+- Create form has channel selector right after time picker, before title
+- Channel name appears in all game list and detail API responses
+- Channel relationship properly loaded in database queries
+- No N+1 query issues when fetching games
+- Responsive layout maintained on all screen sizes
+- All existing functionality preserved (including auto-select for single channel)
+
+**Impact:**
+
+- Improved information hierarchy: "Where and when" grouped together
+- Better UX: Context about game location provided early
+- Consistent with natural question flow: "When is it? Where is it?"
+- Enhanced scannability: Logistics information grouped logically
+- Professional layout: Time and channel form cohesive section
+- Database queries optimized with relationship loading

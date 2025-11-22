@@ -362,6 +362,7 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
         min_players=game.min_players,
         guild_id=game.guild_id,
         channel_id=game.channel_id,
+        channel_name=game.channel.channel_name if game.channel else None,
         message_id=game.message_id,
         host=host_response,
         rules=game.rules,

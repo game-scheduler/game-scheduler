@@ -209,6 +209,22 @@ export const EditGame: FC = () => {
               sx={{ width: '100%', mt: 2, mb: 1 }}
             />
 
+            <FormControl fullWidth margin="normal" required>
+              <InputLabel>Channel</InputLabel>
+              <Select
+                value={formData.channelId}
+                onChange={handleSelectChange}
+                label="Channel"
+                disabled={saving}
+              >
+                {channels.map((channel) => (
+                  <MenuItem key={channel.id} value={channel.id}>
+                    {channel.channel_name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
             <TextField
               fullWidth
               required
@@ -245,22 +261,6 @@ export const EditGame: FC = () => {
               helperText="Special requirements or instructions for participants"
               disabled={saving}
             />
-
-            <FormControl fullWidth margin="normal" required>
-              <InputLabel>Channel</InputLabel>
-              <Select
-                value={formData.channelId}
-                onChange={handleSelectChange}
-                label="Channel"
-                disabled={saving}
-              >
-                {channels.map((channel) => (
-                  <MenuItem key={channel.id} value={channel.id}>
-                    {channel.channel_name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
 
             <TextField
               fullWidth
