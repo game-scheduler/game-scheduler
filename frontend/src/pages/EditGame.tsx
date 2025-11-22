@@ -201,6 +201,14 @@ export const EditGame: FC = () => {
           )}
 
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+            <DateTimePicker
+              label="Scheduled Time *"
+              value={formData.scheduledAt}
+              onChange={handleDateChange}
+              disabled={saving}
+              sx={{ width: '100%', mt: 2, mb: 1 }}
+            />
+
             <TextField
               fullWidth
               required
@@ -236,14 +244,6 @@ export const EditGame: FC = () => {
               margin="normal"
               helperText="Special requirements or instructions for participants"
               disabled={saving}
-            />
-
-            <DateTimePicker
-              label="Scheduled Time *"
-              value={formData.scheduledAt}
-              onChange={handleDateChange}
-              disabled={saving}
-              sx={{ width: '100%', mt: 2, mb: 1 }}
             />
 
             <FormControl fullWidth margin="normal" required>

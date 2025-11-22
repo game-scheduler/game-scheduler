@@ -316,7 +316,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1072-1092)
 
-- [ ] Task 11.4: Move Scheduled Time field to top of game display and edit pages
+- [x] Task 11.4: Move Scheduled Time field to top of game display and edit pages
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1094-1115)
 

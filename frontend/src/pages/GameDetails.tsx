@@ -224,6 +224,9 @@ export const GameDetails: FC = () => {
           <Typography variant="h6" gutterBottom>
             Game Details
           </Typography>
+          <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
+            <strong>When:</strong> {formatDateTime(game.scheduled_at)}
+          </Typography>
           {game.host && game.host.display_name && (
             <Box sx={{ mb: 2 }}>
               <Chip
@@ -235,9 +238,6 @@ export const GameDetails: FC = () => {
               />
             </Box>
           )}
-          <Typography variant="body2" paragraph>
-            <strong>When:</strong> {formatDateTime(game.scheduled_at)}
-          </Typography>
           <Typography variant="body2" paragraph>
             <strong>Max Players:</strong> {game.max_players || 10}
           </Typography>

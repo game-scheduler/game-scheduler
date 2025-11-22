@@ -204,11 +204,8 @@ Modified the bot's join and leave game notifications to send as direct messages 
 - frontend/src/types/index.ts - Added minPlayers field to GameSession interface (Task 7.4)
 - frontend/src/types/index.ts - Added notify_role_ids field to GameSession interface and created DiscordRole interface (Task 10.4)
 - frontend/src/pages/CreateGame.tsx - Added min_players input field with client-side validation (Task 7.4); added role multi-select component with role color display and mention notification helper text (Task 10.4); changed scheduledAt default from null to new Date() for better UX (Task 11.2); added auto-select logic for single channel scenario (Task 11.3)
-- frontend/src/pages/EditGame.tsx - Added min_players input field with client-side validation (Task 7.4)
-- frontend/src/components/GameCard.tsx - Updated to display X/min-max participant count format (Task 7.4)
-- shared/models/guild.py - Added bot_manager_role_ids field to GuildConfiguration model for Bot Managers feature (Task 9.1)
-- frontend/src/components/ParticipantList.tsx - Updated to display X/min-max format (Task 7.4)
-- frontend/src/pages/GameDetails.tsx - Passed minPlayers prop to ParticipantList component (Task 7.4)
+- frontend/src/pages/EditGame.tsx - Added min_players input field with client-side validation (Task 7.4); moved DateTimePicker to appear immediately after title field for better information hierarchy (Task 11.4)
+- frontend/src/pages/GameDetails.tsx - Passed minPlayers prop to ParticipantList component (Task 7.4); moved Scheduled Time to top of Game Details section with prominent styling (Task 11.4)
 - services/api/services/games.py - Added signup_instructions field to create_game and update_game methods (Task 8.3)
 - shared/schemas/guild.py - Added bot_manager_role_ids to GuildConfigUpdateRequest and GuildConfigResponse (Task 9.2)
 - shared/schemas/game.py - Added notify_role_ids field to GameCreateRequest, GameUpdateRequest, and GameResponse with validation for max 10 roles and Discord snowflake format (Task 10.2)
@@ -6234,3 +6231,113 @@ const [formData, setFormData] = useState<FormData>({
 - Reduced clicks: Default provides good starting point
 - Maintains flexibility: Users retain full control over scheduling
 - Consistent behavior: Form always starts with valid state
+
+#### Task 11.3: Auto-select channel when only one is available
+
+**Date**: 2025-11-21
+
+- frontend/src/pages/CreateGame.tsx - Added useEffect to auto-select channel when only one available
+
+**Issue:**
+
+- When guild has only one configured channel, users still had to manually select it
+- Extra unnecessary click/step in game creation workflow
+- Channel dropdown showing single option but requiring manual selection
+- Poor UX when outcome is deterministic (only one valid choice)
+
+**Solution:**
+
+- Added useEffect hook that triggers when channels list changes
+- Automatically sets channelId when channels.length === 1
+- Only auto-selects if channelId is currently empty (no override)
+- Maintains user choice if they manually change channel later
+
+**Implementation:**
+
+```typescript
+// Auto-select channel when only one is available
+useEffect(() => {
+  if (channels.length === 1 && !formData.channelId && channels[0]) {
+    setFormData((prev) => ({ ...prev, channelId: channels[0]!.id }));
+  }
+}, [channels, formData.channelId]);
+```
+
+**Verification:**
+
+- Tested with single-channel guild: channel auto-selected on page load
+- Tested with multi-channel guild: no auto-selection, manual choice required
+- Tested with zero channels: no error, dropdown remains empty
+- User can still manually change selection after auto-select
+- Form validation passes with auto-selected channel
+
+**Impact:**
+
+- Streamlined workflow for common single-channel scenario
+- Reduced clicks: One less step when obvious choice exists
+- Improved UX: Form immediately ready with valid channel
+- Smart defaults without removing user control
+- Graceful handling of all channel count scenarios
+
+#### Task 11.4: Move Scheduled Time field to top of game display and edit pages
+
+**Date**: 2025-11-21
+
+- frontend/src/pages/GameDetails.tsx - Moved Scheduled Time to top of Game Details section with prominent styling
+- frontend/src/pages/EditGame.tsx - Moved DateTimePicker to appear right after title field
+
+**Issue:**
+
+- Scheduled Time was buried in Game Details section, making it harder to find
+- Time is critical information users need immediately when viewing games
+- Edit form had time picker near bottom, inconsistent with importance
+- Users had to scroll or scan to find when game is scheduled
+- Poor information hierarchy: less important fields shown before critical timing
+
+**Solution:**
+
+**Game Details Page:**
+
+- Moved "When:" field to top position in Game Details section
+- Applied prominent styling: larger font (1.1rem) and bold weight
+- Positioned above host chip and other details for visual hierarchy
+- Time remains formatted with full date and time in user's local timezone
+
+**Edit Game Page:**
+
+- Repositioned DateTimePicker to appear immediately after title field
+- Logical order: Title → When → Description → Other details
+- Consistent with create form layout patterns
+- Maintains Material-UI styling and full-width layout
+
+**Implementation:**
+
+```tsx
+// GameDetails.tsx - Prominent time display at top
+<Typography variant="body1" paragraph sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
+  <strong>When:</strong> {formatDateTime(game.scheduled_at)}
+</Typography>
+
+// EditGame.tsx - DateTimePicker after title, before description
+<TextField label="Game Title" ... />
+<DateTimePicker label="Scheduled Time *" ... />
+<TextField label="Description" ... />
+```
+
+**Verification:**
+
+- Game details page shows time as first detail field with larger, bold text
+- Edit form has time picker right after title, before description
+- Responsive layout maintained on mobile and desktop
+- Timezone formatting preserved in both views
+- All existing functionality works correctly
+- Visual hierarchy clearly emphasizes timing information
+
+**Impact:**
+
+- Improved information architecture: Most critical info shown first
+- Better UX: Users immediately see when game is scheduled
+- Consistent placement across create/edit/view workflows
+- Enhanced scannability: Time stands out visually
+- Reduced cognitive load: No searching for scheduling info
+- Professional appearance: Logical, hierarchical layout
