@@ -10,6 +10,7 @@
 ## Programming Practices
 
 For any code generated, follow these guidelines:
+
 ## General Instructions
 
 - Always prioritize readability and clarity.
@@ -38,6 +39,7 @@ For any code generated, follow these guidelines:
 - Account for common edge cases like empty inputs, invalid data types, and large datasets.
 - Include comments for edge cases and the expected behavior in those cases.
 - Write unit tests for functions and document them with docstrings explaining the test cases.
+- Whenever you write a test, ensure that it passes before finalizing the code.
 
 ### Use Language-Specific Guidelines
 
