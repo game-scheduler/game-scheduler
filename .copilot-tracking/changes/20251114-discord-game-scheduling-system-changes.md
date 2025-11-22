@@ -5687,3 +5687,36 @@ Verified and fixed coding standards compliance across the entire Python codebase
 - Clear validation errors with actionable messages
 - Validation happens at both route layer (early check) and service layer (after resolution)
 - Database integrity maintained with proper validation
+
+### Phase 8: Description and Signup Instructions Fields (Task 8.1 Complete)
+
+**Date**: 2025-11-21
+
+- shared/models/game.py - Added signup_instructions field and made description nullable
+- alembic/versions/005_add_description_signup_instructions.py - Created database migration
+
+**Changes:**
+
+- **GameSession Model**:
+  - Changed `description` field from `Mapped[str]` to `Mapped[str | None]` (nullable)
+  - Added `signup_instructions: Mapped[str | None]` field with Text type (nullable)
+  - Both fields support long text content for game details and participant instructions
+- **Database Migration (005_desc_signup_instr)**:
+  - Alters `description` column to make it nullable (existing field)
+  - Adds `signup_instructions` column as TEXT type, nullable
+  - Existing games will have NULL values for both fields (backward compatible)
+  - Migration is reversible (downgrade removes signup_instructions, reverts description to NOT NULL)
+
+**Database Schema:**
+
+- `description` column: TEXT, nullable (changed from NOT NULL)
+- `signup_instructions` column: TEXT, nullable (new field)
+- No default values specified (NULL allowed for both)
+- Supports up to 4000 characters for description, 1000 for signup_instructions (validation in schemas)
+
+**Impact:**
+
+- Database now supports rich game descriptions and signup instructions
+- Existing games unaffected (NULL values backward compatible)
+- Model ready for Task 8.2 (schema validation and length limits)
+- Prepares for Task 8.3 (service and bot logic) and Task 8.4 (frontend display)

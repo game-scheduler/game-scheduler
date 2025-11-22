@@ -54,7 +54,8 @@ class GameSession(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     title: Mapped[str] = mapped_column(String(200))
-    description: Mapped[str] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    signup_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
     scheduled_at: Mapped[datetime] = mapped_column()
     min_players: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     max_players: Mapped[int | None] = mapped_column(Integer, nullable=True)

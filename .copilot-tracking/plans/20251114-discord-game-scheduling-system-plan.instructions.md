@@ -239,7 +239,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
 ### [ ] Phase 8: Description and Signup Instructions Fields
 
-- [ ] Task 8.1: Add description and signup_instructions fields to GameSession model
+- [x] Task 8.1: Add description and signup_instructions fields to GameSession model
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 787-800)
 
