@@ -43,8 +43,10 @@ describe('EditGame', () => {
     id: 'game123',
     title: 'Test Game',
     description: 'Test Description',
+    signup_instructions: 'Test signup instructions',
     scheduled_at: '2025-12-01T18:00:00Z',
     scheduled_at_unix: 1733076000,
+    min_players: 2,
     max_players: 8,
     guild_id: 'guild123',
     channel_id: 'channel123',
@@ -109,6 +111,8 @@ describe('EditGame', () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue('Test Game')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Test Description')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Test signup instructions')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('2')).toBeInTheDocument();
       expect(screen.getByDisplayValue('8')).toBeInTheDocument();
       expect(screen.getByDisplayValue('60, 15')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Test rules')).toBeInTheDocument();
@@ -179,7 +183,9 @@ describe('EditGame', () => {
         expect.objectContaining({
           title: 'Test Game',
           description: 'Test Description',
+          signup_instructions: 'Test signup instructions',
           channel_id: 'channel123',
+          min_players: 2,
           max_players: 8,
           reminder_minutes: [60, 15],
           rules: 'Test rules',

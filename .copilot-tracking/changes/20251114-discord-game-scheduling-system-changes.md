@@ -203,6 +203,12 @@ Modified the bot's join and leave game notifications to send as direct messages 
 - services/api/services/games.py - Added signup_instructions field to create_game and update_game methods (Task 8.3)
 - services/bot/formatters/game_message.py - Added signup_instructions parameter to create_game_embed and format_game_announcement functions with description truncation (Task 8.3)
 - services/bot/events/handlers.py - Updated both format_game_announcement calls to pass signup_instructions field (Task 8.3)
+- frontend/src/types/index.ts - Added signup_instructions field to GameSession interface (Task 8.4)
+- frontend/src/pages/CreateGame.tsx - Added signupInstructions field to FormData and form with textarea input (Task 8.4)
+- frontend/src/pages/EditGame.tsx - Added signupInstructions field to FormData and form with textarea input (Task 8.4)
+- frontend/src/components/GameCard.tsx - Added truncateDescription function and updated description display to show truncated text with "..." (Task 8.4)
+- frontend/src/pages/GameDetails.tsx - Added signup instructions display in highlighted info box between description and game details (Task 8.4)
+- frontend/src/pages/**tests**/EditGame.test.tsx - Updated mock data to include signup_instructions and min_players fields, updated test assertions (Task 8.4)
 
 ### Phase 8: Description and Signup Instructions Fields (Task 8.3 Complete)
 
@@ -245,6 +251,98 @@ if signup_instructions:
 - Database stores full description and signup_instructions without truncation
 - Backend properly handles NULL values for both optional fields
 - Message formatting gracefully handles missing description/signup_instructions
+
+### Phase 8: Description and Signup Instructions Fields (Task 8.4 Complete)
+
+**Date**: 2025-11-21
+
+- frontend/src/types/index.ts - Added signup_instructions field to GameSession interface
+- frontend/src/pages/CreateGame.tsx - Added signupInstructions field to form with textarea
+- frontend/src/pages/EditGame.tsx - Added signupInstructions field to form with textarea
+- frontend/src/components/GameCard.tsx - Added description truncation with "..." indicator
+- frontend/src/pages/GameDetails.tsx - Added signup instructions display in highlighted info box
+
+**Changes:**
+
+- GameSession TypeScript interface includes `signup_instructions: string | null` field
+- CreateGame form includes optional "Signup Instructions" textarea with helper text
+- EditGame form includes "Signup Instructions" textarea populated from existing game data
+- Both forms send `signup_instructions` in API payload (or null if empty)
+- GameCard displays description truncated to 200 characters with "..." if longer
+- GameDetails shows full description without truncation
+- Signup instructions displayed in highlighted blue info box with ℹ️ icon
+- Info box appears between description and game details sections
+- Only displayed when signup_instructions is not null/empty
+
+**Display Logic:**
+
+```typescript
+// GameCard description truncation
+const truncateDescription = (text: string, maxLength: number = 200): string => {
+  if (!text || text.length <= maxLength) {
+    return text;
+  }
+  return text.substring(0, maxLength).trim() + "...";
+};
+
+// GameDetails signup instructions box
+{
+  game.signup_instructions && (
+    <Box
+      sx={{
+        p: 2,
+        mb: 2,
+        bgcolor: "info.light",
+        borderRadius: 1,
+        border: "1px solid",
+        borderColor: "info.main",
+      }}
+    >
+      <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: "bold" }}>
+        ℹ️ Signup Instructions
+      </Typography>
+      <Typography variant="body2">{game.signup_instructions}</Typography>
+    </Box>
+  );
+}
+```
+
+**Form Fields:**
+
+- Both CreateGame and EditGame forms include "Signup Instructions" textarea
+- Field is optional (not required)
+- 2 rows height for compact display
+- Helper text: "Special requirements or instructions for participants"
+- Properly disabled during loading/saving states
+- CreateGame initializes with empty string
+- EditGame populates from existing game data or empty string if null
+
+**Impact:**
+
+- Game hosts can provide special signup requirements when creating/editing games
+- Description preview on cards shows first 200 chars to keep cards compact
+- Users can click "View Details" to see full description
+- Signup instructions prominently displayed near top of game details page
+- Highlighted info box draws attention to important signup requirements
+- Consistent UX: signup instructions appear in both Discord embeds and web interface
+- All changes backward compatible (field is nullable, forms handle null gracefully)
+
+**Testing and Verification:**
+
+- All modified TypeScript files pass linting with 0 errors
+- EditGame test suite updated with signup_instructions field in mock data
+- All 7 EditGame tests pass (100% pass rate):
+  - ✓ loads and displays game data
+  - ✓ displays loading state initially
+  - ✓ displays error when game not found
+  - ✓ handles save successfully
+  - ✓ handles cancel button
+  - ✓ has required field validation
+  - ✓ handles update error
+- Code follows self-explanatory coding standards with clear function names
+- No unnecessary comments added (code is self-documenting)
+- TypeScript interfaces properly typed with null safety
+- Component logic clear and maintainable
 
 ### Phase 7: Min Players Field Implementation (Task 7.4 Complete)
 

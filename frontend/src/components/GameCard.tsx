@@ -67,6 +67,13 @@ export const GameCard: FC<GameCardProps> = ({ game, showActions = true }) => {
     ? `${participantCount}/${maxPlayers}` 
     : `${participantCount}/${minPlayers}-${maxPlayers}`;
 
+  const truncateDescription = (text: string, maxLength: number = 200): string => {
+    if (!text || text.length <= maxLength) {
+      return text;
+    }
+    return text.substring(0, maxLength).trim() + '...';
+  };
+
   return (
     <Card sx={{ mb: 2 }}>
       <CardContent>
@@ -82,7 +89,7 @@ export const GameCard: FC<GameCardProps> = ({ game, showActions = true }) => {
         </Box>
 
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          {game.description}
+          {truncateDescription(game.description, 200)}
         </Typography>
 
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 1 }}>

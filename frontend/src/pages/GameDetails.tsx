@@ -200,6 +200,24 @@ export const GameDetails: FC = () => {
           {game.description}
         </Typography>
 
+        {game.signup_instructions && (
+          <Box
+            sx={{
+              p: 2,
+              mb: 2,
+              bgcolor: 'info.light',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'info.main',
+            }}
+          >
+            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
+              ℹ️ Signup Instructions
+            </Typography>
+            <Typography variant="body2">{game.signup_instructions}</Typography>
+          </Box>
+        )}
+
         <Divider sx={{ my: 3 }} />
 
         <Box sx={{ mb: 3 }}>

@@ -237,7 +237,7 @@ Implement a complete Discord game scheduling system with microservices architect
 - Game cards show description preview with "Read more" option
 - Signup instructions visible near Join button
 
-### [ ] Phase 8: Description and Signup Instructions Fields
+### [x] Phase 8: Description and Signup Instructions Fields
 
 - [x] Task 8.1: Add description and signup_instructions fields to GameSession model
 
@@ -251,7 +251,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 822-838)
 
-- [ ] Task 8.4: Update frontend to display and edit new fields
+- [x] Task 8.4: Update frontend to display and edit new fields
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 840-861)
 
 ### [ ] Phase 9: Bot Managers Role List

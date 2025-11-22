@@ -54,6 +54,7 @@ export interface GameSession {
   id: string;
   title: string;
   description: string;
+  signup_instructions: string | null;
   scheduled_at: string;
   scheduled_at_unix: number;
   min_players: number | null;

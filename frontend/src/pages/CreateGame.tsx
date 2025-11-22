@@ -43,6 +43,7 @@ import { ValidationErrors } from '../components/ValidationErrors';
 interface FormData {
   title: string;
   description: string;
+  signupInstructions: string;
   scheduledAt: Date | null;
   channelId: string;
   minPlayers: string;
@@ -79,6 +80,7 @@ export const CreateGame: FC = () => {
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
+    signupInstructions: '',
     scheduledAt: null,
     channelId: '',
     minPlayers: '',
@@ -145,6 +147,7 @@ export const CreateGame: FC = () => {
       const payload = {
         title: formData.title,
         description: formData.description,
+        signup_instructions: formData.signupInstructions || null,
         scheduled_at: formData.scheduledAt.toISOString(),
         guild_id: guildId,
         channel_id: formData.channelId,
@@ -238,6 +241,19 @@ export const CreateGame: FC = () => {
               value={formData.description}
               onChange={handleChange}
               margin="normal"
+              disabled={loading}
+            />
+
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              label="Signup Instructions"
+              name="signupInstructions"
+              value={formData.signupInstructions}
+              onChange={handleChange}
+              margin="normal"
+              helperText="Special requirements or instructions for participants"
               disabled={loading}
             />
 
