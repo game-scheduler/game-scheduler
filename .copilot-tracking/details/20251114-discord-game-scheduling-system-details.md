@@ -1135,7 +1135,32 @@ The Channel field should be positioned directly under the Scheduled Time field t
 - **Dependencies**:
   - Task 11.4 completion (Scheduled Time field moved to top)
 
-### Task 11.6: Fix all unit test and lint messages for Python and TypeScript
+### Task 11.6: Move reminder box directly below scheduled time box
+
+The Reminder Times field should be positioned immediately after the Scheduled Time field to create a logical grouping of time-related settings. This improves the user experience by keeping all time-related configuration together.
+
+- **Files**:
+  - `frontend/src/pages/CreateGame.tsx` - Reorder form fields to place reminder input after time picker
+  - `frontend/src/pages/EditGame.tsx` - Reorder form fields to place reminder input after time picker
+  - `frontend/src/pages/GameDetails.tsx` - Reorder display fields to place reminders after scheduled time
+- **Success**:
+  - Reminder Times field appears immediately after Scheduled Time field in create game form
+  - Reminder Times field appears immediately after Scheduled Time field in edit game form
+  - Reminders display appears immediately after Scheduled Time display in game details page
+  - Visual grouping clearly indicates these fields are related to timing
+  - All existing functionality preserved (validation, helper text, default values)
+  - Responsive layout maintained on all screen sizes
+  - No changes to underlying data flow or API interactions
+- **Research References**:
+  - #file:../../frontend/src/pages/CreateGame.tsx (Lines 1-426) - Current create game form layout
+  - #file:../../frontend/src/pages/EditGame.tsx (Lines 1-321) - Current edit game form layout
+  - #file:../../frontend/src/pages/GameDetails.tsx - Current game details display layout
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 488-512) - Game management interface patterns
+- **Dependencies**:
+  - Task 11.4 completion (Scheduled Time moved to top)
+  - Task 11.5 completion (Channel field positioned under Scheduled Time)
+
+### Task 11.7: Fix all unit test and lint messages for Python and TypeScript
 
 Ensure all Python and TypeScript code passes linting and all unit tests are passing. Fix any errors, warnings, or failures that appear when running pytest, ruff, mypy for Python, and eslint, tsc for TypeScript.
 
@@ -1163,28 +1188,6 @@ Ensure all Python and TypeScript code passes linting and all unit tests are pass
 - **Dependencies**:
   - All previous phases with code changes
 
-### Task 11.7: Move reminder box directly below scheduled time box
-
-The Reminder Times field should be positioned immediately after the Scheduled Time field to create a logical grouping of time-related settings. This improves the user experience by keeping all time-related configuration together.
-
-- **Files**:
-  - `frontend/src/pages/CreateGame.tsx` - Reorder form fields to place reminder input after time picker
-  - `frontend/src/pages/EditGame.tsx` - Reorder form fields to place reminder input after time picker
-- **Success**:
-  - Reminder Times field appears immediately after Scheduled Time field in create game form
-  - Reminder Times field appears immediately after Scheduled Time field in edit game form
-  - Visual grouping clearly indicates these fields are related to timing
-  - All existing functionality preserved (validation, helper text, default values)
-  - Responsive layout maintained on all screen sizes
-  - No changes to underlying data flow or API interactions
-- **Research References**:
-  - #file:../../frontend/src/pages/CreateGame.tsx (Lines 1-426) - Current create game form layout
-  - #file:../../frontend/src/pages/EditGame.tsx (Lines 1-321) - Current edit game form layout
-  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 488-512) - Game management interface patterns
-- **Dependencies**:
-  - Task 11.4 completion (Scheduled Time moved to top)
-  - Task 11.5 completion (Channel field positioned under Scheduled Time)
-
 ### Task 11.8: Display min players and max players on the same line
 
 The Min Players and Max Players fields should be displayed side-by-side on the same line rather than stacked vertically. This creates a more compact layout and visually reinforces that these are related range values.
@@ -1207,7 +1210,7 @@ The Min Players and Max Players fields should be displayed side-by-side on the s
 - **Dependencies**:
   - Phase 4 completion (frontend game management)
 
-### Task 11.9: Remove the rules field
+### Task 11.10: Remove the rules field everywhere
 
 The rules field is no longer needed and should be completely removed from the entire system including database, API, bot, and frontend.
 

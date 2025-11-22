@@ -324,21 +324,21 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1117-1138)
 
-- [ ] Task 11.6: Fix all unit test and lint messages for Python and TypeScript
+- [x] Task 11.6: Move reminder box directly below scheduled time box
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1140-1165)
 
-- [x] Task 11.7: Move reminder box directly below scheduled time box
+- [ ] Task 11.7: Fix all unit test and lint messages for Python and TypeScript
 
-  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1167-1188)
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1167-1192)
 
 - [ ] Task 11.8: Display min players and max players on the same line
 
-  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1190-1211)
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1194-1217)
 
 - [ ] Task 11.9: Remove the rules field
 
-  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1213-1240)
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1219-1256)
 
 ### [ ] Phase 12: Integration & Testing
 
