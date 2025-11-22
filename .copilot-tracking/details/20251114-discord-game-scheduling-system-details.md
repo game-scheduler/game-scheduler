@@ -1373,25 +1373,236 @@ Remove or update references to the deprecated `default_rules` field from bot com
 - **Dependencies**:
   - Migration 008 completion (default_rules removal)
 
-### Task 12.4: Include participants on the game edit page
+### Task 12.4: Refactor Create/Edit Game Pages with Shared Form Component
 
-Display current participants list on game edit page to allow hosts and bot managers to see who has joined while editing game details.
+Refactor CreateGame and EditGame pages to eliminate code duplication by extracting common form logic into a shared GameForm component. Add editable participant management with real-time validation to both create and edit workflows.
 
 - **Files**:
-  - `frontend/src/pages/EditGame.tsx` - Add ParticipantList component to edit page
-  - `frontend/src/components/ParticipantList.tsx` - Reuse existing component for display
+
+  - `frontend/src/components/GameForm.tsx` - New shared form component (extract from CreateGame/EditGame)
+  - `frontend/src/components/EditableParticipantList.tsx` - New editable participant component
+  - `frontend/src/pages/CreateGame.tsx` - Refactor to use GameForm component
+  - `frontend/src/pages/EditGame.tsx` - Refactor to use GameForm component
+  - `services/api/routes/guilds.py` - Add mention validation endpoint
+  - `services/api/routes/games.py` - Update game save to handle participant deletes and reordering
+  - `services/bot/handlers/game_handler.py` - Update Discord message when participants are removed
+
+- **Implementation Details**:
+
+  **1. Shared GameForm Component:**
+
+  - Extract all form fields from CreateGame.tsx and EditGame.tsx into GameForm.tsx
+  - Props interface:
+    ```typescript
+    interface GameFormProps {
+      mode: "create" | "edit";
+      initialData?: Partial<GameSession>;
+      guildId: string;
+      onSubmit: (formData: GameFormData) => Promise<void>;
+      onCancel: () => void;
+    }
+    ```
+  - Include all existing form fields: title, description, signupInstructions, scheduledAt, channelId, minPlayers, maxPlayers, reminderMinutes
+  - Add EditableParticipantList component below form fields (before submit buttons)
+  - Title prop for header: "Create Game" vs "Edit Game" passed from parent pages
+  - Form validation logic remains in component
+  - LocalizationProvider wrapper stays in component
+
+  **2. EditableParticipantList Component:**
+
+  - Accept free-form text input for @mentions (any format: @username, <@123>, plain text)
+  - Dynamic participant fields with "Add Participant" button
+  - Each participant row shows:
+    - Text input field for mention/name
+    - Validation status indicator (loading spinner, green check, red X)
+    - Up/Down arrow buttons for reordering
+    - Delete button (X icon)
+  - Props interface:
+
+    ```typescript
+    interface EditableParticipantListProps {
+      participants: ParticipantInput[];
+      guildId: string;
+      onChange: (participants: ParticipantInput[]) => void;
+    }
+
+    interface ParticipantInput {
+      id: string; // temp client ID
+      mention: string;
+      isValid: boolean | null; // null = not validated yet
+      validationError?: string;
+      preFillPosition: number; // auto-calculated by order
+    }
+    ```
+
+  - Real-time validation with 500ms debounce per field
+  - Shows validation state inline (not blocking, just visual feedback)
+  - Empty state: "No pre-populated participants (users can join via Discord button)"
+  - Reordering updates preFillPosition automatically (1-based index)
+
+  **3. Validation Endpoint (Backend):**
+
+  - New endpoint: `POST /api/v1/guilds/{guildId}/validate-mention`
+  - Request body: `{ "mention": "@username" }`
+  - Response: `{ "valid": true }` or `{ "valid": false, "error": "User not found in guild" }`
+  - Does NOT resolve/return user details (validation only)
+  - Actual resolution happens during game save
+  - Bot service checks if mention exists in guild members
+  - Handles all formats: @username, <@123456789>, plain text
+  - Rate limiting: 10 requests per second per user
+
+  **4. Game Save with Participants:**
+
+  - Update `POST /api/v1/games` and `PATCH /api/v1/games/{gameId}` endpoints
+  - Accept participants array in request body:
+    ```json
+    {
+      "title": "D&D Session",
+      "participants": [
+        { "mention": "@player1", "preFillPosition": 1 },
+        { "mention": "<@123456>", "preFillPosition": 2 }
+      ]
+    }
+    ```
+  - Backend resolves mentions to user_id or stores as display_name placeholders
+  - For edit: detect removed participants and publish `participant.removed` events
+  - Update pre_filled_position based on array order
+  - Validate no duplicate user_ids in final participant list
+
+  **5. Discord Message Updates:**
+
+  - When participant removed via web: publish `participant.removed` event to RabbitMQ
+  - Bot subscribes to event and updates Discord message to reflect current state
+  - Removed user receives DM notification: "You were removed from [Game Title] on [Date]"
+  - Message always shows current participant list (auto-updates on any change)
+
+  **6. Page Refactoring:**
+
+  - CreateGame.tsx becomes thin wrapper:
+    - Fetches guild channels
+    - Passes mode='create', no initialData
+    - Handles submit by calling POST /api/v1/games
+    - Empty participants array by default
+  - EditGame.tsx becomes thin wrapper:
+    - Fetches game and channels
+    - Passes mode='edit', initialData=game
+    - Handles submit by calling PATCH /api/v1/games/{gameId}
+    - Loads existing participants from game.participants
+
+- **Component Structure Examples**:
+
+  ```tsx
+  // CreateGame.tsx
+  export const CreateGame: FC = () => {
+    const [channels, setChannels] = useState<Channel[]>([]);
+
+    const handleSubmit = async (formData: GameFormData) => {
+      await apiClient.post("/api/v1/games", formData);
+      navigate("/games");
+    };
+
+    return (
+      <Container maxWidth="md">
+        <GameForm
+          mode="create"
+          guildId={guildId}
+          channels={channels}
+          onSubmit={handleSubmit}
+          onCancel={() => navigate("/games")}
+        />
+      </Container>
+    );
+  };
+
+  // EditableParticipantList component structure
+  <Box sx={{ mb: 3 }}>
+    <Typography variant="h6" gutterBottom>
+      Pre-populate Participants (Optional)
+    </Typography>
+    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      Add Discord users who should be included automatically. Use @mentions or
+      user names. Others can join via Discord button.
+    </Typography>
+
+    {participants.map((p, index) => (
+      <Box
+        key={p.id}
+        sx={{ display: "flex", gap: 1, mb: 1, alignItems: "center" }}
+      >
+        <TextField
+          value={p.mention}
+          onChange={(e) => handleMentionChange(p.id, e.target.value)}
+          placeholder="@username or Discord user"
+          error={p.isValid === false}
+          helperText={p.validationError}
+          InputProps={{
+            endAdornment:
+              p.isValid === null ? (
+                <CircularProgress size={20} />
+              ) : p.isValid ? (
+                <CheckCircleIcon color="success" />
+              ) : (
+                <ErrorIcon color="error" />
+              ),
+          }}
+        />
+        <IconButton onClick={() => moveUp(index)} disabled={index === 0}>
+          <ArrowUpIcon />
+        </IconButton>
+        <IconButton
+          onClick={() => moveDown(index)}
+          disabled={index === participants.length - 1}
+        >
+          <ArrowDownIcon />
+        </IconButton>
+        <IconButton onClick={() => remove(p.id)}>
+          <DeleteIcon />
+        </IconButton>
+      </Box>
+    ))}
+
+    <Button onClick={addParticipant} startIcon={<AddIcon />}>
+      Add Participant
+    </Button>
+  </Box>;
+  ```
+
 - **Success**:
-  - Game edit page displays current participants below game details form
-  - Participant list updates reflect database state
-  - Host shown separately from regular participants
-  - Participant count displayed correctly (min/max format)
-  - Read-only display (no join/leave functionality on edit page)
+
+  - CreateGame.tsx and EditGame.tsx are <100 lines each (thin wrappers)
+  - All form logic consolidated in GameForm.tsx component
+  - Both pages show editable participant list
+  - Participants can be added in create mode (starts empty)
+  - Participants can be added/removed/reordered in edit mode
+  - Real-time validation provides visual feedback (500ms debounce)
+  - Validation errors displayed inline per field
+  - Up/down arrows reorder participants correctly
+  - Delete button removes any participant type (pre-filled or joined)
+  - Pre-fill positions auto-calculated from list order
+  - Form submission includes participants array with positions
+  - Backend validates mentions don't duplicate existing joined users
+  - Removed participants trigger Discord message update
+  - Removed users receive DM notification
+  - Discord message always shows current participant state
+  - No code duplication between create and edit pages
+  - Consistent UX across both workflows
+
 - **Research References**:
-  - #file:../../frontend/src/pages/GameDetails.tsx - Existing participant display implementation
-  - #file:../../frontend/src/components/ParticipantList.tsx - Reusable participant list component
+
+  - #file:../../frontend/src/pages/CreateGame.tsx (Lines 1-299) - Current implementation to refactor
+  - #file:../../frontend/src/pages/EditGame.tsx (Lines 1-299) - Current implementation to refactor
+  - #file:../../frontend/src/components/ParticipantList.tsx (Lines 1-97) - Read-only participant display pattern
+  - #file:../../frontend/src/types/index.ts (Lines 34-70) - GameSession and Participant interfaces
+  - #file:../../shared/models/participant.py (Lines 1-57) - Participant model with pre_filled_position
+  - #file:../../services/api/routes/games.py - Game CRUD endpoints to extend
+  - #file:../../services/bot/handlers/game_handler.py - Discord message update logic
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 450-510) - Participant management patterns
+
 - **Dependencies**:
   - Task 4.4 completion (game management interface)
-  - Task 6.4 completion (host displayed separately)
+  - Task 6.4 completion (ParticipantList component)
+  - RabbitMQ events infrastructure (Task 1.3)
+  - Discord bot message formatting (Task 2.3)
 
 ### Task 12.5: Add game templates for recurring sessions
 

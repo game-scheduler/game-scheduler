@@ -362,9 +362,9 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1358-1376)
 
-- [ ] Task 12.4: Include participants on the game edit page
+- [ ] Task 12.4: Refactor Create/Edit Game Pages with Shared Form Component
 
-  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1378-1396)
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1378-1570)
 
 - [ ] Task 12.5: Add game templates for recurring sessions
 
