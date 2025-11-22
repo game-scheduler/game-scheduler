@@ -352,25 +352,29 @@ Implement a complete Discord game scheduling system with microservices architect
 
 - [x] Task 12.1: Implement waitlist support
 
-  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1324-1341)
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1311-1328)
 
-- [ ] Task 12.2: Include participants on the game edit page
+- [ ] Task 12.2: Change pre-filled participant ordering to use explicit position
 
-  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1343-1360)
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1330-1356)
 
-- [ ] Task 12.3: Add game templates for recurring sessions
+- [ ] Task 12.3: Include participants on the game edit page
 
-  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1362-1379)
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1358-1376)
 
-- [ ] Task 12.4: Build calendar export functionality
+- [ ] Task 12.4: Add game templates for recurring sessions
 
-  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1381-1398)
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1378-1395)
 
-- [ ] Task 12.5: Create statistics dashboard
+- [ ] Task 12.5: Build calendar export functionality
 
-  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1400-1420)
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1397-1414)
 
-- [ ] Task 12.6: Replace adaptive backoff with Redis-based rate limiting
+- [ ] Task 12.6: Create statistics dashboard
+
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1416-1436)
+
+- [ ] Task 12.7: Replace adaptive backoff with Redis-based rate limiting
 
   - Simplify message update throttling by replacing in-memory state tracking with Redis cache
   - Use Redis key existence check with 1.5s TTL for rate limiting

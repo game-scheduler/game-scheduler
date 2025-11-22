@@ -1327,7 +1327,35 @@ Add waitlist functionality when games reach maxPlayers capacity.
 - **Dependencies**:
   - All Phase 2-5 services
 
-### Task 12.2: Include participants on the game edit page
+### Task 12.2: Change pre-filled participant ordering to use explicit position
+
+Replace timestamp-based ordering of pre-populated and placeholder participants with an explicit integer position field. This enables proper reordering when participant list editing is implemented in future tasks.
+
+- **Files**:
+  - Database migration - Add `pre_filled_position` nullable integer field to `game_participants` table
+  - `shared/models/participant.py` - Add `pre_filled_position` field to GameParticipant model
+  - `shared/schemas/participant.py` - Update schemas to include pre_filled_position
+  - `services/api/services/game_service.py` - Update pre-population logic to assign sequential positions
+  - `services/api/routes/games.py` - Ensure position values are set during game creation
+  - `services/bot/formatters/game_announcer.py` - Sort participants by position when is_pre_populated=True
+  - `frontend/src/components/ParticipantList.tsx` - Use position for sorting pre-filled participants
+- **Success**:
+  - Pre-populated and placeholder participants have explicit position integers
+  - Participants sorted by position (ascending) when displayed
+  - Regular (non-pre-filled) participants sorted by joined_at timestamp as before
+  - Position field nullable (NULL for regular participants who join via button)
+  - Migration preserves existing data by calculating positions from joined_at for pre-populated entries
+  - API validation ensures positions are sequential starting from 1 for pre-filled participants
+  - Frontend displays participants in correct order regardless of join time
+- **Research References**:
+  - #file:../../shared/models/participant.py (Lines 1-70) - Current participant model structure
+  - #file:../../services/api/services/game_service.py - Game creation with pre-population logic
+  - #file:../../frontend/src/components/ParticipantList.tsx - Current participant display logic
+- **Dependencies**:
+  - Task 4.5 completion (pre-population feature)
+  - Database migration capability
+
+### Task 12.3: Include participants on the game edit page
 
 Display current participants list on game edit page to allow hosts and bot managers to see who has joined while editing game details.
 
@@ -1347,7 +1375,7 @@ Display current participants list on game edit page to allow hosts and bot manag
   - Task 4.4 completion (game management interface)
   - Task 6.4 completion (host displayed separately)
 
-### Task 12.3: Add game templates for recurring sessions
+### Task 12.4: Add game templates for recurring sessions
 
 Create template system for games that repeat weekly/monthly with same settings.
 
@@ -1366,7 +1394,7 @@ Create template system for games that repeat weekly/monthly with same settings.
 - **Dependencies**:
   - Phase 3 and 4 (API and frontend)
 
-### Task 12.4: Build calendar export functionality
+### Task 12.5: Build calendar export functionality
 
 Generate iCal format calendar files for users to import into their calendar apps.
 
@@ -1385,7 +1413,7 @@ Generate iCal format calendar files for users to import into their calendar apps
   - icalendar Python library
   - Task 3.5 (game API)
 
-### Task 12.5: Create statistics dashboard
+### Task 12.6: Create statistics dashboard
 
 Build dashboard showing game history, participation rates, and trends per guild/channel.
 
