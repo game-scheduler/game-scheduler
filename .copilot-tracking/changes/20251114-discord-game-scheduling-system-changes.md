@@ -5720,3 +5720,5 @@ Verified and fixed coding standards compliance across the entire Python codebase
 - Existing games unaffected (NULL values backward compatible)
 - Model ready for Task 8.2 (schema validation and length limits)
 - Prepares for Task 8.3 (service and bot logic) and Task 8.4 (frontend display)
+
+- shared/schemas/game.py - Updated GameCreateRequest, GameUpdateRequest, and GameResponse schemas to include description and signup_instructions fields with proper validation (Task 8.2)

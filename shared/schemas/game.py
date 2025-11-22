@@ -27,7 +27,12 @@ class GameCreateRequest(BaseModel):
     """Create a new game session."""
 
     title: str = Field(..., description="Game title", min_length=1, max_length=200)
-    description: str = Field(..., description="Game description", min_length=1, max_length=2000)
+    description: str | None = Field(
+        None, description="Game description (optional)", max_length=4000
+    )
+    signup_instructions: str | None = Field(
+        None, description="Signup instructions for participants (optional)", max_length=1000
+    )
     scheduled_at: datetime = Field(..., description="Game start time (ISO 8601 UTC timestamp)")
     guild_id: str = Field(..., description="Guild ID (UUID)")
     channel_id: str = Field(..., description="Channel ID (UUID)")
@@ -52,7 +57,8 @@ class GameUpdateRequest(BaseModel):
     """Update game session (all fields optional)."""
 
     title: str | None = Field(None, min_length=1, max_length=200)
-    description: str | None = Field(None, min_length=1, max_length=2000)
+    description: str | None = Field(None, max_length=4000)
+    signup_instructions: str | None = Field(None, max_length=1000)
     scheduled_at: datetime | None = None
     max_players: int | None = None
     min_players: int | None = Field(None, ge=1)
@@ -69,7 +75,10 @@ class GameResponse(BaseModel):
 
     id: str = Field(..., description="Game session ID (UUID)")
     title: str = Field(..., description="Game title")
-    description: str = Field(..., description="Game description")
+    description: str | None = Field(None, description="Game description")
+    signup_instructions: str | None = Field(
+        None, description="Signup instructions for participants"
+    )
     scheduled_at: str = Field(..., description="Game start time (ISO 8601 UTC timestamp)")
     scheduled_at_unix: int = Field(..., description="Game start time (Unix timestamp for Discord)")
     max_players: int | None = Field(None, description="Max players (resolved)")

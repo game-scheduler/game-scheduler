@@ -243,7 +243,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 787-800)
 
-- [ ] Task 8.2: Update schemas to include description and signup_instructions
+- [x] Task 8.2: Update schemas to include description and signup_instructions
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 802-820)
 
