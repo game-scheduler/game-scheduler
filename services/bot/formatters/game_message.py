@@ -29,6 +29,7 @@ import discord
 from services.bot.utils.discord_format import (
     format_discord_mention,
     format_discord_timestamp,
+    format_duration,
     format_game_status_emoji,
     format_participant_list,
 )
@@ -55,6 +56,7 @@ class GameMessageFormatter:
         status: str,
         channel_id: str | None = None,
         signup_instructions: str | None = None,
+        expected_duration_minutes: int | None = None,
     ) -> discord.Embed:
         """Create an embed for a game session.
 
@@ -70,6 +72,7 @@ class GameMessageFormatter:
             status: Game status
             channel_id: Optional Discord channel ID
             signup_instructions: Optional signup instructions
+            expected_duration_minutes: Optional expected game duration in minutes
 
         Returns:
             Configured Discord embed
@@ -98,6 +101,10 @@ class GameMessageFormatter:
         embed.add_field(name="👥 Players", value=f"{current_count}/{max_players}", inline=True)
 
         embed.add_field(name="🎯 Host", value=format_discord_mention(host_id), inline=True)
+
+        if expected_duration_minutes:
+            duration_text = format_duration(expected_duration_minutes)
+            embed.add_field(name="⏱️ Duration", value=duration_text, inline=True)
 
         if channel_id:
             embed.add_field(name="📍 Voice Channel", value=f"<#{channel_id}>", inline=True)
@@ -194,6 +201,7 @@ def format_game_announcement(
     status: str,
     channel_id: str | None = None,
     signup_instructions: str | None = None,
+    expected_duration_minutes: int | None = None,
     notify_role_ids: list[str] | None = None,
 ) -> tuple[str | None, discord.Embed, GameView]:
     """Format a complete game announcement with embed and buttons.
@@ -211,6 +219,7 @@ def format_game_announcement(
         status: Game status
         channel_id: Optional voice channel ID
         signup_instructions: Optional signup instructions
+        expected_duration_minutes: Optional expected game duration in minutes
         notify_role_ids: Optional list of Discord role IDs to mention
 
     Returns:
@@ -231,6 +240,7 @@ def format_game_announcement(
         status=status,
         channel_id=channel_id,
         signup_instructions=signup_instructions,
+        expected_duration_minutes=expected_duration_minutes,
     )
 
     view = GameView.from_game_data(

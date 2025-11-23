@@ -187,6 +187,7 @@ class GameService:
             max_players=resolved_max_players,
             min_players=resolved_min_players,
             reminder_minutes=resolved_reminder_minutes,
+            expected_duration_minutes=game_data.expected_duration_minutes,
             notify_role_ids=game_data.notify_role_ids,
             status=game_model.GameStatus.SCHEDULED.value,
         )
@@ -388,6 +389,8 @@ class GameService:
             game.min_players = update_data.min_players
         if update_data.reminder_minutes is not None:
             game.reminder_minutes = update_data.reminder_minutes
+        if update_data.expected_duration_minutes is not None:
+            game.expected_duration_minutes = update_data.expected_duration_minutes
         if update_data.notify_role_ids is not None:
             game.notify_role_ids = update_data.notify_role_ids
         if update_data.status is not None:

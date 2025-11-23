@@ -23,6 +23,7 @@ from datetime import UTC, datetime
 from services.bot.utils.discord_format import (
     format_discord_mention,
     format_discord_timestamp,
+    format_duration,
     format_game_status_emoji,
     format_participant_list,
 )
@@ -134,3 +135,47 @@ class TestFormatGameStatusEmoji:
         """Test emoji for unknown status."""
         result = format_game_status_emoji("UNKNOWN")
         assert result == "❓"
+
+
+class TestFormatDuration:
+    """Tests for format_duration function."""
+
+    def test_formats_hours_and_minutes(self):
+        """Test formatting duration with both hours and minutes."""
+        result = format_duration(150)
+        assert result == "2h 30m"
+
+    def test_formats_hours_only(self):
+        """Test formatting duration with only hours."""
+        result = format_duration(120)
+        assert result == "2h"
+
+    def test_formats_minutes_only(self):
+        """Test formatting duration with only minutes."""
+        result = format_duration(45)
+        assert result == "45m"
+
+    def test_formats_one_hour(self):
+        """Test formatting duration of exactly one hour."""
+        result = format_duration(60)
+        assert result == "1h"
+
+    def test_handles_none(self):
+        """Test handling None value."""
+        result = format_duration(None)
+        assert result == ""
+
+    def test_handles_zero(self):
+        """Test handling zero minutes."""
+        result = format_duration(0)
+        assert result == ""
+
+    def test_handles_negative(self):
+        """Test handling negative minutes."""
+        result = format_duration(-30)
+        assert result == ""
+
+    def test_formats_large_duration(self):
+        """Test formatting large duration."""
+        result = format_duration(390)
+        assert result == "6h 30m"

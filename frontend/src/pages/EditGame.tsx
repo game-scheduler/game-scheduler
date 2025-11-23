@@ -21,7 +21,7 @@ import { Container, CircularProgress, Alert } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { Channel, GameSession, Participant } from '../types';
-import { GameForm, GameFormData } from '../components/GameForm';
+import { GameForm, GameFormData, parseDurationString } from '../components/GameForm';
 
 interface EditGameState {
   game: GameSession | null;
@@ -103,6 +103,7 @@ export const EditGame: FC = () => {
         reminder_minutes: formData.reminderMinutes
           ? formData.reminderMinutes.split(',').map((m) => parseInt(m.trim()))
           : null,
+        expected_duration_minutes: parseDurationString(formData.expectedDurationMinutes),
         participants: formData.participants
           .filter((p) => p.mention.trim() && p.isExplicitlyPositioned)
           .map((p) => ({

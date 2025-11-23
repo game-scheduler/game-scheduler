@@ -366,6 +366,7 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
         message_id=game.message_id,
         host=host_response,
         reminder_minutes=game.reminder_minutes,
+        expected_duration_minutes=game.expected_duration_minutes,
         notify_role_ids=game.notify_role_ids,
         status=game.status,
         participant_count=participant_count,

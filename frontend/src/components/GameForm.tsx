@@ -53,6 +53,7 @@ export interface GameFormData {
   minPlayers: string;
   maxPlayers: string;
   reminderMinutes: string;
+  expectedDurationMinutes: string;
   notifyRoleIds: string[];
   participants: EditableParticipantInput[];
 }
@@ -77,6 +78,55 @@ interface GameFormProps {
   onValidationErrorClick?: (originalInput: string, newUsername: string) => void;
 }
 
+const formatDurationForDisplay = (minutes: number | null): string => {
+  if (!minutes) return '';
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours > 0 && remainingMinutes > 0) {
+    return `${hours}h ${remainingMinutes}m`;
+  } else if (hours > 0) {
+    return `${hours}h`;
+  } else {
+    return `${remainingMinutes}m`;
+  }
+};
+
+export const parseDurationString = (input: string): number | null => {
+  if (!input || !input.trim()) return null;
+  
+  const trimmed = input.trim().toLowerCase();
+  
+  // Parse formats like "1h 30m", "1h30m", "90m", "2h"
+  const hourMinuteMatch = trimmed.match(/^(\d+)h\s*(\d+)m$/);
+  if (hourMinuteMatch) {
+    return parseInt(hourMinuteMatch[1]!) * 60 + parseInt(hourMinuteMatch[2]!);
+  }
+  
+  const hoursOnlyMatch = trimmed.match(/^(\d+)h$/);
+  if (hoursOnlyMatch) {
+    return parseInt(hoursOnlyMatch[1]!) * 60;
+  }
+  
+  const minutesOnlyMatch = trimmed.match(/^(\d+)m$/);
+  if (minutesOnlyMatch) {
+    return parseInt(minutesOnlyMatch[1]!);
+  }
+  
+  // Parse colon format like "1:30" (hours:minutes)
+  const colonMatch = trimmed.match(/^(\d+):(\d+)$/);
+  if (colonMatch) {
+    return parseInt(colonMatch[1]!) * 60 + parseInt(colonMatch[2]!);
+  }
+  
+  // Try parsing as plain number (minutes)
+  const numericValue = parseInt(trimmed);
+  if (!isNaN(numericValue) && numericValue > 0) {
+    return numericValue;
+  }
+  
+  return null;
+};
+
 export const GameForm: FC<GameFormProps> = ({
   mode,
   initialData,
@@ -99,6 +149,7 @@ export const GameForm: FC<GameFormProps> = ({
     minPlayers: initialData?.min_players?.toString() || '1',
     maxPlayers: initialData?.max_players?.toString() || '8',
     reminderMinutes: initialData?.reminder_minutes?.join(', ') || '',
+    expectedDurationMinutes: formatDurationForDisplay(initialData?.expected_duration_minutes ?? null),
     notifyRoleIds: initialData?.notify_role_ids || [],
     participants: initialData?.participants
       ? initialData.participants
@@ -118,6 +169,40 @@ export const GameForm: FC<GameFormProps> = ({
           }))
       : [],
   });
+
+  // Update form when initialData changes (e.g., after async fetch in edit mode)
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        title: initialData.title || '',
+        description: initialData.description || '',
+        signupInstructions: initialData.signup_instructions || '',
+        scheduledAt: initialData.scheduled_at ? new Date(initialData.scheduled_at) : new Date(),
+        channelId: initialData.channel_id || '',
+        minPlayers: initialData.min_players?.toString() || '1',
+        maxPlayers: initialData.max_players?.toString() || '8',
+        reminderMinutes: initialData.reminder_minutes?.join(', ') || '',
+        expectedDurationMinutes: formatDurationForDisplay(initialData.expected_duration_minutes ?? null),
+        notifyRoleIds: initialData.notify_role_ids || [],
+        participants: initialData.participants
+          ? initialData.participants
+              .sort((a, b) => {
+                const aPos = a.pre_filled_position ?? Number.MAX_SAFE_INTEGER;
+                const bPos = b.pre_filled_position ?? Number.MAX_SAFE_INTEGER;
+                return aPos - bPos;
+              })
+              .map((p, index) => ({
+                id: p.id,
+                mention: p.display_name || (p.discord_id ? `<@${p.discord_id}>` : ''),
+                isValid: true,
+                preFillPosition: index + 1,
+                isExplicitlyPositioned: p.pre_filled_position !== null,
+                isReadOnly: p.pre_filled_position === null,
+              }))
+          : [],
+      });
+    }
+  }, [initialData]);
 
   // Auto-select channel when only one is available
   useEffect(() => {
@@ -203,6 +288,18 @@ export const GameForm: FC<GameFormProps> = ({
             onChange={handleDateChange}
             disabled={loading}
             sx={{ width: '100%', mt: 2, mb: 1 }}
+          />
+
+          <TextField
+            fullWidth
+            label="Expected Duration"
+            name="expectedDurationMinutes"
+            value={formData.expectedDurationMinutes}
+            onChange={handleChange}
+            margin="normal"
+            helperText="e.g., 2h, 90m, 1h 30m, 1:30 (optional)"
+            disabled={loading}
+            placeholder="2h 30m"
           />
 
           <TextField

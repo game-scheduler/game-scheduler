@@ -117,7 +117,25 @@ def format_rules_section(rules: str | None, max_length: int = 500) -> str:
     if not rules or not rules.strip():
         return "No rules specified"
 
-    if len(rules) <= max_length:
-        return rules
 
-    return rules[: max_length - 3] + "..."
+def format_duration(minutes: int | None) -> str:
+    """Format duration in minutes to human-readable string.
+
+    Args:
+        minutes: Duration in minutes
+
+    Returns:
+        Formatted duration string (e.g., "2h 30m", "1h", "45m")
+    """
+    if minutes is None or minutes <= 0:
+        return ""
+
+    hours = minutes // 60
+    remaining_minutes = minutes % 60
+
+    if hours > 0 and remaining_minutes > 0:
+        return f"{hours}h {remaining_minutes}m"
+    elif hours > 0:
+        return f"{hours}h"
+    else:
+        return f"{remaining_minutes}m"

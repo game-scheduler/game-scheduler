@@ -21,7 +21,7 @@ import { Container, CircularProgress, Alert } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { Channel, DiscordRole } from '../types';
-import { GameForm, GameFormData } from '../components/GameForm';
+import { GameForm, GameFormData, parseDurationString } from '../components/GameForm';
 
 interface ValidationError {
   input: string;
@@ -96,6 +96,7 @@ export const CreateGame: FC = () => {
         reminder_minutes: formData.reminderMinutes
           ? formData.reminderMinutes.split(',').map((m) => parseInt(m.trim()))
           : null,
+        expected_duration_minutes: parseDurationString(formData.expectedDurationMinutes),
         notify_role_ids: formData.notifyRoleIds.length > 0 ? formData.notifyRoleIds : null,
         initial_participants: formData.participants
           .filter((p) => p.mention.trim())

@@ -63,6 +63,7 @@ describe('EditGame', () => {
     },
     reminder_minutes: [60, 15],
     notify_role_ids: [],
+    expected_duration_minutes: null,
     status: 'SCHEDULED',
     participant_count: 3,
     participants: [],

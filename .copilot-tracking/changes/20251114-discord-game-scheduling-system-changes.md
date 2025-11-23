@@ -11,6 +11,58 @@ Implementation of a complete Discord game scheduling system with microservices a
 
 ### Recent Updates (2025-11-22)
 
+**Add Play Time Field for Expected Game Duration (Task 12.11)**
+
+Added an optional `expected_duration_minutes` field to track how long the host expects the game session to run. The field displays on My Games summary, game details, and Discord messages.
+
+**Implementation Details:**
+
+- **Database**: Added nullable `expected_duration_minutes INTEGER` column to `game_sessions` table via migration 011
+- **Backend**: Added field to GameSession model, GameCreateRequest, GameUpdateRequest, and GameResponse schemas with validation (ge=1)
+- **Bot**: Added duration display in Discord embeds with "⏱️ Duration" field formatted as human-readable (e.g., "2h 30m")
+- **Frontend**: Added number input field in GameForm, duration display in GameCard and GameDetails with consistent formatting
+- **Format**: Display shows hours and minutes (e.g., "2h 30m", "1h", "45m") for better readability
+
+**Files Modified:**
+
+- `shared/models/game.py` - Added `expected_duration_minutes` field to GameSession model
+- `alembic/versions/011_add_expected_duration_minutes.py` - Created migration to add column
+- `shared/schemas/game.py` - Added field to GameCreateRequest, GameUpdateRequest, and GameResponse with validation
+- `services/bot/utils/discord_format.py` - Added `format_duration()` helper function
+- `services/bot/formatters/game_message.py` - Updated `create_game_embed()` and `format_game_announcement()` to include duration parameter
+- `services/bot/events/handlers.py` - Updated game_created and game_updated handlers to pass expected_duration_minutes
+- `frontend/src/types/index.ts` - Added expected_duration_minutes to GameSession interface
+- `frontend/src/components/GameForm.tsx` - Added expectedDurationMinutes to GameFormData, initialized from initialData, and added input field
+- `frontend/src/pages/CreateGame.tsx` - Added expected_duration_minutes to payload
+- `frontend/src/pages/EditGame.tsx` - Added expected_duration_minutes to payload
+- `frontend/src/components/GameCard.tsx` - Added formatDuration helper and duration display
+- `frontend/src/pages/GameDetails.tsx` - Added formatDuration helper and duration display
+
+**Test Coverage:**
+
+- ✅ All Python linting checks pass (ruff)
+- ✅ Field is optional and nullable throughout the stack
+- ✅ Validation prevents negative or zero values (ge=1)
+- ✅ 9 new unit tests for format_duration() function covering all edge cases
+- ✅ All 24 discord_format utility tests pass
+- ✅ All 31 API game service tests pass (including participant count, promotions, CRUD operations)
+- ✅ TypeScript compilation successful with no errors
+- ✅ Frontend test file updated to include expected_duration_minutes field
+- ✅ Docker containers build successfully (api, bot)
+
+**Result:**
+
+- expected_duration_minutes field stored in database (nullable, optional)
+- Create/edit forms accept human-readable duration strings (e.g., "2h", "90m", "1h 30m", "1:30")
+- Duration input auto-formats: accepts "2h 30m", "2h30m", "150m", "2:30", or plain minutes
+- Parser handles multiple formats: hours with minutes (1h 30m), hours only (2h), minutes only (90m), colon format (1:30), plain numbers
+- Duration displays consistently as formatted strings across all interfaces
+- Duration appears on My Games cards and game details when set
+- Discord announcements show duration in embed as "⏱️ Duration: Xh Ym" when set
+- Field is completely optional - games work fine without it
+
+---
+
 **Fix Participant Count to Include Placeholder Participants (Task 12.10)**
 
 Updated the participant count calculation in API responses to include both Discord-linked users and placeholder participants added by the host.

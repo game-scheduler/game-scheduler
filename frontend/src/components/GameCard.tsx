@@ -52,6 +52,19 @@ export const GameCard: FC<GameCardProps> = ({ game, showActions = true }) => {
     });
   };
 
+  const formatDuration = (minutes: number | null): string => {
+    if (!minutes) return '';
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (hours > 0 && remainingMinutes > 0) {
+      return `${hours}h ${remainingMinutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h`;
+    } else {
+      return `${remainingMinutes}m`;
+    }
+  };
+
   const participantCount = game.participant_count || 0;
   const minPlayers = game.min_players || 1;
   const maxPlayers = game.max_players || 10;
@@ -88,6 +101,11 @@ export const GameCard: FC<GameCardProps> = ({ game, showActions = true }) => {
           <Typography variant="body2">
             <strong>Players:</strong> {playerDisplay}
           </Typography>
+          {game.expected_duration_minutes && (
+            <Typography variant="body2">
+              <strong>Duration:</strong> {formatDuration(game.expected_duration_minutes)}
+            </Typography>
+          )}
         </Box>
 
         {game.host && game.host.display_name && (

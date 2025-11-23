@@ -48,6 +48,19 @@ export const GameDetails: FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
+  const formatDuration = (minutes: number | null): string => {
+    if (!minutes) return '';
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (hours > 0 && remainingMinutes > 0) {
+      return `${hours}h ${remainingMinutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h`;
+    } else {
+      return `${remainingMinutes}m`;
+    }
+  };
+
   useEffect(() => {
     const fetchGame = async () => {
       if (!gameId) return;
@@ -216,6 +229,11 @@ export const GameDetails: FC = () => {
           {game.reminder_minutes && game.reminder_minutes.length > 0 && (
             <Typography variant="body2" paragraph>
               <strong>Reminders:</strong> {game.reminder_minutes.join(', ')} minutes before
+            </Typography>
+          )}
+          {game.expected_duration_minutes && (
+            <Typography variant="body2" paragraph>
+              <strong>Expected Duration:</strong> {formatDuration(game.expected_duration_minutes)}
             </Typography>
           )}
           <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem' }}>

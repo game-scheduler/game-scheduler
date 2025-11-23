@@ -65,6 +65,7 @@ export interface GameSession {
   host: Participant;
   reminder_minutes: number[] | null;
   notify_role_ids: string[] | null;
+  expected_duration_minutes: number | null;
   status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   participant_count: number;
   participants?: Participant[];

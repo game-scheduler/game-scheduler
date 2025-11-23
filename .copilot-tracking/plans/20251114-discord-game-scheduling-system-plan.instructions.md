@@ -415,7 +415,7 @@ Implement a complete Discord game scheduling system with microservices architect
   - Ensure "My Games" screen shows accurate player counts
   - Match displayed participant list count in game details
 
-- [ ] Task 12.11: Add play time field for expected game duration
+- [x] Task 12.11: Add play time field for expected game duration
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1814-1851)
 
