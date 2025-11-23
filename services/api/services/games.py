@@ -42,6 +42,7 @@ from shared.models import guild as guild_model
 from shared.models import participant as participant_model
 from shared.models import user as user_model
 from shared.schemas import game as game_schemas
+from shared.utils import participant_sorting
 
 logger = logging.getLogger(__name__)
 
@@ -355,6 +356,16 @@ class GameService:
                 "Only the host, Bot Managers, or guild admins can edit games."
             )
 
+        # Capture current participant state before updates (for promotion detection)
+        old_max_players = game.max_players or 10
+        old_all_participants = [p for p in game.participants if p.user_id and p.user]
+        old_sorted_participants = participant_sorting.sort_participants(old_all_participants)
+        old_overflow_ids = {
+            p.user.discord_id
+            for p in old_sorted_participants[old_max_players:]
+            if p.user is not None
+        }
+
         # Update fields
         if update_data.title is not None:
             game.title = update_data.title
@@ -473,6 +484,12 @@ class GameService:
 
         await self.db.commit()
         await self.db.refresh(game)
+
+        # Detect promotions from overflow to confirmed participants
+        await self._detect_and_notify_promotions(
+            game=game,
+            old_overflow_ids=old_overflow_ids,
+        )
 
         # Publish game.updated event
         await self._publish_game_updated(game)
@@ -748,3 +765,90 @@ class GameService:
             f"Published game.player_removed event for participant {participant.id} "
             f"from game {game.id}"
         )
+
+    async def _detect_and_notify_promotions(
+        self,
+        game: game_model.GameSession,
+        old_overflow_ids: set[str],
+    ) -> None:
+        """
+        Detect and notify users promoted from overflow to confirmed participants.
+
+        Compares previous overflow list with current confirmed list to identify
+        users who were promoted. Sends DM notification to each promoted user.
+
+        Args:
+            game: Game session after updates applied
+            old_overflow_ids: Set of Discord IDs that were in overflow before update
+        """
+        if not old_overflow_ids:
+            # No one was in overflow, no promotions possible
+            return
+
+        # Get current participant state
+        current_max_players = game.max_players or 10
+        current_all_participants = [p for p in game.participants if p.user_id and p.user]
+        current_sorted_participants = participant_sorting.sort_participants(
+            current_all_participants
+        )
+        current_confirmed_participants = current_sorted_participants[:current_max_players]
+
+        # Identify promoted users (were in overflow, now in confirmed)
+        promoted_user_ids = [
+            p.user.discord_id
+            for p in current_confirmed_participants
+            if p.user and p.user.discord_id in old_overflow_ids
+        ]
+
+        if not promoted_user_ids:
+            logger.debug(f"No promotions detected for game {game.id}")
+            return
+
+        logger.info(
+            f"Detected {len(promoted_user_ids)} promotions for game {game.id}: {promoted_user_ids}"
+        )
+
+        # Send notification to each promoted user
+        for discord_id in promoted_user_ids:
+            await self._publish_promotion_notification(
+                game=game,
+                discord_id=discord_id,
+            )
+
+    async def _publish_promotion_notification(
+        self,
+        game: game_model.GameSession,
+        discord_id: str,
+    ) -> None:
+        """
+        Publish promotion notification for a user moved from overflow to confirmed.
+
+        Args:
+            game: Game session
+            discord_id: Discord ID of promoted user
+        """
+        scheduled_at_unix = int(game.scheduled_at.timestamp())
+
+        message = (
+            f"✅ Good news! A spot opened up in **{game.title}** "
+            f"scheduled for <t:{scheduled_at_unix}:F>. "
+            f"You've been moved from the waitlist to confirmed participants!"
+        )
+
+        notification_event = messaging_events.NotificationSendDMEvent(
+            user_id=discord_id,
+            game_id=uuid.UUID(game.id),
+            game_title=game.title,
+            game_time_unix=scheduled_at_unix,
+            notification_type="waitlist_promotion",
+            message=message,
+        )
+
+        event = messaging_events.Event(
+            event_type=messaging_events.EventType.NOTIFICATION_SEND_DM,
+            data=notification_event.model_dump(mode="json"),
+        )
+
+        await self.event_publisher.publish(event=event)
+
+        logger.info(f"Published promotion notification for user {discord_id} in game {game.id}")

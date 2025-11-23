@@ -11,6 +11,45 @@ Implementation of a complete Discord game scheduling system with microservices a
 
 ### Recent Updates (2025-11-22)
 
+**Waitlist Promotion Notifications (Task 12.9)**
+
+Implemented automatic notifications when users are promoted from the waitlist (overflow) to confirmed participant status.
+
+**Implementation Details:**
+
+- **Promotion Detection**: `update_game()` captures participant state before updates, compares with state after commit to identify promotions
+- **Trigger Scenarios**: Promotions occur when:
+  - A confirmed participant is removed (via `removed_participant_ids`)
+  - Host increases `max_players` value
+  - Host reorders participants (via `participants` field updates)
+- **Notification Delivery**: Uses existing `NOTIFICATION_SEND_DM` event pattern
+- **Message Format**: "✅ Good news! A spot opened up in **[game title]** scheduled for <t:timestamp:F>. You've been moved from the waitlist to confirmed participants!"
+- **Discord Message**: Updated immediately via existing `game.updated` event
+
+**Files Modified:**
+
+- `services/api/services/games.py` - Added `_detect_and_notify_promotions()` and `_publish_promotion_notification()` methods to detect and notify promoted users; moved `participant_sorting` import to top of file per Python import conventions
+- `tests/services/api/services/test_games_promotion.py` - Comprehensive test suite with 3 test scenarios
+
+**Test Coverage:**
+
+- ✅ Promotion when max_players increased (from 5 to 7 with 2 overflow users)
+- ✅ Promotion when confirmed participant removed (1 overflow user promoted)
+- ✅ No promotion when no overflow exists (validates no false positives)
+
+**Result:**
+
+- Users receive DM when promoted from waitlist to confirmed
+- DM includes game title, scheduled time (Discord timestamp), and confirmation message
+- Notification sent for all three trigger scenarios (removal, max increase, reordering)
+- Discord message updated immediately to reflect new participant status
+- No duplicate notifications (tracked during single update operation)
+- Graceful handling of DM failures (discord.Forbidden) via existing handler
+- All 59 API service tests pass including 3 new promotion notification tests
+- All linting checks pass (Python: ruff)
+
+---
+
 **Changed User-Facing "Guild" Terminology to "Server" (Task 12.8)**
 
 Updated all user-facing text and UI labels to use "Server" instead of "Guild" to match Discord's standard user interface terminology. Internal code, database models, and API paths remain unchanged for consistency with Discord API.
@@ -101,6 +140,7 @@ Modified the bot's join and leave game notifications to send as direct messages 
 
 ### Added
 
+- tests/services/api/services/test_games_promotion.py - Comprehensive test suite for waitlist promotion notifications (3 tests covering max_players increase, participant removal, and no-overflow scenarios)
 - docker-compose.yml - Multi-service orchestration with postgres, rabbitmq, redis, bot, api, scheduler services
 - .env.example - Environment variable template with Discord, database, and service configuration
 - docker/bot.Dockerfile - Multi-stage Docker image for Discord bot service
@@ -266,6 +306,7 @@ Modified the bot's join and leave game notifications to send as direct messages 
 
 ### Modified
 
+- services/api/services/games.py - Added \_detect_and_notify_promotions() method to detect users promoted from overflow to confirmed participants; added \_publish_promotion_notification() method to publish promotion DM events; integrated promotion detection into update_game() to run after database commit
 - alembic.ini - Updated database URL to use correct credentials from .env
 - docker/bot.Dockerfile - Added bot-specific requirements installation and shared package setup
 - shared/models/game.py - Added min_players field to GameSession model with default value of 1; added notify_role_ids JSON array field for role-based notifications (Task 10.1)

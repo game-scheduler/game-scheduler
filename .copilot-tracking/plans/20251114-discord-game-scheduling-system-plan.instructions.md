@@ -398,7 +398,7 @@ Implement a complete Discord game scheduling system with microservices architect
   - Keep internal code and database models using "guild" for Discord API consistency
   - Only change user-facing text and UI labels
 
-- [ ] Task 12.9: Send notification of waitlist clearing
+- [x] Task 12.9: Send notification of waitlist clearing
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1756-1785)
 
