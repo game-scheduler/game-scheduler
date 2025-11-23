@@ -11,6 +11,36 @@ Implementation of a complete Discord game scheduling system with microservices a
 
 ### Recent Updates (2025-11-22)
 
+**Bug Fix: Bot Manager Role Changes Not Persisting (Task 12.15) (2025-11-23)**
+
+Fixed issue where bot manager role selections appeared to save but were lost on page refresh. The `bot_manager_role_ids` field was missing from all API response constructions in the guild routes.
+
+**Root Cause**: While the database model, schema, and frontend all correctly handled `bot_manager_role_ids`, the API routes were not including this field when constructing `GuildConfigResponse` objects. This caused the field to be omitted from API responses, making it appear as if the data wasn't saved.
+
+**Solution**: Added `bot_manager_role_ids=guild_config.bot_manager_role_ids` to all four `GuildConfigResponse` constructions in `services/api/routes/guilds.py`:
+- list_guilds endpoint (line ~55)
+- get_guild endpoint (line ~121)
+- create_guild_config endpoint (line ~173)
+- update_guild_config endpoint (line ~218)
+
+**Files Modified:**
+
+- `services/api/routes/guilds.py` - Added bot_manager_role_ids field to all GuildConfigResponse constructions
+
+**Testing:**
+
+- ✅ Linting passes (ruff check)
+- ✅ All four endpoints now return bot_manager_role_ids in responses
+
+**Result:**
+
+- Bot manager role selections now persist correctly across page refreshes
+- Frontend displays selected bot manager roles after save
+- No data loss when updating guild configuration
+- API responses now match the schema specification
+
+---
+
 **Bug Fix: Permission Check Rate Limiting (2025-11-23)**
 
 Fixed Discord API rate limit errors (HTTP 429) occurring during guild configuration by enabling proper caching of guild permission data.
@@ -8154,3 +8184,15 @@ Updated user-facing terminology across frontend components for better clarity:
 - More consistent with natural language used in UI instructions
 
 **Technical Note**: Internal code and database fields retain "pre_filled" naming for consistency with existing implementation. Only user-facing display text changed.
+
+
+## Changes
+
+### Added
+
+### Modified
+
+- services/api/routes/guilds.py - Added bot_manager_role_ids field to all four GuildConfigResponse constructions (list_guilds, get_guild, create_guild_config, update_guild_config)
+
+### Removed
+

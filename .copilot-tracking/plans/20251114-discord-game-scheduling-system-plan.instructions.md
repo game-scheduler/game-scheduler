@@ -449,7 +449,7 @@ Implement a complete Discord game scheduling system with microservices architect
   - Update Dockerfiles to use multi-arch base images where needed
   - Enable BuildKit for efficient multi-platform builds
 
-- [ ] Task 12.15: Fix bot manager role changes not saving in API responses
+- [x] Task 12.15: Fix bot manager role changes not saving in API responses
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1960-1987)
 
