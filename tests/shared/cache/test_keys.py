@@ -58,3 +58,8 @@ class TestCacheKeys:
         """Test OAuth state cache key generation."""
         key = CacheKeys.oauth_state("state_random123")
         assert key == "oauth_state:state_random123"
+
+    def test_message_update_throttle_key(self):
+        """Test message update throttle cache key generation."""
+        key = CacheKeys.message_update_throttle("game_uuid_123")
+        assert key == "message_update:game_uuid_123"

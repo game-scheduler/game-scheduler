@@ -28,6 +28,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.bot.formatters.game_message import format_game_announcement
+from shared.cache.client import get_redis_client
+from shared.cache.keys import CacheKeys
+from shared.cache.ttl import CacheTTL
 from shared.database import get_db_session
 from shared.messaging.consumer import EventConsumer
 from shared.messaging.events import Event, EventType, NotificationSendDMEvent
@@ -61,14 +64,8 @@ class EventHandlers:
             EventType.GAME_CREATED: self._handle_game_created,
             EventType.PLAYER_REMOVED: self._handle_player_removed,
         }
-        # Adaptive rate limiting for message refreshes
-        self._pending_refreshes: set[str] = set()  # Track games with pending refreshes
-        self._refresh_counts: dict[str, int] = {}  # Track consecutive updates per game
-        self._last_update_time: dict[str, float] = {}  # Track last update time per game
-        self._backoff_delays = [0.0, 1.0, 1.5, 1.5]  # Progressive delays (0s, 1s, 1.5s, 1.5s...)
-        self._idle_reset_threshold = 5.0  # Reset counter after 5s of inactivity
-        self._refresh_delay: float = 2.0  # seconds to wait before refreshing
-        self._max_wait_time: float = 5.0  # maximum seconds to wait (prevents starvation)
+        # Track pending refreshes to ensure final state is always applied
+        self._pending_refreshes: set[str] = set()
 
     async def start_consuming(self, queue_name: str = "bot_events") -> None:
         """
@@ -105,11 +102,7 @@ class EventHandlers:
 
     async def stop_consuming(self) -> None:
         """Stop consuming events and close connection."""
-        # Note: pending refresh tasks will complete naturally
-        # No need to cancel since they're just sleep + refresh
         self._pending_refreshes.clear()
-        self._refresh_counts.clear()
-        self._last_update_time.clear()
 
         if self.consumer:
             await self.consumer.close()
@@ -205,9 +198,9 @@ class EventHandlers:
         """
         Handle game.updated event by refreshing Discord message.
 
-        Handles all game state changes including participant additions/removals.
-        Uses adaptive backoff: 0s (instant), 1s, 1.5s, 1.5s... to balance
-        responsiveness and rate limiting.
+        Uses Redis-based rate limiting to prevent hitting Discord's rate limits.
+        Ensures final state is always applied by scheduling a trailing refresh
+        when updates are throttled.
 
         Args:
             data: Event payload with game_id and updated fields
@@ -218,65 +211,51 @@ class EventHandlers:
             logger.error("Missing game_id in game.updated event")
             return
 
-        # Skip if refresh already scheduled for this game
-        if game_id in self._pending_refreshes:
-            logger.debug(f"Game {game_id} refresh already scheduled, skipping")
-            return
+        try:
+            redis = await get_redis_client()
+            cache_key = CacheKeys.message_update_throttle(game_id)
 
-        current_time = asyncio.get_event_loop().time()
+            # Check if we can update immediately
+            if not await redis.exists(cache_key):
+                # No recent update, refresh immediately
+                logger.info(f"Refreshing game {game_id} message (immediate)")
+                await self._refresh_game_message(game_id)
+                return
 
-        # Reset counter if game has been idle (no updates for threshold period)
-        last_update = self._last_update_time.get(game_id, 0)
-        if current_time - last_update > self._idle_reset_threshold:
-            self._refresh_counts[game_id] = 0
-            idle_time = current_time - last_update
-            logger.debug(f"Game {game_id} idle for {idle_time:.1f}s, reset counter")
+            # Throttled - schedule a trailing refresh to ensure final state is applied
+            logger.debug(f"Game {game_id} updated recently, scheduling trailing refresh")
 
-            # Clean up old entries that have been idle for extended period (3x threshold)
-            cleanup_threshold = self._idle_reset_threshold * 3
-            stale_games = [
-                gid
-                for gid, last_time in self._last_update_time.items()
-                if current_time - last_time > cleanup_threshold
-            ]
-            for gid in stale_games:
-                self._last_update_time.pop(gid, None)
-                self._refresh_counts.pop(gid, None)
-                logger.debug(f"Cleaned up stale tracking for game {gid}")
+            # Skip if refresh already scheduled for this game
+            if game_id in self._pending_refreshes:
+                logger.debug(f"Trailing refresh already scheduled for game {game_id}")
+                return
 
-        # Track consecutive updates for adaptive backoff
-        update_count = self._refresh_counts.get(game_id, 0)
-        delay = self._backoff_delays[min(update_count, len(self._backoff_delays) - 1)]
+            # Schedule refresh after TTL expires
+            self._pending_refreshes.add(game_id)
+            asyncio.create_task(self._delayed_refresh(game_id, CacheTTL.MESSAGE_UPDATE_THROTTLE))
 
-        logger.debug(
-            f"Game {game_id} updated (count={update_count}), scheduling refresh with {delay}s delay"
-        )
-        self._pending_refreshes.add(game_id)
-        self._last_update_time[game_id] = current_time
-        self._refresh_counts[game_id] = update_count + 1
-        asyncio.create_task(self._delayed_refresh(game_id, delay))
+        except Exception as e:
+            # Fail open: if Redis unavailable, allow update to proceed
+            logger.warning(f"Redis error during throttle check, allowing update: {e}")
+            await self._refresh_game_message(game_id)
 
     async def _delayed_refresh(self, game_id: str, delay: float) -> None:
         """
-        Refresh message after adaptive delay to balance responsiveness and rate limiting.
+        Refresh message after delay to ensure final state is applied.
 
-        Adaptive backoff: 0s (instant), 1s, 1.5s, 1.5s... ensures:
-        - First update: Instant (0s) for responsive UI
-        - Subsequent updates: Progressive delays prevent rate limiting
-        - Maximum rate: ~3 refreshes per 5s (under Discord's 5 edits/5s limit)
+        This trailing edge refresh ensures that rapid bursts of updates
+        don't prevent the final state from being displayed.
 
         Args:
             game_id: Game session UUID
-            delay: Seconds to wait before refreshing (0 for instant)
+            delay: Seconds to wait before refreshing
         """
         try:
-            if delay > 0:
-                await asyncio.sleep(delay)
-            logger.info(f"Executing refresh for game {game_id} after {delay}s delay")
+            await asyncio.sleep(delay)
+            logger.info(f"Executing trailing refresh for game {game_id}")
             await self._refresh_game_message(game_id)
         finally:
             self._pending_refreshes.discard(game_id)
-            # Counter persists and only resets after idle period (see _handle_game_updated)
 
     async def _refresh_game_message(self, game_id: str) -> None:
         """
@@ -333,6 +312,11 @@ class EventHandlers:
                 await message.edit(content=content, embed=embed, view=view)
 
                 logger.info(f"Refreshed game message: game={game_id}, message={game.message_id}")
+
+                # Set throttle key to prevent immediate subsequent updates
+                redis = await get_redis_client()
+                cache_key = CacheKeys.message_update_throttle(game_id)
+                await redis.set(cache_key, "1", ttl=CacheTTL.MESSAGE_UPDATE_THROTTLE)
 
         except Exception as e:
             logger.error(f"Failed to refresh game message: {e}", exc_info=True)

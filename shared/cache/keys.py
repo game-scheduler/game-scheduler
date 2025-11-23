@@ -56,3 +56,8 @@ class CacheKeys:
     def oauth_state(state: str) -> str:
         """Return cache key for OAuth2 state parameter."""
         return f"oauth_state:{state}"
+
+    @staticmethod
+    def message_update_throttle(game_id: str) -> str:
+        """Return cache key for message update throttling."""
+        return f"message_update:{game_id}"

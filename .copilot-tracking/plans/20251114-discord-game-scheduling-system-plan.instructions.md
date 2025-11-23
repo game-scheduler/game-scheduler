@@ -370,7 +370,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1601-1693)
 
-- [ ] Task 12.6: Replace adaptive backoff with Redis-based rate limiting
+- [x] Task 12.6: Replace adaptive backoff with Redis-based rate limiting
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1694-1711)
 

@@ -9,6 +9,42 @@
 
 Implementation of a complete Discord game scheduling system with microservices architecture, featuring Discord bot with button interactions, web dashboard with OAuth2 authentication, role-based authorization, multi-channel support with settings inheritance, and automated notifications.
 
+### Recent Updates (2025-11-22)
+
+**Redis-Based Rate Limiting with Trailing Edge Refresh (v2 - Improved)**
+
+Implemented Redis-based rate limiting for Discord message updates with critical fixes:
+
+- **Initial Implementation**: Replaced adaptive backoff with simple Redis cache check (1-second cooldown)
+- **Critical Bug #1 Identified**: Original implementation could starve final updates during rapid bursts
+- **Fix #1 - Trailing Edge Pattern**: Schedule delayed refresh to ensure final state is always applied
+- **Critical Bug #2 Identified**: Redis key not set after trailing refresh, allowing too-rapid subsequent updates
+- **Fix #2 - Centralized Throttle**: Moved `redis.set()` into `_refresh_game_message()` so both immediate and trailing refreshes set the cooldown timer
+
+**Current Behavior:**
+
+- Immediate refresh when idle → sets Redis key at completion → 1s cooldown starts
+- Throttled updates → schedule trailing refresh → trailing refresh sets Redis key at completion
+- Guarantees: Final state displayed + proper rate limiting for all subsequent updates
+
+**Example Scenario:**
+
+- 0.0s: Update → immediate refresh starts
+- 0.2s: Refresh completes → Redis key set (expires at 1.2s)
+- 0.5s: Update → throttled → schedule trailing refresh at 1.5s
+- 0.9s: Update → already scheduled → skip
+- 1.2s: Redis key expires
+- 1.5s: Trailing refresh executes and completes → Redis key set (expires at 2.5s)
+- 2.6s: New update → immediate refresh (key expired)
+
+**Files Modified:**
+
+- `shared/cache/keys.py` - Added `message_update_throttle()` cache key pattern
+- `shared/cache/ttl.py` - Added `MESSAGE_UPDATE_THROTTLE = 1` (1 second)
+- `services/bot/events/handlers.py` - Implemented Redis throttling with trailing edge refresh and centralized key setting
+- `tests/shared/cache/test_keys.py` - Added test for new cache key
+- `tests/shared/cache/test_ttl.py` - Added test for new TTL constant
+
 ### Recent Updates (2025-11-19)
 
 **Join/Leave Notifications Changed to Direct Messages**
@@ -7713,3 +7749,113 @@ All modified code verified against project coding standards:
 
 - Line 419 in `services/api/services/games.py` exceeded 100 chars → extracted `error_reason` variable
 - Unused `_index` parameter in drag handlers → prefixed with underscore per convention
+
+---
+
+## Enhancement: Redis-Based Rate Limiting for Message Updates (Task 12.6)
+
+**Date**: 2025-11-22
+
+**Objective**: Simplify message update throttling by replacing in-memory adaptive backoff with Redis cache-based rate limiting.
+
+### Modified
+
+- shared/cache/keys.py - Added message_update_throttle() cache key pattern
+- shared/cache/ttl.py - Added MESSAGE_UPDATE_THROTTLE constant (1 second)
+- services/bot/events/handlers.py - Replaced adaptive backoff logic with Redis-based rate limiting
+- tests/shared/cache/test_keys.py - Added test for message_update_throttle key pattern
+- tests/shared/cache/test_ttl.py - Added test for MESSAGE_UPDATE_THROTTLE TTL constant
+
+### Changes
+
+**Initial Implementation (Simplified but Flawed)**:
+
+- Replaced ~50 lines of adaptive backoff with simple Redis cache check
+- Issue #1: Could starve final updates during rapid bursts
+- Problem scenario: Updates at 0s, 0.5s, 0.9s would show 0s state but never 0.9s state
+
+**Fix #1 - Trailing Edge Pattern**:
+
+- Schedule delayed refresh when throttled to ensure final state is applied
+- Prevents duplicate scheduled refreshes with `_pending_refreshes` set
+- Issue #2: Redis key not reset after trailing refresh, allowing rapid subsequent updates
+
+**Fix #2 - Centralized Throttle Key Setting**:
+
+```python
+async def _refresh_game_message(self, game_id: str) -> None:
+    \"\"\"Refresh Discord message for a game.\"\"\"
+    try:
+        async with get_db_session() as db:
+            # ... fetch game and format message ...
+
+            await message.edit(content=content, embed=embed, view=view)
+            logger.info(f\"Refreshed game message: game={game_id}, message={game.message_id}\")
+
+            # Set throttle key to prevent immediate subsequent updates
+            redis = await get_redis_client()
+            cache_key = CacheKeys.message_update_throttle(game_id)
+            await redis.set(cache_key, \"1\", ttl=CacheTTL.MESSAGE_UPDATE_THROTTLE)
+
+    except Exception as e:
+        logger.error(f\"Failed to refresh game message: {e}\", exc_info=True)
+```
+
+**Key Insight**: Moving `redis.set()` into `_refresh_game_message()` ensures the cooldown timer starts **after** every refresh completes, whether immediate or trailing. This guarantees proper rate limiting for all subsequent updates.
+
+**Benefits**:
+
+1. **Code Simplicity**: Simpler than adaptive backoff while maintaining reliability
+2. **Automatic Cleanup**: Redis TTL handles cache expiry, no manual stale entry management
+3. **Multi-Instance Ready**: Works correctly if bot service scales horizontally
+4. **Leverages Existing Infrastructure**: Redis already required and running
+5. **Instant Updates When Idle**: Key expires after 1 second, allowing immediate updates
+6. **Fixed Cooldown**: Consistent 1-second period between all updates (immediate or trailing)
+7. **Guaranteed Final State**: Trailing edge refresh ensures final state is always applied
+8. **Prevents Duplicate Refreshes**: Tracks pending refreshes to avoid scheduling duplicates
+9. **Proper Rate Limiting**: Throttle timer starts after every refresh completes
+10. **Fail Open Design**: If Redis unavailable, updates proceed (availability over throttling)
+
+**How It Works**:
+
+1. **Idle State**: No Redis key exists → immediate refresh → key set at completion (1s TTL)
+2. **First Throttled Update**: Key exists → schedule trailing refresh in 1s
+3. **Subsequent Updates**: Key exists + refresh scheduled → skip (no duplicate)
+4. **After TTL Expires**: Trailing refresh executes → key set at completion
+5. **Next Update**: Redis key expired → back to idle state (immediate refresh)
+
+**Example Timeline (Corrected)**:
+
+```
+0.0s: Update arrives → immediate refresh starts
+0.2s: Refresh completes → set Redis key (expires at 1.2s)
+0.5s: Update arrives → key exists → schedule trailing refresh at 1.5s
+0.9s: Update arrives → key exists + refresh already scheduled → skip
+1.2s: Redis key expires
+1.5s: Trailing refresh executes and completes → set Redis key (expires at 2.5s)
+2.6s: New update arrives → key expired → immediate refresh
+```
+
+**Trade-offs**: 2. **Automatic Cleanup**: Redis TTL handles cache expiry, no manual stale entry management 3. **Multi-Instance Ready**: Works correctly if bot service scales horizontally 4. **Leverages Existing Infrastructure**: Redis already required and running 5. **Instant Updates When Idle**: Key expires after 1 second, allowing immediate updates 6. **Fixed Cooldown**: Consistent 1-second period between updates 7. **Fail Open Design**: If Redis unavailable, updates proceed (availability over throttling)
+
+**Trade-offs**:
+
+- Adds ~1-2ms network latency per message update event (Redis call overhead)
+- Requires Redis availability for optimal rate limiting (fails open if unavailable)
+- Fixed 1-second cooldown vs progressive backoff (0s → 1s → 1.5s)
+- Maintains minimal state tracking (\_pending_refreshes set) to prevent duplicate scheduled refreshes
+
+**Testing**:
+
+- ✅ All cache unit tests passing (15/15 tests)
+- ✅ New test_message_update_throttle_key passes
+- ✅ New test_message_update_throttle_ttl passes
+- ✅ All linting checks passed (ruff check)
+- ✅ All formatting checks passed (ruff format)
+
+**Impact**:
+
+- Simpler, more maintainable code
+- Better scalability for multi-instance deployments
+- Consistent rate limiting behavior across all bot instances
+- No functional regression (still prevents Discord rate limits)
