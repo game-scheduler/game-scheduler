@@ -268,6 +268,8 @@ Modified the bot's join and leave game notifications to send as direct messages 
 - frontend/src/components/GameCard.tsx - Added truncateDescription function and updated description display to show truncated text with "..." (Task 8.4)
 - frontend/src/pages/GameDetails.tsx - Added signup instructions display in highlighted info box between description and game details (Task 8.4)
 - frontend/src/pages/**tests**/EditGame.test.tsx - Updated mock data to include signup_instructions and min_players fields, updated test assertions (Task 8.4)
+- frontend/src/components/EditableParticipantList.tsx - Changed empty state message from "No pre-populated participants" to "No participants added by host" (Task 12.7)
+- frontend/src/components/ParticipantList.tsx - Changed participant secondary text from "Pre-populated" to "Added by host" in both confirmed and waitlist sections (Task 12.7)
 
 ### Phase 8: Description and Signup Instructions Fields (Task 8.3 Complete)
 
@@ -7859,3 +7861,22 @@ async def _refresh_game_message(self, game_id: str) -> None:
 - Better scalability for multi-instance deployments
 - Consistent rate limiting behavior across all bot instances
 - No functional regression (still prevents Discord rate limits)
+
+### Recent Updates (2025-11-22) - Terminology Update
+
+**Changed "Pre-Populated" to "Added by host"**
+
+Updated user-facing terminology across frontend components for better clarity:
+
+- **`frontend/src/components/EditableParticipantList.tsx`**: Changed empty state message from "No pre-populated participants" to "No participants added by host"
+- **`frontend/src/components/ParticipantList.tsx`**: Changed participant secondary text from "Pre-populated" to "Added by host" in both confirmed and waitlist sections
+
+**Rationale**: "Added by host" is more intuitive and clearly communicates that the game host manually specified these participants when creating the game, distinguishing them from users who joined via Discord button.
+
+**User-Visible Changes**:
+
+- Participant lists now show "Added by host" instead of "Pre-populated" for host-specified participants
+- Empty state message is clearer: "No participants added by host (users can join via Discord button)"
+- More consistent with natural language used in UI instructions
+
+**Technical Note**: Internal code and database fields retain "pre_filled" naming for consistency with existing implementation. Only user-facing display text changed.

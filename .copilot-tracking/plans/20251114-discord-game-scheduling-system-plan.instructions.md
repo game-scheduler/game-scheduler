@@ -380,7 +380,7 @@ Implement a complete Discord game scheduling system with microservices architect
   - Maintains instant updates when idle, simpler code, multi-instance ready
   - Research: .copilot-tracking/research/20251122-redis-rate-limiting-research.md
 
-- [ ] Task 12.7: Change "Pre-Populated" to "Added by host" on web pages and messages
+- [x] Task 12.7: Change "Pre-Populated" to "Added by host" on web pages and messages
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1712-1731)
 

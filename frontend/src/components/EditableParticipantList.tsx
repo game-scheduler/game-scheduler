@@ -242,7 +242,7 @@ export const EditableParticipantList: FC<EditableParticipantListProps> = ({
 
       {participants.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic' }}>
-          No pre-populated participants (users can join via Discord button)
+          No participants added by host (users can join via Discord button)
         </Typography>
       ) : (
         participants.map((p, index) => (

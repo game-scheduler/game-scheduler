@@ -76,7 +76,7 @@ export const ParticipantList: FC<ParticipantListProps> = ({
             <ListItemText
               primary={participant.display_name || 'Unknown User'}
               secondary={
-                participant.pre_filled_position !== null ? 'Pre-populated' : 'Joined via button'
+                participant.pre_filled_position !== null ? 'Added by host' : 'Joined via button'
               }
             />
           </ListItem>
@@ -97,7 +97,7 @@ export const ParticipantList: FC<ParticipantListProps> = ({
                 <ListItemText
                   primary={participant.display_name || 'Unknown User'}
                   secondary={
-                    participant.pre_filled_position !== null ? 'Pre-populated' : 'Joined via button'
+                    participant.pre_filled_position !== null ? 'Added by host' : 'Joined via button'
                   }
                 />
                 <Chip label="Waitlist" color="warning" size="small" />
