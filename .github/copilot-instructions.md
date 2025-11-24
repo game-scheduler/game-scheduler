@@ -50,3 +50,10 @@ For any code generated, follow these guidelines:
   the instructions in `.github/instructions/python-instructions.md` will not be
   applied automatically. In such cases, refer to the relevant language-specific
   instructions manually to ensure compliance with the guidelines.
+
+### Helpful Hints
+
+- This project uses uv for python dependency and virtual environment management. Use `uv`
+  commands to add, remove, and update dependencies as needed and 'uv run' to run python files.
+- This project uses modern docker, so the command to run docker compose is
+  'docker compose' (not 'docker-compose')
