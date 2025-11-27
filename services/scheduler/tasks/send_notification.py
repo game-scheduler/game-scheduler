@@ -18,12 +18,11 @@
 
 """Task to send game reminder notifications to participants."""
 
-import asyncio
 import logging
 import uuid
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from services.scheduler.celery_app import app
 from services.scheduler.services import notification_service as notif_service
@@ -47,20 +46,6 @@ def send_game_notification(self, game_id_str: str, user_id_str: str, reminder_mi
         user_id_str: User UUID as string
         reminder_minutes: Minutes before game this reminder is for
     """
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    return loop.run_until_complete(
-        _send_game_notification_async(self, game_id_str, user_id_str, reminder_minutes)
-    )
-
-
-async def _send_game_notification_async(
-    task_self, game_id_str: str, user_id_str: str, reminder_minutes: int
-):
-    """Execute the notification task asynchronously."""
     game_id = uuid.UUID(game_id_str)
     user_id = uuid.UUID(user_id_str)
 
@@ -69,9 +54,9 @@ async def _send_game_notification_async(
         f"reminder={reminder_minutes}min ==="
     )
 
-    async with database.get_db_session() as db:
+    with database.get_sync_db_session() as db:
         try:
-            game_session = await _get_game(db, game_id)
+            game_session = _get_game(db, game_id)
             if not game_session:
                 logger.error(f"Game {game_id} not found in database")
                 return {"status": "error", "reason": "game_not_found"}
@@ -82,14 +67,14 @@ async def _send_game_notification_async(
                 )
                 return {"status": "skipped", "reason": "game_not_scheduled"}
 
-            user_record = await _get_user(db, user_id)
+            user_record = _get_user(db, user_id)
             if not user_record:
                 logger.error(f"User {user_id} not found in database")
                 return {"status": "error", "reason": "user_not_found"}
 
             logger.info(f"User found: discord_id={user_record.discord_id}")
 
-            notification_srv = await notif_service.get_notification_service()
+            notification_srv = notif_service.get_notification_service()
 
             game_time_unix = int(game_session.scheduled_at.timestamp())
             logger.info(
@@ -97,7 +82,7 @@ async def _send_game_notification_async(
                 f"discord_id={user_record.discord_id}"
             )
 
-            success = await notification_srv.send_game_reminder(
+            success = notification_srv.send_game_reminder(
                 game_id=game_id,
                 user_id=user_id,
                 game_title=game_session.title,
@@ -121,22 +106,22 @@ async def _send_game_notification_async(
                 f"Error in notification task: game={game_id}, user={user_id}, error={e}",
                 exc_info=True,
             )
-            if task_self.request.retries < task_self.max_retries:
-                retry_countdown = 60 * (task_self.request.retries + 1)
+            if self.request.retries < self.max_retries:
+                retry_countdown = 60 * (self.request.retries + 1)
                 logger.info(f"Retrying in {retry_countdown} seconds")
-                raise task_self.retry(exc=e, countdown=retry_countdown) from e
+                raise self.retry(exc=e, countdown=retry_countdown) from e
             return {"status": "error", "reason": str(e)}
 
 
-async def _get_game(db: AsyncSession, game_id: uuid.UUID) -> game.GameSession | None:
+def _get_game(db: Session, game_id: uuid.UUID) -> game.GameSession | None:
     """Get game session by ID."""
     stmt = select(game.GameSession).where(game.GameSession.id == str(game_id))
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     return result.scalar_one_or_none()
 
 
-async def _get_user(db: AsyncSession, user_id: uuid.UUID) -> user.User | None:
+def _get_user(db: Session, user_id: uuid.UUID) -> user.User | None:
     """Get user by ID."""
     stmt = select(user.User).where(user.User.id == str(user_id))
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     return result.scalar_one_or_none()

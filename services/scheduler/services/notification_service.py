@@ -21,7 +21,8 @@
 import logging
 import uuid
 
-from shared.messaging import events, publisher
+from shared.messaging import events
+from shared.messaging.sync_publisher import SyncEventPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +32,9 @@ class NotificationService:
 
     def __init__(self):
         """Initialize notification service with event publisher."""
-        self.event_publisher = publisher.EventPublisher()
+        self.event_publisher = SyncEventPublisher()
 
-    async def send_game_reminder(
+    def send_game_reminder(
         self,
         game_id: uuid.UUID,
         user_id: uuid.UUID,
@@ -61,7 +62,7 @@ class NotificationService:
 
         try:
             logger.info("Connecting to RabbitMQ event publisher")
-            await self.event_publisher.connect()
+            self.event_publisher.connect()
             logger.info("Successfully connected to RabbitMQ")
 
             message = (
@@ -86,7 +87,7 @@ class NotificationService:
             )
 
             logger.info("Publishing event to RabbitMQ with routing key: notification.send_dm")
-            await self.event_publisher.publish(event_wrapper)
+            self.event_publisher.publish(event_wrapper)
             logger.info("Event published successfully to RabbitMQ")
 
             logger.info(
@@ -105,10 +106,10 @@ class NotificationService:
 
         finally:
             logger.info("Closing RabbitMQ connection")
-            await self.event_publisher.close()
+            self.event_publisher.close()
             logger.info("RabbitMQ connection closed")
 
 
-async def get_notification_service() -> NotificationService:
+def get_notification_service() -> NotificationService:
     """Get singleton notification service instance."""
     return NotificationService()

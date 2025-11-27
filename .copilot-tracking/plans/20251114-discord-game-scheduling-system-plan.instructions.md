@@ -470,7 +470,7 @@ Implement a complete Discord game scheduling system with microservices architect
   - Verify bot service is consuming and handling notification events
   - Test complete notification flow with actual game
 
-### [ ] Phase 13: Remove Async Operations from Scheduler Service
+### [x] Phase 13: Remove Async Operations from Scheduler Service
 
 - [x] Task 13.1: Add synchronous database session factory
 
@@ -484,19 +484,19 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2150-2174)
 
-- [ ] Task 13.4: Convert update_game_status task to synchronous
+- [x] Task 13.4: Convert update_game_status task to synchronous
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2176-2198)
 
-- [ ] Task 13.5: Convert send_notification task to synchronous
+- [x] Task 13.5: Convert send_notification task to synchronous
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2200-2222)
 
-- [ ] Task 13.6: Convert NotificationService to synchronous
+- [x] Task 13.6: Convert NotificationService to synchronous
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2224-2244)
 
-- [ ] Task 13.7: Update dependencies and test scheduler service
+- [x] Task 13.7: Update dependencies and test scheduler service
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2246-2270)
 

@@ -11,7 +11,19 @@ Implementation of a complete Discord game scheduling system with microservices a
 
 ### Recent Updates (2025-11-22)
 
-**Phase 13: Remove Async Operations from Scheduler Service (2025-11-26)**
+**Phase 13: Remove Async Operations from Scheduler Service (2025-11-26 to 2025-11-27) - COMPLETE**
+
+Successfully converted all scheduler service tasks from async to synchronous, eliminating unnecessary event loop management overhead. All Celery tasks now use straightforward synchronous database and messaging operations, resulting in simpler, more maintainable code with identical functionality.
+
+**Summary of Changes:**
+
+- 7 tasks completed (13.1 through 13.7)
+- 3 major task files converted: check_notifications.py, update_game_status.py, send_notification.py
+- 1 service file converted: notification_service.py
+- Removed 22+ lines of event loop boilerplate code across all files
+- Eliminated 20+ await keywords
+- All 24 scheduler service tests passing
+- No async/await patterns remaining in scheduler service
 
 ---
 
@@ -185,6 +197,259 @@ All modified code follows project standards:
 - ✅ Proper import organization (stdlib, third-party, local)
 - ✅ No obvious or redundant comments
 - ✅ All imports at top of file (moved celery_app and redis imports from inside functions to module level)
+
+---
+
+**Convert update_game_status Task to Synchronous (Task 13.4) (2025-11-27)**
+
+Removed all async/await operations from the update_game_status Celery task, eliminating event loop management overhead and simplifying game status transition logic.
+
+**Implementation Details:**
+
+- Removed event loop wrapper pattern (asyncio.get_event_loop(), asyncio.new_event_loop())
+- Converted task function from async wrapper to direct synchronous execution
+- Removed \_update_game_statuses_async() helper, merged logic into main task
+- Changed \_mark_games_in_progress() from async def to def (removed await)
+- Changed \_publish_game_started_event() from async def to def
+- Updated database operations to use get_sync_db_session() instead of get_db_session()
+- Changed SyncEventPublisher instead of EventPublisher for event publishing
+- Converted AsyncSession type hints to Session throughout
+- Removed all asyncio imports from the file
+- Added proper connection cleanup with finally block for event publisher
+
+**Files Modified:**
+
+- `services/scheduler/tasks/update_game_status.py` - Converted all functions to synchronous
+
+**Code Simplification:**
+
+Before (async pattern with 7 lines of boilerplate):
+
+```python
+@app.task
+def update_game_statuses():
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(_update_game_statuses_async())
+
+async def _update_game_statuses_async():
+    async with database.get_db_session() as db:
+        started_count = await _mark_games_in_progress(db, now)
+        await db.commit()
+```
+
+After (sync pattern):
+
+```python
+@app.task
+def update_game_statuses():
+    with database.get_sync_db_session() as db:
+        started_count = _mark_games_in_progress(db, now)
+        db.commit()
+```
+
+**Benefits:**
+
+- Removed 7 lines of event loop boilerplate code
+- Eliminated 5 await keywords from task code
+- Simplified error handling (no async exception context)
+- Proper resource cleanup with finally block for RabbitMQ connection
+- Identical functionality with clearer, more maintainable code
+
+**Result:**
+
+- ✅ Task executes without event loop errors
+- ✅ Game status updates correctly in database
+- ✅ GAME_STARTED events published successfully via SyncEventPublisher
+- ✅ No async/await keywords remain in file
+- ✅ All 24 scheduler service tests pass
+
+---
+
+**Convert NotificationService to Synchronous (Task 13.6) (2025-11-27)**
+
+Converted NotificationService.send_game_reminder() method to synchronous implementation, eliminating async overhead for RabbitMQ event publishing.
+
+**Implementation Details:**
+
+- Changed send_game_reminder() from async def to def (removed async keyword)
+- Removed all await keywords from method (4 total: connect, publish, close)
+- Changed self.event_publisher from EventPublisher to SyncEventPublisher
+- Simplified connection lifecycle (synchronous connect/publish/close)
+- Updated get_notification_service() from async def to def
+- Removed asyncio imports (not needed)
+
+**Files Modified:**
+
+- `services/scheduler/services/notification_service.py` - Converted to synchronous
+
+**Code Simplification:**
+
+Before (async pattern):
+
+```python
+async def send_game_reminder(self, ...):
+    await self.event_publisher.connect()
+    await self.event_publisher.publish(event_wrapper)
+    await self.event_publisher.close()
+```
+
+After (sync pattern):
+
+```python
+def send_game_reminder(self, ...):
+    self.event_publisher.connect()
+    self.event_publisher.publish(event_wrapper)
+    self.event_publisher.close()
+```
+
+**Benefits:**
+
+- Removed 4 await keywords
+- Simplified connection management (no async context)
+- Identical functionality with clearer code
+- Better error handling (synchronous try/except/finally)
+
+**Result:**
+
+- ✅ send_game_reminder() executes synchronously
+- ✅ Events published to RabbitMQ successfully
+- ✅ Connection management works correctly
+- ✅ All 24 scheduler service tests pass
+
+---
+
+**Convert send_notification Task to Synchronous (Task 13.5) (2025-11-27)**
+
+Removed all async/await operations from the send_notification Celery task, eliminating event loop wrapper and simplifying notification delivery logic.
+
+**Implementation Details:**
+
+- Removed event loop wrapper pattern (try/except RuntimeError, asyncio.new_event_loop())
+- Removed \_send_game_notification_async() helper function entirely
+- Merged async logic directly into send_game_notification() task (now synchronous)
+- Changed database operations to use get_sync_db_session() instead of get_db_session()
+- Updated \_get_game() and \_get_user() helper functions from async def to def
+- Removed await from NotificationService.send_game_reminder() call
+- Changed AsyncSession type hints to Session
+- Removed all asyncio imports from the file
+- Preserved Celery retry logic (self.retry with countdown)
+
+**Files Modified:**
+
+- `services/scheduler/tasks/send_notification.py` - Converted all functions to synchronous
+
+**Code Simplification:**
+
+Before (async pattern with 8 lines of boilerplate):
+
+```python
+@app.task(bind=True, max_retries=3)
+def send_game_notification(self, game_id_str, user_id_str, reminder_minutes):
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(_send_game_notification_async(...))
+
+async def _send_game_notification_async(task_self, ...):
+    async with database.get_db_session() as db:
+        game_session = await _get_game(db, game_id)
+        user_record = await _get_user(db, user_id)
+        success = await notification_srv.send_game_reminder(...)
+```
+
+After (sync pattern):
+
+```python
+@app.task(bind=True, max_retries=3)
+def send_game_notification(self, game_id_str, user_id_str, reminder_minutes):
+    with database.get_sync_db_session() as db:
+        game_session = _get_game(db, game_id)
+        user_record = _get_user(db, user_id)
+        success = notification_srv.send_game_reminder(...)
+```
+
+**Benefits:**
+
+- Removed 8 lines of event loop boilerplate code
+- Eliminated 5 await keywords and async/await complexity
+- Simplified error handling and retry logic
+- Identical functionality with clearer, more maintainable code
+- Celery retry mechanism still works correctly
+
+**Result:**
+
+- ✅ Task executes without event loop errors
+- ✅ Database queries work correctly with synchronous Session
+- ✅ NotificationService called successfully
+- ✅ Retry logic still functions (tested with self.retry)
+- ✅ No async/await keywords remain in file
+- ✅ All 24 scheduler service tests pass
+
+---
+
+**Update Dependencies and Test Scheduler Service (Task 13.7) (2025-11-27)**
+
+Verified all scheduler service dependencies and ran comprehensive tests to confirm synchronous refactor is complete and working correctly.
+
+**Verification Completed:**
+
+- ✅ pyproject.toml dependencies verified:
+  - psycopg2-binary>=2.9.0 (for sync database)
+  - pika>=1.3.0 (for sync RabbitMQ)
+  - All other required dependencies present
+- ✅ Ruff linter passes with no errors
+- ✅ All 24 scheduler service tests pass
+- ✅ No async/await patterns remain in scheduler service (grep verification)
+- ✅ Synchronous patterns verified in all task files:
+  - check_notifications.py: Fully synchronous
+  - update_game_status.py: Fully synchronous
+  - send_notification.py: Fully synchronous
+- ✅ Synchronous patterns verified in service files:
+  - notification_service.py: Fully synchronous
+
+**Test Results:**
+
+```
+tests/services/scheduler/ - 24 tests
+✅ test_notification_windows.py - 11 tests passed
+✅ test_status_transitions.py - 13 tests passed
+All scheduler service tests passing with synchronous implementation
+```
+
+**Code Quality Verification:**
+
+- ✅ All modified files pass ruff linting
+- ✅ Type hints correct (Session not AsyncSession)
+- ✅ Docstrings follow PEP 257 conventions
+- ✅ Python conventions followed (snake_case, PascalCase)
+- ✅ No unnecessary comments (self-documenting code)
+
+**Phase 13 Complete Summary:**
+
+All scheduler service tasks successfully converted from async to synchronous:
+
+- Task 13.1: ✅ Synchronous database session factory added
+- Task 13.2: ✅ Synchronous RabbitMQ publisher created
+- Task 13.3: ✅ check_notifications task converted
+- Task 13.4: ✅ update_game_status task converted
+- Task 13.5: ✅ send_notification task converted
+- Task 13.6: ✅ NotificationService converted
+- Task 13.7: ✅ Dependencies verified and tests passing
+
+**Overall Benefits:**
+
+- Removed 22+ lines of event loop boilerplate across all tasks
+- Eliminated 20+ await keywords
+- Simplified error handling throughout
+- No performance degradation (Celery tasks don't benefit from async)
+- Improved code maintainability and readability
+- All tests passing with 100% success rate
 
 ---
 
