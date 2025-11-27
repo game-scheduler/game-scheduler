@@ -502,7 +502,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
 ### [ ] Phase 14: Additional Functionality
 
-- [ ] Task 14.1: Fix game display timezone issue in API responses
+- [x] Task 14.1: Fix game display timezone issue in API responses
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2303-2330)
 

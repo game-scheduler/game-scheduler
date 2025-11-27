@@ -23,6 +23,7 @@ Provides CRUD operations for game sessions with validation and authorization.
 """
 
 import logging
+from datetime import UTC
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -248,7 +249,7 @@ async def join_game(
             user_id=participant.user_id,
             discord_id=participant.user.discord_id if participant.user else None,
             display_name=participant.display_name,
-            joined_at=participant.joined_at.isoformat(),
+            joined_at=participant.joined_at.replace(tzinfo=UTC).isoformat().replace("+00:00", "Z"),
             pre_filled_position=participant.pre_filled_position,
         )
 
@@ -331,7 +332,9 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
                 user_id=participant.user_id,
                 discord_id=discord_id,
                 display_name=display_name,
-                joined_at=participant.joined_at.isoformat(),
+                joined_at=(
+                    participant.joined_at.replace(tzinfo=UTC).isoformat().replace("+00:00", "Z")
+                ),
                 pre_filled_position=participant.pre_filled_position,
             )
         )
@@ -347,17 +350,20 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
         user_id=game.host_id,
         discord_id=host_discord_id,
         display_name=host_display_name,
-        joined_at=game.created_at.isoformat(),
+        joined_at=game.created_at.replace(tzinfo=UTC).isoformat().replace("+00:00", "Z"),
         pre_filled_position=None,
     )
+
+    # Mark scheduled_at as UTC for correct serialization
+    scheduled_at_utc = game.scheduled_at.replace(tzinfo=UTC)
 
     return game_schemas.GameResponse(
         id=game.id,
         title=game.title,
         description=game.description,
         signup_instructions=game.signup_instructions,
-        scheduled_at=game.scheduled_at.isoformat(),
-        scheduled_at_unix=int(game.scheduled_at.timestamp()),
+        scheduled_at=scheduled_at_utc.isoformat().replace("+00:00", "Z"),
+        scheduled_at_unix=int(scheduled_at_utc.timestamp()),
         max_players=game.max_players,
         min_players=game.min_players,
         guild_id=game.guild_id,
@@ -371,6 +377,6 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
         status=game.status,
         participant_count=participant_count,
         participants=participant_responses,
-        created_at=game.created_at.isoformat(),
-        updated_at=game.updated_at.isoformat(),
+        created_at=game.created_at.replace(tzinfo=UTC).isoformat().replace("+00:00", "Z"),
+        updated_at=game.updated_at.replace(tzinfo=UTC).isoformat().replace("+00:00", "Z"),
     )

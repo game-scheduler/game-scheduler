@@ -8747,3 +8747,56 @@ After initial fixes, discovered "RuntimeError: Event loop is closed" and "Task g
 - docker/scheduler.Dockerfile - Updated default CMD to include `--pool=solo`
 
 **Result:** All async tasks (check_notifications, send_notification, update_game_status) now execute successfully without event loop errors.
+
+---
+
+**Fix Game Display Timezone Issue in API Responses (Task 14.1) (2025-11-27)**
+
+Fixed timezone serialization bug where naive UTC datetimes in database were being incorrectly interpreted as local time when converting to Unix timestamps, causing 8-hour offset errors in frontend display (e.g., midnight UTC appeared as 8 AM).
+
+**Problem Diagnosis:**
+
+- Database stores `scheduled_at` as naive datetime in UTC (TIMESTAMP WITHOUT TIME ZONE)
+- When calling `.timestamp()` on naive datetime, Python interprets it as local time, not UTC
+- This caused incorrect Unix timestamp calculations with timezone offset
+- When calling `.isoformat()` on naive datetime, no 'Z' suffix was added
+- Frontend received ambiguous ISO strings without timezone indicator
+
+**Implementation Details:**
+
+- Added `from datetime import UTC, datetime` import to services/api/routes/games.py
+- Mark all naive datetimes as UTC before serialization using `.replace(tzinfo=UTC)`
+- Convert `+00:00` timezone format to `Z` suffix using `.replace("+00:00", "Z")`
+- Applied fix to all datetime serializations:
+  - `game.scheduled_at` - Main game time field
+  - `game.created_at` and `game.updated_at` - Audit timestamps
+  - `participant.joined_at` - Participant join timestamps
+  - `game.created_at` (for host) - Host join timestamp
+- Created comprehensive test suite in tests/services/api/routes/test_games_timezone.py
+- 4 test cases covering:
+  - UTC marker verification (Z suffix)
+  - created_at/updated_at timezone markers
+  - Critical midnight UTC offset bug (00:15 UTC not appearing as 08:15)
+  - Various times throughout day for consistency
+
+**Files Modified:**
+
+- `services/api/routes/games.py` - Fixed all datetime serializations to use UTC-aware datetimes
+- `tests/services/api/routes/test_games_timezone.py` (NEW) - Comprehensive timezone serialization tests
+
+**Success Criteria:**
+
+- ✅ Game times display correctly in user's local timezone
+- ✅ ISO format includes 'Z' suffix (e.g., '2025-11-27T00:15:00Z')
+- ✅ Unix timestamp calculated correctly as UTC (not local time)
+- ✅ No timezone offset errors in frontend display
+- ✅ Test with game scheduled at 12:15 AM displays as 12:15 AM (not 8:15 AM)
+- ✅ All 4 timezone tests passing
+
+**Technical Notes:**
+
+- Using `.replace(tzinfo=UTC)` instead of `.astimezone(UTC)` because datetimes are already in UTC
+- Converting `+00:00` to `Z` for standard ISO 8601 format consistency
+- Mocked Discord API calls in tests to avoid authentication errors
+- Applied fix to both game response builder and join game endpoint
+
