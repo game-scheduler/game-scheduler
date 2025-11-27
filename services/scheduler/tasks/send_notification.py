@@ -130,13 +130,13 @@ async def _send_game_notification_async(
 
 async def _get_game(db: AsyncSession, game_id: uuid.UUID) -> game.GameSession | None:
     """Get game session by ID."""
-    stmt = select(game.GameSession).where(game.GameSession.id == game_id)
+    stmt = select(game.GameSession).where(game.GameSession.id == str(game_id))
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 
 async def _get_user(db: AsyncSession, user_id: uuid.UUID) -> user.User | None:
     """Get user by ID."""
-    stmt = select(user.User).where(user.User.id == user_id)
+    stmt = select(user.User).where(user.User.id == str(user_id))
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
