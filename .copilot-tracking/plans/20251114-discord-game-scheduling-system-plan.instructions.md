@@ -459,6 +459,17 @@ Implement a complete Discord game scheduling system with microservices architect
   - Verify frontend receives and displays bot manager role selections correctly
   - Fix issue where bot manager role changes appear to save but don't persist
 
+- [ ] Task 12.16: Fix notifications not being sent to game participants
+
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2066-2102)
+
+  - Diagnose and fix notification system end-to-end
+  - Verify scheduler service is running and checking for games
+  - Verify Celery beat is scheduling notification check tasks
+  - Verify notification events are being published to RabbitMQ
+  - Verify bot service is consuming and handling notification events
+  - Test complete notification flow with actual game
+
 ### [ ] Phase 13: Additional Functionality
 
 - [ ] Task 13.1: Add game templates for recurring sessions

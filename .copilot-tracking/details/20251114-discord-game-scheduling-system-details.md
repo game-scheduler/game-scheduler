@@ -2063,6 +2063,49 @@ Fix missing bot_manager_role_ids field in API response construction, causing bot
 - **Dependencies**:
   - Phase 9 completion (bot_manager_role_ids field exists in model and schema)
 
+### Task 12.16: Fix notifications not being sent to game participants
+
+Diagnose and fix the notification system to ensure game reminders are sent to participants via Discord DMs at the configured reminder times.
+
+- **Files**:
+  - services/scheduler/beat.py - Verify Celery beat is running
+  - services/scheduler/celery_app.py - Verify beat_schedule configuration
+  - services/scheduler/tasks/check_notifications.py - Check notification scheduling logic
+  - services/scheduler/tasks/send_notification.py - Verify notification sending task
+  - services/scheduler/services/notification_service.py - Verify event publishing
+  - services/bot/events/handlers.py - Verify \_handle_send_notification implementation
+  - shared/messaging/events.py - Verify NotificationSendDMEvent definition
+  - docker-compose.yml - Verify scheduler service configuration
+- **Implementation**:
+  - Add comprehensive logging to track notification flow from scheduling to delivery
+  - Verify scheduler service container is running in docker-compose
+  - Check Celery beat logs to confirm periodic task execution
+  - Verify check_notifications task is finding games in the time window
+  - Verify notification events are being published to RabbitMQ exchange
+  - Check bot service logs for notification event consumption
+  - Verify bot can send DMs (user has DMs enabled, bot has permissions)
+  - Test with a game scheduled 15 minutes in the future
+  - Add debug logging at each step: task scheduling, event publishing, event consumption, DM sending
+  - Check Redis cache for notification_sent keys to verify deduplication isn't blocking sends
+  - Verify RabbitMQ queue bindings for notification.send_dm events
+- **Success**:
+  - Scheduler service runs and executes check_notifications task every 5 minutes
+  - Notifications are scheduled for games within the reminder time windows
+  - Notification events are published to RabbitMQ successfully
+  - Bot service consumes notification events from RabbitMQ
+  - Discord DMs are sent to participants at correct reminder times
+  - End-to-end test: Create game, wait for reminder time, receive DM
+  - Logs show complete flow: schedule → publish → consume → send
+- **Research References**:
+  - #file:../research/20251114-discord-game-scheduling-system-research.md (Lines 1198-1244) - Notification system architecture
+  - #file:../../services/scheduler/celery_app.py (Lines 28-35) - Beat schedule configuration
+  - #file:../../services/scheduler/tasks/check_notifications.py (Lines 1-164) - Notification checking logic
+  - #file:../../services/bot/events/handlers.py (Lines 308-339) - Notification DM handler
+- **Dependencies**:
+  - Phase 6 completion (notification scheduling system)
+  - Phase 2 completion (bot event handlers)
+  - Docker compose services running (scheduler, bot, rabbitmq, redis)
+
 ## Phase 13: Additional Functionality
 
 ### Task 13.1: Add game templates for recurring sessions
