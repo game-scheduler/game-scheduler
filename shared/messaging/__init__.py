@@ -27,6 +27,7 @@ from shared.messaging.config import get_rabbitmq_connection
 from shared.messaging.consumer import EventConsumer
 from shared.messaging.events import Event, EventType
 from shared.messaging.publisher import EventPublisher
+from shared.messaging.sync_publisher import SyncEventPublisher
 
 __all__ = [
     "get_rabbitmq_connection",
@@ -34,4 +35,5 @@ __all__ = [
     "EventType",
     "EventPublisher",
     "EventConsumer",
+    "SyncEventPublisher",
 ]

@@ -18,17 +18,17 @@
 
 """Periodic task to check for upcoming games and schedule notifications."""
 
-import asyncio
 import datetime
 import logging
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import Session, selectinload
 
 from services.scheduler.celery_app import app
+from services.scheduler.celery_app import app as celery_app
 from services.scheduler.utils import notification_windows
 from shared import database
+from shared.cache.client import get_sync_redis_client
 from shared.models import channel, game
 
 logger = logging.getLogger(__name__)
@@ -37,24 +37,14 @@ logger = logging.getLogger(__name__)
 @app.task(name="services.scheduler.tasks.check_notifications.check_upcoming_notifications")
 def check_upcoming_notifications():
     """Check for games needing notifications and schedule delivery."""
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    return loop.run_until_complete(_check_upcoming_notifications_async())
-
-
-async def _check_upcoming_notifications_async():
-    """Check upcoming games and schedule notifications."""
     logger.info("=== Starting notification check cycle ===")
     logger.info("Checking for upcoming game notifications")
 
     start_time, end_time = notification_windows.get_upcoming_games_window()
     logger.info(f"Notification window: {start_time} to {end_time}")
 
-    async with database.get_db_session() as db:
-        upcoming_games = await _get_upcoming_games(db, start_time, end_time)
+    with database.get_sync_db_session() as db:
+        upcoming_games = _get_upcoming_games(db, start_time, end_time)
         logger.info(f"Found {len(upcoming_games)} games in notification window")
 
         notification_count = 0
@@ -64,18 +54,18 @@ async def _check_upcoming_notifications_async():
                     f"Processing game {game_session.id} - {game_session.title} "
                     f"scheduled at {game_session.scheduled_at}"
                 )
-                notifications_sent = await _schedule_game_notifications(db, game_session)
+                notifications_sent = _schedule_game_notifications(db, game_session)
                 notification_count += notifications_sent
                 logger.info(
                     f"Scheduled {notifications_sent} notifications for game {game_session.id}"
                 )
-                await db.commit()
+                db.commit()
             except Exception as e:
                 logger.error(
                     f"Failed to schedule notifications for game {game_session.id}: {e}",
                     exc_info=True,
                 )
-                await db.rollback()
+                db.rollback()
 
         logger.info(
             f"=== Notification check complete: {notification_count} notifications "
@@ -88,8 +78,8 @@ async def _check_upcoming_notifications_async():
     }
 
 
-async def _get_upcoming_games(
-    db: AsyncSession, start_time: datetime.datetime, end_time: datetime.datetime
+def _get_upcoming_games(
+    db: Session, start_time: datetime.datetime, end_time: datetime.datetime
 ) -> list[game.GameSession]:
     """Query games scheduled in the notification window."""
     stmt = (
@@ -103,14 +93,12 @@ async def _get_upcoming_games(
         )
     )
 
-    result = await db.execute(stmt)
+    result = db.execute(stmt)
     return list(result.scalars().all())
 
 
-async def _schedule_game_notifications(db: AsyncSession, game_session: game.GameSession) -> int:
+def _schedule_game_notifications(db: Session, game_session: game.GameSession) -> int:
     """Schedule notifications for a game using inherited reminder settings."""
-    from services.scheduler.celery_app import app as celery_app
-
     reminder_minutes = _resolve_reminder_minutes(game_session)
     now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
 
@@ -141,7 +129,7 @@ async def _schedule_game_notifications(db: AsyncSession, game_session: game.Game
             for participant_record in participants:
                 notification_key = f"{game_session.id}_{participant_record.user_id}_{reminder_min}"
 
-                already_sent = await _notification_already_sent(db, notification_key)
+                already_sent = _notification_already_sent(db, notification_key)
                 logger.debug(f"Notification key {notification_key}: already_sent={already_sent}")
 
                 if not already_sent:
@@ -160,7 +148,7 @@ async def _schedule_game_notifications(db: AsyncSession, game_session: game.Game
                         ],
                         eta=notification_time,
                     )
-                    await _mark_notification_sent(db, notification_key)
+                    _mark_notification_sent(db, notification_key)
                     notification_count += 1
                 else:
                     logger.debug(f"Skipping already sent notification: {notification_key}")
@@ -186,22 +174,18 @@ def _resolve_reminder_minutes(game_session: game.GameSession) -> list[int]:
     return [60, 15]
 
 
-async def _notification_already_sent(db: AsyncSession, notification_key: str) -> bool:
+def _notification_already_sent(db: Session, notification_key: str) -> bool:
     """Check if notification has already been sent."""
-    from shared.cache import client as cache_client
-
-    redis = await cache_client.get_redis_client()
+    redis = get_sync_redis_client()
     cache_key = f"notification_sent:{notification_key}"
 
-    result = await redis.get(cache_key)
+    result = redis.get(cache_key)
     return result is not None
 
 
-async def _mark_notification_sent(db: AsyncSession, notification_key: str) -> None:
+def _mark_notification_sent(db: Session, notification_key: str) -> None:
     """Mark notification as sent to prevent duplicates."""
-    from shared.cache import client as cache_client
-
-    redis = await cache_client.get_redis_client()
+    redis = get_sync_redis_client()
     cache_key = f"notification_sent:{notification_key}"
 
-    await redis.set(cache_key, "1", ttl=86400 * 7)  # 7 days
+    redis.set(cache_key, "1", ttl=86400 * 7)  # 7 days

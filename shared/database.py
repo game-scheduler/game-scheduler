@@ -20,18 +20,36 @@
 
 import os
 from collections.abc import AsyncGenerator
+from contextlib import contextmanager
 
+from sqlalchemy import create_engine as create_sync_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import Session, sessionmaker
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/game_scheduler"
 )
 
+# Synchronous database URL for scheduler service (replace asyncpg with psycopg2)
+SYNC_DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg", "postgresql+psycopg2")
+
+# Async engine for API and Bot services
 engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+
+# Sync engine for Scheduler service
+sync_engine = create_sync_engine(SYNC_DATABASE_URL, echo=False, pool_pre_ping=True)
 
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False,
+)
+
+SyncSessionLocal = sessionmaker(
+    sync_engine,
+    class_=Session,
     expire_on_commit=False,
     autocommit=False,
     autoflush=False,
@@ -80,3 +98,30 @@ def get_db_session() -> AsyncSession:
         AsyncSession that must be used with 'async with' statement
     """
     return AsyncSessionLocal()
+
+
+@contextmanager
+def get_sync_db_session():
+    """
+    Get synchronous database session for use as context manager.
+
+    Use this pattern in Celery tasks and other synchronous code
+    where async operations provide no benefit.
+
+    Example:
+        with get_sync_db_session() as db:
+            result = db.execute(select(Item))
+            db.commit()
+
+    Yields:
+        Session: Synchronous SQLAlchemy session
+    """
+    session = SyncSessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()

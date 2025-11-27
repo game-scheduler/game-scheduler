@@ -472,15 +472,15 @@ Implement a complete Discord game scheduling system with microservices architect
 
 ### [ ] Phase 13: Remove Async Operations from Scheduler Service
 
-- [ ] Task 13.1: Add synchronous database session factory
+- [x] Task 13.1: Add synchronous database session factory
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2104-2125)
 
-- [ ] Task 13.2: Create synchronous RabbitMQ publisher
+- [x] Task 13.2: Create synchronous RabbitMQ publisher
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2127-2148)
 
-- [ ] Task 13.3: Convert check_notifications task to synchronous
+- [x] Task 13.3: Convert check_notifications task to synchronous
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2150-2174)
 

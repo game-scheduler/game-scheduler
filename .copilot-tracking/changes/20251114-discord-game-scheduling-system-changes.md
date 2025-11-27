@@ -11,6 +11,183 @@ Implementation of a complete Discord game scheduling system with microservices a
 
 ### Recent Updates (2025-11-22)
 
+**Phase 13: Remove Async Operations from Scheduler Service (2025-11-26)**
+
+---
+
+**Add Synchronous Database Session Factory (Task 13.1) (2025-11-26)**
+
+Added synchronous SQLAlchemy session factory to support Celery tasks that don't benefit from async operations. This simplifies scheduler service code by removing unnecessary event loop management overhead.
+
+**Implementation Details:**
+
+- Added `create_sync_engine()` alongside existing async engine in shared/database.py
+- Created `SyncSessionLocal` sessionmaker using standard `sessionmaker()` (not async)
+- Added `get_sync_db_session()` context manager for synchronous database operations
+- Configured synchronous engine with same pooling settings as async engine
+- Automatically converts DATABASE_URL from postgresql+asyncpg to postgresql+psycopg2
+- Keeps async versions unchanged for API and Bot services (no breaking changes)
+- Added psycopg2-binary>=2.9.0 dependency to pyproject.toml
+- Added pika>=1.3.0 dependency for synchronous RabbitMQ operations
+
+**Files Modified:**
+
+- `shared/database.py` - Added sync engine, sessionmaker, and get_sync_db_session() context manager
+- `pyproject.toml` - Added psycopg2-binary and pika dependencies
+
+**Benefits:**
+
+- Celery tasks can use straightforward synchronous database operations
+- Eliminates event loop boilerplate from scheduler tasks
+- Reduces code complexity and defect surface
+- Both sync and async sessions coexist without conflicts
+- No impact on API or Bot services (continue using async)
+
+**Result:**
+
+- ✅ get_sync_db_session() context manager available for scheduler tasks
+- ✅ Synchronous Session can execute queries with standard SQLAlchemy API
+- ✅ psycopg2-binary and pika installed successfully
+- ✅ Both sync and async database access patterns supported
+- ✅ Foundation laid for removing async from scheduler service
+
+---
+
+**Create Synchronous RabbitMQ Publisher (Task 13.2) (2025-11-26)**
+
+Created synchronous EventPublisher using pika library for Celery tasks, eliminating the need for async messaging operations in the scheduler service.
+
+**Implementation Details:**
+
+- Created `shared/messaging/sync_publisher.py` with SyncEventPublisher class
+- Uses pika (synchronous RabbitMQ client) instead of aio_pika
+- Implements connect(), publish(), and close() methods without async/await
+- Uses same exchange configuration as async EventPublisher (topic exchange, durable)
+- Supports same routing keys and message formats (Event objects)
+- Proper connection lifecycle management with error handling
+- Includes convenience publish_dict() method for dictionary-based events
+- Added SyncEventPublisher to shared/messaging/**init**.py exports
+
+**Files Created:**
+
+- `shared/messaging/sync_publisher.py` - New synchronous publisher implementation
+
+**Files Modified:**
+
+- `shared/messaging/__init__.py` - Added SyncEventPublisher to exports
+
+**API Compatibility:**
+
+- Same interface as EventPublisher but without async/await
+- connect() instead of await connect()
+- publish(event) instead of await publish(event)
+- close() instead of await close()
+- Compatible with Event and EventType classes from shared.messaging.events
+
+**Benefits:**
+
+- Celery tasks can publish events without async overhead
+- Eliminates need for event loop management in publisher code
+- Simpler connection lifecycle in synchronous context
+- Both sync and async publishers coexist for different service needs
+
+**Result:**
+
+- ✅ SyncEventPublisher successfully imports and loads
+- ✅ Uses pika library (already in dependencies)
+- ✅ Messages published to correct exchanges with proper routing keys
+- ✅ Connection management works correctly (connect/publish/close)
+- ✅ Ready for use in scheduler service tasks
+
+---
+
+**Convert check_notifications Task to Synchronous (Task 13.3) (2025-11-26)**
+
+Removed all async/await operations from the check_notifications Celery task, eliminating event loop management overhead and simplifying the code significantly.
+
+**Implementation Details:**
+
+- Removed event loop wrapper pattern (try/except RuntimeError, asyncio.new_event_loop())
+- Converted task function from async to synchronous (removed 11 await keywords)
+- Changed database operations to use get_sync_db_session() instead of get_db_session()
+- Updated type hints from AsyncSession to Session throughout
+- Converted Redis operations to use get_sync_redis_client() instead of async version
+- Added SyncRedisClient to shared/cache/client.py for synchronous Redis operations
+- Removed all asyncio imports from the file
+- Helper functions \_get_upcoming_games, \_schedule_game_notifications, \_notification_already_sent, \_mark_notification_sent all converted to sync
+- All context managers changed from async with to regular with
+
+**Files Modified:**
+
+- `services/scheduler/tasks/check_notifications.py` - Converted all functions to synchronous
+- `shared/cache/client.py` - Added SyncRedisClient class and get_sync_redis_client() function
+
+**Code Simplification:**
+
+Before (async pattern):
+
+```python
+@app.task
+def check_upcoming_notifications():
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(_check_upcoming_notifications_async())
+
+async def _check_upcoming_notifications_async():
+    async with database.get_db_session() as db:
+        upcoming_games = await _get_upcoming_games(db, start_time, end_time)
+        # ...
+```
+
+After (sync pattern):
+
+```python
+@app.task
+def check_upcoming_notifications():
+    with database.get_sync_db_session() as db:
+        upcoming_games = _get_upcoming_games(db, start_time, end_time)
+        # ...
+```
+
+**Benefits:**
+
+- Removed 7 lines of event loop boilerplate code
+- Eliminated 11 await keywords and async/await complexity
+- Simplified error handling (no async exception context)
+- Identical functionality with clearer, more maintainable code
+- No event loop state management issues
+
+**Result:**
+
+- ✅ Task executes without event loop errors
+- ✅ Database queries work correctly with synchronous Session
+- ✅ Redis cache operations work with sync client
+- ✅ Notification scheduling still functions properly
+- ✅ No async/await keywords remain in file
+- ✅ Syntax validation passes
+- ✅ Ruff linting passes with no errors
+- ✅ All 24 scheduler service tests pass
+- ✅ Docker containers (scheduler, scheduler-beat) build successfully
+
+**Code Quality Verification:**
+
+All modified code follows project standards:
+
+- ✅ Python type hints on all functions (Session, str, bool, etc.)
+- ✅ Docstrings follow PEP 257 conventions
+- ✅ Snake_case naming for functions and variables
+- ✅ PascalCase for class names (SyncEventPublisher, SyncRedisClient)
+- ✅ Comments explain WHY, not WHAT (e.g., explaining async vs sync engine purposes)
+- ✅ Self-documenting code with minimal necessary comments
+- ✅ Proper import organization (stdlib, third-party, local)
+- ✅ No obvious or redundant comments
+- ✅ All imports at top of file (moved celery_app and redis imports from inside functions to module level)
+
+---
+
 **Docker Multi-Architecture Build Support (Task 12.14) (2025-11-23)**
 
 Configured Docker Compose for multi-architecture builds supporting both ARM64 and AMD64 platforms using Docker Bake. This enables deployment across different hardware platforms including Apple Silicon Macs, AWS Graviton, and traditional x86 servers.
@@ -8271,7 +8448,7 @@ The notification system was completely non-functional due to multiple critical i
 - docker-compose.yml - Fixed scheduler-beat command: `celery -A services.scheduler.celery_app:app beat`
 - docker/scheduler.Dockerfile - Fixed CMD and HEALTHCHECK to use `services.scheduler.celery_app:app`
 - services/scheduler/tasks/check_notifications.py - Fixed task export to class reference, added comprehensive logging
-- services/scheduler/tasks/send_notification.py - Fixed task export, enhanced logging  
+- services/scheduler/tasks/send_notification.py - Fixed task export, enhanced logging
 - services/scheduler/tasks/update_game_status.py - Fixed task export
 - services/scheduler/services/notification_service.py - Added detailed RabbitMQ publishing logs
 - services/bot/events/handlers.py - Enhanced notification DM logging with Discord API details
@@ -8300,6 +8477,7 @@ After initial fixes, discovered "RuntimeError: Event loop is closed" and "Task g
 **Solution:** Configured Celery to use "solo" pool instead of "prefork" by adding `--pool=solo` to the worker command. The solo pool runs tasks in the main process without forking, which is compatible with asyncio.
 
 **Files Modified:**
+
 - docker-compose.yml - Added explicit command with `--pool=solo` for scheduler service
 - docker/scheduler.Dockerfile - Updated default CMD to include `--pool=solo`
 

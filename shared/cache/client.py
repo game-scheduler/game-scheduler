@@ -23,6 +23,7 @@ import logging
 import os
 from typing import Any
 
+import redis
 from redis.asyncio import Redis
 from redis.asyncio.connection import ConnectionPool
 
@@ -266,3 +267,72 @@ async def get_redis_client() -> RedisClient:
         await _redis_client.connect()
 
     return _redis_client
+
+
+class SyncRedisClient:
+    """Synchronous Redis client for Celery tasks."""
+
+    def __init__(self, redis_url: str | None = None):
+        """
+        Initialize synchronous Redis client.
+
+        Args:
+            redis_url: Redis connection URL (default from REDIS_URL env var).
+        """
+        self.redis_url = redis_url or os.getenv(
+            "REDIS_URL",
+            "redis://localhost:6379/0",
+        )
+        self._client = redis.from_url(
+            self.redis_url,
+            max_connections=10,
+            decode_responses=True,
+        )
+
+    def get(self, key: str) -> str | None:
+        """Get value from cache."""
+        try:
+            return self._client.get(key)
+        except Exception as e:
+            logger.error(f"Redis GET error for key {key}: {e}")
+            return None
+
+    def set(
+        self,
+        key: str,
+        value: str,
+        ttl: int | None = None,
+    ) -> bool:
+        """Set value in cache with optional TTL."""
+        try:
+            if ttl:
+                self._client.setex(key, ttl, value)
+            else:
+                self._client.set(key, value)
+            return True
+        except Exception as e:
+            logger.error(f"Redis SET error for key {key}: {e}")
+            return False
+
+    def close(self) -> None:
+        """Close Redis connection."""
+        if self._client:
+            self._client.close()
+
+
+_sync_redis_client: SyncRedisClient | None = None
+
+
+def get_sync_redis_client() -> SyncRedisClient:
+    """
+    Get singleton synchronous Redis client instance.
+
+    Returns:
+        Initialized SyncRedisClient instance.
+    """
+    global _sync_redis_client
+
+    if _sync_redis_client is None:
+        _sync_redis_client = SyncRedisClient()
+
+    return _sync_redis_client
