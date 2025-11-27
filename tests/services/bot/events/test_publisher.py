@@ -82,13 +82,13 @@ async def test_disconnect_when_not_connected(bot_publisher, mock_publisher):
 @pytest.mark.asyncio
 async def test_publish_game_created(bot_publisher, mock_publisher):
     """Test publishing game created event."""
+
     game_id = "550e8400-e29b-41d4-a716-446655440000"
     title = "Test Game"
     guild_id = "987654321"
     channel_id = "123456789"
     host_id = "111222333"
     scheduled_at = "2025-11-20T18:00:00Z"
-    scheduled_at_unix = 1732125600
 
     await bot_publisher.publish_game_created(
         game_id=game_id,
@@ -97,7 +97,6 @@ async def test_publish_game_created(bot_publisher, mock_publisher):
         channel_id=channel_id,
         host_id=host_id,
         scheduled_at=scheduled_at,
-        scheduled_at_unix=scheduled_at_unix,
     )
 
     mock_publisher.publish.assert_awaited_once()

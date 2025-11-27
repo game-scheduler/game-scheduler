@@ -87,7 +87,6 @@ class GameCreatedEvent(BaseModel):
     channel_id: str
     host_id: str
     scheduled_at: datetime
-    scheduled_at_unix: int
     max_players: int | None = None
     notify_role_ids: list[str] | None = None
 

@@ -697,7 +697,6 @@ class GameService:
             channel_id=channel_config.channel_id,
             host_id=game.host_id,
             scheduled_at=game.scheduled_at,
-            scheduled_at_unix=int(game.scheduled_at.timestamp()),
             max_players=game.max_players,
             notify_role_ids=game.notify_role_ids,
         )

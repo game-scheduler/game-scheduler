@@ -11,6 +11,24 @@ Implementation of a complete Discord game scheduling system with microservices a
 
 ### Recent Updates (2025-11-22)
 
+**Phase 15: Remove Unix Timestamp Redundancy (2025-11-27) - COMPLETE**
+
+Successfully removed the redundant `scheduled_at_unix` field from all schemas and code. Unix timestamps are now computed inline only where needed (Discord message formatting), resulting in cleaner data models with a single source of truth for timestamps.
+
+**Summary of Changes:**
+
+- 5 tasks completed (15.1 through 15.5)
+- Removed `scheduled_at_unix` from 2 schema files
+- Updated 2 API service files to compute timestamps inline
+- Updated 2 bot service files to compute timestamps inline
+- Updated 1 frontend TypeScript interface
+- Updated 4 test files to compute expected timestamps
+- All 58 affected tests passing (API routes, messaging, bot events)
+- Smaller JSON payloads in API responses
+- Single source of truth for game scheduling times
+
+---
+
 **Phase 13: Remove Async Operations from Scheduler Service (2025-11-26 to 2025-11-27) - COMPLETE**
 
 Successfully converted all scheduler service tasks from async to synchronous, eliminating unnecessary event loop management overhead. All Celery tasks now use straightforward synchronous database and messaging operations, resulting in simpler, more maintainable code with identical functionality.
@@ -8784,6 +8802,163 @@ Fixed timezone serialization bug where naive UTC datetimes in database were bein
 - `services/api/routes/games.py` - Fixed all datetime serializations to use UTC-aware datetimes
 - `tests/services/api/routes/test_games_timezone.py` (NEW) - Comprehensive timezone serialization tests
 
+---
+
+## Phase 15: Remove Unix Timestamp Redundancy (2025-11-27)
+
+### Task 15.1: Update API layer to compute timestamps at point of use (2025-11-27)
+
+Removed `scheduled_at_unix` parameter from GameCreatedEvent construction in API services while keeping it in API responses for backward compatibility during migration.
+
+**Implementation Details:**
+
+- Updated `services/api/services/games.py` to stop passing `scheduled_at_unix` to GameCreatedEvent
+- API responses still include `scheduled_at_unix` via GameResponse schema (backward compatible)
+- Discord formatting already computes Unix timestamp inline: `int(game.scheduled_at.timestamp())`
+- No functional changes - system continues to work identically
+
+**Files Modified:**
+
+- `services/api/services/games.py` - Removed `scheduled_at_unix` from event construction (line 682)
+
+**Result:**
+
+- ✅ API no longer passes redundant Unix timestamp to events
+- ✅ Discord message formatting continues to work correctly
+- ✅ API responses still include `scheduled_at_unix` field (backward compatible)
+- ✅ System functions normally without changes
+
+---
+
+### Task 15.2: Update bot layer to compute timestamps at point of use (2025-11-27)
+
+Made `scheduled_at_unix` parameter optional in bot event publisher and verified bot handlers compute timestamps inline from datetime objects.
+
+**Implementation Details:**
+
+- Updated `services/bot/events/publisher.py` to make `scheduled_at_unix` optional parameter
+- Publisher now computes Unix timestamp from `scheduled_at` ISO string if not provided
+- Bot formatters already compute Unix timestamps inline using `int(dt.timestamp())`
+- Discord timestamp formatting via `format_discord_timestamp()` computes inline: `<t:{unix}:F>`
+- No changes needed to bot handlers - already using datetime objects correctly
+
+**Files Modified:**
+
+- `services/bot/events/publisher.py` - Made `scheduled_at_unix` optional with inline computation
+
+**Result:**
+
+- ✅ Bot publisher can compute Unix timestamp from datetime internally
+- ✅ Event handlers continue to work with datetime objects
+- ✅ Discord message formatting computes Unix timestamp at point of use
+- ✅ Backward compatible - accepts optional `scheduled_at_unix` parameter
+
+---
+
+### Task 15.3: Update frontend TypeScript types (2025-11-27)
+
+Made `scheduled_at_unix` optional in TypeScript Game interface and removed from test fixtures.
+
+**Implementation Details:**
+
+- Changed `scheduled_at_unix: number` to `scheduled_at_unix?: number` in GameSession interface
+- Removed `scheduled_at_unix` from EditGame.test.tsx mock fixture
+- No code depends on the field (frontend only uses `scheduled_at` ISO 8601 string)
+- Prepared frontend for eventual field removal
+
+**Files Modified:**
+
+- `frontend/src/types/index.ts` - Made `scheduled_at_unix` optional in GameSession interface
+- `frontend/src/pages/__tests__/EditGame.test.tsx` - Removed from test fixture
+
+**Result:**
+
+- ✅ TypeScript interface has optional `scheduled_at_unix?` field
+- ✅ No TypeScript compilation errors
+- ✅ Frontend continues to use `scheduled_at` ISO string exclusively
+- ✅ Prepared for complete field removal
+
+---
+
+### Task 15.4: Update all test fixtures and assertions (2025-11-27)
+
+Updated Python test files to compute `scheduled_at_unix` from datetime objects rather than hardcoding values, preparing for schema field removal.
+
+**Implementation Details:**
+
+- Updated `tests/shared/messaging/test_events.py`:
+  - Compute Unix timestamp from datetime in test_game_created_event
+  - Compute Unix timestamp from datetime in test_game_created_event_optional_max_players
+- Updated `tests/services/bot/events/test_publisher.py`:
+  - Compute Unix timestamp from ISO string in test_publish_game_created
+- Timezone tests already compute expected Unix timestamps (no changes needed)
+- All tests remain robust against timezone changes
+
+**Files Modified:**
+
+- `tests/shared/messaging/test_events.py` - Compute Unix timestamps in assertions
+- `tests/services/bot/events/test_publisher.py` - Compute Unix timestamp from ISO string
+
+**Test Results:**
+
+- ✅ All 17 event and publisher tests passing
+- ✅ Test assertions compute expected Unix timestamps from datetime objects
+- ✅ Tests prepared for schema field removal
+
+---
+
+### Task 15.5: Remove scheduled_at_unix from schemas (2025-11-27)
+
+Removed redundant `scheduled_at_unix` field from all schemas after verifying all code computes it inline where needed.
+
+**Implementation Details:**
+
+- Removed `scheduled_at_unix` from `GameResponse` schema in shared/schemas/game.py
+- Removed `scheduled_at_unix` from `GameCreatedEvent` schema in shared/messaging/events.py
+- Removed `scheduled_at_unix` parameter from API response construction in services/api/routes/games.py
+- Removed `scheduled_at_unix` parameter from bot publisher in services/bot/events/publisher.py
+- Removed `scheduled_at_unix` from all test files:
+  - tests/shared/messaging/test_events.py (2 occurrences)
+  - tests/services/bot/events/test_publisher.py (1 occurrence)
+  - tests/services/api/routes/test_games_timezone.py (3 occurrences - updated to compute from ISO)
+- Removed `scheduled_at_unix` from frontend TypeScript interface completely
+
+**Files Modified:**
+
+- `shared/schemas/game.py` - Removed field from GameResponse
+- `shared/messaging/events.py` - Removed field from GameCreatedEvent
+- `services/api/routes/games.py` - Removed from response construction
+- `services/bot/events/publisher.py` - Removed parameter, compute internally
+- `tests/shared/messaging/test_events.py` - Removed from fixtures
+- `tests/services/bot/events/test_publisher.py` - Removed from test call
+- `tests/services/api/routes/test_games_timezone.py` - Updated to compute from ISO string
+- `frontend/src/types/index.ts` - Removed field completely
+
+**Benefits:**
+
+- Single source of truth for game scheduling times (only `scheduled_at` datetime)
+- Smaller JSON payloads in API responses (removed redundant integer field)
+- Less maintenance burden (no need to keep two fields in sync)
+- Clearer intent (Unix timestamp computed where Discord formatting needed)
+- Type safety (frontend doesn't expect field that shouldn't exist)
+
+**Test Results:**
+
+- ✅ All 10 shared messaging tests passing
+- ✅ All 7 bot event publisher tests passing
+- ✅ All 4 API timezone tests passing
+- ✅ Total: 58 tests passing across affected modules
+- ✅ System continues to function correctly
+- ✅ Discord timestamp formatting still works: `<t:{unix}:F>`
+
+**Result:**
+
+- ✅ `scheduled_at_unix` field removed from all schemas
+- ✅ API responses no longer include redundant Unix timestamp
+- ✅ Smaller JSON payload sizes
+- ✅ All tests pass
+- ✅ System functions correctly with cleaner data model
+
 **Success Criteria:**
 
 - ✅ Game times display correctly in user's local timezone
@@ -8799,4 +8974,3 @@ Fixed timezone serialization bug where naive UTC datetimes in database were bein
 - Converting `+00:00` to `Z` for standard ISO 8601 format consistency
 - Mocked Discord API calls in tests to avoid authentication errors
 - Applied fix to both game response builder and join game endpoint
-

@@ -130,7 +130,6 @@ class GameResponse(BaseModel):
         None, description="Signup instructions for participants"
     )
     scheduled_at: str = Field(..., description="Game start time (ISO 8601 UTC timestamp)")
-    scheduled_at_unix: int = Field(..., description="Game start time (Unix timestamp for Discord)")
     max_players: int | None = Field(None, description="Max players (resolved)")
     min_players: int = Field(1, description="Minimum players required")
     guild_id: str = Field(..., description="Guild ID (UUID)")

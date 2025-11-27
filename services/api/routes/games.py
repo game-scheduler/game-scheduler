@@ -363,7 +363,6 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
         description=game.description,
         signup_instructions=game.signup_instructions,
         scheduled_at=scheduled_at_utc.isoformat().replace("+00:00", "Z"),
-        scheduled_at_unix=int(scheduled_at_utc.timestamp()),
         max_players=game.max_players,
         min_players=game.min_players,
         guild_id=game.guild_id,

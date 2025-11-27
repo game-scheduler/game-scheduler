@@ -67,7 +67,6 @@ class BotEventPublisher:
         channel_id: str,
         host_id: str,
         scheduled_at: str,
-        scheduled_at_unix: int,
     ) -> None:
         """
         Publish game created event.
@@ -79,9 +78,10 @@ class BotEventPublisher:
             channel_id: Discord channel ID
             host_id: Discord ID of the host
             scheduled_at: ISO 8601 UTC timestamp string
-            scheduled_at_unix: Unix timestamp for Discord formatting
         """
         from datetime import datetime
+
+        scheduled_at_dt = datetime.fromisoformat(scheduled_at.replace("Z", "+00:00"))
 
         event_data = GameCreatedEvent(
             game_id=UUID(game_id),
@@ -89,8 +89,7 @@ class BotEventPublisher:
             guild_id=guild_id,
             channel_id=channel_id,
             host_id=host_id,
-            scheduled_at=datetime.fromisoformat(scheduled_at.replace("Z", "+00:00")),
-            scheduled_at_unix=scheduled_at_unix,
+            scheduled_at=scheduled_at_dt,
         )
 
         event = Event(event_type=EventType.GAME_CREATED, data=event_data.model_dump())

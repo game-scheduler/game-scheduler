@@ -77,9 +77,11 @@ async def test_scheduled_at_has_utc_marker(mock_get_resolver):
     assert response.scheduled_at.endswith("Z")
     assert response.scheduled_at == "2025-11-27T00:15:00Z"
 
-    # Verify Unix timestamp is correct (not offset by local timezone)
+    # Verify the ISO timestamp can be correctly converted to Unix timestamp
+    parsed_dt = datetime.fromisoformat(response.scheduled_at.replace("Z", "+00:00"))
+    computed_unix = int(parsed_dt.timestamp())
     expected_unix = int(datetime(2025, 11, 27, 0, 15, 0, tzinfo=UTC).timestamp())
-    assert response.scheduled_at_unix == expected_unix
+    assert computed_unix == expected_unix
 
 
 @pytest.mark.asyncio
@@ -182,17 +184,18 @@ async def test_midnight_utc_not_offset(mock_get_resolver):
 
     response = await _build_game_response(game)
 
-    # Correct Unix timestamp for 00:15 UTC
-    expected_unix = int(datetime(2025, 11, 27, 0, 15, 0, tzinfo=UTC).timestamp())
-    assert response.scheduled_at_unix == expected_unix
-
     # Verify ISO format
     assert response.scheduled_at == "2025-11-27T00:15:00Z"
 
-    # Double-check: convert Unix timestamp back
-    reconstructed = datetime.fromtimestamp(response.scheduled_at_unix, tz=UTC)
-    assert reconstructed.hour == 0  # Should be midnight, not 8 AM
-    assert reconstructed.minute == 15
+    # Verify the ISO timestamp represents correct UTC time
+    parsed_dt = datetime.fromisoformat(response.scheduled_at.replace("Z", "+00:00"))
+    assert parsed_dt.hour == 0  # Should be midnight, not 8 AM
+    assert parsed_dt.minute == 15
+
+    # Verify Unix timestamp computation is correct
+    computed_unix = int(parsed_dt.timestamp())
+    expected_unix = int(datetime(2025, 11, 27, 0, 15, 0, tzinfo=UTC).timestamp())
+    assert computed_unix == expected_unix
 
 
 @pytest.mark.asyncio
@@ -254,9 +257,11 @@ async def test_various_times_consistent(mock_get_resolver):
         expected_iso = f"2025-11-27T{time_str}Z"
         assert response.scheduled_at == expected_iso
 
-        # Verify Unix timestamp
-        expected_unix = int(datetime(2025, 11, 27, hour, minute, second, tzinfo=UTC).timestamp())
-        assert response.scheduled_at_unix == expected_unix
-
         # Verify 'Z' suffix
         assert response.scheduled_at.endswith("Z")
+
+        # Verify ISO timestamp can be converted to correct Unix timestamp
+        parsed_dt = datetime.fromisoformat(response.scheduled_at.replace("Z", "+00:00"))
+        computed_unix = int(parsed_dt.timestamp())
+        expected_unix = int(datetime(2025, 11, 27, hour, minute, second, tzinfo=UTC).timestamp())
+        assert computed_unix == expected_unix

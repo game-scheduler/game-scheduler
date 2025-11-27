@@ -106,7 +106,6 @@ class TestGameCreatedEvent:
             channel_id="987654321",
             host_id="111222333",
             scheduled_at=scheduled_at,
-            scheduled_at_unix=int(scheduled_at.timestamp()),
             max_players=5,
         )
 
@@ -117,14 +116,15 @@ class TestGameCreatedEvent:
 
     def test_game_created_event_optional_max_players(self):
         """Test game created event without max players."""
+        scheduled_at = datetime.utcnow()
+
         event_data = GameCreatedEvent(
             game_id=uuid4(),
             title="Test Game",
             guild_id="123",
             channel_id="456",
             host_id="789",
-            scheduled_at=datetime.utcnow(),
-            scheduled_at_unix=12345,
+            scheduled_at=scheduled_at,
         )
 
         assert event_data.max_players is None
