@@ -470,16 +470,46 @@ Implement a complete Discord game scheduling system with microservices architect
   - Verify bot service is consuming and handling notification events
   - Test complete notification flow with actual game
 
-### [ ] Phase 13: Additional Functionality
+### [ ] Phase 13: Remove Async Operations from Scheduler Service
 
-- [ ] Task 13.1: Add game templates for recurring sessions
+- [ ] Task 13.1: Add synchronous database session factory
+
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2104-2125)
+
+- [ ] Task 13.2: Create synchronous RabbitMQ publisher
+
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2127-2148)
+
+- [ ] Task 13.3: Convert check_notifications task to synchronous
+
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2150-2174)
+
+- [ ] Task 13.4: Convert update_game_status task to synchronous
+
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2176-2198)
+
+- [ ] Task 13.5: Convert send_notification task to synchronous
+
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2200-2222)
+
+- [ ] Task 13.6: Convert NotificationService to synchronous
+
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2224-2244)
+
+- [ ] Task 13.7: Update dependencies and test scheduler service
+
+  - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2246-2270)
+
+### [ ] Phase 14: Additional Functionality
+
+- [ ] Task 14.1: Add game templates for recurring sessions
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1989-2007)
 
-- [ ] Task 13.2: Build calendar export functionality
+- [ ] Task 14.2: Build calendar export functionality
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2009-2027)
 
-- [ ] Task 13.3: Create statistics dashboard
+- [ ] Task 14.3: Create statistics dashboard
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2029-2044)

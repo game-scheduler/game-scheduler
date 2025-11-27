@@ -2106,9 +2106,201 @@ Diagnose and fix the notification system to ensure game reminders are sent to pa
   - Phase 2 completion (bot event handlers)
   - Docker compose services running (scheduler, bot, rabbitmq, redis)
 
-## Phase 13: Additional Functionality
+## Phase 13: Remove Async Operations from Scheduler Service
 
-### Task 13.1: Add game templates for recurring sessions
+### Task 13.1: Add synchronous database session factory
+
+Add synchronous SQLAlchemy session factory to shared/database.py for scheduler service use.
+
+- **Files**:
+  - shared/database.py - Add create_engine() and sync session factory
+  - pyproject.toml - Add psycopg2-binary dependency
+- **Implementation**:
+  - Add `create_engine()` alongside existing `create_async_engine()`
+  - Create `sync_sessionmaker` using `sessionmaker()` (not `async_sessionmaker`)
+  - Add `get_sync_db_session()` context manager function
+  - Keep async versions for API and Bot services unchanged
+  - Use postgresql+psycopg2:// connection string for sync engine
+  - Configure same pooling settings as async engine
+- **Success**:
+  - get_sync_db_session() context manager works correctly
+  - Synchronous Session can execute queries
+  - Both sync and async sessions coexist without conflicts
+  - psycopg2-binary installed in dependencies
+- **Research References**:
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 148-169) - Synchronous database alternative
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 251-277) - Migration strategy Phase 1
+- **Dependencies**:
+  - None - foundational change
+
+### Task 13.2: Create synchronous RabbitMQ publisher
+
+Create synchronous EventPublisher using pika library for scheduler service messaging.
+
+- **Files**:
+  - shared/messaging/sync_publisher.py - New synchronous publisher
+  - pyproject.toml - Verify pika dependency exists
+- **Implementation**:
+  - Create SyncEventPublisher class using pika (not aio_pika)
+  - Implement connect(), publish(), and close() methods (sync, no await)
+  - Use same exchange configuration as async EventPublisher
+  - Support same routing keys and message formats
+  - Add proper connection error handling and retries
+  - Keep async EventPublisher for API and Bot services
+- **Success**:
+  - SyncEventPublisher connects to RabbitMQ successfully
+  - Messages published to correct exchanges and routing keys
+  - Bot service receives messages from sync publisher
+  - Connection lifecycle managed correctly (connect/close)
+- **Research References**:
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 171-195) - Synchronous messaging alternative
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 279-290) - Migration strategy Phase 2
+- **Dependencies**:
+  - Task 13.1 completion not required (independent)
+
+### Task 13.3: Convert check_notifications task to synchronous
+
+Remove async/await from check_notifications task and use synchronous database/messaging.
+
+- **Files**:
+  - services/scheduler/tasks/check_notifications.py - Convert to sync
+- **Implementation**:
+  - Remove event loop wrapper pattern from task entry point
+  - Change task function from async def to def
+  - Remove all await keywords from function calls
+  - Replace async with context manager with regular with
+  - Use get_sync_db_session() instead of get_db_session()
+  - Use SyncEventPublisher instead of EventPublisher
+  - Remove asyncio imports
+  - Update all helper functions to be synchronous
+  - Change AsyncSession type hints to Session
+- **Success**:
+  - Task executes without event loop errors
+  - Database queries return correct results
+  - Notification events published successfully
+  - No async/await keywords remain in file
+  - Task execution time unchanged or improved
+- **Research References**:
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 197-219) - Celery task pattern changes
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 304-348) - Before/after example
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 292-302) - Migration strategy Phase 3
+- **Dependencies**:
+  - Task 13.1 (sync database session)
+  - Task 13.2 (sync publisher)
+
+### Task 13.4: Convert update_game_status task to synchronous
+
+Remove async/await from update_game_status task and use synchronous database/messaging.
+
+- **Files**:
+  - services/scheduler/tasks/update_game_status.py - Convert to sync
+- **Implementation**:
+  - Remove event loop wrapper pattern
+  - Convert all async functions to synchronous
+  - Replace await with direct function calls
+  - Use get_sync_db_session() for database operations
+  - Use SyncEventPublisher for event publishing
+  - Update type hints from AsyncSession to Session
+  - Remove asyncio imports
+- **Success**:
+  - Task executes without event loop errors
+  - Game status updates correctly in database
+  - Status change events published successfully
+  - No async/await keywords remain
+- **Research References**:
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 15-30) - Current anti-pattern
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 292-302) - Migration strategy Phase 3
+- **Dependencies**:
+  - Task 13.1 (sync database session)
+  - Task 13.2 (sync publisher)
+
+### Task 13.5: Convert send_notification task to synchronous
+
+Remove async/await from send_notification task and use synchronous database/messaging.
+
+- **Files**:
+  - services/scheduler/tasks/send_notification.py - Convert to sync
+- **Implementation**:
+  - Remove event loop wrapper pattern
+  - Convert task function to synchronous
+  - Use get_sync_db_session() for database lookups
+  - Call synchronous NotificationService.send_game_reminder()
+  - Remove all await keywords
+  - Update type hints to use Session
+  - Keep retry logic intact
+- **Success**:
+  - Task executes without event loop errors
+  - Database queries work correctly
+  - Notification service called successfully
+  - Retry logic still functions
+  - No async/await keywords remain
+- **Research References**:
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 32-43) - Current async pattern
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 292-302) - Migration strategy Phase 3
+- **Dependencies**:
+  - Task 13.1 (sync database session)
+  - Task 13.6 (sync NotificationService)
+
+### Task 13.6: Convert NotificationService to synchronous
+
+Convert NotificationService.send_game_reminder() method to synchronous implementation.
+
+- **Files**:
+  - services/scheduler/services/notification_service.py - Convert to sync
+- **Implementation**:
+  - Change send_game_reminder() from async def to def
+  - Remove await keywords
+  - Use SyncEventPublisher instead of EventPublisher
+  - Simplify connection lifecycle (connect/publish/close)
+  - Update any type hints
+  - Remove asyncio imports
+- **Success**:
+  - send_game_reminder() executes synchronously
+  - Events published to RabbitMQ successfully
+  - Bot service receives and processes events
+  - Connection management works correctly
+- **Research References**:
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 45-57) - Current async service
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 304-306) - Migration strategy Phase 4
+- **Dependencies**:
+  - Task 13.2 (sync publisher)
+
+### Task 13.7: Update dependencies and test scheduler service
+
+Update pyproject.toml dependencies and run comprehensive tests to verify synchronous refactor.
+
+- **Files**:
+  - pyproject.toml - Update dependencies
+  - tests/services/scheduler/ - All scheduler tests
+  - docker-compose.yml - Verify scheduler service config
+- **Implementation**:
+  - Ensure psycopg2-binary is in dependencies
+  - Ensure pika is in dependencies
+  - Keep asyncpg and aio_pika for other services
+  - Run pytest tests/services/scheduler/ -v
+  - Test check_notifications task end-to-end
+  - Test update_game_status task
+  - Test send_notification task
+  - Monitor logs for event loop errors
+  - Verify task execution times are similar or better
+  - Check RabbitMQ message delivery
+- **Success**:
+  - All scheduler unit tests pass
+  - Integration tests pass
+  - No event loop warnings or errors in logs
+  - Tasks execute successfully in Docker environment
+  - Notification flow works end-to-end
+  - No async/await keywords in services/scheduler/ directory
+  - Code complexity reduced (fewer lines, simpler patterns)
+- **Research References**:
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 308-320) - Migration strategy Phase 5
+  - #file:../research/20251126-scheduler-async-removal-research.md (Lines 322-368) - Success criteria and testing
+- **Dependencies**:
+  - All Phase 13 tasks complete
+
+## Phase 14: Additional Functionality
+
+### Task 14.1: Add game templates for recurring sessions
 
 Create template system for games that repeat weekly/monthly with same settings.
 
@@ -2127,7 +2319,7 @@ Create template system for games that repeat weekly/monthly with same settings.
 - **Dependencies**:
   - Phase 3 and 4 (API and frontend)
 
-### Task 13.2: Build calendar export functionality
+### Task 14.2: Build calendar export functionality
 
 Generate iCal format calendar files for users to import into their calendar apps.
 
@@ -2146,7 +2338,7 @@ Generate iCal format calendar files for users to import into their calendar apps
   - icalendar Python library
   - Task 3.5 (game API)
 
-### Task 13.3: Create statistics dashboard
+### Task 14.3: Create statistics dashboard
 
 Build dashboard showing game history, participation rates, and trends per guild/channel.
 
