@@ -539,3 +539,86 @@ Implement a complete Discord game scheduling system with microservices architect
 - [ ] Task 15.5: Remove scheduled_at_unix from schemas
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2481-2502)
+
+### [ ] Phase 16: Refactor Notification Architecture
+
+- [ ] Task 16.1: Add GAME_REMINDER_DUE event type and schema
+
+  - Add `EventType.GAME_REMINDER_DUE = "game.reminder_due"` to enum
+  - Create `GameReminderDueEvent` model with `game_id: UUID` and `reminder_minutes: int`
+  - Update event type unions to include new event
+  - Files: `shared/messaging/events.py`
+  - Research: .copilot-tracking/research/20251127-notification-architecture-refactor-research.md (Lines 80-86)
+
+- [ ] Task 16.2: Refactor scheduler to publish game-level events
+
+  - Remove participant iteration loop from check_notifications task
+  - Schedule one Celery task per game per reminder time (not per participant)
+  - Update Redis key format from `notification_sent:{game_id}_{user_id}_{reminder_min}` to `notification_sent:{game_id}_{reminder_min}`
+  - Remove participant loading from database query
+  - Files: `services/scheduler/tasks/check_notifications.py`
+  - Research: .copilot-tracking/research/20251127-notification-architecture-refactor-research.md (Lines 11-15, 106-130)
+
+- [ ] Task 16.3: Update scheduler notification task signature
+
+  - Rename `send_notification` task to `send_game_reminder_due`
+  - Change signature from `(user_id, game_id, ...)` to `(game_id, reminder_minutes)`
+  - Remove user lookup logic
+  - Publish `GAME_REMINDER_DUE` event instead of `NOTIFICATION_SEND_DM`
+  - Files: `services/scheduler/tasks/send_notification.py`
+  - Research: .copilot-tracking/research/20251127-notification-architecture-refactor-research.md (Lines 17-21)
+
+- [ ] Task 16.4: Simplify scheduler notification service
+
+  - Rename method to `send_game_reminder_due`
+  - Remove user-specific parameters (user_id, game_title, game_time_unix)
+  - Remove message formatting logic (bot will handle)
+  - Publish simple `GameReminderDueEvent` with only game_id and reminder_minutes
+  - Files: `services/scheduler/services/notification_service.py`
+  - Research: .copilot-tracking/research/20251127-notification-architecture-refactor-research.md (Lines 23-26)
+
+- [ ] Task 16.5: Implement bot handler for game reminder events
+
+  - Register `EventType.GAME_REMINDER_DUE` handler in bot event handlers
+  - Create `_handle_game_reminder_due(data)` method
+  - Query game with participants using existing `_get_game_with_participants` method
+  - Sort participants using existing `participant_sorting.sort_participants()` logic
+  - Filter to real participants with `user_id IS NOT NULL` (exclude placeholders)
+  - Determine active vs waitlist based on `max_players` (reuse existing logic)
+  - Send DM to each eligible participant with existing Discord error handling
+  - Format message similar to current format but using bot's formatting logic
+  - Files: `services/bot/events/handlers.py`
+  - Research: .copilot-tracking/research/20251127-notification-architecture-refactor-research.md (Lines 28-36, 395-405)
+
+- [ ] Task 16.6: Update notification tests
+
+  - Update scheduler tests to verify one task per game per reminder (not per participant)
+  - Add bot handler tests for GAME_REMINDER_DUE event
+  - Test participant filtering (real users vs placeholders)
+  - Test participant sorting (pre_filled_position and joined_at)
+  - Test active vs waitlist determination
+  - Add integration tests for end-to-end notification flow
+  - Files: `tests/services/scheduler/`, `tests/services/bot/`
+  - Research: .copilot-tracking/research/20251127-notification-architecture-refactor-research.md (Lines 289-295)
+
+- [ ] Task 16.7: Remove obsolete NOTIFICATION_SEND_DM event type
+
+  - Remove `EventType.NOTIFICATION_SEND_DM` from enum
+  - Remove `NotificationSendDMEvent` model class
+  - Remove from event type unions and handler registrations
+  - Clean up any remaining references in comments or documentation
+  - Files: `shared/messaging/events.py`, `services/bot/events/handlers.py`
+  - Research: .copilot-tracking/research/20251127-notification-architecture-refactor-research.md (Lines 297-312)
+
+**Phase 16 Success Criteria:**
+
+- Scheduler publishes one event per game per reminder time (90%+ reduction in messages)
+- Bot correctly identifies and filters placeholder participants
+- Bot correctly sorts participants by pre_filled_position then joined_at
+- Bot correctly determines active vs waitlist based on max_players
+- All eligible real participants receive notifications
+- Placeholder participants never receive notifications
+- Redis keys simplified to game-level tracking
+- All tests pass with new architecture
+- Obsolete event types removed from codebase
+- Research: .copilot-tracking/research/20251127-notification-architecture-refactor-research.md (Lines 297-312)
