@@ -123,7 +123,7 @@ class ParticipantResolver:
                         validation_errors.append(
                             {
                                 "input": input_text,
-                                "reason": "User not found in guild",
+                                "reason": "User not found in server",
                                 "suggestions": [],
                             }
                         )

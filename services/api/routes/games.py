@@ -103,7 +103,7 @@ async def create_game(
                 "message": "Some @mentions could not be resolved",
                 "invalid_mentions": e.invalid_mentions,
                 "valid_participants": e.valid_participants,
-                "form_data": game_data.model_dump(),
+                "form_data": game_data.model_dump(mode="json"),
             },
         ) from None
     except ValueError as e:
@@ -194,7 +194,7 @@ async def update_game(
                 "message": "Some @mentions could not be resolved",
                 "invalid_mentions": e.invalid_mentions,
                 "valid_participants": e.valid_participants,
-                "form_data": update_data.model_dump(),
+                "form_data": update_data.model_dump(mode="json"),
             },
         ) from None
     except ValueError as e:

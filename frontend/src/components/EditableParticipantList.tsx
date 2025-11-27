@@ -28,6 +28,9 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import ErrorIcon from '@mui/icons-material/Error';
 
 export interface ParticipantInput {
   id: string;
@@ -35,6 +38,7 @@ export interface ParticipantInput {
   preFillPosition: number;
   isExplicitlyPositioned?: boolean; // Track if user explicitly moved/added this participant
   isReadOnly?: boolean; // Joined participants can't be edited, only reordered/removed
+  validationStatus?: 'valid' | 'unknown' | 'invalid'; // Track validation state
 }
 
 interface EditableParticipantListProps {
@@ -51,7 +55,7 @@ export const EditableParticipantList: FC<EditableParticipantListProps> = ({
   const handleMentionChange = (id: string, newMention: string) => {
     onChange(
       participants.map((p) =>
-        p.id === id ? { ...p, mention: newMention } : p
+        p.id === id ? { ...p, mention: newMention, validationStatus: 'unknown' as const } : p
       )
     );
   };
@@ -62,6 +66,7 @@ export const EditableParticipantList: FC<EditableParticipantListProps> = ({
       mention: '',
       preFillPosition: participants.length + 1,
       isExplicitlyPositioned: true, // New participants are explicitly positioned
+      validationStatus: 'unknown',
     };
     onChange([...participants, newParticipant]);
   };
@@ -174,15 +179,26 @@ export const EditableParticipantList: FC<EditableParticipantListProps> = ({
               },
             }}
           >
-            <TextField
-              value={p.mention}
-              onChange={(e) => handleMentionChange(p.id, e.target.value)}
-              placeholder="@username or Discord user"
-              helperText={p.isReadOnly ? 'Joined player (can reorder or remove)' : undefined}
-              fullWidth
-              size="small"
-              disabled={p.isReadOnly}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
+              {p.validationStatus === 'valid' && (
+                <CheckCircleIcon color="success" fontSize="small" titleAccess="Validated" />
+              )}
+              {p.validationStatus === 'invalid' && (
+                <ErrorIcon color="error" fontSize="small" titleAccess="Validation failed" />
+              )}
+              {(!p.validationStatus || p.validationStatus === 'unknown') && (
+                <HelpOutlineIcon color="action" fontSize="small" titleAccess="Not validated" />
+              )}
+              <TextField
+                value={p.mention}
+                onChange={(e) => handleMentionChange(p.id, e.target.value)}
+                placeholder="@username or Discord user"
+                helperText={p.isReadOnly ? 'Joined player (can reorder or remove)' : undefined}
+                fullWidth
+                size="small"
+                disabled={p.isReadOnly}
+              />
+            </Box>
             <IconButton onClick={() => moveUp(index)} disabled={index === 0} size="small">
               <ArrowUpwardIcon />
             </IconButton>

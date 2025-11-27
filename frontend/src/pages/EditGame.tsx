@@ -54,8 +54,8 @@ export const EditGame: FC = () => {
     initialParticipants: [],
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[] | null>(null);
+  const [validParticipants, setValidParticipants] = useState<string[] | null>(null);
 
   useEffect(() => {
     const fetchGameAndChannels = async () => {
@@ -77,7 +77,7 @@ export const EditGame: FC = () => {
         });
       } catch (err: any) {
         console.error('Failed to fetch game:', err);
-        setError('Failed to load game. Please try again.');
+        // GameForm will display the error
       } finally {
         setLoading(false);
       }
@@ -110,7 +110,6 @@ export const EditGame: FC = () => {
 
     try {
       setValidationErrors(null);
-      setError(null);
 
       const payload = {
         title: formData.title,
@@ -126,10 +125,21 @@ export const EditGame: FC = () => {
         expected_duration_minutes: parseDurationString(formData.expectedDurationMinutes),
         participants: formData.participants
           .filter((p) => p.mention.trim() && p.isExplicitlyPositioned)
-          .map((p) => ({
-            mention: p.mention.trim(),
-            pre_filled_position: p.preFillPosition,
-          })),
+          .map((p) => {
+            // If participant has a real ID (not temp-), they're already validated
+            // Send their existing data structure rather than re-validating the mention
+            if (!p.id.startsWith('temp-')) {
+              return {
+                participant_id: p.id,
+                pre_filled_position: p.preFillPosition,
+              };
+            }
+            // New participants need to be validated
+            return {
+              mention: p.mention.trim(),
+              pre_filled_position: p.preFillPosition,
+            };
+          }),
         removed_participant_ids: removedParticipantIds,
       };
 
@@ -138,20 +148,22 @@ export const EditGame: FC = () => {
     } catch (err: any) {
       console.error('Failed to update game:', err);
 
-      if (err.response?.status === 422 && err.response.data?.error === 'invalid_mentions') {
-        const errorData = err.response.data as ValidationErrorResponse;
+      if (err.response?.status === 422 && err.response.data?.detail?.error === 'invalid_mentions') {
+        const errorData = err.response.data.detail as ValidationErrorResponse;
         setValidationErrors(errorData.invalid_mentions);
-        setError(errorData.message);
-      } else {
-        setError(err.response?.data?.detail || 'Failed to update game. Please try again.');
+        setValidParticipants(errorData.valid_participants);
+        // Don't throw - let form stay open for corrections
+        return;
       }
+      
+      // For other errors, let GameForm handle display
       throw err;
     }
   };
 
   const handleSuggestionClick = (_originalInput: string, _newUsername: string) => {
     setValidationErrors(null);
-    setError(null);
+    setValidParticipants(null);
   };
 
   if (loading) {
@@ -170,14 +182,6 @@ export const EditGame: FC = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Alert severity="error">{error}</Alert>
-      </Container>
-    );
-  }
-
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <GameForm
@@ -189,6 +193,7 @@ export const EditGame: FC = () => {
         onSubmit={handleSubmit}
         onCancel={() => navigate(`/games/${gameId}`)}
         validationErrors={validationErrors}
+        validParticipants={validParticipants}
         onValidationErrorClick={handleSuggestionClick}
       />
     </Container>

@@ -423,36 +423,65 @@ class GameService:
             )
             current_participants = current_prefilled.scalars().all()
 
-            # Remove all pre-filled participants
+            # Separate existing participants (by ID) from new mentions
+            existing_participant_ids = set()
+            mentions_with_positions = []
+
+            for participant_data in update_data.participants:
+                if participant_data.get("participant_id"):
+                    # Existing participant - keep track of it
+                    existing_participant_ids.add(participant_data["participant_id"])
+                elif participant_data.get("mention", "").strip():
+                    # New mention - needs validation
+                    mentions_with_positions.append(
+                        (
+                            participant_data["mention"],
+                            participant_data.get("pre_filled_position", 0),
+                        )
+                    )
+
+            # Remove only pre-filled participants that are NOT in the existing list
             for p in current_participants:
-                await self.db.delete(p)
+                if p.id not in existing_participant_ids:
+                    await self.db.delete(p)
+
+            # Update positions for existing participants
+            for participant_data in update_data.participants:
+                if participant_data.get("participant_id"):
+                    participant_id = participant_data["participant_id"]
+                    position = participant_data.get("pre_filled_position", 0)
+                    # Find and update this participant's position
+                    for p in current_participants:
+                        if p.id == participant_id:
+                            p.pre_filled_position = position
+                            break
+
             await self.db.flush()
 
-            # Add new pre-filled participants
-            for participant_data in update_data.participants:
-                mention = participant_data.get("mention", "")
-                position = participant_data.get("pre_filled_position", 0)
+            # Resolve and add new mentions
+            if mentions_with_positions:
+                mentions = [mention for mention, _ in mentions_with_positions]
 
-                if not mention.strip():
-                    continue
-
-                # Resolve participant
+                # Resolve all participants at once
                 (
                     valid_participants,
                     validation_errors,
                 ) = await self.participant_resolver.resolve_initial_participants(
                     game.guild.guild_id,
-                    [mention],
+                    mentions,
                     "",  # No access token needed for bot search
                 )
 
                 if validation_errors:
-                    error_reason = validation_errors[0].get("reason", "Unknown error")
-                    raise ValueError(f"Invalid participant mention: {mention} - {error_reason}")
+                    # Raise validation error with all form data
+                    raise resolver_module.ValidationError(
+                        invalid_mentions=validation_errors,
+                        valid_participants=[p["original_input"] for p in valid_participants],
+                    )
 
-                # Create participant record using same pattern as create_game
-                if valid_participants:
-                    p_data = valid_participants[0]
+                # Create participant records
+                for idx, p_data in enumerate(valid_participants):
+                    position = mentions_with_positions[idx][1]
                     if p_data["type"] == "discord":
                         user = await self.participant_resolver.ensure_user_exists(
                             self.db, p_data["discord_id"]

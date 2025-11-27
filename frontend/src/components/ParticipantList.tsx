@@ -28,17 +28,13 @@ import {
   Typography,
 } from '@mui/material';
 import { Participant } from '../types';
+import { formatParticipantDisplay } from '../utils/formatParticipant';
 
 interface ParticipantListProps {
   participants: Participant[];
   minPlayers?: number;
   maxPlayers?: number;
 }
-
-const formatDisplayName = (displayName: string | null): string => {
-  if (!displayName) return 'Unknown User';
-  return displayName.startsWith('@') ? displayName : `@${displayName}`;
-};
 
 export const ParticipantList: FC<ParticipantListProps> = ({
   participants,
@@ -79,7 +75,7 @@ export const ParticipantList: FC<ParticipantListProps> = ({
               <Avatar>{participant.display_name?.[0]?.toUpperCase() || '?'}</Avatar>
             </ListItemAvatar>
             <ListItemText
-              primary={formatDisplayName(participant.display_name)}
+              primary={formatParticipantDisplay(participant.display_name, participant.discord_id)}
               secondary={
                 participant.pre_filled_position !== null ? 'Added by host' : 'Joined via button'
               }
@@ -100,7 +96,7 @@ export const ParticipantList: FC<ParticipantListProps> = ({
                   <Avatar sx={{ bgcolor: 'warning.main' }}>{index + 1}</Avatar>
                 </ListItemAvatar>
                 <ListItemText
-                  primary={formatDisplayName(participant.display_name)}
+                  primary={formatParticipantDisplay(participant.display_name, participant.discord_id)}
                   secondary={
                     participant.pre_filled_position !== null ? 'Added by host' : 'Joined via button'
                   }

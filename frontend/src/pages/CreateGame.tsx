@@ -48,6 +48,7 @@ export const CreateGame: FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[] | null>(null);
+  const [validParticipants, setValidParticipants] = useState<string[] | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -108,19 +109,28 @@ export const CreateGame: FC = () => {
     } catch (err: any) {
       console.error('Failed to create game:', err);
 
-      if (err.response?.status === 422 && err.response.data?.error === 'invalid_mentions') {
-        const errorData = err.response.data as ValidationErrorResponse;
+      if (err.response?.status === 422 && err.response.data?.detail?.error === 'invalid_mentions') {
+        const errorData = err.response.data.detail as ValidationErrorResponse;
         setValidationErrors(errorData.invalid_mentions);
+        setValidParticipants(errorData.valid_participants);
         setError(errorData.message);
-      } else {
-        setError(err.response?.data?.detail || 'Failed to create game. Please try again.');
+        // Don't throw - let form stay open for corrections
+        return;
       }
+      
+      // Handle string detail or extract message from object
+      const errorDetail = err.response?.data?.detail;
+      const errorMessage = typeof errorDetail === 'string' 
+        ? errorDetail 
+        : errorDetail?.message || 'Failed to create game. Please try again.';
+      setError(errorMessage);
       throw err;
     }
   };
 
   const handleSuggestionClick = (_originalInput: string, _newUsername: string) => {
     setValidationErrors(null);
+    setValidParticipants(null);
     setError(null);
   };
 
@@ -150,6 +160,7 @@ export const CreateGame: FC = () => {
         onSubmit={handleSubmit}
         onCancel={() => navigate(-1)}
         validationErrors={validationErrors}
+        validParticipants={validParticipants}
         onValidationErrorClick={handleSuggestionClick}
       />
     </Container>
