@@ -7,8 +7,13 @@ WORKDIR /app
 COPY frontend/package*.json ./
 RUN npm ci --only=production=false
 
-# Copy source code
-COPY frontend/ ./
+# Copy source code and configuration files
+COPY frontend/src ./src
+COPY frontend/index.html ./
+COPY frontend/vite.config.ts ./
+COPY frontend/tsconfig.json ./
+COPY frontend/tsconfig.node.json ./
+COPY frontend/vitest.config.ts ./
 
 # Build the application
 RUN npm run build

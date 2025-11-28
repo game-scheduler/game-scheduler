@@ -1,0 +1,52 @@
+# Node modules (will be installed in container)
+**/node_modules/
+**/.pnp/
+**/.pnp.js
+
+# Build outputs (generated in container)
+**/dist/
+**/build/
+**/coverage/
+**/.next/
+**/.nuxt/
+**/.cache/
+
+# Environment files (use broad pattern)
+**/.env*
+!**/.env.example
+
+# IDE and OS files (comprehensive)
+**/.vscode/
+**/.idea/
+**/.fleet/
+**/.cursor/
+**/*.swp
+**/*.swo
+**/.DS_Store
+**/Thumbs.db
+
+# Git
+**/.git/
+**/.gitignore
+**/.gitattributes
+
+# Documentation (selective)
+**/*.md
+!**/README.md
+**/docs/
+
+# Test files (broad patterns)
+**/test/
+**/tests/
+**/__tests__/
+**/*.test.*
+**/*.spec.*
+**/.coverage/
+
+# Logs and temp (very broad)
+**/*.log*
+**/.tmp/
+**/.temp/
+**/tmp/
+**/*.tsbuildinfo
+**/*.cache
