@@ -14,7 +14,13 @@ Replacing polling-based notification scheduler with database-backed event-driven
 ### Added
 
 - alembic/versions/012_add_notification_schedule.py - Database migration creating notification_schedule table with UUID primary key, foreign key to game_sessions, unique constraint on (game_id, reminder_minutes), partial index for MIN() query performance, and PostgreSQL trigger for LISTEN/NOTIFY events
+- services/scheduler/postgres_listener.py - PostgreSQL LISTEN/NOTIFY client for event-driven scheduler wake-ups using psycopg2 with select() for timeout-based waiting, JSON payload parsing, and automatic reconnection
+- services/scheduler/schedule_queries.py - Database query functions for notification schedule management with get_next_due_notification() for MIN() query (processes overdue notifications for daemon recovery) and mark_notification_sent()
+- services/scheduler/notification_daemon.py - Main event-driven notification daemon using simplified single-notification pattern: queries for next unsent notification, processes immediately if due, or waits until due time, with PostgreSQL LISTEN/NOTIFY integration for instant wake-up on schedule changes, 5-minute periodic safety checks, and long-lived database session reuse for efficiency
+- shared/models/notification_schedule.py - SQLAlchemy model for notification_schedule table with relationships to GameSession and proper indexes
 
 ### Modified
+
+- shared/models/**init**.py - Added NotificationSchedule model to exports
 
 ### Removed

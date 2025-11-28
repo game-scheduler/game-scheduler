@@ -53,21 +53,21 @@ Replace polling-based notification scheduler with database-backed event-driven d
 - [x] Task 1.2: Add PostgreSQL trigger for LISTEN/NOTIFY
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 37-56)
 
-### [ ] Phase 2: Notification Daemon Core
+### [x] Phase 2: Notification Daemon Core
 
-- [ ] Task 2.1: Create PostgreSQL LISTEN/NOTIFY client
+- [x] Task 2.1: Create PostgreSQL LISTEN/NOTIFY client
 
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 58-78)
 
-- [ ] Task 2.2: Implement notification schedule queries
+- [x] Task 2.2: Implement notification schedule queries
 
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 80-99)
 
-- [ ] Task 2.3: Create main notification daemon loop
+- [x] Task 2.3: Create main notification daemon loop
 
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 101-123)
 
-- [ ] Task 2.4: Add daemon entry point and configuration
+- [x] Task 2.4: Add daemon entry point and configuration
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 125-144)
 
 ### [ ] Phase 3: API Integration

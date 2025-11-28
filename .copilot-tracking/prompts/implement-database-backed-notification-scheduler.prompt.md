@@ -2,7 +2,9 @@
 mode: agent
 model: Claude Sonnet 4.5
 ---
+
 <!-- markdownlint-disable-file -->
+
 # Implementation Prompt: Database-Backed Event-Driven Notification Scheduler
 
 ## Implementation Instructions
@@ -16,6 +18,7 @@ You WILL create `20251127-database-backed-notification-scheduler-changes.md` in 
 You WILL follow #file:../../.github/instructions/task-implementation.instructions.md
 You WILL systematically implement #file:../plans/20251127-database-backed-notification-scheduler-plan.instructions.md task-by-task
 You WILL follow ALL project standards and conventions:
+
 - #file:../../.github/instructions/python.instructions.md for all Python code
 - #file:../../.github/instructions/containerization-docker-best-practices.instructions.md for Docker files
 - #file:../../.github/instructions/self-explanatory-code-commenting.instructions.md for commenting style
@@ -27,12 +30,16 @@ You WILL follow ALL project standards and conventions:
 ### Step 3: Cleanup
 
 When ALL Phases are checked off (`[x]`) and completed you WILL do the following:
-  1. You WILL provide a markdown style link and a summary of all changes from #file:../changes/20251127-database-backed-notification-scheduler-changes.md to the user:
+
+1. You WILL provide a markdown style link and a summary of all changes from #file:../changes/20251127-database-backed-notification-scheduler-changes.md to the user:
+
+
     - You WILL keep the overall summary brief
     - You WILL add spacing around any lists
     - You MUST wrap any reference to a file in a markdown style link
-  2. You WILL provide markdown style links to .copilot-tracking/plans/20251127-database-backed-notification-scheduler-plan.instructions.md, .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md, and .copilot-tracking/research/20251127-database-backed-notification-scheduler-research.md documents. You WILL recommend cleaning these files up as well.
-  3. **MANDATORY**: You WILL attempt to delete .copilot-tracking/prompts/implement-database-backed-notification-scheduler.prompt.md
+
+2. You WILL provide markdown style links to .copilot-tracking/plans/20251127-database-backed-notification-scheduler-plan.instructions.md, .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md, and .copilot-tracking/research/20251127-database-backed-notification-scheduler-research.md documents. You WILL recommend cleaning these files up as well.
+3. **MANDATORY**: You WILL attempt to delete .copilot-tracking/prompts/implement-database-backed-notification-scheduler.prompt.md
 
 ## Success Criteria
 
