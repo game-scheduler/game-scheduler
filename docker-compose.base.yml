@@ -68,6 +68,24 @@ services:
     networks:
       - app-network
 
+  init:
+    build:
+      context: .
+      dockerfile: docker/init.Dockerfile
+    container_name: ${CONTAINER_PREFIX:-gamebot}-init
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: "no"
+
   bot:
     build:
       context: .
@@ -82,12 +100,8 @@ services:
     container_name: ${CONTAINER_PREFIX:-gamebot}-bot
     restart: ${RESTART_POLICY:-unless-stopped}
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      init:
+        condition: service_completed_successfully
     networks:
       - app-network
 
@@ -107,12 +121,8 @@ services:
     ports:
       - "${API_HOST_PORT:-8000}:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -136,12 +146,8 @@ services:
     restart: ${RESTART_POLICY:-unless-stopped}
     command: celery -A services.scheduler.celery_app:app worker --loglevel=info --pool=solo
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      init:
+        condition: service_completed_successfully
     networks:
       - app-network
 
@@ -160,12 +166,8 @@ services:
     restart: ${RESTART_POLICY:-unless-stopped}
     command: celery -A services.scheduler.celery_app:app beat --loglevel=info
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      init:
+        condition: service_completed_successfully
     networks:
       - app-network
 
@@ -183,10 +185,8 @@ services:
     container_name: ${CONTAINER_PREFIX:-gamebot}-notification-daemon
     restart: ${RESTART_POLICY:-unless-stopped}
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'python -m services.scheduler.notification_daemon' || exit 1"]
       interval: 30s

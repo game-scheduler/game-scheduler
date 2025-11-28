@@ -21,9 +21,9 @@ RUN uv pip install --system -e .
 COPY shared/ ./shared/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
-COPY docker/migrate-entrypoint.sh ./
+COPY docker/init-entrypoint.sh ./
 
 # Make entrypoint executable
-RUN chmod +x migrate-entrypoint.sh
+RUN chmod +x init-entrypoint.sh
 
-ENTRYPOINT ["./migrate-entrypoint.sh"]
+ENTRYPOINT ["./init-entrypoint.sh"]
