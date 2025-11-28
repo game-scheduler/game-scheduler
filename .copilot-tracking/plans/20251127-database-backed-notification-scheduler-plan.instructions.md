@@ -1,7 +1,9 @@
 ---
-applyTo: '.copilot-tracking/changes/20251127-database-backed-notification-scheduler-changes.md'
+applyTo: ".copilot-tracking/changes/20251127-database-backed-notification-scheduler-changes.md"
 ---
+
 <!-- markdownlint-disable-file -->
+
 # Task Checklist: Database-Backed Event-Driven Notification Scheduler
 
 ## Overview
@@ -19,6 +21,7 @@ Replace polling-based notification scheduler with database-backed event-driven d
 ## Research Summary
 
 ### Project Files
+
 - services/scheduler/tasks/check_notifications.py - Current polling implementation (to be replaced)
 - services/scheduler/tasks/send_notification.py - Celery task that publishes to RabbitMQ (to be replaced with direct publish)
 - services/scheduler/services/notification_service.py - RabbitMQ event publisher (reuse existing)
@@ -27,35 +30,41 @@ Replace polling-based notification scheduler with database-backed event-driven d
 - alembic/versions/011_add_expected_duration_minutes.py - Latest migration pattern reference
 
 ### External References
+
 - #file:../research/20251127-database-backed-notification-scheduler-research.md (Lines 1-411) - Complete architecture research
 - #fetch:"https://docs.celeryq.dev/en/stable/userguide/calling.html#eta-and-countdown" - Celery ETA limitations
 - #fetch:"https://www.postgresql.org/docs/current/sql-notify.html" - PostgreSQL LISTEN/NOTIFY documentation
 - #fetch:"https://www.postgresql.org/docs/current/sql-listen.html" - PostgreSQL LISTEN session management
 
 ### Standards References
+
 - #file:../../.github/instructions/python.instructions.md - Python coding conventions
 - #file:../../.github/instructions/self-explanatory-code-commenting.instructions.md - Commenting standards
 - #file:../../.github/instructions/taming-copilot.instructions.md - Code modification principles
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Database Schema and Migration
+### [x] Phase 1: Database Schema and Migration
 
-- [ ] Task 1.1: Create Alembic migration for notification_schedule table
+- [x] Task 1.1: Create Alembic migration for notification_schedule table
+
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 15-35)
 
-- [ ] Task 1.2: Add PostgreSQL trigger for LISTEN/NOTIFY
+- [x] Task 1.2: Add PostgreSQL trigger for LISTEN/NOTIFY
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 37-56)
 
 ### [ ] Phase 2: Notification Daemon Core
 
 - [ ] Task 2.1: Create PostgreSQL LISTEN/NOTIFY client
+
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 58-78)
 
 - [ ] Task 2.2: Implement notification schedule queries
+
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 80-99)
 
 - [ ] Task 2.3: Create main notification daemon loop
+
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 101-123)
 
 - [ ] Task 2.4: Add daemon entry point and configuration
@@ -64,9 +73,11 @@ Replace polling-based notification scheduler with database-backed event-driven d
 ### [ ] Phase 3: API Integration
 
 - [ ] Task 3.1: Add schedule population on game creation
+
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 146-165)
 
 - [ ] Task 3.2: Add schedule updates on game modification
+
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 167-186)
 
 - [ ] Task 3.3: Add schedule cleanup on game deletion
@@ -75,9 +86,11 @@ Replace polling-based notification scheduler with database-backed event-driven d
 ### [ ] Phase 4: Docker and Deployment
 
 - [ ] Task 4.1: Create notification daemon Docker entrypoint
+
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 206-221)
 
 - [ ] Task 4.2: Add daemon service to docker-compose.yml
+
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 223-242)
 
 - [ ] Task 4.3: Update scheduler Dockerfile for daemon
@@ -86,9 +99,11 @@ Replace polling-based notification scheduler with database-backed event-driven d
 ### [ ] Phase 5: Testing
 
 - [ ] Task 5.1: Create unit tests for daemon components
+
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 261-281)
 
 - [ ] Task 5.2: Create integration tests with PostgreSQL LISTEN/NOTIFY
+
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 283-302)
 
 - [ ] Task 5.3: Create end-to-end notification flow tests
@@ -97,9 +112,11 @@ Replace polling-based notification scheduler with database-backed event-driven d
 ### [ ] Phase 6: Cleanup and Documentation
 
 - [ ] Task 6.1: Remove old Celery notification tasks
+
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 325-342)
 
 - [ ] Task 6.2: Remove Redis deduplication code
+
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 344-358)
 
 - [ ] Task 6.3: Update documentation and README
