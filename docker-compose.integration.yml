@@ -1,0 +1,57 @@
+# Integration test environment configuration
+# Uses base service definitions from docker-compose.base.yml
+#
+# Usage: docker compose -f docker-compose.integration.yml --env-file .env.integration up --abort-on-container-exit
+#
+# Tests notification daemon and PostgreSQL LISTEN/NOTIFY without Discord
+
+include:
+  - docker-compose.base.yml
+
+services:
+  integration-tests:
+    build:
+      context: .
+      dockerfile: docker/test.Dockerfile
+    container_name: ${CONTAINER_PREFIX:-gamebot-integration}-tests
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      REDIS_URL: ${REDIS_URL}
+      TEST_ENVIRONMENT: ${TEST_ENVIRONMENT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: pytest tests/integration/test_notification_daemon.py -v --tb=short
+
+# Use tmpfs for test volumes (in-memory, fast, auto-cleanup)
+volumes:
+  postgres_data:
+    name: ${CONTAINER_PREFIX:-gamebot-integration}-postgres-data
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+  rabbitmq_data:
+    name: ${CONTAINER_PREFIX:-gamebot-integration}-rabbitmq-data
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+  redis_data:
+    name: ${CONTAINER_PREFIX:-gamebot-integration}-redis-data
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+
+networks:
+  app-network:
+    name: ${CONTAINER_PREFIX:-gamebot-integration}-test-network
+    driver: bridge

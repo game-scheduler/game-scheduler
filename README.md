@@ -36,7 +36,7 @@ cp .env.example .env
 3. Start all services:
 
 ```bash
-docker-compose up
+docker compose --env-file .env up
 ```
 
 4. Access services:
@@ -84,11 +84,11 @@ IMAGE_REGISTRY= IMAGE_TAG=dev docker buildx bake --push
 For local development (single platform, no push):
 
 ```bash
-# Regular docker-compose build (single platform)
-docker compose build
+# Regular docker compose build (single platform)
+docker compose --env-file .env build
 
 # Build for specific platform
-docker compose build --build-arg BUILDPLATFORM=linux/amd64
+docker compose --env-file .env build --build-arg BUILDPLATFORM=linux/amd64
 ```
 
 ### Environment Variables
@@ -107,13 +107,27 @@ Configure in `.env` file:
 ```
 .
 ├── services/
-│   ├── bot/          # Discord bot service
-│   ├── api/          # FastAPI web service
-│   └── scheduler/    # Celery scheduler service
-├── shared/           # Shared models and utilities
-├── docker/           # Dockerfiles for each service
-└── docker-compose.yml
+│   ├── bot/                    # Discord bot service
+│   ├── api/                    # FastAPI web service
+│   └── scheduler/              # Celery scheduler service
+├── shared/                     # Shared models and utilities
+├── docker/                     # Dockerfiles for each service
+├── docker-compose.base.yml     # Shared service definitions
+├── docker-compose.yml          # Development environment
+├── docker-compose.integration.yml  # Integration test environment
+└── docker-compose.e2e.yml      # E2E test environment
 ```
+
+## Docker Compose Architecture
+
+The project uses a layered Docker Compose structure to minimize duplication:
+
+- **`docker-compose.base.yml`**: Shared service definitions (images, healthchecks, dependencies)
+- **`docker-compose.yml`**: Development environment overrides (persistent volumes, exposed ports)
+- **`docker-compose.integration.yml`**: Integration test environment (postgres, rabbitmq, redis only)
+- **`docker-compose.e2e.yml`**: E2E test environment (full stack with Discord bot)
+
+This design ensures all environments stay in sync while allowing environment-specific configurations. See [TESTING_E2E.md](TESTING_E2E.md) for testing details.
 
 ## License
 

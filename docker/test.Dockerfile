@@ -26,12 +26,18 @@ COPY services/ ./services/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 COPY tests/ ./tests/
+COPY docker/test-entrypoint.sh ./
+
+# Make entrypoint executable
+RUN chmod +x test-entrypoint.sh
 
 # Create non-root user
 RUN addgroup --system testgroup && adduser --system --group testuser
 RUN chown -R testuser:testgroup /app
 
 USER testuser
+
+ENTRYPOINT ["./test-entrypoint.sh"]
 
 # Default command runs integration tests
 CMD ["pytest", "tests/integration/", "-v"]

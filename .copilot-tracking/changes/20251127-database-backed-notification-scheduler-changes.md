@@ -39,6 +39,11 @@ Replacing polling-based notification scheduler with database-backed event-driven
 - docker/test.Dockerfile - Created dedicated test image for integration tests with pytest, pytest-asyncio, pytest-cov, and all dev dependencies
 - docker-compose.yml - Added integration-tests service with test profile for running integration tests in Docker with proper service dependencies and health checks
 - .dockerignore - Commented out tests/ exclusion to allow integration tests in Docker build context
+- docker-compose.test.yml - Created isolated test environment with separate PostgreSQL (port 5433), RabbitMQ (port 5673), and Redis (port 6380) instances using tmpfs for performance, test-specific environment variables, profiles for integration vs e2e tests, and dedicated bot-test and notification-daemon-test services for end-to-end testing
+- scripts/run-integration-tests.sh - Helper script to run integration tests in isolated Docker environment with automatic cleanup
+- scripts/run-e2e-tests.sh - Helper script to run end-to-end tests requiring test Discord bot and guild setup with validation of required environment variables
+- TESTING_E2E.md - Comprehensive guide for setting up test Discord bot and guild for end-to-end notification tests with step-by-step instructions, environment variable configuration, troubleshooting tips, and CI/CD integration guidance
+- .gitignore - Added .env.test to prevent committing test Discord credentials
 
 ### Removed
 

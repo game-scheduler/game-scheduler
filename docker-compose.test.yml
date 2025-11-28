@@ -1,0 +1,92 @@
+# Test environment configuration  
+# Uses base service definitions from docker-compose.base.yml
+#
+# Usage: 
+#   Integration tests: docker compose -f docker-compose.test.yml --env-file .env.integration --profile integration up
+#   E2E tests:        docker compose -f docker-compose.test.yml --env-file .env.e2e --profile e2e up
+#
+# This file only defines environment-specific overrides:
+# - tmpfs volumes (in-memory, fast, ephemeral) 
+# - Named network implementation
+# - Test-specific services and profiles
+
+include:
+  - docker-compose.base.yml
+
+services:
+  integration-tests:
+    build:
+      context: .
+      dockerfile: docker/test.Dockerfile
+    container_name: ${CONTAINER_PREFIX:-gamebot-test}-integration
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      REDIS_URL: ${REDIS_URL}
+      TEST_ENVIRONMENT: ${TEST_ENVIRONMENT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: pytest tests/integration/test_notification_daemon.py -v --tb=short
+    profiles:
+      - integration
+
+  e2e-tests:
+    build:
+      context: .
+      dockerfile: docker/test.Dockerfile
+    container_name: ${CONTAINER_PREFIX:-gamebot-test}-e2e
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      REDIS_URL: ${REDIS_URL}
+      TEST_DISCORD_TOKEN: ${TEST_DISCORD_TOKEN}
+      TEST_DISCORD_GUILD_ID: ${TEST_DISCORD_GUILD_ID}
+      TEST_DISCORD_CHANNEL_ID: ${TEST_DISCORD_CHANNEL_ID}
+      TEST_DISCORD_USER_ID: ${TEST_DISCORD_USER_ID}
+      TEST_ENVIRONMENT: ${TEST_ENVIRONMENT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      bot:
+        condition: service_started
+      notification-daemon:
+        condition: service_started
+    networks:
+      - app-network
+    command: pytest tests/integration/test_notification_flow_e2e.py -v --tb=short
+    profiles:
+      - e2e
+
+# Use tmpfs for test volumes (in-memory, fast, auto-cleanup)
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+  rabbitmq_data:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+  redis_data:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+
+networks:
+  app-network:
+    name: ${CONTAINER_PREFIX:-gamebot-test}-network
+    driver: bridge
