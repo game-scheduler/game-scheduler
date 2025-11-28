@@ -98,7 +98,7 @@ Replace polling-based notification scheduler with database-backed event-driven d
 
 ### [ ] Phase 5: Testing
 
-- [ ] Task 5.1: Create unit tests for daemon components
+- [x] Task 5.1: Create unit tests for daemon components
 
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 261-281)
 

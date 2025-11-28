@@ -35,9 +35,9 @@
 !**/README.md
 **/docs/
 
-# Test files (broad patterns)
+# Test files (broad patterns) - but allow tests/ for integration testing
 **/test/
-**/tests/
+# **/tests/  # Commented out to allow integration tests in Docker
 **/__tests__/
 **/*.test.*
 **/*.spec.*

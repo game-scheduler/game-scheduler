@@ -217,6 +217,29 @@ services:
       timeout: 3s
       retries: 3
 
+  integration-tests:
+    build:
+      context: .
+      dockerfile: docker/test.Dockerfile
+    container_name: gamebot-integration-tests
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gamebot}:${POSTGRES_PASSWORD:-dev_password_change_in_prod}@postgres:5432/${POSTGRES_DB:-game_scheduler}
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-gamebot}:${RABBITMQ_DEFAULT_PASS:-dev_password_change_in_prod}@rabbitmq:5672/
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - gamebot-network
+    command: pytest tests/integration/test_notification_daemon.py -v
+    profiles:
+      - test
+
 volumes:
   postgres_data:
   rabbitmq_data:
