@@ -24,6 +24,7 @@ FROM python:3.11-slim AS production
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     postgresql-client \
+    procps \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -35,6 +36,12 @@ COPY --from=base /usr/local/bin /usr/local/bin
 # Copy application code
 COPY shared/ ./shared/
 COPY services/scheduler/ ./services/scheduler/
+COPY alembic/ ./alembic/
+COPY alembic.ini ./
+
+# Copy entrypoint scripts
+COPY docker/notification-daemon-entrypoint.sh ./docker/notification-daemon-entrypoint.sh
+RUN chmod +x ./docker/notification-daemon-entrypoint.sh
 
 # Create non-root user
 RUN addgroup --system appgroup && adduser --system --group appuser

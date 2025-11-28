@@ -163,6 +163,35 @@ services:
     networks:
       - gamebot-network
 
+  notification-daemon:
+    image: ${IMAGE_REGISTRY:-}game-scheduler-scheduler:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: docker/scheduler.Dockerfile
+      tags:
+        - ${IMAGE_REGISTRY:-}game-scheduler-scheduler:${IMAGE_TAG:-latest}
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    container_name: gamebot-notification-daemon
+    env_file:
+      - .env
+    entrypoint: ["/app/docker/notification-daemon-entrypoint.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - gamebot-network
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'python -m services.scheduler.notification_daemon' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   frontend:
     image: ${IMAGE_REGISTRY:-}game-scheduler-frontend:${IMAGE_TAG:-latest}
     build:

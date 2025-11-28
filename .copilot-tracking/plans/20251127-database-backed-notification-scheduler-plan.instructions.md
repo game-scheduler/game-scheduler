@@ -83,17 +83,17 @@ Replace polling-based notification scheduler with database-backed event-driven d
 - [x] Task 3.3: Add schedule cleanup on game deletion
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 188-204)
 
-### [ ] Phase 4: Docker and Deployment
+### [x] Phase 4: Docker and Deployment
 
-- [ ] Task 4.1: Create notification daemon Docker entrypoint
+- [x] Task 4.1: Create notification daemon Docker entrypoint
 
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 206-221)
 
-- [ ] Task 4.2: Add daemon service to docker-compose.yml
+- [x] Task 4.2: Add daemon service to docker-compose.yml
 
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 223-242)
 
-- [ ] Task 4.3: Update scheduler Dockerfile for daemon
+- [x] Task 4.3: Update scheduler Dockerfile for daemon
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 244-259)
 
 ### [ ] Phase 5: Testing

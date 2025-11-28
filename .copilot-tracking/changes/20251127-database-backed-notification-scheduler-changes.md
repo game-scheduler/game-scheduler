@@ -20,10 +20,13 @@ Replacing polling-based notification scheduler with database-backed event-driven
 - shared/models/notification_schedule.py - SQLAlchemy model for notification_schedule table with relationships to GameSession and proper indexes
 - services/api/services/notification_schedule.py - Notification schedule management service with populate_schedule() for game creation, update_schedule() for game modification, and clear_schedule() for manual cleanup
 - tests/services/api/services/test_notification_schedule.py - Unit tests for notification schedule service with mocked database sessions, verifying schedule population, updates, and edge cases
+- docker/notification-daemon-entrypoint.sh - Docker entrypoint script for notification daemon that runs Alembic migrations before starting the daemon process
 
 ### Modified
 
 - shared/models/**init**.py - Added NotificationSchedule model to exports
 - services/api/services/games.py - Integrated notification schedule management: populate_schedule() called after game creation with resolved reminder_minutes, update_schedule() called when scheduled_at or reminder_minutes changes in update_game()
+- docker-compose.yml - Added notification-daemon service using scheduler image with custom entrypoint, depends on postgres and rabbitmq, includes healthcheck with pgrep
+- docker/scheduler.Dockerfile - Added procps package for process monitoring, copied alembic files and alembic.ini for migrations, copied notification-daemon-entrypoint.sh with executable permissions
 
 ### Removed
