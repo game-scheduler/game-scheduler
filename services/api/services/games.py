@@ -33,6 +33,7 @@ from sqlalchemy.orm import selectinload
 
 from services.api.auth import discord_client as discord_client_module
 from services.api.services import config as config_service
+from services.api.services import notification_schedule as notification_schedule_service
 from services.api.services import participant_resolver as resolver_module
 from shared.messaging import events as messaging_events
 from shared.messaging import publisher as messaging_publisher
@@ -217,6 +218,10 @@ class GameService:
                 )
             self.db.add(participant)
 
+        # Populate notification schedule
+        schedule_service = notification_schedule_service.NotificationScheduleService(self.db)
+        await schedule_service.populate_schedule(game, resolved_reminder_minutes)
+
         await self.db.commit()
 
         # Reload game with relationships
@@ -367,6 +372,11 @@ class GameService:
             if p.user is not None
         }
 
+        # Track if notification schedule needs updating
+        schedule_needs_update = False
+        old_scheduled_at = game.scheduled_at
+        old_reminder_minutes = game.reminder_minutes
+
         # Update fields
         if update_data.title is not None:
             game.title = update_data.title
@@ -383,12 +393,14 @@ class GameService:
             else:
                 # Already naive, assume UTC
                 game.scheduled_at = update_data.scheduled_at
+            schedule_needs_update = True
         if update_data.max_players is not None:
             game.max_players = update_data.max_players
         if update_data.min_players is not None:
             game.min_players = update_data.min_players
         if update_data.reminder_minutes is not None:
             game.reminder_minutes = update_data.reminder_minutes
+            schedule_needs_update = True
         if update_data.expected_duration_minutes is not None:
             game.expected_duration_minutes = update_data.expected_duration_minutes
         if update_data.notify_role_ids is not None:
@@ -513,6 +525,19 @@ class GameService:
                 "Minimum players cannot be greater than maximum players "
                 f"(min: {game.min_players}, max: {game.max_players})"
             )
+
+        # Update notification schedule if scheduled_at or reminder_minutes changed
+        if schedule_needs_update:
+            # Resolve reminder_minutes using inheritance if not set on game
+            resolver = config_service.SettingsResolver()
+            reminder_minutes = resolver.resolve_reminder_minutes(
+                game=game,
+                channel=game.channel,
+                guild=game.guild,
+            )
+
+            schedule_service = notification_schedule_service.NotificationScheduleService(self.db)
+            await schedule_service.update_schedule(game, reminder_minutes)
 
         await self.db.commit()
         await self.db.refresh(game)

@@ -70,17 +70,17 @@ Replace polling-based notification scheduler with database-backed event-driven d
 - [x] Task 2.4: Add daemon entry point and configuration
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 125-144)
 
-### [ ] Phase 3: API Integration
+### [x] Phase 3: API Integration
 
-- [ ] Task 3.1: Add schedule population on game creation
+- [x] Task 3.1: Add schedule population on game creation
 
-  - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 146-165)
+  - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 15-35)
 
-- [ ] Task 3.2: Add schedule updates on game modification
+- [x] Task 3.2: Add schedule updates on game modification
 
-  - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 167-186)
+  - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 37-56)
 
-- [ ] Task 3.3: Add schedule cleanup on game deletion
+- [x] Task 3.3: Add schedule cleanup on game deletion
   - Details: .copilot-tracking/details/20251127-database-backed-notification-scheduler-details.md (Lines 188-204)
 
 ### [ ] Phase 4: Docker and Deployment
