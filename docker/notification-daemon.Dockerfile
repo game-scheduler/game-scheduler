@@ -1,4 +1,4 @@
-# Multi-stage build for Celery Scheduler Service
+# Multi-stage build for Notification Daemon Service
 FROM python:3.11-slim AS base
 
 # Install system dependencies
@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir uv
 # Copy dependency files
 COPY pyproject.toml ./
 
-# Install Python dependencies
+# Install Python dependencies using project configuration
 RUN uv pip install --system .
 
 # Production stage
@@ -35,7 +35,10 @@ COPY --from=base /usr/local/bin /usr/local/bin
 
 # Copy application code
 COPY shared/ ./shared/
-COPY services/scheduler/ ./services/scheduler/
+COPY services/scheduler/notification_daemon.py ./services/scheduler/notification_daemon.py
+COPY services/scheduler/postgres_listener.py ./services/scheduler/postgres_listener.py
+COPY services/scheduler/schedule_queries.py ./services/scheduler/schedule_queries.py
+COPY services/scheduler/__init__.py ./services/scheduler/__init__.py
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 
@@ -45,8 +48,4 @@ RUN chown -R appuser:appgroup /app
 
 USER appuser
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD celery -A services.scheduler.celery_app:app inspect ping || exit 1
-
-CMD ["celery", "-A", "services.scheduler.celery_app:app", "worker", "--loglevel=info", "--pool=solo"]
+CMD ["python", "-m", "services.scheduler.notification_daemon"]

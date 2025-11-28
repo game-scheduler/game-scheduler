@@ -26,15 +26,20 @@ from sqlalchemy import create_engine as create_sync_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/game_scheduler"
+# Base PostgreSQL URL without driver specification
+BASE_DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/game_scheduler"
 )
 
-# Synchronous database URL for scheduler service (replace asyncpg with psycopg2)
-SYNC_DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg", "postgresql+psycopg2")
+# Build driver-specific URLs by adding driver to base URL
+ASYNC_DATABASE_URL = BASE_DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+SYNC_DATABASE_URL = BASE_DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://")
+
+# For backward compatibility - services importing DATABASE_URL get async version
+DATABASE_URL = ASYNC_DATABASE_URL
 
 # Async engine for API and Bot services
-engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+engine = create_async_engine(ASYNC_DATABASE_URL, echo=False, pool_pre_ping=True)
 
 # Sync engine for Scheduler service
 sync_engine = create_sync_engine(SYNC_DATABASE_URL, echo=False, pool_pre_ping=True)

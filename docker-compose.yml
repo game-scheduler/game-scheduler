@@ -164,12 +164,12 @@ services:
       - gamebot-network
 
   notification-daemon:
-    image: ${IMAGE_REGISTRY:-}game-scheduler-scheduler:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-}game-scheduler-notification-daemon:${IMAGE_TAG:-latest}
     build:
       context: .
-      dockerfile: docker/scheduler.Dockerfile
+      dockerfile: docker/notification-daemon.Dockerfile
       tags:
-        - ${IMAGE_REGISTRY:-}game-scheduler-scheduler:${IMAGE_TAG:-latest}
+        - ${IMAGE_REGISTRY:-}game-scheduler-notification-daemon:${IMAGE_TAG:-latest}
       x-bake:
         platforms:
           - linux/amd64
@@ -177,7 +177,6 @@ services:
     container_name: gamebot-notification-daemon
     env_file:
       - .env
-    entrypoint: ["/app/docker/notification-daemon-entrypoint.sh"]
     depends_on:
       postgres:
         condition: service_healthy

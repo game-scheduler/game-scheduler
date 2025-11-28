@@ -48,7 +48,7 @@ class PostgresNotificationListener:
         Initialize listener with database URL.
 
         Args:
-            database_url: PostgreSQL connection string (psycopg2 format)
+            database_url: PostgreSQL connection string (plain format without driver specifier)
         """
         self.database_url = database_url
         self.conn: psycopg2.extensions.connection | None = None
