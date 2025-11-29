@@ -63,20 +63,24 @@ def format_discord_timestamp(dt: datetime, style: str = "F") -> str:
 def format_participant_list(
     participant_ids: list[str], max_display: int = 10, include_count: bool = True
 ) -> str:
-    """Format a list of participants using Discord mentions.
+    """Format a list of participants using Discord mentions or placeholder names.
 
     Args:
-        participant_ids: List of Discord user IDs
+        participant_ids: List of Discord user IDs or placeholder names
         max_display: Maximum number of participants to display
         include_count: Whether to include total count if truncated
 
     Returns:
-        Formatted participant list with Discord mentions
+        Formatted participant list with Discord mentions and/or placeholder names
     """
     if not participant_ids:
         return "No participants yet"
 
-    mentions = [format_discord_mention(uid) for uid in participant_ids[:max_display]]
+    # Format each participant: Discord mention for IDs, plain text for placeholders
+    mentions = [
+        uid if not uid.isdigit() else format_discord_mention(uid)
+        for uid in participant_ids[:max_display]
+    ]
     result = "\n".join(mentions)
 
     if len(participant_ids) > max_display and include_count:

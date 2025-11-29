@@ -85,33 +85,33 @@ class GameMessageFormatter:
             truncated_description = description[:97] + "..."
 
         embed = discord.Embed(
-            title=f"{status_emoji} {game_title}",
+            title=game_title,
             description=truncated_description,
             color=GameMessageFormatter._get_status_color(status),
             timestamp=scheduled_at,
         )
 
         embed.add_field(
-            name="📅 When",
+            name="When",
             value=f"{format_discord_timestamp(scheduled_at, 'F')}\n"
             f"({format_discord_timestamp(scheduled_at, 'R')})",
             inline=False,
         )
 
-        embed.add_field(name="👥 Players", value=f"{current_count}/{max_players}", inline=True)
+        embed.add_field(name="Players", value=f"{current_count}/{max_players}", inline=True)
 
-        embed.add_field(name="🎯 Host", value=format_discord_mention(host_id), inline=True)
+        embed.add_field(name="Host", value=format_discord_mention(host_id), inline=True)
 
         if expected_duration_minutes:
             duration_text = format_duration(expected_duration_minutes)
-            embed.add_field(name="⏱️ Duration", value=duration_text, inline=True)
+            embed.add_field(name="Duration", value=duration_text, inline=True)
 
         if channel_id:
-            embed.add_field(name="📍 Voice Channel", value=f"<#{channel_id}>", inline=True)
+            embed.add_field(name="Voice Channel", value=f"<#{channel_id}>", inline=True)
 
         if participant_ids:
             embed.add_field(
-                name="✅ Participants",
+                name="Participants",
                 value=format_participant_list(participant_ids, max_display=15),
                 inline=False,
             )
@@ -119,14 +119,14 @@ class GameMessageFormatter:
         if overflow_ids:
             overflow_text = format_participant_list(overflow_ids, max_display=10)
             embed.add_field(
-                name=f"🎫 Waitlist ({len(overflow_ids)})",
+                name=f"Waitlist ({len(overflow_ids)})",
                 value=overflow_text,
                 inline=False,
             )
 
         if signup_instructions:
             embed.add_field(
-                name="ℹ️ Signup Instructions",
+                name="Signup Instructions",
                 value=signup_instructions[:400]
                 if len(signup_instructions) > 400
                 else signup_instructions,

@@ -160,32 +160,7 @@ class EventHandlers:
                     logger.error(f"Game not found: {game_id}")
                     return
 
-                all_participants = [p for p in game.participants if p.user_id and p.user]
-                sorted_participants = participant_sorting.sort_participants(all_participants)
-
-                max_players = game.max_players or 10
-                confirmed_participants = sorted_participants[:max_players]
-                overflow_participants = sorted_participants[max_players:]
-
-                # Extract Discord IDs for display
-                confirmed_ids = [p.user.discord_id for p in confirmed_participants]
-                overflow_ids = [p.user.discord_id for p in overflow_participants]
-
-                content, embed, view = format_game_announcement(
-                    game_id=str(game.id),
-                    game_title=game.title,
-                    description=game.description,
-                    scheduled_at=game.scheduled_at,
-                    host_id=game.host.discord_id,
-                    participant_ids=confirmed_ids,
-                    overflow_ids=overflow_ids,
-                    current_count=len(confirmed_participants),
-                    max_players=max_players,
-                    status=game.status,
-                    signup_instructions=game.signup_instructions,
-                    expected_duration_minutes=game.expected_duration_minutes,
-                    notify_role_ids=game.notify_role_ids,
-                )
+                content, embed, view = self._create_game_announcement(game)
 
                 message = await channel.send(content=content, embed=embed, view=view)
 
@@ -289,32 +264,7 @@ class EventHandlers:
                     logger.warning(f"Message not found: {game.message_id}")
                     return
 
-                all_participants = [p for p in game.participants if p.user_id and p.user]
-                sorted_participants = participant_sorting.sort_participants(all_participants)
-
-                max_players = game.max_players or 10
-                confirmed_participants = sorted_participants[:max_players]
-                overflow_participants = sorted_participants[max_players:]
-
-                # Extract Discord IDs for display
-                confirmed_ids = [p.user.discord_id for p in confirmed_participants]
-                overflow_ids = [p.user.discord_id for p in overflow_participants]
-
-                content, embed, view = format_game_announcement(
-                    game_id=str(game.id),
-                    game_title=game.title,
-                    description=game.description,
-                    scheduled_at=game.scheduled_at,
-                    host_id=game.host.discord_id,
-                    participant_ids=confirmed_ids,
-                    overflow_ids=overflow_ids,
-                    current_count=len(confirmed_participants),
-                    max_players=max_players,
-                    status=game.status,
-                    signup_instructions=game.signup_instructions,
-                    expected_duration_minutes=game.expected_duration_minutes,
-                    notify_role_ids=game.notify_role_ids,
-                )
+                content, embed, view = self._create_game_announcement(game)
 
                 await message.edit(content=content, embed=embed, view=view)
 
@@ -438,6 +388,44 @@ class EventHandlers:
                 exc_info=True,
             )
 
+    async def _send_dm(self, user_discord_id: str, message: str) -> bool:
+        """
+        Send DM to a Discord user with consistent error handling.
+
+        Args:
+            user_discord_id: Discord user ID (snowflake string)
+            message: Message content to send
+
+        Returns:
+            True if message sent successfully, False otherwise
+        """
+        try:
+            user = await self.bot.fetch_user(int(user_discord_id))
+
+            if not user:
+                logger.error(f"User not found in Discord: {user_discord_id}")
+                return False
+
+            await user.send(message)
+            logger.debug(f"✓ Sent DM to {user_discord_id}")
+            return True
+
+        except discord.Forbidden:
+            logger.warning(f"Cannot send DM to user {user_discord_id}: DMs disabled or bot blocked")
+            return False
+        except discord.HTTPException as e:
+            logger.error(
+                f"Discord HTTP error sending DM to {user_discord_id}: {e}",
+                exc_info=True,
+            )
+            return False
+        except Exception as e:
+            logger.error(
+                f"Failed to send DM to {user_discord_id}: {e}",
+                exc_info=True,
+            )
+            return False
+
     async def _send_reminder_dm(
         self,
         user_discord_id: str,
@@ -456,35 +444,9 @@ class EventHandlers:
             reminder_minutes: Minutes before game
             is_waitlist: Whether participant is on waitlist
         """
-        try:
-            logger.debug(f"Fetching Discord user: {user_discord_id}")
-            user = await self.bot.fetch_user(int(user_discord_id))
-
-            if not user:
-                logger.error(f"User not found in Discord: {user_discord_id}")
-                return
-
-            # Format message with waitlist indicator if applicable
-            waitlist_prefix = "🎫 **[Waitlist]** " if is_waitlist else ""
-            message = f"{waitlist_prefix}Your game '{game_title}' starts <t:{game_time_unix}:R>"
-
-            logger.debug(f"Sending DM to {user.name}: {message}")
-            await user.send(message)
-
-            logger.debug(f"✓ Sent reminder DM to {user_discord_id}")
-
-        except discord.Forbidden:
-            logger.warning(f"Cannot send DM to user {user_discord_id}: DMs disabled or bot blocked")
-        except discord.HTTPException as e:
-            logger.error(
-                f"Discord HTTP error sending notification to {user_discord_id}: {e}",
-                exc_info=True,
-            )
-        except Exception as e:
-            logger.error(
-                f"Failed to send notification to {user_discord_id}: {e}",
-                exc_info=True,
-            )
+        waitlist_prefix = "🎫 **[Waitlist]** " if is_waitlist else ""
+        message = f"{waitlist_prefix}Your game '{game_title}' starts <t:{game_time_unix}:R>"
+        await self._send_dm(user_discord_id, message)
 
     async def _handle_send_notification(self, data: dict[str, Any]) -> None:
         """
@@ -505,37 +467,12 @@ class EventHandlers:
             logger.error(f"Invalid notification event data: {e}", exc_info=True)
             return
 
-        try:
-            logger.info(f"Fetching Discord user with ID: {notification.user_id}")
-            user = await self.bot.fetch_user(int(notification.user_id))
+        success = await self._send_dm(notification.user_id, notification.message)
 
-            if not user:
-                logger.error(f"User not found in Discord: {notification.user_id}")
-                return
-
-            logger.info(f"Found user: {user.name}#{user.discriminator}")
-            logger.info(f"Sending DM with message: {notification.message}")
-
-            await user.send(notification.message)
-
+        if success:
             logger.info(
                 f"✓ Successfully sent notification DM: user={notification.user_id}, "
                 f"game={notification.game_id}, type={notification.notification_type}"
-            )
-
-        except discord.Forbidden:
-            logger.warning(
-                f"Cannot send DM to user {notification.user_id}: DMs disabled or bot blocked"
-            )
-        except discord.HTTPException as e:
-            logger.error(
-                f"Discord HTTP error sending notification to {notification.user_id}: {e}",
-                exc_info=True,
-            )
-        except Exception as e:
-            logger.error(
-                f"Failed to send notification to {notification.user_id}: {e}",
-                exc_info=True,
             )
 
     async def _handle_player_removed(self, data: dict[str, Any]) -> None:
@@ -572,32 +509,7 @@ class EventHandlers:
                 try:
                     message = await channel.fetch_message(int(message_id))
 
-                    all_participants = [p for p in game.participants if p.user_id and p.user]
-                    sorted_participants = participant_sorting.sort_participants(all_participants)
-
-                    max_players = game.max_players or 10
-                    confirmed_participants = sorted_participants[:max_players]
-                    overflow_participants = sorted_participants[max_players:]
-
-                    confirmed_ids = [p.user.discord_id for p in confirmed_participants]
-                    overflow_ids = [p.user.discord_id for p in overflow_participants]
-
-                    content, embed, view = format_game_announcement(
-                        game_id=game_id,
-                        game_title=game.title,
-                        description=game.description,
-                        scheduled_at=game.scheduled_at,
-                        host_id=game.host.discord_id,
-                        participant_ids=confirmed_ids,
-                        overflow_ids=overflow_ids,
-                        current_count=len(confirmed_participants),
-                        max_players=max_players,
-                        status=game.status,
-                        channel_id=None,
-                        signup_instructions=game.signup_instructions,
-                        expected_duration_minutes=game.expected_duration_minutes,
-                        notify_role_ids=game.notify_role_ids or [],
-                    )
+                    content, embed, view = self._create_game_announcement(game)
 
                     await message.edit(content=content, embed=embed, view=view)
                     logger.info(f"Updated game message after participant removal: {message_id}")
@@ -609,26 +521,76 @@ class EventHandlers:
 
             # Send DM to removed user
             if discord_id:
-                try:
-                    user = await self.bot.fetch_user(int(discord_id))
-                    if user:
-                        dm_message = f"❌ You were removed from **{game_title}**"
-                        if game_scheduled_at:
-                            dm_message += (
-                                f" scheduled for <t:{int(game.scheduled_at.timestamp())}:F>"
-                            )
+                dm_message = f"❌ You were removed from **{game_title}**"
+                if game_scheduled_at:
+                    dm_message += f" scheduled for <t:{int(game.scheduled_at.timestamp())}:F>"
 
-                        await user.send(dm_message)
-                        logger.info(f"Sent removal DM to user {discord_id}")
-                    else:
-                        logger.warning(f"User not found for DM: {discord_id}")
-                except discord.Forbidden:
-                    logger.warning(f"Cannot send DM to user {discord_id}: DMs disabled")
-                except Exception as e:
-                    logger.error(f"Failed to send removal DM to {discord_id}: {e}", exc_info=True)
+                success = await self._send_dm(discord_id, dm_message)
+                if success:
+                    logger.info(f"Sent removal DM to user {discord_id}")
 
         except Exception as e:
             logger.error(f"Failed to handle participant removal: {e}", exc_info=True)
+
+    def _format_participants_for_display(self, game: GameSession) -> tuple[list[str], list[str]]:
+        """
+        Format game participants for Discord message display.
+
+        Sorts all participants (including placeholders) and splits them into
+        confirmed and overflow lists based on max_players.
+
+        Args:
+            game: Game session with participants loaded
+
+        Returns:
+            Tuple of (confirmed_ids, overflow_ids) where IDs are
+            Discord user IDs (formatted as mentions) or placeholder names
+        """
+        all_participants = game.participants
+        sorted_participants = participant_sorting.sort_participants(all_participants)
+
+        max_players = game.max_players or 10
+        confirmed_participants = sorted_participants[:max_players]
+        overflow_participants = sorted_participants[max_players:]
+
+        confirmed_ids = [
+            p.user.discord_id if p.user else p.display_name for p in confirmed_participants
+        ]
+        overflow_ids = [
+            p.user.discord_id if p.user else p.display_name for p in overflow_participants
+        ]
+
+        return confirmed_ids, overflow_ids
+
+    def _create_game_announcement(
+        self, game: GameSession
+    ) -> tuple[str | None, discord.Embed, discord.ui.View]:
+        """
+        Create Discord announcement content for a game.
+
+        Args:
+            game: Game session with participants loaded
+
+        Returns:
+            Tuple of (content, embed, view) for Discord message
+        """
+        confirmed_ids, overflow_ids = self._format_participants_for_display(game)
+
+        return format_game_announcement(
+            game_id=str(game.id),
+            game_title=game.title,
+            description=game.description,
+            scheduled_at=game.scheduled_at,
+            host_id=game.host.discord_id,
+            participant_ids=confirmed_ids,
+            overflow_ids=overflow_ids,
+            current_count=len(confirmed_ids),
+            max_players=game.max_players or 10,
+            status=game.status,
+            signup_instructions=game.signup_instructions,
+            expected_duration_minutes=game.expected_duration_minutes,
+            notify_role_ids=game.notify_role_ids or [],
+        )
 
     async def _get_game_with_participants(
         self, db: AsyncSession, game_id: str

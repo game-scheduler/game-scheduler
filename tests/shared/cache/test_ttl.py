@@ -49,5 +49,5 @@ class TestCacheTTL:
         assert CacheTTL.GAME_DETAILS == 60
 
     def test_message_update_throttle_ttl(self):
-        """Test message update throttle TTL is 1.25 seconds."""
-        assert CacheTTL.MESSAGE_UPDATE_THROTTLE == 1.25
+        """Test message update throttle TTL is 2 seconds."""
+        assert CacheTTL.MESSAGE_UPDATE_THROTTLE == 2
