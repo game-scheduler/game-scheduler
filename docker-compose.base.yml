@@ -130,6 +130,14 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       RABBITMQ_URL: ${RABBITMQ_URL}
       REDIS_URL: ${REDIS_URL}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      API_URL: ${API_URL:-http://localhost:8000}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "${API_HOST_PORT:-8000}:8000"
     depends_on:
@@ -222,6 +230,9 @@ services:
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
+      args:
+        VITE_DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+        VITE_API_URL: ${API_URL}
       tags:
         - ${IMAGE_REGISTRY:-}game-scheduler-frontend:${IMAGE_TAG:-latest}
       x-bake:

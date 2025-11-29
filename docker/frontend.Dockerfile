@@ -15,7 +15,11 @@ COPY frontend/tsconfig.json ./
 COPY frontend/tsconfig.node.json ./
 COPY frontend/vitest.config.ts ./
 
-# Build the application
+# Accept build arguments for environment variables
+ARG VITE_DISCORD_CLIENT_ID
+ARG VITE_API_URL
+
+# Build the application with environment variables
 RUN npm run build
 
 # Production stage using nginx
