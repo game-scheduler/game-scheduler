@@ -18,25 +18,30 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       RABBITMQ_URL: ${RABBITMQ_URL}
       REDIS_URL: ${REDIS_URL}
+      API_BASE_URL: http://api:8000
       TEST_DISCORD_TOKEN: ${TEST_DISCORD_TOKEN}
       TEST_DISCORD_GUILD_ID: ${TEST_DISCORD_GUILD_ID}
       TEST_DISCORD_CHANNEL_ID: ${TEST_DISCORD_CHANNEL_ID}
       TEST_DISCORD_USER_ID: ${TEST_DISCORD_USER_ID}
       TEST_ENVIRONMENT: ${TEST_ENVIRONMENT}
     depends_on:
+      init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_healthy
+      api:
+        condition: service_started
       bot:
         condition: service_started
       notification-daemon:
         condition: service_started
     networks:
       - app-network
-    command: pytest tests/integration/test_notification_flow_e2e.py -v --tb=short
+    command: pytest tests/e2e/test_game_notification_api_flow.py -v --tb=short
 
 # Use tmpfs for test volumes (in-memory, fast, auto-cleanup)
 volumes:

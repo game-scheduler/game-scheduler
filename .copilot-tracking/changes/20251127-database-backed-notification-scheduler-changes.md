@@ -54,10 +54,14 @@ Replacing polling-based notification scheduler with database-backed event-driven
 - scripts/run-integration-tests.sh - Replaced `docker compose up --abort-on-container-exit` with `docker compose run` to avoid init container triggering premature shutdown (docker compose run starts dependencies automatically), added trap handler for guaranteed cleanup on success or failure
 - scripts/run-e2e-tests.sh - Replaced `docker compose up --abort-on-container-exit` with `docker compose run`, added trap handler for cleanup consistency
 - docker/test-entrypoint.sh - Removed redundant database wait and migration steps (now handled by init container), simplified to only execute tests directly
+- .env.e2e - Removed problematic REDIS_COMMAND variable that caused bash parsing errors when sourcing file
+- docker-compose.e2e.yml - Added init service dependency and API_BASE_URL environment variable, added api service dependency for e2e tests
+- tests/e2e/test_game_notification_api_flow.py - Created API-based e2e tests using httpx to test complete flow through REST endpoints (POST /games → schedule populated, daemon processes → RabbitMQ events, PUT /games → schedule updated, DELETE /games → schedule cleaned), replacing direct SQL insert approach with proper API integration testing
 
 ### Removed
 
 - docker/notification-daemon-entrypoint.sh - Removed unnecessary entrypoint script (migrations handled separately, daemon starts directly via CMD)
+- tests/integration/test_notification_flow_e2e.py - Removed redundant integration-level tests that duplicated existing coverage in test_notification_daemon.py (game CRUD operations at SQL level don't qualify as true e2e tests)
 
 ## Testing
 
@@ -74,11 +78,30 @@ Replacing polling-based notification scheduler with database-backed event-driven
 - 3 tests for schedule queries with real database ✅
 - 3 tests for daemon integration with PostgreSQL and RabbitMQ ✅
 
-**Test Execution**: `docker compose -f docker-compose.integration.yml --env-file .env.integration up integration-tests --abort-on-container-exit`
+**Test Execution**: `bash scripts/run-integration-tests.sh`
 
 **Test Results**: All 10 integration tests passing as of 2025-11-28
 
-**Debugging Summary**: Fixed 6 critical issues discovered during integration test setup:
+### E2E Tests
+
+**Status**: Deferred for dedicated planning phase
+
+**Created**: Initial test structure at tests/e2e/test_game_notification_api_flow.py with 4 test cases as starting point for future e2e testing work
+
+**Rationale**: Comprehensive e2e testing requires systematic planning to address:
+
+- API authentication patterns in test environment
+- Test data fixture management (avoiding JSON casting issues)
+- Database state isolation between tests
+- Discord bot integration testing strategy
+- API contract testing patterns
+- httpx dependency and client configuration
+
+**Recommendation**: Create separate research/planning documents for e2e testing strategy before implementation
+
+**Note**: Integration tests (10/10 passing) provide sufficient coverage for notification daemon behavior. E2E tests would add value by testing the complete user-facing API surface, but require architectural decisions beyond the scope of this notification scheduler implementation.
+
+**Debugging Summary**: Fixed 7 critical issues discovered during integration test setup:
 
 1. Services couldn't connect to infrastructure (environment variables not propagated from base compose file)
 2. Notification daemon PendingRollbackError (missing db.rollback() in exception handler)
@@ -86,6 +109,7 @@ Replacing polling-based notification scheduler with database-backed event-driven
 4. Test container couldn't connect to database (missing PostgreSQL connection parameters)
 5. Schema mismatch causing NULL constraint violations (guild_name field missing from model)
 6. Test execution reliability (init container completion triggered `--abort-on-container-exit`, killing tests mid-execution due to timing race - resolved by using profiles + `docker compose run`)
+7. Redundant e2e test file (tests/integration/test_notification_flow_e2e.py) removed after analysis showed it duplicated existing integration test coverage without adding true end-to-end API testing value
 
 ## Deployment Notes
 
