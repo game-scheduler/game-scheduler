@@ -110,25 +110,25 @@ Refactor the game data model to remove the unused min_players field and add a wh
 - [x] Task 4.6: Run frontend tests to verify where field
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 242-251)
 
-### [ ] Phase 5: Remove min_players from API Layer (with tests)
+### [x] Phase 5: Remove min_players from API Layer (with tests)
 
-- [ ] Task 5.1: Remove min_players from API schemas
+- [x] Task 5.1: Remove min_players from API schemas
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 253-267)
 
-- [ ] Task 5.2: Remove min_players validation from routes
+- [x] Task 5.2: Remove min_players validation from routes
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 269-281)
 
-- [ ] Task 5.3: Remove min_players validation from service layer
+- [x] Task 5.3: Remove min_players validation from service layer
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 283-296)
 
-- [ ] Task 5.4: Update backend tests to remove min_players
+- [x] Task 5.4: Update backend tests to remove min_players
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 298-314)
 
-- [ ] Task 5.5: Run backend tests to verify min_players removal
+- [x] Task 5.5: Run backend tests to verify min_players removal
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 316-325)
 
 ### [ ] Phase 6: Remove min_players from Frontend (with tests)

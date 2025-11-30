@@ -133,6 +133,45 @@ All TypeScript compilation passes successfully:
 - Display order in GameDetails and GameCard: When → Where → Players → Duration
 - where field is optional (nullable) throughout the stack
 
+### Phase 5: Remove min_players from API Layer ✓
+
+### Modified
+
+- shared/schemas/game.py - Removed min_players field from all Pydantic schemas
+  - Removed min_players from GameCreateRequest (was Line 24)
+  - Removed min_players from GameUpdateRequest (was Line 66)
+  - Removed min_players from GameResponse (was Line 116)
+- services/api/routes/games.py - Removed min_players validation from routes
+  - Removed min/max players validation from create_game endpoint (Lines 80-86)
+  - Removed min_players validation docstring from update_game endpoint
+  - Removed min_players from GameResponse building (Line 374)
+- services/api/services/games.py - Removed min_players validation from service layer
+  - Removed min_players resolution and validation from create_game (Lines 141-147)
+  - Removed min_players from GameSession creation (Line 190)
+  - Removed min_players update handling from update_game (Lines 400-401)
+  - Removed min_players validation after updates (Lines 519-528)
+- tests/services/api/routes/test_games_timezone.py - Removed min_players from all test cases (4 occurrences)
+- tests/services/api/routes/test_games_participant_count.py - Removed min_players from all test cases (4 occurrences)
+- tests/services/api/services/test_games_promotion.py - Removed min_players from all test cases (2 occurrences)
+- tests/services/api/services/test_games_edit_participants.py - Removed min_players from all test cases (2 occurrences)
+
+### Test Results
+
+All backend tests pass successfully:
+
+- 189 API tests passed in 0.91s
+- No test failures related to min_players removal
+- All existing functionality continues to work correctly
+
+### Code Quality
+
+- All modified Python files pass ruff linting
+- Code follows Python 3.11+ conventions
+- All validation logic properly removed
+- Database still contains min_players column (safe - will be removed in Phase 7)
+- All unused variables removed from service layer
+- All whitespace and line length issues fixed in test files
+
 ## Release Summary
 
 _Will be completed after all phases are implemented_

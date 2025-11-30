@@ -138,14 +138,6 @@ class GameService:
             if guild_config.default_reminder_minutes is not None
             else [60, 15]
         )
-        resolved_min_players = game_data.min_players
-
-        # Validate min_players <= resolved max_players
-        if resolved_min_players > resolved_max_players:
-            raise ValueError(
-                "Minimum players cannot be greater than maximum players "
-                f"(min: {resolved_min_players}, max: {resolved_max_players})"
-            )
 
         # Resolve initial participants if provided
         valid_participants = []
@@ -187,7 +179,6 @@ class GameService:
             channel_id=channel_config.id,
             host_id=host_user.id,
             max_players=resolved_max_players,
-            min_players=resolved_min_players,
             reminder_minutes=resolved_reminder_minutes,
             expected_duration_minutes=game_data.expected_duration_minutes,
             notify_role_ids=game_data.notify_role_ids,
@@ -373,8 +364,6 @@ class GameService:
 
         # Track if notification schedule needs updating
         schedule_needs_update = False
-        old_scheduled_at = game.scheduled_at
-        old_reminder_minutes = game.reminder_minutes
 
         # Update fields
         if update_data.title is not None:
@@ -397,8 +386,6 @@ class GameService:
             game.where = update_data.where
         if update_data.max_players is not None:
             game.max_players = update_data.max_players
-        if update_data.min_players is not None:
-            game.min_players = update_data.min_players
         if update_data.reminder_minutes is not None:
             game.reminder_minutes = update_data.reminder_minutes
             schedule_needs_update = True
@@ -515,17 +502,6 @@ class GameService:
                     self.db.add(new_participant)
 
             await self.db.flush()
-
-        # Validate min_players <= max_players after updates (if both are set)
-        if (
-            game.min_players is not None
-            and game.max_players is not None
-            and game.min_players > game.max_players
-        ):
-            raise ValueError(
-                "Minimum players cannot be greater than maximum players "
-                f"(min: {game.min_players}, max: {game.max_players})"
-            )
 
         # Update notification schedule if scheduled_at or reminder_minutes changed
         if schedule_needs_update:

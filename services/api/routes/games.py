@@ -77,15 +77,7 @@ async def create_game(
 
     Validates @mentions in initial_participants and creates GameParticipant records.
     Returns 422 if any @mentions cannot be resolved with disambiguation suggestions.
-    Validates min_players <= max_players and min_players >= 1.
     """
-    # Validate min_players if max_players is provided
-    if game_data.max_players is not None and game_data.min_players > game_data.max_players:
-        raise HTTPException(
-            status_code=422,
-            detail="Minimum players cannot be greater than maximum players",
-        )
-
     try:
         game = await game_service.create_game(
             game_data=game_data,
@@ -171,8 +163,6 @@ async def update_game(
     - Game host can update their own game
     - Bot Managers can update any game in the guild
     - Guild admins (MANAGE_GUILD) can update any game in the guild
-
-    All fields are optional. Validates min_players <= max_players if both are provided.
     """
     try:
         game = await game_service.update_game(
@@ -370,8 +360,8 @@ async def _build_game_response(game: game_model.GameSession) -> game_schemas.Gam
         description=game.description,
         signup_instructions=game.signup_instructions,
         scheduled_at=scheduled_at_utc.isoformat().replace("+00:00", "Z"),
+        where=game.where,
         max_players=game.max_players,
-        min_players=game.min_players,
         guild_id=game.guild_id,
         channel_id=game.channel_id,
         channel_name=game.channel.channel_name if game.channel else None,

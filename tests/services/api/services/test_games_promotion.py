@@ -109,7 +109,6 @@ def sample_game(sample_guild, sample_channel, sample_host):
         description="Test Description",
         scheduled_at=datetime.now(UTC).replace(tzinfo=None),
         max_players=5,
-        min_players=1,
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=sample_host.id,
@@ -230,29 +229,35 @@ async def test_promotion_when_participant_removed(
 
     mock_db.refresh = AsyncMock(side_effect=mock_refresh_side_effect)
 
-    # Create a fresh game object with updated participants (simulating what get_game would return after DB reload)
+    # Create a fresh game object with updated participants
+    # (simulating what get_game would return after DB reload)
     get_game_call_count = [0]
 
     def get_game_side_effect(game_id):
         # Return a fresh GameSession with participants list after removal
         get_game_call_count[0] += 1
-        
+
         # First call (at start of update_game): return game with all 6 participants (before removal)
         # Second call (after commit): return game with 5 participants (after removal)
         if get_game_call_count[0] == 1:
             participants_list = participants + [overflow_participant]
-            print(f"\nget_game call #1: returning BEFORE removal - {len(participants_list)} participants")
+            print(
+                f"\nget_game call #1: returning BEFORE removal - "
+                f"{len(participants_list)} participants"
+            )
         else:
             participants_list = participants[1:] + [overflow_participant]
-            print(f"\nget_game call #{get_game_call_count[0]}: returning AFTER removal - {len(participants_list)} participants")
-        
+            print(
+                f"\nget_game call #{get_game_call_count[0]}: "
+                f"returning AFTER removal - {len(participants_list)} participants"
+            )
+
         fresh_game = GameSession(
             id=sample_game.id,
             title=sample_game.title,
             description=sample_game.description,
             scheduled_at=sample_game.scheduled_at,
             max_players=sample_game.max_players,
-            min_players=sample_game.min_players,
             guild_id=sample_game.guild_id,
             channel_id=sample_game.channel_id,
             host_id=sample_game.host_id,
@@ -276,14 +281,16 @@ async def test_promotion_when_participant_removed(
             'old_overflow_ids': old_overflow_ids,
             'current_participants': [p.user.discord_id for p in game.participants if p.user]
         })
-        print(f"\n_detect_and_notify_promotions called!")
+        print("\n_detect_and_notify_promotions called!")
         print(f"  old_overflow_ids: {old_overflow_ids}")
         print(f"  current participants: {[p.user.discord_id for p in game.participants if p.user]}")
         result = await original_detect_promotions(game, old_overflow_ids)
-        print(f"  _detect_and_notify_promotions completed")
+        print("  _detect_and_notify_promotions completed")
         return result
 
-    with patch.object(game_service, '_detect_and_notify_promotions', side_effect=track_detect_promotions):
+    with patch.object(
+        game_service, '_detect_and_notify_promotions', side_effect=track_detect_promotions
+    ):
         with patch.object(game_service, "get_game", side_effect=get_game_side_effect):
             # Mock authorization check
             mock_role_service = AsyncMock()
@@ -301,8 +308,14 @@ async def test_promotion_when_participant_removed(
                         current_user=mock_current_user,
                         role_service=mock_role_service,
                     )
-                    print(f"\nUpdate completed successfully, result id: {result.id if result else 'None'}")
-                    print(f"Result participants: {len(result.participants) if result else 0}")
+                    print(
+                        f"\nUpdate completed successfully, "
+                        f"result id: {result.id if result else 'None'}"
+                    )
+                    print(
+                        f"Result participants: "
+                        f"{len(result.participants) if result else 0}"
+                    )
                 except Exception as e:
                     print(f"\nUpdate failed with exception: {type(e).__name__}: {e}")
                     import traceback
@@ -324,7 +337,9 @@ async def test_promotion_when_participant_removed(
         if call[1]["event"].event_type == EventType.NOTIFICATION_SEND_DM
     ]
 
-    assert len(notification_calls) == 1, f"Should send 1 promotion notification, got {len(notification_calls)}"
+    assert len(notification_calls) == 1, (
+        f"Should send 1 promotion notification, got {len(notification_calls)}"
+    )
 
     event_data = notification_calls[0][1]["event"].data
     assert event_data["notification_type"] == "waitlist_promotion"

@@ -40,7 +40,6 @@ class GameCreateRequest(BaseModel):
     max_players: int | None = Field(
         None, description="Max players override (uses channel/guild default if None)"
     )
-    min_players: int = Field(1, description="Minimum players required (default: 1)", ge=1)
     reminder_minutes: list[int] | None = Field(
         None,
         description="Reminder times override (uses channel/guild default if None)",
@@ -83,7 +82,6 @@ class GameUpdateRequest(BaseModel):
     scheduled_at: datetime | None = None
     where: str | None = Field(None, max_length=500)
     max_players: int | None = None
-    min_players: int | None = Field(None, ge=1)
     reminder_minutes: list[int] | None = None
     expected_duration_minutes: int | None = Field(
         None,
@@ -134,7 +132,6 @@ class GameResponse(BaseModel):
     scheduled_at: str = Field(..., description="Game start time (ISO 8601 UTC timestamp)")
     where: str | None = Field(None, description="Game location")
     max_players: int | None = Field(None, description="Max players (resolved)")
-    min_players: int = Field(1, description="Minimum players required")
     guild_id: str = Field(..., description="Guild ID (UUID)")
     channel_id: str = Field(..., description="Channel ID (UUID)")
     channel_name: str | None = Field(None, description="Channel name")
