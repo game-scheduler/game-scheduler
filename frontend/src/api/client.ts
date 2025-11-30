@@ -18,9 +18,20 @@
 
 import axios from 'axios';
 
-// Use empty baseURL to leverage proxy configuration (Vite dev server or nginx)
-// Only use VITE_API_URL if explicitly set for external API access
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+// Runtime config from /config.js (loaded in index.html)
+// Falls back to VITE_API_URL for development, then empty string for proxy
+declare global {
+  interface Window {
+    __RUNTIME_CONFIG__?: {
+      API_URL?: string;
+    };
+  }
+}
+
+const API_BASE_URL = 
+  window.__RUNTIME_CONFIG__?.API_URL || 
+  import.meta.env.VITE_API_URL || 
+  '';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
