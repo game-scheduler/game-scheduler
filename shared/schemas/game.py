@@ -34,6 +34,7 @@ class GameCreateRequest(BaseModel):
         None, description="Signup instructions for participants (optional)", max_length=1000
     )
     scheduled_at: datetime = Field(..., description="Game start time (ISO 8601 UTC timestamp)")
+    where: str | None = Field(None, description="Game location (optional)", max_length=500)
     guild_id: str = Field(..., description="Guild ID (UUID)")
     channel_id: str = Field(..., description="Channel ID (UUID)")
     max_players: int | None = Field(
@@ -80,6 +81,7 @@ class GameUpdateRequest(BaseModel):
     description: str | None = Field(None, max_length=4000)
     signup_instructions: str | None = Field(None, max_length=1000)
     scheduled_at: datetime | None = None
+    where: str | None = Field(None, max_length=500)
     max_players: int | None = None
     min_players: int | None = Field(None, ge=1)
     reminder_minutes: list[int] | None = None
@@ -130,6 +132,7 @@ class GameResponse(BaseModel):
         None, description="Signup instructions for participants"
     )
     scheduled_at: str = Field(..., description="Game start time (ISO 8601 UTC timestamp)")
+    where: str | None = Field(None, description="Game location")
     max_players: int | None = Field(None, description="Max players (resolved)")
     min_players: int = Field(1, description="Minimum players required")
     guild_id: str = Field(..., description="Guild ID (UUID)")

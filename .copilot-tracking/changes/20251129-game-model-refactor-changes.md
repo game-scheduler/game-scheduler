@@ -31,6 +31,36 @@ Refactoring the game data model to remove the unused `min_players` field and add
 
 ### Removed
 
+### Phase 2: Add where Field to API Layer ✓
+
+### Modified
+
+- shared/schemas/game.py - Added where field to all Pydantic schemas
+  - GameCreateRequest: where field as optional with max_length=500
+  - GameUpdateRequest: where field as optional with max_length=500
+  - GameResponse: where field as nullable with description
+- services/api/services/games.py - Added where field handling in create_game and update_game methods
+  - create_game: where field stored from game_data.where
+  - update_game: where field updated from update_data.where
+- tests/services/api/services/test_games.py - Added tests for where field
+  - test_create_game_with_where_field: Verifies where field is stored on game creation
+  - test_update_game_where_field: Verifies where field can be updated
+
+### Test Results
+
+All backend tests pass successfully:
+
+- `tests/services/api/services/test_games.py`: 18 tests passed (including 2 new where field tests)
+- `tests/services/api/routes/test_games_timezone.py`: 4 tests passed
+- `tests/services/api/services/test_games_promotion.py`: 3 tests passed
+
+### Code Quality
+
+- All modified Python files pass ruff linting
+- Code follows Python 3.11+ conventions with modern type hints
+- Self-documenting code with appropriate docstrings
+- All Docker containers build successfully (API, test)
+
 ## Release Summary
 
 _Will be completed after all phases are implemented_

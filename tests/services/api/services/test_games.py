@@ -183,6 +183,76 @@ async def test_create_game_without_participants(
 
 
 @pytest.mark.asyncio
+async def test_create_game_with_where_field(
+    game_service,
+    mock_db,
+    mock_event_publisher,
+    mock_participant_resolver,
+    sample_guild,
+    sample_channel,
+    sample_user,
+):
+    """Test creating game with where field stores location."""
+    game_data = game_schemas.GameCreateRequest(
+        guild_id=str(sample_guild.id),
+        channel_id=str(sample_channel.id),
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        where="Discord Voice Channel #gaming",
+        max_players=4,
+        reminder_minutes=[60],
+    )
+
+    created_game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        where="Discord Voice Channel #gaming",
+        guild_id=sample_guild.id,
+        channel_id=sample_channel.id,
+        host_id=sample_user.id,
+        status="SCHEDULED",
+    )
+    created_game.host = sample_user
+    created_game.participants = []
+
+    guild_result = MagicMock()
+    guild_result.scalar_one_or_none.return_value = sample_guild
+    channel_result = MagicMock()
+    channel_result.scalar_one_or_none.return_value = sample_channel
+    host_result = MagicMock()
+    host_result.scalar_one_or_none.return_value = sample_user
+    reload_result = MagicMock()
+    reload_result.scalar_one_or_none.return_value = created_game
+
+    mock_db.execute = AsyncMock(
+        side_effect=[guild_result, channel_result, host_result, reload_result]
+    )
+    mock_db.flush = AsyncMock()
+    mock_db.commit = AsyncMock()
+    mock_db.add = MagicMock()
+
+    def mock_add_side_effect(obj):
+        if isinstance(obj, game_model.GameSession):
+            obj.id = created_game.id
+            obj.where = game_data.where
+
+    mock_db.add.side_effect = mock_add_side_effect
+
+    game = await game_service.create_game(
+        game_data=game_data,
+        host_user_id=sample_user.id,
+        access_token="token",
+    )
+
+    assert isinstance(game, game_model.GameSession)
+    assert game.where == "Discord Voice Channel #gaming"
+    mock_db.add.assert_called()
+
+
+@pytest.mark.asyncio
 async def test_create_game_with_valid_participants(
     game_service,
     mock_db,
@@ -489,6 +559,45 @@ async def test_update_game_success(game_service, mock_db, sample_user, sample_gu
         )
 
     assert updated.title == "New Title"
+    mock_db.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_update_game_where_field(game_service, mock_db, sample_user, sample_guild):
+    """Test updating game where field."""
+    from shared.schemas.auth import CurrentUser
+
+    game_id = str(uuid.uuid4())
+    mock_game = game_model.GameSession(
+        id=game_id,
+        title="Test Game",
+        where="Old Location",
+        host_id=sample_user.id,
+        guild_id=sample_guild.id,
+        channel_id=str(uuid.uuid4()),
+    )
+    mock_game.host = sample_user
+    mock_game.guild = sample_guild
+
+    game_result = MagicMock()
+    game_result.scalar_one_or_none.return_value = mock_game
+    mock_db.execute = AsyncMock(return_value=game_result)
+    mock_db.commit = AsyncMock()
+
+    current_user = CurrentUser(
+        user=sample_user, access_token="mock_token", session_token="mock_session"
+    )
+    mock_role_service = MagicMock()
+
+    with patch("services.api.dependencies.permissions.can_manage_game", return_value=True):
+        updated = await game_service.update_game(
+            game_id=game_id,
+            update_data=game_schemas.GameUpdateRequest(where="New Location"),
+            current_user=current_user,
+            role_service=mock_role_service,
+        )
+
+    assert updated.where == "New Location"
     mock_db.commit.assert_called_once()
 
 

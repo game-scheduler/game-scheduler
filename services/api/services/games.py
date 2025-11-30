@@ -182,6 +182,7 @@ class GameService:
             description=game_data.description,
             signup_instructions=game_data.signup_instructions,
             scheduled_at=scheduled_at_naive,
+            where=game_data.where,
             guild_id=guild_config.id,
             channel_id=channel_config.id,
             host_id=host_user.id,
@@ -392,6 +393,8 @@ class GameService:
                 # Already naive, assume UTC
                 game.scheduled_at = update_data.scheduled_at
             schedule_needs_update = True
+        if update_data.where is not None:
+            game.where = update_data.where
         if update_data.max_players is not None:
             game.max_players = update_data.max_players
         if update_data.min_players is not None:
