@@ -85,29 +85,29 @@ Refactor the game data model to remove the unused min_players field and add a wh
 - [x] Task 3.3: Run bot tests to verify where field
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 156-165)
 
-### [ ] Phase 4: Add where Field to Frontend (with tests)
+### [x] Phase 4: Add where Field to Frontend (with tests)
 
-- [ ] Task 4.1: Add where field to TypeScript interfaces
+- [x] Task 4.1: Add where field to TypeScript interfaces
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 167-179)
 
-- [ ] Task 4.2: Add where input to CreateGame and EditGame pages
+- [x] Task 4.2: Add where input to CreateGame and EditGame pages
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 181-198)
 
-- [ ] Task 4.3: Display where field in GameDetails page
+- [x] Task 4.3: Display where field in GameDetails page
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 200-212)
 
-- [ ] Task 4.4: Display where field in GameCard component
+- [x] Task 4.4: Display where field in GameCard component
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 214-226)
 
-- [ ] Task 4.5: Update frontend tests for where field
+- [x] Task 4.5: Update frontend tests for where field
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 228-240)
 
-- [ ] Task 4.6: Run frontend tests to verify where field
+- [x] Task 4.6: Run frontend tests to verify where field
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 242-251)
 
 ### [ ] Phase 5: Remove min_players from API Layer (with tests)

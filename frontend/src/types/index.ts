@@ -55,6 +55,7 @@ export interface GameSession {
   description: string;
   signup_instructions: string | null;
   scheduled_at: string;
+  where: string | null;
   min_players: number | null;
   max_players: number | null;
   guild_id: string;

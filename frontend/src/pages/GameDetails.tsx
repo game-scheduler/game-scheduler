@@ -226,6 +226,11 @@ export const GameDetails: FC = () => {
           <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
             <strong>When:</strong> {formatDateTime(game.scheduled_at)}
           </Typography>
+          {game.where && (
+            <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem' }}>
+              <strong>Where:</strong> {game.where}
+            </Typography>
+          )}
           {game.reminder_minutes && game.reminder_minutes.length > 0 && (
             <Typography variant="body2" paragraph>
               <strong>Reminders:</strong> {game.reminder_minutes.join(', ')} minutes before

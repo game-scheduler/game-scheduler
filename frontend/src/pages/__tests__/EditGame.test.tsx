@@ -45,6 +45,7 @@ describe('EditGame', () => {
     description: 'Test Description',
     signup_instructions: 'Test signup instructions',
     scheduled_at: '2025-12-01T18:00:00Z',
+    where: null,
     min_players: 2,
     max_players: 8,
     guild_id: 'guild123',

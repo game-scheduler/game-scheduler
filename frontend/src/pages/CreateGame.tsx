@@ -90,6 +90,7 @@ export const CreateGame: FC = () => {
         description: formData.description,
         signup_instructions: formData.signupInstructions || null,
         scheduled_at: formData.scheduledAt!.toISOString(),
+        where: formData.where || null,
         guild_id: guildId,
         channel_id: formData.channelId,
         min_players: minPlayers,

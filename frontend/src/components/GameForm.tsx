@@ -50,6 +50,7 @@ export interface GameFormData {
   description: string;
   signupInstructions: string;
   scheduledAt: Date | null;
+  where: string;
   channelId: string;
   minPlayers: string;
   maxPlayers: string;
@@ -148,6 +149,7 @@ export const GameForm: FC<GameFormProps> = ({
     description: initialData?.description || '',
     signupInstructions: initialData?.signup_instructions || '',
     scheduledAt: initialData?.scheduled_at ? new Date(initialData.scheduled_at) : new Date(),
+    where: initialData?.where || '',
     channelId: initialData?.channel_id || '',
     minPlayers: initialData?.min_players?.toString() || '1',
     maxPlayers: initialData?.max_players?.toString() || '8',
@@ -184,6 +186,7 @@ export const GameForm: FC<GameFormProps> = ({
         description: initialData.description || '',
         signupInstructions: initialData.signup_instructions || '',
         scheduledAt: initialData.scheduled_at ? new Date(initialData.scheduled_at) : new Date(),
+        where: initialData.where || '',
         channelId: initialData.channel_id || '',
         minPlayers: initialData.min_players?.toString() || '1',
         maxPlayers: initialData.max_players?.toString() || '8',
@@ -341,6 +344,20 @@ export const GameForm: FC<GameFormProps> = ({
             onChange={handleDateChange}
             disabled={loading}
             sx={{ width: '100%', mt: 2, mb: 1 }}
+          />
+
+          <TextField
+            fullWidth
+            label="Location"
+            name="where"
+            value={formData.where}
+            onChange={handleChange}
+            margin="normal"
+            multiline
+            rows={2}
+            helperText="Game location (optional, up to 500 characters)"
+            disabled={loading}
+            inputProps={{ maxLength: 500 }}
           />
 
           <TextField

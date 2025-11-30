@@ -98,6 +98,11 @@ export const GameCard: FC<GameCardProps> = ({ game, showActions = true }) => {
           <Typography variant="body2">
             <strong>When:</strong> {formatDateTime(game.scheduled_at)}
           </Typography>
+          {game.where && (
+            <Typography variant="body2">
+              <strong>Where:</strong> {game.where}
+            </Typography>
+          )}
           <Typography variant="body2">
             <strong>Players:</strong> {playerDisplay}
           </Typography>

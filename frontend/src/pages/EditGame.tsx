@@ -117,6 +117,7 @@ export const EditGame: FC = () => {
         description: formData.description,
         signup_instructions: formData.signupInstructions || null,
         scheduled_at: formData.scheduledAt!.toISOString(),
+        where: formData.where || null,
         channel_id: formData.channelId,
         min_players: minPlayers,
         max_players: maxPlayers,
