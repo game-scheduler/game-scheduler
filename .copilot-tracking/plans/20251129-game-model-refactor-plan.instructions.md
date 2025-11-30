@@ -131,29 +131,29 @@ Refactor the game data model to remove the unused min_players field and add a wh
 - [x] Task 5.5: Run backend tests to verify min_players removal
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 316-325)
 
-### [ ] Phase 6: Remove min_players from Frontend (with tests)
+### [x] Phase 6: Remove min_players from Frontend (with tests)
 
-- [ ] Task 6.1: Remove min_players from TypeScript interfaces
+- [x] Task 6.1: Remove min_players from TypeScript interfaces
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 327-338)
 
-- [ ] Task 6.2: Remove min_players from CreateGame and EditGame pages
+- [x] Task 6.2: Remove min_players from CreateGame and EditGame pages
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 340-355)
 
-- [ ] Task 6.3: Update ParticipantList to show X/max format
+- [x] Task 6.3: Update ParticipantList to show X/max format
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 357-369)
 
-- [ ] Task 6.4: Update GameCard participant count display
+- [x] Task 6.4: Update GameCard participant count display
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 371-383)
 
-- [ ] Task 6.5: Update frontend tests to remove min_players
+- [x] Task 6.5: Update frontend tests to remove min_players
 
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 385-397)
 
-- [ ] Task 6.6: Run frontend tests to verify min_players removal
+- [x] Task 6.6: Run frontend tests to verify min_players removal
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 399-408)
 
 ### [ ] Phase 7: Remove min_players from Database (with tests)

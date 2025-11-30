@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
-
 import { FC, useState, useEffect } from 'react';
 import {
   Container,
@@ -256,9 +255,6 @@ export const GameDetails: FC = () => {
             </Box>
           )}
           <Typography variant="body2" paragraph>
-            <strong>Min Players:</strong> {game.min_players || 1}
-          </Typography>
-          <Typography variant="body2" paragraph>
             <strong>Max Players:</strong> {game.max_players || 10}
           </Typography>
         </Box>
@@ -271,7 +267,6 @@ export const GameDetails: FC = () => {
           </Typography>
           <ParticipantList
             participants={game.participants || []}
-            minPlayers={game.min_players || 1}
             maxPlayers={game.max_players || 10}
           />
         </Box>

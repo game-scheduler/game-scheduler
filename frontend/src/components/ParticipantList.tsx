@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
-
 import { FC } from 'react';
 import {
   List,
@@ -32,15 +31,10 @@ import { formatParticipantDisplay } from '../utils/formatParticipant';
 
 interface ParticipantListProps {
   participants: Participant[];
-  minPlayers?: number;
   maxPlayers?: number;
 }
 
-export const ParticipantList: FC<ParticipantListProps> = ({
-  participants,
-  minPlayers = 1,
-  maxPlayers,
-}) => {
+export const ParticipantList: FC<ParticipantListProps> = ({ participants, maxPlayers }) => {
   if (!participants || participants.length === 0) {
     return (
       <Typography variant="body2" color="text.secondary">
@@ -56,11 +50,7 @@ export const ParticipantList: FC<ParticipantListProps> = ({
   const waitlistParticipants = participants.slice(maxSlots);
 
   const joinedCount = confirmedParticipants.length;
-  const playerDisplay = maxPlayers
-    ? minPlayers === maxPlayers
-      ? `${joinedCount}/${maxPlayers}`
-      : `${joinedCount}/${minPlayers}-${maxPlayers}`
-    : `${joinedCount}`;
+  const playerDisplay = maxPlayers ? `${joinedCount}/${maxPlayers}` : `${joinedCount}`;
 
   return (
     <Box>

@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
-
 import { FC } from 'react';
 import { Card, CardContent, CardActions, Typography, Button, Chip, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
@@ -66,12 +65,8 @@ export const GameCard: FC<GameCardProps> = ({ game, showActions = true }) => {
   };
 
   const participantCount = game.participant_count || 0;
-  const minPlayers = game.min_players || 1;
   const maxPlayers = game.max_players || 10;
-  const playerDisplay =
-    minPlayers === maxPlayers
-      ? `${participantCount}/${maxPlayers}`
-      : `${participantCount}/${minPlayers}-${maxPlayers}`;
+  const playerDisplay = `${participantCount}/${maxPlayers}`;
 
   const truncateDescription = (text: string, maxLength: number = 200): string => {
     if (!text || text.length <= maxLength) {

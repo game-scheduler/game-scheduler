@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
-
 import { FC, useState, useEffect } from 'react';
 import {
   Typography,
@@ -32,7 +31,6 @@ import {
   SelectChangeEvent,
   Chip,
   OutlinedInput,
-  Grid,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -52,7 +50,6 @@ export interface GameFormData {
   scheduledAt: Date | null;
   where: string;
   channelId: string;
-  minPlayers: string;
   maxPlayers: string;
   reminderMinutes: string;
   expectedDurationMinutes: string;
@@ -151,7 +148,6 @@ export const GameForm: FC<GameFormProps> = ({
     scheduledAt: initialData?.scheduled_at ? new Date(initialData.scheduled_at) : new Date(),
     where: initialData?.where || '',
     channelId: initialData?.channel_id || '',
-    minPlayers: initialData?.min_players?.toString() || '1',
     maxPlayers: initialData?.max_players?.toString() || '8',
     reminderMinutes: initialData?.reminder_minutes?.join(', ') || '',
     expectedDurationMinutes: formatDurationForDisplay(
@@ -188,7 +184,6 @@ export const GameForm: FC<GameFormProps> = ({
         scheduledAt: initialData.scheduled_at ? new Date(initialData.scheduled_at) : new Date(),
         where: initialData.where || '',
         channelId: initialData.channel_id || '',
-        minPlayers: initialData.min_players?.toString() || '1',
         maxPlayers: initialData.max_players?.toString() || '8',
         reminderMinutes: initialData.reminder_minutes?.join(', ') || '',
         expectedDurationMinutes: formatDurationForDisplay(
@@ -289,14 +284,6 @@ export const GameForm: FC<GameFormProps> = ({
 
     if (!guildId || !formData.channelId || !formData.scheduledAt) {
       setError('Please fill in all required fields.');
-      return;
-    }
-
-    const minPlayers = formData.minPlayers ? parseInt(formData.minPlayers) : null;
-    const maxPlayers = formData.maxPlayers ? parseInt(formData.maxPlayers) : null;
-
-    if (minPlayers && maxPlayers && minPlayers > maxPlayers) {
-      setError('Minimum players cannot be greater than maximum players.');
       return;
     }
 
@@ -436,34 +423,18 @@ export const GameForm: FC<GameFormProps> = ({
             disabled={loading}
           />
 
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Min Players"
-                name="minPlayers"
-                type="number"
-                value={formData.minPlayers}
-                onChange={handleChange}
-                helperText="Minimum players required (default: 1)"
-                disabled={loading}
-                inputProps={{ min: 1, max: 100 }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Max Players"
-                name="maxPlayers"
-                type="number"
-                value={formData.maxPlayers}
-                onChange={handleChange}
-                helperText="Leave empty to use channel/server default"
-                disabled={loading}
-                inputProps={{ min: 1, max: 100 }}
-              />
-            </Grid>
-          </Grid>
+          <TextField
+            fullWidth
+            label="Max Players"
+            name="maxPlayers"
+            type="number"
+            value={formData.maxPlayers}
+            onChange={handleChange}
+            margin="normal"
+            helperText="Leave empty to use channel/server default"
+            disabled={loading}
+            inputProps={{ min: 1, max: 100 }}
+          />
 
           {mode === 'create' && (
             <FormControl fullWidth margin="normal">

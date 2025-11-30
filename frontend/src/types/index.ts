@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
-
 export interface User {
   discordId: string;
   createdAt: string;
@@ -56,7 +55,6 @@ export interface GameSession {
   signup_instructions: string | null;
   scheduled_at: string;
   where: string | null;
-  min_players: number | null;
   max_players: number | null;
   guild_id: string;
   channel_id: string;

@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
-
 import { FC, useState, useEffect } from 'react';
 import { Container, CircularProgress, Alert } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -78,7 +77,6 @@ export const CreateGame: FC = () => {
       throw new Error('Server ID is required');
     }
 
-    const minPlayers = formData.minPlayers ? parseInt(formData.minPlayers) : null;
     const maxPlayers = formData.maxPlayers ? parseInt(formData.maxPlayers) : null;
 
     try {
@@ -93,7 +91,6 @@ export const CreateGame: FC = () => {
         where: formData.where || null,
         guild_id: guildId,
         channel_id: formData.channelId,
-        min_players: minPlayers,
         max_players: maxPlayers,
         reminder_minutes: formData.reminderMinutes
           ? formData.reminderMinutes.split(',').map((m) => parseInt(m.trim()))
