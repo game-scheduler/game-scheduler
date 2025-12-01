@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
-
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';

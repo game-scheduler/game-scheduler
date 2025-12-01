@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
-
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {

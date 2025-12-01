@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
-
 import { FC, useState } from 'react';
 import { Box, Typography, TextField, IconButton, Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';

@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
-
 import axios from 'axios';
 
 // Runtime config from /config.js (loaded in index.html)
@@ -28,10 +27,7 @@ declare global {
   }
 }
 
-const API_BASE_URL = 
-  window.__RUNTIME_CONFIG__?.API_URL || 
-  import.meta.env.VITE_API_URL || 
-  '';
+const API_BASE_URL = window.__RUNTIME_CONFIG__?.API_URL || import.meta.env.VITE_API_URL || '';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

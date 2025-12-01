@@ -15,5 +15,4 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
-
 import '@testing-library/jest-dom';
