@@ -72,6 +72,13 @@ services:
     build:
       context: .
       dockerfile: docker/init.Dockerfile
+      tags:
+        - ${IMAGE_REGISTRY:-}game-scheduler-init:${IMAGE_TAG:-latest}
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    image: ${IMAGE_REGISTRY:-}game-scheduler-init:${IMAGE_TAG:-latest}
     container_name: ${CONTAINER_PREFIX:-gamebot}-init
     environment:
       DATABASE_URL: ${DATABASE_URL}
