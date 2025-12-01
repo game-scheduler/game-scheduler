@@ -558,7 +558,76 @@ Execute complete test suite to verify all changes.
 - **Dependencies**:
   - Phase 7 completion
 
-### Task 8.2: Verify system functionality end-to-end
+### Task 8.2: Add where field to game display pages
+
+Display the where field on both game summary and details pages, labeled as "Where" and positioned right under the "When" line.
+
+- **Files**:
+  - `frontend/src/components/GameCard.tsx` - Game summary card component
+  - `frontend/src/pages/GameDetails.tsx` - Game details page
+- **Success**:
+  - Where field displays on GameCard (My Games page) under the When line
+  - Where field displays on GameDetails page under the When line
+  - Label is "Where:"
+  - Field only displays when where value exists
+  - Styling is consistent with When field
+- **Research References**:
+  - #file:../research/20251129-game-model-refactor-research.md (Lines 214-226) - GameCard structure
+  - #file:../research/20251129-game-model-refactor-research.md (Lines 200-212) - GameDetails structure
+- **Dependencies**:
+  - Phase 4 completion (where field in TypeScript interfaces)
+
+### Task 8.3: Add where field to Discord bot embed message
+
+Display the where field in the Discord bot's game announcement embed message, positioned under the When line.
+
+- **Files**:
+  - `services/bot/formatters/game_message.py` - Game message formatter
+- **Success**:
+  - Where field displays in Discord embed under When field
+  - Label is "Where:"
+  - Field only displays when where value exists
+  - Formatting matches existing When field style
+- **Research References**:
+  - #file:../research/20251129-game-model-refactor-research.md (Lines 124-140) - Bot formatter structure
+- **Dependencies**:
+  - Phase 3 completion (where field in bot handlers)
+
+### Task 8.4: Reorder where field on create game page
+
+Move the where input field to be positioned directly below the Game Title field on the create/edit game forms.
+
+- **Files**:
+  - `frontend/src/pages/CreateGame.tsx` - Game creation form
+  - `frontend/src/pages/EditGame.tsx` - Game editing form (if separate)
+- **Success**:
+  - Where field appears immediately after Game Title field
+  - Form flow is: Game Title → Where → When → other fields
+  - Field validation and behavior unchanged
+- **Research References**:
+  - #file:../research/20251129-game-model-refactor-research.md (Lines 181-198) - CreateGame structure
+- **Dependencies**:
+  - Phase 4 completion (where field added to forms)
+
+### Task 8.5: Display Max Players and Notify Roles on same line
+
+Adjust the game creation form layout to display Max Players and Notify Roles fields on the same horizontal line.
+
+- **Files**:
+  - `frontend/src/pages/CreateGame.tsx` - Game creation form
+  - `frontend/src/pages/EditGame.tsx` - Game editing form (if separate)
+- **Success**:
+  - Max Players and Notify Roles fields appear on same row
+  - Fields are appropriately sized for horizontal layout
+  - Form remains responsive on smaller screens
+  - Field functionality unchanged
+- **Research References**:
+  - Material-UI Grid layout patterns for side-by-side fields
+  - #file:../research/20251129-game-model-refactor-research.md (Lines 181-198) - CreateGame structure
+- **Dependencies**:
+  - Phase 4 completion
+
+### Task 8.6: Verify system functionality end-to-end
 
 Manual verification of complete system behavior.
 
@@ -567,15 +636,17 @@ Manual verification of complete system behavior.
 - **Success**:
   - Can create games with where field via web UI
   - Can create games with where field via Discord bot
-  - Games display where field in Discord messages
-  - Games display where field in web UI
+  - Games display where field in Discord messages (under When line)
+  - Games display where field in web UI (GameCard and GameDetails, under When line)
+  - Where field positioned below Game Title on create/edit forms
+  - Max Players and Notify Roles on same line in forms
   - Participant counts show "X/max" format everywhere
   - No min_players references in UI
   - System stable and performant
 - **Research References**:
   - User acceptance criteria from requirements
 - **Dependencies**:
-  - Task 8.1 completion
+  - Tasks 8.1-8.5 completion
 
 ## Dependencies
 

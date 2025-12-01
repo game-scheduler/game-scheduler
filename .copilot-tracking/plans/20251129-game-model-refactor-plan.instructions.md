@@ -173,14 +173,30 @@ Refactor the game data model to remove the unused min_players field and add a wh
 - [x] Task 7.4: Run integration tests to verify database changes
   - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 453-463)
 
-### [x] Phase 8: Final Verification
+### [ ] Phase 8: Final Verification and UI Refinements
 
-- [x] Task 8.1: Run full test suite
+- [ ] Task 8.1: Run full test suite
 
-  - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 465-477)
+  - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 545-561)
 
-- [x] Task 8.2: Verify system functionality end-to-end
-  - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 479-490)
+- [ ] Task 8.2: Add where field to game display pages
+
+  - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 563-579)
+
+- [ ] Task 8.3: Add where field to Discord bot embed message
+
+  - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 581-595)
+
+- [ ] Task 8.4: Reorder where field on create game page
+
+  - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 597-611)
+
+- [ ] Task 8.5: Display Max Players and Notify Roles on same line
+
+  - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 613-628)
+
+- [ ] Task 8.6: Verify system functionality end-to-end
+  - Details: .copilot-tracking/details/20251129-game-model-refactor-details.md (Lines 630-652)
 
 ## Dependencies
 
