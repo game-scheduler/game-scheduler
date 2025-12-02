@@ -274,6 +274,54 @@ async def can_manage_game(
     return is_admin
 
 
+async def can_export_game(
+    game_host_id: str,
+    game_participants: list,
+    guild_id: str,
+    user_id: str,
+    discord_id: str,
+    role_service: roles_module.RoleVerificationService,
+    db: AsyncSession,
+    access_token: str | None = None,
+) -> bool:
+    """
+    Check if user can export a game to calendar format.
+
+    User can export game if they are:
+    1. The game host
+    2. A participant in the game
+    3. A Bot Manager (has bot_manager_role_ids)
+    4. An administrator (MANAGE_GUILD permission)
+
+    Args:
+        game_host_id: Database UUID of the game host
+        game_participants: List of GameParticipant objects
+        guild_id: Discord guild ID
+        user_id: Database UUID of the user
+        discord_id: Discord ID of the user
+        role_service: Role verification service
+        db: Database session
+        access_token: OAuth2 access token (required for admin check)
+
+    Returns:
+        True if user can export the game
+    """
+    # Check if user is the host
+    if game_host_id == user_id:
+        return True
+
+    # Check if user is a participant
+    if any(p.user_id == discord_id and p.user is not None for p in game_participants):
+        return True
+
+    # Check if user is bot manager or admin
+    is_bot_manager = await role_service.check_bot_manager_permission(
+        discord_id, guild_id, db, access_token
+    )
+
+    return is_bot_manager
+
+
 async def require_administrator(
     guild_id: str,
     # B008: FastAPI dependency injection requires Depends() in default arguments

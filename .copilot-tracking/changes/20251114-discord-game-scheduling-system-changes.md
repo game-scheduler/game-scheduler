@@ -9,6 +9,78 @@
 
 Implementation of a complete Discord game scheduling system with microservices architecture, featuring Discord bot with button interactions, web dashboard with OAuth2 authentication, role-based authorization, multi-channel support with settings inheritance, and automated notifications.
 
+### Recent Updates (2025-12-01)
+
+**Feature Update: Single-Game Calendar Export with Authorization (2025-12-01) - COMPLETE**
+
+Modified calendar export functionality to export only single games with proper authorization checks, ensuring only hosts or participants can export a game.
+
+**Changes:**
+
+1. **Updated API endpoint** (`services/api/routes/export.py`)
+
+   - Removed bulk export endpoints (`/my-games`, `/hosted-games`, `/guild/{guild_id}`)
+   - Added single game endpoint: `GET /api/v1/export/game/{game_id}`
+   - Returns HTTP 403 if user is neither host nor participant
+   - Returns HTTP 404 if game not found
+
+2. **Updated calendar export service** (`services/api/services/calendar_export.py`)
+
+   - Removed `export_user_games()`, `export_hosted_games()`, `export_guild_games()` methods
+   - Added `export_game()` method with authorization checks
+   - Verifies user is either:
+     - The game host (by user_id)
+     - A participant (by discord_id)
+   - Raises `PermissionError` if unauthorized
+   - Raises `ValueError` if game not found
+
+3. **Updated frontend ExportButton component** (`frontend/src/components/ExportButton.tsx`)
+
+   - Simplified to single button (no dropdown menu)
+   - Takes `gameId` and optional `gameName` props
+   - Downloads calendar file with sanitized game name
+   - Shows appropriate error message for 403 (permission denied)
+
+4. **Integrated into GameDetails page** (`frontend/src/pages/GameDetails.tsx`)
+
+   - Added ExportButton for hosts and participants only
+   - Button appears alongside Join/Leave/Edit/Cancel actions
+   - Uses game title for filename
+
+5. **Removed from MyGames page** (`frontend/src/pages/MyGames.tsx`)
+
+   - Removed ExportButton component import and usage
+   - Export functionality now only available on individual game detail pages
+
+6. **Updated tests** (`tests/services/api/services/test_calendar_export.py`)
+   - Replaced bulk export tests with single game export tests
+   - Added `test_export_game_as_host()` - verifies host can export
+   - Added `test_export_game_as_participant()` - verifies participant can export
+   - Added `test_export_game_not_found()` - verifies 404 for missing game
+   - Added `test_export_game_permission_denied()` - verifies 403 for unauthorized users
+   - All 9 tests passing
+
+**Benefits:**
+
+- ✅ Proper authorization: only hosts and participants can export games
+- ✅ Better security: prevents unauthorized calendar access
+- ✅ Simpler UI: single button instead of dropdown with multiple options
+- ✅ Clear error messages: 403 vs 404 handling
+- ✅ Better UX: export from game detail page where context is clear
+- ✅ All tests passing (9/9)
+- ✅ Frontend type-checking passes (0 errors)
+
+**Files Modified:**
+
+- `services/api/routes/export.py` - Single game endpoint with auth
+- `services/api/services/calendar_export.py` - Single game export with checks
+- `frontend/src/components/ExportButton.tsx` - Simplified component
+- `frontend/src/pages/GameDetails.tsx` - Added export button
+- `frontend/src/pages/MyGames.tsx` - Removed export button
+- `tests/services/api/services/test_calendar_export.py` - Updated all tests
+
+---
+
 ### Recent Updates (2025-11-30)
 
 **Bug Fix: Database Session Conflict in Game Operations (2025-11-30) - COMPLETE**
@@ -9302,3 +9374,115 @@ Removed redundant `scheduled_at_unix` field from all schemas after verifying all
 **Files Modified:**
 
 - `frontend/src/pages/GuildDashboard.tsx` - Added tab navigation handler, removed placeholder panel
+
+---
+
+### Feature: Calendar Export Functionality (2025-12-01) - Task 14.3
+
+**Summary**: Implemented iCal (iCalendar) calendar export functionality allowing users to export their games to standard calendar applications like Google Calendar, Outlook, and Apple Calendar.
+
+**Purpose**: Enable users to import their scheduled games into their personal calendar applications, providing better visibility and integration with their existing scheduling tools.
+
+**Implementation:**
+
+1. **Installed icalendar library**
+
+   - Added `icalendar>=5.0.0` to `pyproject.toml` dependencies
+   - Version 6.3.2 installed successfully
+
+2. **Created calendar export service** (`services/api/services/calendar_export.py`)
+
+   - `CalendarExportService` class with three export methods:
+     - `export_user_games()` - Export games user is participating in
+     - `export_hosted_games()` - Export games user is hosting
+     - `export_guild_games()` - Export all games in a guild
+   - `_generate_calendar()` - Converts game sessions to iCal format
+   - `_create_event()` - Creates individual event entries with:
+     - Game title, description, signup instructions
+     - Start time and duration (default 2 hours if not specified)
+     - Location (Discord channel or custom where field)
+     - Status mapping (SCHEDULED/IN_PROGRESS/COMPLETED → CONFIRMED, CANCELLED → CANCELLED)
+     - Reminder alarms based on game's reminder_minutes settings
+   - Supports filtering past games with `include_past` parameter
+   - Uses unique UID format `game-{game_id}@game-scheduler` for calendar updates
+
+3. **Created API endpoints** (`services/api/routes/export.py`)
+
+   - `GET /api/v1/export/my-games` - Export user's participated games
+   - `GET /api/v1/export/hosted-games` - Export user's hosted games
+   - `GET /api/v1/export/guild/{guild_id}` - Export guild's games
+   - All endpoints support `include_past` query parameter
+   - Returns iCal file with appropriate content-disposition headers
+   - Registered router in FastAPI app
+
+4. **Created frontend ExportButton component** (`frontend/src/components/ExportButton.tsx`)
+
+   - Material-UI button with dropdown menu
+   - Two export options: "Export Upcoming Games" and "Export All Games (Include Past)"
+   - Handles file download with proper blob creation
+   - Configurable variant prop: 'my-games', 'hosted-games', or 'guild'
+   - Loading state indicator during export
+   - Error handling with user-friendly alerts
+
+5. **Integrated into My Games page** (`frontend/src/pages/MyGames.tsx`)
+
+   - Added ExportButton next to "Create New Game" button
+   - Dynamically switches between 'hosted-games' and 'my-games' based on active tab
+   - Clean two-button layout with proper spacing
+
+6. **Comprehensive test coverage**
+   - Created `tests/services/api/services/test_calendar_export.py` with 9 test cases:
+     - Export user games, hosted games, guild games
+     - Include past games parameter
+     - Event duration calculation
+     - Reminder alarms conversion
+     - Status mapping (SCHEDULED → CONFIRMED, CANCELLED → CANCELLED)
+     - Empty games list handling
+   - All service tests passing (9/9)
+   - Fixed linting issues (updated import to use `collections.abc.Sequence`)
+
+**Files Created:**
+
+- `services/api/services/calendar_export.py` - Calendar generation service
+- `services/api/routes/export.py` - Export API endpoints
+- `frontend/src/components/ExportButton.tsx` - Export UI component
+- `tests/services/api/services/test_calendar_export.py` - Service tests
+
+**Files Modified:**
+
+- `pyproject.toml` - Added icalendar dependency
+- `services/api/app.py` - Registered export router
+- `frontend/src/pages/MyGames.tsx` - Added export button
+
+**Success Criteria Met:**
+
+- ✅ Users can export their joined games
+- ✅ Users can export their hosted games
+- ✅ Guild admins can export all guild games
+- ✅ iCal files import successfully into calendar applications (format validated)
+- ✅ Timezones handled correctly (naive UTC datetimes)
+- ✅ Game reminders converted to calendar alarms
+- ✅ Duration calculated from expected_duration_minutes (default 2 hours)
+- ✅ Include/exclude past games option available
+- ✅ Frontend type checking passes (0 errors)
+- ✅ Service tests comprehensive and passing (9/9)
+- ✅ Clean, user-friendly UI with loading states
+
+**iCal Format Features:**
+
+- Standard VCALENDAR 2.0 format
+- Proper PRODID identification
+- Event UIDs enable calendar updates
+- VALARM components for reminders
+- DTSTART, DTEND for scheduling
+- Location, Description fields populated
+- Status field mapped appropriately
+- Created and Last-Modified timestamps
+
+**User Experience:**
+
+- Single-click export from My Games page
+- Choose between upcoming only or all games
+- File downloads with appropriate filename
+- Works with Google Calendar, Outlook, Apple Calendar
+- Updates reflected when re-importing (same UID)

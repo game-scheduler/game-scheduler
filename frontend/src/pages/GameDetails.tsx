@@ -35,6 +35,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { GameSession } from '../types';
 import { ParticipantList } from '../components/ParticipantList';
+import { ExportButton } from '../components/ExportButton';
 import { useAuth } from '../hooks/useAuth';
 
 export const GameDetails: FC = () => {
@@ -274,6 +275,8 @@ export const GameDetails: FC = () => {
         <Divider sx={{ my: 3 }} />
 
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          {(isHost || isParticipant) && <ExportButton gameId={gameId!} gameName={game.title} />}
+
           {!isHost && !isParticipant && game.status === 'SCHEDULED' && (
             <Button variant="contained" onClick={handleJoinGame} disabled={actionLoading}>
               Join Game

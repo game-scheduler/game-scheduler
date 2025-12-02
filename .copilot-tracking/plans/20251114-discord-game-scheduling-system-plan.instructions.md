@@ -510,7 +510,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2332-2350)
 
-- [ ] Task 14.3: Build calendar export functionality
+- [x] Task 14.3: Build calendar export functionality
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2352-2370)
 
