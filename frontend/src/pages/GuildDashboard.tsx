@@ -62,6 +62,15 @@ export const GuildDashboard: FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
 
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    if (newValue === 2) {
+      // Games tab - navigate to games page
+      navigate(`/guilds/${guildId}/games`);
+    } else {
+      setTabValue(newValue);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       if (!guildId) return;
@@ -133,7 +142,7 @@ export const GuildDashboard: FC = () => {
         </Button>
       </Box>
 
-      <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)} sx={{ mb: 2 }}>
+      <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 2 }}>
         <Tab label="Overview" />
         <Tab label="Channels" />
         <Tab label="Games" />
@@ -223,17 +232,6 @@ export const GuildDashboard: FC = () => {
             )}
           </CardContent>
         </Card>
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={2}>
-        <Alert severity="info">Game browsing will be implemented in the next task.</Alert>
-        <Button
-          sx={{ mt: 2 }}
-          variant="contained"
-          onClick={() => navigate(`/guilds/${guildId}/games`)}
-        >
-          Browse Games
-        </Button>
       </TabPanel>
     </Container>
   );

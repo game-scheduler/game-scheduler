@@ -9268,3 +9268,37 @@ Removed redundant `scheduled_at_unix` field from all schemas after verifying all
 - Converting `+00:00` to `Z` for standard ISO 8601 format consistency
 - Mocked Discord API calls in tests to avoid authentication errors
 - Applied fix to both game response builder and join game endpoint
+
+---
+
+### UI Enhancement: Direct Games Tab Navigation (2025-12-01)
+
+**Change**: Improved Guild Dashboard Games tab to navigate directly to game browsing page instead of showing placeholder message.
+
+**Problem**: When users clicked the "Games" tab in the Guild Dashboard, they saw a placeholder alert saying "Game browsing will be implemented in the next task" with a button to navigate to the games page. This was confusing because:
+
+- The game browsing feature was already implemented at `/guilds/:guildId/games`
+- Users had to click the tab AND then click a button for an extra navigation step
+- The placeholder message was misleading (feature was complete, not future work)
+
+**Solution**: Modified the tab change handler to navigate directly to the games browsing page when the Games tab is selected, eliminating the unnecessary intermediate step and placeholder content.
+
+**Changes Made:**
+
+1. **Updated `frontend/src/pages/GuildDashboard.tsx`:**
+   - Added `handleTabChange` function that intercepts tab selection
+   - When Games tab (index 2) is clicked, directly navigates to `/guilds/${guildId}/games`
+   - Removed the third `TabPanel` that contained placeholder alert and button
+   - Overview and Channels tabs continue to display their content inline
+
+**Benefits:**
+
+- ✅ Seamless user experience - one click to view games
+- ✅ No misleading placeholder messages
+- ✅ Consistent with existing BrowseGames functionality
+- ✅ Cleaner code - removed unnecessary placeholder UI
+- ✅ All linting and type checking passes
+
+**Files Modified:**
+
+- `frontend/src/pages/GuildDashboard.tsx` - Added tab navigation handler, removed placeholder panel
