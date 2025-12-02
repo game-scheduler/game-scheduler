@@ -19,10 +19,19 @@ You WILL verify that any new or added code follows all rules and conventions as 
 
 ## Success Criteria
 
-- [ ] Project conventions followed
 - [ ] All coding conventions followed
-- All relevant import, commenting and documentation conventions followed
-- [ ] All new and modified code passes lint
-- [ ] All new and modified code has complete and passing unit tests
-- [ ] Changes file updated to describe any changes made. Do not provide information about this verification step, only about code changes.
-- [ ] All affected docker containers build.
+- [ ] The updates file should only describe meaningful changes made. Do not provide information about this verification prompt (e.g. "Fixed lint issues")
+- [ ] All new code files have a copyright notice
+  - [ ] Can be taken from existing files or added with scripts/add-copyright
+- [ ] All import, commenting and documentation conventions followed
+- [ ] All new and modified code passes lint (save this step for last to ensure any changes made to fix issues from this prompt are also linted)
+- [ ] All new and modified code has unit tests that focus on meaningful tests, not just coverage numbers, covering:
+  - [ ] Business logic (where applicable)
+  - [ ] Input validation
+  - [ ] Edge cases
+  - [ ] State Changes
+  - [ ] Return Values
+  - [ ] Error Handling
+  - [ ] Achieve at lest 80% coverage. Report Test Coverage numbers in the updates file.
+- [ ] All affected docker containers build
+- [ ] All integration tests pass after rebuilding the container (run with run-integration-tests.sh)
