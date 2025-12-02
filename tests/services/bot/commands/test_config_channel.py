@@ -89,7 +89,6 @@ def sample_channel_config():
         id=1,
         guild_id=1,
         channel_id="987654321",
-        channel_name="general",
         is_active=True,
         max_players=None,
         reminder_minutes=None,

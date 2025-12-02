@@ -43,7 +43,6 @@ class ChannelConfiguration(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     guild_id: Mapped[str] = mapped_column(ForeignKey("guild_configurations.id"))
     channel_id: Mapped[str] = mapped_column(String(20), unique=True, index=True)
-    channel_name: Mapped[str] = mapped_column(String(100))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     max_players: Mapped[int | None] = mapped_column(Integer, nullable=True)
     reminder_minutes: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
@@ -59,4 +58,4 @@ class ChannelConfiguration(Base):
     games: Mapped[list["GameSession"]] = relationship("GameSession", back_populates="channel")
 
     def __repr__(self) -> str:
-        return f"<ChannelConfiguration(id={self.id}, channel_name={self.channel_name})>"
+        return f"<ChannelConfiguration(id={self.id}, channel_id={self.channel_id})>"

@@ -63,7 +63,6 @@ def sample_channel():
         id=str(uuid.uuid4()),
         guild_id=guild_id,
         channel_id="987654321",
-        channel_name="Test Channel",
         is_active=True,
         max_players=8,
         reminder_minutes=[30, 10],
@@ -216,7 +215,6 @@ class TestConfigurationService:
         result = await service.create_channel_config(
             guild_id=str(uuid.uuid4()),
             channel_discord_id="987654321",
-            channel_name="Test Channel",
             is_active=True,
         )
 

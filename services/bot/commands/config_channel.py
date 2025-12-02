@@ -86,7 +86,6 @@ async def config_channel_command(
             channel_config = await _get_or_create_channel_config(
                 db,
                 str(target_channel.id),
-                target_channel.name,
                 guild_config.id,
             )
 
@@ -175,7 +174,6 @@ async def _get_guild_config(db: AsyncSession, guild_id: str) -> GuildConfigurati
 async def _get_or_create_channel_config(
     db: AsyncSession,
     channel_id: str,
-    channel_name: str,
     guild_config_id: int,
 ) -> ChannelConfiguration:
     """
@@ -184,7 +182,6 @@ async def _get_or_create_channel_config(
     Args:
         db: Database session
         channel_id: Discord channel ID
-        channel_name: Discord channel name
         guild_config_id: Guild configuration ID
 
     Returns:
@@ -199,7 +196,6 @@ async def _get_or_create_channel_config(
         config = ChannelConfiguration(
             guild_id=guild_config_id,
             channel_id=channel_id,
-            channel_name=channel_name,
             is_active=True,
             max_players=None,
             reminder_minutes=None,

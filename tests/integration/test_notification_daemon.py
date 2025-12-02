@@ -106,13 +106,12 @@ def test_game_session(db_session):
     db_session.execute(
         text(
             "INSERT INTO channel_configurations "
-            "(id, channel_id, channel_name, guild_id, created_at, updated_at) "
-            "VALUES (:id, :channel_id, :channel_name, :guild_id, :created_at, :updated_at)"
+            "(id, channel_id, guild_id, created_at, updated_at) "
+            "VALUES (:id, :channel_id, :guild_id, :created_at, :updated_at)"
         ),
         {
             "id": channel_id,
             "channel_id": "987654321",
-            "channel_name": "test-channel",
             "guild_id": guild_id,
             "created_at": now,
             "updated_at": now,

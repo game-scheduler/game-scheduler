@@ -252,7 +252,7 @@ class ConfigurationService:
         return guild_config
 
     async def create_channel_config(
-        self, guild_id: str, channel_discord_id: str, channel_name: str, **settings
+        self, guild_id: str, channel_discord_id: str, **settings
     ) -> "channel.ChannelConfiguration":
         """
         Create new channel configuration.
@@ -260,7 +260,6 @@ class ConfigurationService:
         Args:
             guild_id: Parent guild configuration ID (UUID)
             channel_discord_id: Discord channel snowflake ID
-            channel_name: Discord channel name
             **settings: Additional configuration settings
 
         Returns:
@@ -271,7 +270,6 @@ class ConfigurationService:
         channel_config = channel_module.ChannelConfiguration(
             guild_id=guild_id,
             channel_id=channel_discord_id,
-            channel_name=channel_name,
             **settings,
         )
         self.db.add(channel_config)

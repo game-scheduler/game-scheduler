@@ -26,7 +26,6 @@ class ChannelConfigCreateRequest(BaseModel):
 
     guild_id: str = Field(..., description="Parent guild ID (UUID)")
     channel_id: str = Field(..., description="Discord channel snowflake ID")
-    channel_name: str = Field(..., description="Discord channel name")
     is_active: bool = Field(
         default=True, description="Whether game posting is enabled in this channel"
     )
@@ -49,7 +48,6 @@ class ChannelConfigCreateRequest(BaseModel):
 class ChannelConfigUpdateRequest(BaseModel):
     """Update channel configuration (all fields optional)."""
 
-    channel_name: str | None = None
     is_active: bool | None = None
     max_players: int | None = None
     reminder_minutes: list[int] | None = None
@@ -63,7 +61,6 @@ class ChannelConfigResponse(BaseModel):
     id: str = Field(..., description="Internal channel config ID (UUID)")
     guild_id: str = Field(..., description="Parent guild ID (UUID)")
     guild_discord_id: str = Field(..., description="Discord guild snowflake ID")
-    channel_id: str = Field(..., description="Discord channel snowflake ID")
     channel_id: str = Field(..., description="Discord channel snowflake ID")
     channel_name: str = Field(..., description="Discord channel name")
     is_active: bool = Field(..., description="Whether channel is active for games")
