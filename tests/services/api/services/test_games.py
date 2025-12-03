@@ -103,8 +103,7 @@ def sample_user():
 def sample_game_data(sample_guild, sample_channel):
     """Create sample game creation request."""
     return game_schemas.GameCreateRequest(
-        guild_id=str(sample_guild.id),
-        channel_id=str(sample_channel.id),
+        template_id=str(uuid.uuid4()),
         title="Test Game",
         description="Test description",
         scheduled_at=datetime.datetime.now(datetime.UTC),
@@ -189,8 +188,7 @@ async def test_create_game_with_where_field(
 ):
     """Test creating game with where field stores location."""
     game_data = game_schemas.GameCreateRequest(
-        guild_id=str(sample_guild.id),
-        channel_id=str(sample_channel.id),
+        template_id=str(uuid.uuid4()),
         title="Test Game",
         description="Test description",
         scheduled_at=datetime.datetime.now(datetime.UTC),
@@ -382,8 +380,7 @@ async def test_create_game_timezone_conversion(
     scheduled_time_est = datetime.datetime(2025, 11, 20, 10, 0, 0, tzinfo=est)
 
     game_data = game_schemas.GameCreateRequest(
-        guild_id=str(sample_guild.id),
-        channel_id=str(sample_channel.id),
+        template_id=str(uuid.uuid4()),
         title="Timezone Test",
         description="Test timezone conversion",
         scheduled_at=scheduled_time_est,

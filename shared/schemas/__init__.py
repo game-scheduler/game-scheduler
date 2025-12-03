@@ -47,6 +47,13 @@ from shared.schemas.participant import (
     ParticipantJoinRequest,
     ParticipantResponse,
 )
+from shared.schemas.template import (
+    TemplateCreateRequest,
+    TemplateListItem,
+    TemplateReorderRequest,
+    TemplateResponse,
+    TemplateUpdateRequest,
+)
 from shared.schemas.user import UserPreferencesRequest, UserResponse
 
 __all__ = [
@@ -74,6 +81,12 @@ __all__ = [
     # Participant
     "ParticipantJoinRequest",
     "ParticipantResponse",
+    # Template
+    "TemplateCreateRequest",
+    "TemplateUpdateRequest",
+    "TemplateResponse",
+    "TemplateListItem",
+    "TemplateReorderRequest",
     # User
     "UserResponse",
     "UserPreferencesRequest",

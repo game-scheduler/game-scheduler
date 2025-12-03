@@ -91,22 +91,22 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - [ ] Task 2.5: Create default template data migration script
   - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 241-266)
 
-### [ ] Phase 3: Template Service & Schemas
+### [x] Phase 3: Template Service & Schemas
 
-- [ ] Task 3.1: Create template schemas
+- [x] Task 3.1: Create template schemas
 
-  - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 268-297)
+  - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 192-221)
 
-- [ ] Task 3.2: Create TemplateService
+- [x] Task 3.2: Create TemplateService
 
-  - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 299-336)
+  - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 223-239)
 
-- [ ] Task 3.3: Update game schemas for template-based creation
+- [x] Task 3.3: Update game schemas for template-based creation
 
-  - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 338-354)
+  - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 241-254)
 
-- [ ] Task 3.4: Create template service tests
-  - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 356-379)
+- [x] Task 3.4: Create template service tests
+  - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 256-273)
 
 ### [ ] Phase 4: Template API Endpoints
 

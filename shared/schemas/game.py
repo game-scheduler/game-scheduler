@@ -24,53 +24,45 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class GameCreateRequest(BaseModel):
-    """Create a new game session."""
+    """Create a new game session from a template."""
 
+    template_id: str = Field(..., description="Template UUID")
     title: str = Field(..., description="Game title", min_length=1, max_length=200)
+    scheduled_at: datetime = Field(..., description="Game start time (ISO 8601 UTC timestamp)")
+
+    # Optional overrides of template defaults
     description: str | None = Field(
         None, description="Game description (optional)", max_length=4000
     )
-    signup_instructions: str | None = Field(
-        None, description="Signup instructions for participants (optional)", max_length=1000
-    )
-    scheduled_at: datetime = Field(..., description="Game start time (ISO 8601 UTC timestamp)")
-    where: str | None = Field(None, description="Game location (optional)", max_length=500)
-    guild_id: str = Field(..., description="Guild ID (UUID)")
-    channel_id: str = Field(..., description="Channel ID (UUID)")
     max_players: int | None = Field(
-        None, description="Max players override (uses channel/guild default if None)"
-    )
-    reminder_minutes: list[int] | None = Field(
         None,
-        description="Reminder times override (uses channel/guild default if None)",
+        description="Max players override (uses template default if None)",
+        ge=1,
+        le=100,
     )
     expected_duration_minutes: int | None = Field(
         None,
-        description="Expected game duration in minutes (optional)",
+        description="Expected game duration in minutes (optional, uses template default if None)",
         ge=1,
+    )
+    reminder_minutes: list[int] | None = Field(
+        None,
+        description="Reminder times override (uses template default if None)",
+    )
+    where: str | None = Field(
+        None, description="Game location (optional, uses template default if None)", max_length=500
+    )
+    signup_instructions: str | None = Field(
+        None,
+        description=(
+            "Signup instructions for participants (optional, uses template default if None)"
+        ),
+        max_length=1000,
     )
     initial_participants: list[str] = Field(
         default_factory=list,
         description="Pre-populated participants (@mentions or placeholder strings)",
     )
-    notify_role_ids: list[str] | None = Field(
-        None,
-        description="Discord role IDs to mention in announcement (max 10)",
-        max_length=10,
-    )
-
-    @field_validator("notify_role_ids")
-    @classmethod
-    def validate_role_ids(cls, v: list[str] | None) -> list[str] | None:
-        """Validate role IDs are valid Discord snowflakes."""
-        if v is None:
-            return v
-        if len(v) > 10:
-            raise ValueError("Maximum 10 roles allowed")
-        for role_id in v:
-            if not role_id.isdigit() or len(role_id) < 17 or len(role_id) > 20:
-                raise ValueError(f"Invalid Discord role ID format: {role_id}")
-        return v
 
 
 class GameUpdateRequest(BaseModel):
