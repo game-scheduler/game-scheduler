@@ -71,8 +71,9 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - services/api/routes/templates.py - Created template router with CRUD endpoints (list, get, create, update, delete, set-default, reorder); fixed to use current_user.access_token directly instead of non-existent get_valid_token_for_user function
 - services/api/app.py - Registered templates router in FastAPI application
 - services/api/services/games.py - Updated create_game to require template_id, validate host permissions, and use template defaults for all fields
-- tests/services/api/routes/test_templates.py - Fixed to remove token mocking and use direct current_user.access_token pattern
+- tests/services/api/routes/test_templates.py - Fixed to remove token mocking and use direct current_user.access_token pattern; fixed get_template tests to use correct method name get_template_by_id
 - tests/services/api/routes/test_guilds.py - Fixed fetch_channel_name_safe patch path to use correct import location
+- tests/services/api/services/test_games.py - Added sample_template fixture using template_model.GameTemplate; updated 5 game creation tests to include template_result in mock db.execute side_effect (test_create_game_without_participants, test_create_game_with_where_field, test_create_game_with_valid_participants, test_create_game_with_invalid_participants, test_create_game_timezone_conversion)
 
 ### Removed
 
@@ -105,7 +106,8 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - ✅ All 8 GameTemplate model tests pass
 - ✅ All 7 template endpoint tests pass
 - ✅ All 32 route unit tests pass
-- ✅ 80/85 API service unit tests pass (5 game creation tests require Phase 5 frontend updates)
+- ✅ **All 527 unit tests passing** (100% pass rate)
+- ✅ All 18 game service tests passing after template fixture fixes
 
 ### Build Verification
 
@@ -134,9 +136,11 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - Frontend TypeScript interfaces updated to remove obsolete fields
 - Frontend UI simplified to remove inheritance-related configuration fields
 - Database queries module has 50% unit test coverage, which is acceptable as these are simple pass-through queries tested via route and integration tests
-- Phase 3 game schema changes introduce 5 expected test failures in game creation tests (require Phase 5 frontend template-based game creation implementation)
 - Template router fixed to use `current_user.access_token` directly instead of calling non-existent `get_valid_token_for_user()` function
 - Template endpoint tests fixed to remove token mocking and use direct access_token pattern from current_user fixture
+- Template endpoint tests fixed to use correct method name `get_template_by_id` instead of `get_template`
+- Game service tests fixed to include `sample_template` fixture in all game creation tests
+- Game service tests updated to add `template_result` as first query result in mock db.execute side_effect
 - E2E tests for guild sync and template API created but not yet runnable (need Discord API integration in e2e test infrastructure)
 
 ## Coding Standards Verification
@@ -163,4 +167,4 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - ✅ All affected Docker containers build successfully
 - ✅ All 10 integration tests pass
 - ✅ System remains deployable and functional
-- ✅ No regression in existing functionality (80/85 existing tests still pass)
+- ✅ **No regression in existing functionality** (all 527 unit tests passing)

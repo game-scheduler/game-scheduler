@@ -168,7 +168,7 @@ class TestGetTemplate:
             patch("services.api.auth.discord_client.fetch_channel_name_safe") as mock_fetch_name,
         ):
             mock_service = AsyncMock()
-            mock_service.get_template.return_value = mock_template
+            mock_service.get_template_by_id.return_value = mock_template
             mock_template_service.return_value = mock_service
 
             mock_fetch_name.return_value = "test-channel"
@@ -188,7 +188,7 @@ class TestGetTemplate:
             "services.api.services.template_service.TemplateService"
         ) as mock_template_service:
             mock_service = AsyncMock()
-            mock_service.get_template.return_value = None
+            mock_service.get_template_by_id.return_value = None
             mock_template_service.return_value = mock_service
 
             with pytest.raises(HTTPException) as exc_info:
