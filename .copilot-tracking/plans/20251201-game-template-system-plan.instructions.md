@@ -144,10 +144,11 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - [x] Task 5.5: Create frontend template tests
   - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 598-616)
 
-### [ ] Phase 6: Bot Command Cleanup
+### [x] Phase 6: Bot Command Cleanup
 
-- [ ] Task 6.1: Remove bot config commands
-  - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 618-637)
+- [x] Task 6.1: Remove bot config commands
+  - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 451-475)
+  - Note: Already completed in Phase 1, Substep 1.7
 
 ## Dependencies
 

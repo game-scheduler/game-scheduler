@@ -163,13 +163,14 @@ async def test_get_templates_for_user_empty_allowed_roles(template_service, mock
 @pytest.mark.asyncio
 async def test_get_template_by_id(template_service, mock_db, sample_template):
     """Test getting template by ID."""
-    mock_db.get.return_value = sample_template
+    mock_result = Mock()
+    mock_result.scalar_one_or_none.return_value = sample_template
+    mock_db.execute.return_value = mock_result
 
     template = await template_service.get_template_by_id("template-uuid-1")
 
     assert template.id == "template-uuid-1"
     assert template.name == "D&D Campaign"
-    mock_db.get.assert_awaited_once_with(GameTemplate, "template-uuid-1")
 
 
 @pytest.mark.asyncio
@@ -253,14 +254,14 @@ async def test_update_template_ignores_none_values(template_service, mock_db, sa
 @pytest.mark.asyncio
 async def test_set_default(template_service, mock_db, sample_template):
     """Test setting a template as default."""
-    mock_db.get.return_value = sample_template
-    mock_execute_result = AsyncMock()
-    mock_db.execute.return_value = mock_execute_result
+    mock_result = Mock()
+    mock_result.scalar_one_or_none.return_value = sample_template
+    mock_db.execute.return_value = mock_result
 
     template = await template_service.set_default("template-uuid-1")
 
     assert template.is_default is True
-    mock_db.execute.assert_awaited_once()
+    assert mock_db.execute.await_count == 2  # One for select, one for update
     mock_db.commit.assert_awaited_once()
     mock_db.refresh.assert_awaited_once()
 
@@ -268,7 +269,9 @@ async def test_set_default(template_service, mock_db, sample_template):
 @pytest.mark.asyncio
 async def test_set_default_not_found(template_service, mock_db):
     """Test setting default template when template not found."""
-    mock_db.get.return_value = None
+    mock_result = Mock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_result
 
     with pytest.raises(ValueError, match="Template not found"):
         await template_service.set_default("nonexistent-id")
@@ -277,7 +280,9 @@ async def test_set_default_not_found(template_service, mock_db):
 @pytest.mark.asyncio
 async def test_delete_template(template_service, mock_db, sample_template):
     """Test deleting a non-default template."""
-    mock_db.get.return_value = sample_template
+    mock_result = Mock()
+    mock_result.scalar_one_or_none.return_value = sample_template
+    mock_db.execute.return_value = mock_result
 
     await template_service.delete_template("template-uuid-1")
 
@@ -288,7 +293,9 @@ async def test_delete_template(template_service, mock_db, sample_template):
 @pytest.mark.asyncio
 async def test_delete_template_not_found(template_service, mock_db):
     """Test deleting template when not found."""
-    mock_db.get.return_value = None
+    mock_result = Mock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_result
 
     with pytest.raises(ValueError, match="Template not found"):
         await template_service.delete_template("nonexistent-id")
@@ -305,7 +312,9 @@ async def test_delete_default_template_raises_error(template_service, mock_db):
         channel_id="channel-uuid-1",
         order=0,
     )
-    mock_db.get.return_value = default_template
+    mock_result = Mock()
+    mock_result.scalar_one_or_none.return_value = default_template
+    mock_db.execute.return_value = mock_result
 
     with pytest.raises(ValueError, match="Cannot delete the default template"):
         await template_service.delete_template("template-uuid-default")
@@ -331,14 +340,21 @@ async def test_reorder_templates(template_service, mock_db):
         order=1,
     )
 
-    async def mock_get(model, template_id):
-        if template_id == "template-uuid-1":
-            return template1
-        elif template_id == "template-uuid-2":
-            return template2
-        return None
+    def mock_execute_side_effect(query):
+        # Create mock result for each execute call
+        mock_result = Mock()
+        # Return template1 for first call, template2 for second
+        if not hasattr(mock_execute_side_effect, "call_count"):
+            mock_execute_side_effect.call_count = 0
 
-    mock_db.get.side_effect = mock_get
+        if mock_execute_side_effect.call_count == 0:
+            mock_result.scalar_one_or_none.return_value = template1
+        else:
+            mock_result.scalar_one_or_none.return_value = template2
+        mock_execute_side_effect.call_count += 1
+        return mock_result
+
+    mock_db.execute.side_effect = mock_execute_side_effect
 
     template_orders = [
         {"template_id": "template-uuid-1", "order": 5},
@@ -365,7 +381,9 @@ async def test_reorder_templates_skips_invalid_items(template_service, mock_db):
         order=0,
     )
 
-    mock_db.get.return_value = template1
+    mock_result = Mock()
+    mock_result.scalar_one_or_none.return_value = template1
+    mock_db.execute.return_value = mock_result
 
     template_orders = [
         {"template_id": "template-uuid-1", "order": 5},

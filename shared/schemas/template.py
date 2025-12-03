@@ -113,13 +113,26 @@ class TemplateResponse(BaseModel):
 
 
 class TemplateListItem(BaseModel):
-    """Template list item for dropdown selection."""
+    """Template list item for display in template management."""
 
     id: str = Field(..., description="Template UUID")
     name: str = Field(..., description="Template name")
     description: str | None = Field(None, description="Template description")
     is_default: bool = Field(..., description="Whether this is the default template")
+    channel_id: str = Field(..., description="Channel UUID")
     channel_name: str = Field(..., description="Channel name (resolved from Discord)")
+
+    # Locked fields
+    notify_role_ids: list[str] | None = Field(None, description="Roles to notify")
+    allowed_player_role_ids: list[str] | None = Field(None, description="Allowed player roles")
+    allowed_host_role_ids: list[str] | None = Field(None, description="Allowed host roles")
+
+    # Pre-populated fields for display
+    max_players: int | None = Field(None, description="Maximum players")
+    expected_duration_minutes: int | None = Field(None, description="Expected duration")
+    reminder_minutes: list[int] | None = Field(None, description="Reminder minutes")
+    where: str | None = Field(None, description="Location")
+    signup_instructions: str | None = Field(None, description="Signup instructions")
 
     model_config = {"from_attributes": True}
 

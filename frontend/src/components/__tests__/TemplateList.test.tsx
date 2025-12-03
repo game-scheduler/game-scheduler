@@ -63,6 +63,11 @@ const mockTemplates: GameTemplate[] = [
   },
 ];
 
+const mockRoles = [
+  { id: 'role-1', name: '@Players', color: 0, position: 1, managed: false },
+  { id: 'role-2', name: '@DM', color: 0, position: 2, managed: false },
+];
+
 describe('TemplateList', () => {
   it('renders all templates', () => {
     const onEdit = vi.fn();
@@ -73,6 +78,7 @@ describe('TemplateList', () => {
     render(
       <TemplateList
         templates={mockTemplates}
+        roles={mockRoles}
         onEdit={onEdit}
         onDelete={onDelete}
         onSetDefault={onSetDefault}
@@ -93,6 +99,7 @@ describe('TemplateList', () => {
     render(
       <TemplateList
         templates={[]}
+        roles={mockRoles}
         onEdit={onEdit}
         onDelete={onDelete}
         onSetDefault={onSetDefault}
@@ -114,6 +121,7 @@ describe('TemplateList', () => {
     const { container } = render(
       <TemplateList
         templates={mockTemplates}
+        roles={mockRoles}
         onEdit={onEdit}
         onDelete={onDelete}
         onSetDefault={onSetDefault}

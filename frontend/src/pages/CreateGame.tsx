@@ -30,7 +30,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { getTemplates } from '../api/templates';
-import { GameTemplate, DiscordRole } from '../types';
+import { GameTemplate } from '../types';
 import { GameForm, GameFormData, parseDurationString } from '../components/GameForm';
 
 interface ValidationError {
@@ -55,7 +55,6 @@ export const CreateGame: FC = () => {
   const { guildId } = useParams<{ guildId: string }>();
   const [templates, setTemplates] = useState<GameTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<GameTemplate | null>(null);
-  const [roles, setRoles] = useState<DiscordRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[] | null>(null);
@@ -67,12 +66,8 @@ export const CreateGame: FC = () => {
 
       try {
         setLoading(true);
-        const [templatesResponse, rolesResponse] = await Promise.all([
-          getTemplates(guildId),
-          apiClient.get<DiscordRole[]>(`/api/v1/guilds/${guildId}/roles`),
-        ]);
+        const templatesResponse = await getTemplates(guildId);
         setTemplates(templatesResponse);
-        setRoles(rolesResponse.data);
 
         // Auto-select default template
         const defaultTemplate = templatesResponse.find((t) => t.is_default);
@@ -219,7 +214,6 @@ export const CreateGame: FC = () => {
                   updated_at: '',
                 },
               ]}
-              roles={roles}
               initialData={{
                 max_players: selectedTemplate.max_players,
                 expected_duration_minutes: selectedTemplate.expected_duration_minutes,

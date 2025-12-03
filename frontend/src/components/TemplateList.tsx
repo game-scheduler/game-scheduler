@@ -18,10 +18,11 @@
 import { FC, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { TemplateCard } from './TemplateCard';
-import { GameTemplate } from '../types';
+import { GameTemplate, DiscordRole } from '../types';
 
 interface TemplateListProps {
   templates: GameTemplate[];
+  roles: DiscordRole[];
   onEdit: (template: GameTemplate) => void;
   onDelete: (template: GameTemplate) => void;
   onSetDefault: (template: GameTemplate) => void;
@@ -30,6 +31,7 @@ interface TemplateListProps {
 
 export const TemplateList: FC<TemplateListProps> = ({
   templates,
+  roles,
   onEdit,
   onDelete,
   onSetDefault,
@@ -98,6 +100,7 @@ export const TemplateList: FC<TemplateListProps> = ({
         >
           <TemplateCard
             template={template}
+            roles={roles}
             onEdit={onEdit}
             onDelete={onDelete}
             onSetDefault={onSetDefault}

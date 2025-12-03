@@ -28,9 +28,12 @@ import {
   Box,
   CircularProgress,
   Alert,
+  Button,
 } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAuth } from '../hooks/useAuth';
 import { apiClient } from '../api/client';
+import { syncUserGuilds, GuildSyncResponse } from '../api/guilds';
 import { Guild } from '../types';
 
 export const GuildListPage: FC = () => {
@@ -39,6 +42,34 @@ export const GuildListPage: FC = () => {
   const [guilds, setGuilds] = useState<Guild[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  const handleSyncGuilds = async () => {
+    try {
+      setSyncing(true);
+      setSyncMessage(null);
+      setError(null);
+
+      const result: GuildSyncResponse = await syncUserGuilds();
+
+      if (result.new_guilds > 0 || result.new_channels > 0) {
+        setSyncMessage(
+          `Synced ${result.new_guilds} new server(s) and ${result.new_channels} new channel(s)`
+        );
+        // Refresh the guilds list
+        const response = await apiClient.get<{ guilds: Guild[] }>('/api/v1/guilds');
+        setGuilds(response.data.guilds);
+      } else {
+        setSyncMessage('All servers are already synced');
+      }
+    } catch (err: any) {
+      console.error('Failed to sync guilds:', err);
+      setError(err.response?.data?.detail || 'Failed to sync servers. Please try again.');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const fetchGuilds = async () => {
@@ -84,22 +115,53 @@ export const GuildListPage: FC = () => {
   if (guilds.length === 0) {
     return (
       <Container sx={{ mt: 4 }}>
-        <Alert severity="info">
+        <Alert severity="info" sx={{ mb: 2 }}>
           No servers with bot configurations found. Make sure the bot is added to your Discord
           server.
         </Alert>
+        <Button
+          variant="contained"
+          startIcon={<RefreshIcon />}
+          onClick={handleSyncGuilds}
+          disabled={syncing}
+        >
+          {syncing ? 'Syncing...' : 'Refresh Servers'}
+        </Button>
+        {syncMessage && (
+          <Alert severity="success" sx={{ mt: 2 }} onClose={() => setSyncMessage(null)}>
+            {syncMessage}
+          </Alert>
+        )}
       </Container>
     );
   }
 
   return (
     <Container sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        My Servers
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        Select a server to manage game sessions and configurations.
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            My Servers
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Select a server to manage game sessions and configurations.
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={handleSyncGuilds}
+          disabled={syncing}
+        >
+          {syncing ? 'Syncing...' : 'Refresh Servers'}
+        </Button>
+      </Box>
+
+      {syncMessage && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSyncMessage(null)}>
+          {syncMessage}
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         {guilds.map((guild) => (

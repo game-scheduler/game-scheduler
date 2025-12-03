@@ -93,6 +93,9 @@ describe('EditGame', () => {
       if (url.includes('/channels')) {
         return Promise.resolve({ data: mockChannels });
       }
+      if (url.includes('/roles')) {
+        return Promise.resolve({ data: [] });
+      }
       return Promise.reject(new Error('Unknown URL'));
     });
 
@@ -145,6 +148,9 @@ describe('EditGame', () => {
       if (url.includes('/channels')) {
         return Promise.resolve({ data: mockChannels });
       }
+      if (url.includes('/roles')) {
+        return Promise.resolve({ data: [] });
+      }
       return Promise.reject(new Error('Unknown URL'));
     });
 
@@ -189,6 +195,9 @@ describe('EditGame', () => {
       if (url.includes('/channels')) {
         return Promise.resolve({ data: mockChannels });
       }
+      if (url.includes('/roles')) {
+        return Promise.resolve({ data: [] });
+      }
       return Promise.reject(new Error('Unknown URL'));
     });
 
@@ -218,6 +227,9 @@ describe('EditGame', () => {
       if (url.includes('/channels')) {
         return Promise.resolve({ data: mockChannels });
       }
+      if (url.includes('/roles')) {
+        return Promise.resolve({ data: [] });
+      }
       return Promise.reject(new Error('Unknown URL'));
     });
 
@@ -245,6 +257,9 @@ describe('EditGame', () => {
       }
       if (url.includes('/channels')) {
         return Promise.resolve({ data: mockChannels });
+      }
+      if (url.includes('/roles')) {
+        return Promise.resolve({ data: [] });
       }
       return Promise.reject(new Error('Unknown URL'));
     });

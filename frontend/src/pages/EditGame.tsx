@@ -129,7 +129,6 @@ export const EditGame: FC = () => {
           ? formData.reminderMinutes.split(',').map((m) => parseInt(m.trim()))
           : null,
         expected_duration_minutes: parseDurationString(formData.expectedDurationMinutes),
-        notify_role_ids: formData.notifyRoleIds.length > 0 ? formData.notifyRoleIds : null,
         participants: formData.participants
           .filter((p) => p.mention.trim() && p.isExplicitlyPositioned)
           .map((p) => {
@@ -199,7 +198,6 @@ export const EditGame: FC = () => {
         initialData={state.game}
         guildId={state.game.guild_id}
         channels={state.channels}
-        roles={state.roles}
         onSubmit={handleSubmit}
         onCancel={() => navigate(`/games/${gameId}`)}
         validationErrors={validationErrors}

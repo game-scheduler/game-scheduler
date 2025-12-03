@@ -50,11 +50,19 @@ describe('GuildConfig', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Set up default mocks for all tests
+    vi.mocked(apiClient.get).mockImplementation((url: string) => {
+      if (url.includes('/roles')) {
+        return Promise.resolve({ data: [] });
+      }
+      if (url.includes('/guilds/')) {
+        return Promise.resolve({ data: mockGuild });
+      }
+      return Promise.reject(new Error('Unknown URL'));
+    });
   });
 
   it('loads and displays guild configuration', async () => {
-    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockGuild });
-
     render(
       <BrowserRouter>
         <GuildConfig />
@@ -62,13 +70,18 @@ describe('GuildConfig', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue('10')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('60, 15')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /Require Host Role/i })).toBeInTheDocument();
     });
   });
 
   it('displays loading state initially', () => {
-    vi.mocked(apiClient.get).mockImplementation(() => new Promise(() => {}));
+    // Override to return pending promise for guild, but still return roles
+    vi.mocked(apiClient.get).mockImplementation((url: string) => {
+      if (url.includes('/roles')) {
+        return Promise.resolve({ data: [] });
+      }
+      return new Promise(() => {}); // Never resolves
+    });
 
     render(
       <BrowserRouter>
@@ -80,7 +93,6 @@ describe('GuildConfig', () => {
   });
 
   it('handles save successfully', async () => {
-    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockGuild });
     vi.mocked(apiClient.put).mockResolvedValueOnce({ data: mockGuild });
 
     const user = userEvent.setup();
@@ -92,7 +104,7 @@ describe('GuildConfig', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue('10')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /Require Host Role/i })).toBeInTheDocument();
     });
 
     const saveButton = screen.getByText('Save Configuration');
@@ -100,9 +112,6 @@ describe('GuildConfig', () => {
 
     await waitFor(() => {
       expect(apiClient.put).toHaveBeenCalledWith('/api/v1/guilds/guild123', {
-        default_max_players: 10,
-        default_reminder_minutes: [60, 15],
-        allowed_host_role_ids: ['role1', 'role2'],
         bot_manager_role_ids: null,
         require_host_role: true,
       });
@@ -110,8 +119,14 @@ describe('GuildConfig', () => {
   });
 
   it('handles API errors gracefully', async () => {
-    vi.mocked(apiClient.get).mockRejectedValueOnce({
-      response: { data: { detail: 'Guild not found' } },
+    // Override to make guild fetch fail
+    vi.mocked(apiClient.get).mockImplementation((url: string) => {
+      if (url.includes('/roles')) {
+        return Promise.resolve({ data: [] });
+      }
+      return Promise.reject({
+        response: { data: { detail: 'Guild not found' } },
+      });
     });
 
     render(
@@ -126,8 +141,6 @@ describe('GuildConfig', () => {
   });
 
   it('renders form fields with initial values', async () => {
-    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockGuild });
-
     render(
       <BrowserRouter>
         <GuildConfig />
@@ -135,13 +148,10 @@ describe('GuildConfig', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue('10')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /Require Host Role/i })).toBeInTheDocument();
     });
 
-    const maxPlayersInput = screen.getByLabelText(/Default Max Players/) as HTMLInputElement;
-    const reminderInput = screen.getByLabelText(/Default Reminder Times/) as HTMLInputElement;
-
-    expect(maxPlayersInput.value).toBe('10');
-    expect(reminderInput.value).toBe('60, 15');
+    const requireHostRoleCheckbox = screen.getByRole('checkbox', { name: /Require Host Role/i }) as HTMLInputElement;
+    expect(requireHostRoleCheckbox.checked).toBe(true);
   });
 });

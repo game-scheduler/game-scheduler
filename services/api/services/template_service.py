@@ -20,6 +20,7 @@
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from shared.models.template import GameTemplate
 
@@ -60,6 +61,7 @@ class TemplateService:
         result = await self.db.execute(
             select(GameTemplate)
             .where(GameTemplate.guild_id == guild_id)
+            .options(selectinload(GameTemplate.channel))
             .order_by(
                 GameTemplate.is_default.desc(),
                 GameTemplate.order.asc(),
@@ -87,7 +89,12 @@ class TemplateService:
         Returns:
             Template or None if not found
         """
-        return await self.db.get(GameTemplate, template_id)
+        result = await self.db.execute(
+            select(GameTemplate)
+            .where(GameTemplate.id == template_id)
+            .options(selectinload(GameTemplate.channel))
+        )
+        return result.scalar_one_or_none()
 
     async def create_template(
         self,
@@ -116,7 +123,7 @@ class TemplateService:
         )
         self.db.add(template)
         await self.db.commit()
-        await self.db.refresh(template)
+        await self.db.refresh(template, ["channel"])
         return template
 
     async def create_default_template(self, guild_id: str, channel_id: str) -> GameTemplate:
@@ -140,7 +147,7 @@ class TemplateService:
         )
         self.db.add(template)
         await self.db.commit()
-        await self.db.refresh(template)
+        await self.db.refresh(template, ["channel"])
         return template
 
     async def update_template(self, template: GameTemplate, **updates) -> GameTemplate:
@@ -159,7 +166,7 @@ class TemplateService:
                 setattr(template, key, value)
 
         await self.db.commit()
-        await self.db.refresh(template)
+        await self.db.refresh(template, ["channel"])
         return template
 
     async def set_default(self, template_id: str) -> GameTemplate:
@@ -175,7 +182,12 @@ class TemplateService:
         Raises:
             ValueError: If template not found
         """
-        template = await self.db.get(GameTemplate, template_id)
+        result = await self.db.execute(
+            select(GameTemplate)
+            .where(GameTemplate.id == template_id)
+            .options(selectinload(GameTemplate.channel))
+        )
+        template = result.scalar_one_or_none()
         if not template:
             raise ValueError(f"Template not found: {template_id}")
 
@@ -190,7 +202,7 @@ class TemplateService:
 
         template.is_default = True
         await self.db.commit()
-        await self.db.refresh(template)
+        await self.db.refresh(template, ["channel"])
         return template
 
     async def delete_template(self, template_id: str) -> None:
@@ -203,7 +215,8 @@ class TemplateService:
         Raises:
             ValueError: If template not found or is default template
         """
-        template = await self.db.get(GameTemplate, template_id)
+        result = await self.db.execute(select(GameTemplate).where(GameTemplate.id == template_id))
+        template = result.scalar_one_or_none()
         if not template:
             raise ValueError(f"Template not found: {template_id}")
 
@@ -231,13 +244,18 @@ class TemplateService:
             if template_id is None or order is None:
                 continue
 
-            template = await self.db.get(GameTemplate, template_id)
+            result = await self.db.execute(
+                select(GameTemplate)
+                .where(GameTemplate.id == template_id)
+                .options(selectinload(GameTemplate.channel))
+            )
+            template = result.scalar_one_or_none()
             if template:
                 template.order = order
                 templates.append(template)
 
         await self.db.commit()
         for template in templates:
-            await self.db.refresh(template)
+            await self.db.refresh(template, ["channel"])
 
         return templates

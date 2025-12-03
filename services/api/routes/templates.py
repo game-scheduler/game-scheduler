@@ -88,7 +88,16 @@ async def list_templates(
                 name=template.name,
                 description=template.description,
                 is_default=template.is_default,
+                channel_id=template.channel_id,
                 channel_name=channel_name,
+                notify_role_ids=template.notify_role_ids,
+                allowed_player_role_ids=template.allowed_player_role_ids,
+                allowed_host_role_ids=template.allowed_host_role_ids,
+                max_players=template.max_players,
+                expected_duration_minutes=template.expected_duration_minutes,
+                reminder_minutes=template.reminder_minutes,
+                where=template.where,
+                signup_instructions=template.signup_instructions,
             )
         )
 

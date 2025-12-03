@@ -325,22 +325,24 @@ async def list_guild_roles(
         )
 
     roles = await discord_client.fetch_guild_roles(discord_guild_id)
+    logger.info(f"Fetched {len(roles)} roles for guild {discord_guild_id}")
 
-    # Filter out @everyone and managed roles
+    # Filter out managed roles but allow @everyone
     filtered_roles = [
         {
             "id": role["id"],
-            "name": role["name"],
+            "name": role["name"] if role["name"].startswith("@") else f"@{role['name']}",
             "color": role["color"],
             "position": role["position"],
             "managed": role.get("managed", False),
         }
         for role in roles
-        if role["name"] != "@everyone" and not role.get("managed", False)
+        if not role.get("managed", False)
     ]
 
     # Sort by position (highest first)
     filtered_roles.sort(key=lambda r: r["position"], reverse=True)
+    logger.info(f"Returning {len(filtered_roles)} filtered roles for guild {discord_guild_id}")
 
     return filtered_roles
 

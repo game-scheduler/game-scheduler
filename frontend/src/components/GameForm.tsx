@@ -29,14 +29,12 @@ import {
   Alert,
   Paper,
   SelectChangeEvent,
-  Chip,
-  OutlinedInput,
   Grid,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { Channel, DiscordRole, GameSession } from '../types';
+import { Channel, GameSession } from '../types';
 import { ValidationErrors } from './ValidationErrors';
 import { formatParticipantDisplay } from '../utils/formatParticipant';
 import {
@@ -54,7 +52,6 @@ export interface GameFormData {
   maxPlayers: string;
   reminderMinutes: string;
   expectedDurationMinutes: string;
-  notifyRoleIds: string[];
   participants: EditableParticipantInput[];
 }
 
@@ -63,7 +60,6 @@ interface GameFormProps {
   initialData?: Partial<GameSession>;
   guildId: string;
   channels: Channel[];
-  roles: DiscordRole[];
   onSubmit: (formData: GameFormData) => Promise<void>;
   onCancel: () => void;
   validationErrors?: Array<{
@@ -133,7 +129,6 @@ export const GameForm: FC<GameFormProps> = ({
   initialData,
   guildId,
   channels,
-  roles,
   onSubmit,
   onCancel,
   validationErrors,
@@ -154,7 +149,6 @@ export const GameForm: FC<GameFormProps> = ({
     expectedDurationMinutes: formatDurationForDisplay(
       initialData?.expected_duration_minutes ?? null
     ),
-    notifyRoleIds: initialData?.notify_role_ids || [],
     participants: initialData?.participants
       ? initialData.participants
           .sort((a, b) => {
@@ -190,7 +184,6 @@ export const GameForm: FC<GameFormProps> = ({
         expectedDurationMinutes: formatDurationForDisplay(
           initialData.expected_duration_minutes ?? null
         ),
-        notifyRoleIds: initialData.notify_role_ids || [],
         participants: initialData.participants
           ? initialData.participants
               .sort((a, b) => {
@@ -249,14 +242,6 @@ export const GameForm: FC<GameFormProps> = ({
 
   const handleSelectChange = (event: SelectChangeEvent) => {
     setFormData((prev) => ({ ...prev, channelId: event.target.value }));
-  };
-
-  const handleRoleSelectChange = (event: SelectChangeEvent<string[]>) => {
-    const value = event.target.value;
-    setFormData((prev) => ({
-      ...prev,
-      notifyRoleIds: typeof value === 'string' ? value.split(',') : value,
-    }));
   };
 
   const handleDateChange = (date: Date | null) => {
@@ -437,58 +422,6 @@ export const GameForm: FC<GameFormProps> = ({
                 disabled={loading}
                 inputProps={{ min: 1, max: 100 }}
               />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Notify Roles</InputLabel>
-                <Select
-                  multiple
-                  value={formData.notifyRoleIds}
-                  onChange={handleRoleSelectChange}
-                  input={<OutlinedInput label="Notify Roles" />}
-                  renderValue={(selected) => (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {selected.map((roleId) => {
-                        const role = roles.find((r) => r.id === roleId);
-                        return (
-                          <Chip
-                            key={roleId}
-                            label={role?.name || roleId}
-                            size="small"
-                            sx={{
-                              bgcolor: role?.color
-                                ? `#${role.color.toString(16).padStart(6, '0')}`
-                                : 'default',
-                              color: role?.color ? '#fff' : 'default',
-                            }}
-                          />
-                        );
-                      })}
-                    </Box>
-                  )}
-                  disabled={loading}
-                >
-                  {roles.map((role) => (
-                    <MenuItem key={role.id} value={role.id}>
-                      <Chip
-                        label={role.name}
-                        size="small"
-                        sx={{
-                          bgcolor: role.color
-                            ? `#${role.color.toString(16).padStart(6, '0')}`
-                            : 'default',
-                          color: role.color ? '#fff' : 'default',
-                          mr: 1,
-                        }}
-                      />
-                    </MenuItem>
-                  ))}
-                </Select>
-                <Typography variant="caption" sx={{ mt: 0.5, color: 'text.secondary' }}>
-                  Users with these roles will be mentioned when the game is announced
-                </Typography>
-              </FormControl>
             </Grid>
           </Grid>
 

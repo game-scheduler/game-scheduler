@@ -64,6 +64,7 @@ export const TemplateForm: FC<TemplateFormProps> = ({
   onClose,
   onSubmit,
 }) => {
+  console.log('TemplateForm received:', { channelsCount: channels.length, rolesCount: roles.length });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [channelId, setChannelId] = useState('');
@@ -151,7 +152,7 @@ export const TemplateForm: FC<TemplateFormProps> = ({
 
     setSubmitting(true);
     try {
-      const data = {
+      const data: any = {
         name: name.trim(),
         description: description.trim() || null,
         channel_id: channelId,
@@ -168,7 +169,15 @@ export const TemplateForm: FC<TemplateFormProps> = ({
       };
 
       if (template) {
-        await onSubmit(data as TemplateUpdateRequest);
+        // For updates, remove null values so backend only updates provided fields
+        const updateData: any = {};
+        for (const [key, value] of Object.entries(data)) {
+          if (value !== null) {
+            updateData[key] = value;
+          }
+        }
+        console.log('Sending template update:', updateData);
+        await onSubmit(updateData as TemplateUpdateRequest);
       } else {
         await onSubmit({ ...data, guild_id: guildId } as TemplateCreateRequest);
       }

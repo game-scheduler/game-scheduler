@@ -86,6 +86,20 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - frontend/src/App.tsx - Added /guilds/:guildId/templates route for template management page
 - frontend/src/pages/GuildDashboard.tsx - Added "Refresh Servers" button for manual guild sync, added "Templates" button to navigate to template management
 - frontend/src/pages/CreateGame.tsx - Updated to use template selection dropdown instead of channel selection, pre-populates form fields from selected template
+- frontend/src/pages/GuildListPage.tsx - Added "Refresh Servers" button with syncUserGuilds functionality for manual guild synchronization
+- services/api/services/template_service.py - Added selectinload(GameTemplate.channel) to all template queries to avoid async/sync greenlet_spawn errors
+- tests/services/api/services/test_template_service.py - Updated all test mocks to use db.execute with scalar_one_or_none instead of db.get
+- frontend/src/components/TemplateForm.tsx - Added logic to filter null values from update requests; added debugging console.log
+- shared/schemas/template.py - Expanded TemplateListItem from 5 fields to 14 fields (added channel_id, notify_role_ids, allowed_player_role_ids, allowed_host_role_ids, max_players, expected_duration_minutes, reminder_minutes, where, signup_instructions)
+- services/api/routes/templates.py - Updated list_templates endpoint to return all fields in TemplateListItem; added logging for role fetch operations
+- frontend/src/types/index.ts - Updated TemplateListItem interface to match backend schema with all 14 fields
+- frontend/src/pages/TemplateManagement.tsx - Added roles to TemplateList props; added console.log debugging for fetched data
+- services/api/routes/guilds.py - Changed role filter from excluding @everyone and managed roles to only excluding managed roles (allows @everyone); added @ prefix to all role names that don't already have one; added logging for role fetch operations
+- frontend/src/components/TemplateList.tsx - Added roles prop and passed to TemplateCard
+- frontend/src/components/TemplateCard.tsx - Added roles prop, getRoleNames helper function, and display of all three role fields (notify_role_ids, allowed_player_role_ids, allowed_host_role_ids) plus signup_instructions
+- frontend/src/components/GameForm.tsx - Removed notify_role_ids field and notifyRoleIds from GameFormData interface; removed unused imports (Chip, OutlinedInput, DiscordRole); removed roles prop from component interface and parameters; removed handleRoleSelectChange function
+- frontend/src/pages/EditGame.tsx - Removed notify_role_ids from update payload; removed roles prop from GameForm usage
+- frontend/src/pages/CreateGame.tsx - Removed roles state, roles API call, and DiscordRole import; removed roles prop from GameForm usage
 
 ### Removed
 
@@ -128,6 +142,16 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - ✅ Frontend container builds successfully
 - ✅ All Docker containers build without errors
 
+### UI/UX Verification
+
+- ✅ Template list displays all fields including roles, duration, reminders, location, and signup instructions
+- ✅ Template form supports create, edit, delete, set default, and reorder operations
+- ✅ Role dropdowns populate with non-managed roles from Discord API
+- ✅ Guild sync button successfully fetches and displays guilds from Discord
+- ✅ Game creation form uses template selection instead of channel selection
+- ✅ Notify roles removed from game forms (only appear in templates)
+- ✅ Role names display with @ prefix for consistency
+
 ### Integration Tests
 
 - ✅ All PostgreSQL listener integration tests pass
@@ -154,6 +178,12 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - Game service tests fixed to include `sample_template` fixture in all game creation tests
 - Game service tests updated to add `template_result` as first query result in mock db.execute side_effect
 - E2E tests for guild sync and template API created but not yet runnable (need Discord API integration in e2e test infrastructure)
+- Fixed async/sync greenlet_spawn errors by adding selectinload(GameTemplate.channel) to all template service queries for eager loading
+- Template update functionality debugged and fixed by filtering null values from frontend update requests
+- TemplateListItem schema expanded from 5 to 14 fields to support complete template display including all role fields
+- Role filtering simplified to only exclude managed roles (bot roles), allowing @everyone for notifications
+- All role names now display with @ prefix for consistency with Discord UI conventions
+- Notify roles functionality moved from game forms to templates only (templates control which roles are notified, not individual games)
 
 ## Coding Standards Verification
 
@@ -180,3 +210,30 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - ✅ All 10 integration tests pass
 - ✅ System remains deployable and functional
 - ✅ **No regression in existing functionality** (all 527 unit tests passing)
+
+## Post-Implementation Verification (2025-12-03)
+
+### Coding Standards Compliance
+- ✅ All code follows project conventions
+- ✅ Copyright notices present on all files
+- ✅ Python linting passes (ruff check and format)
+- ✅ TypeScript compilation successful
+
+### Test Results
+- ✅ 527/527 unit tests passing (100%)
+- ✅ 10/10 integration tests passing (100%)
+- ✅ 34/34 frontend tests passing (100%)
+- ✅ Template service: 100% test coverage
+- ✅ Overall API services: 86% coverage (exceeds 80% minimum)
+
+### Build Verification
+- ✅ API container builds successfully
+- ✅ Bot container builds successfully
+- ✅ Frontend container builds successfully
+
+### Issues Fixed During Verification
+- Fixed missing `roles` prop in TemplateList component usage in TemplateManagement.tsx
+- Updated EditGame and GuildConfig test suites to match simplified component implementations after template system refactoring
+- Refactored GuildConfig test suite to use proper beforeEach setup for consistent API mocking across all tests
+- Added missing `roles` prop to all TemplateCard and TemplateList test usages
+- Fixed TemplateCard tests to use `getByTitle` instead of `getByLabelText` to match component implementation (buttons use `title` attribute)

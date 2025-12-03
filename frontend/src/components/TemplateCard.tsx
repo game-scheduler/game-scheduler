@@ -22,10 +22,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import { GameTemplate } from '../types';
+import { GameTemplate, DiscordRole } from '../types';
 
 interface TemplateCardProps {
   template: GameTemplate;
+  roles: DiscordRole[];
   onEdit: (template: GameTemplate) => void;
   onDelete: (template: GameTemplate) => void;
   onSetDefault: (template: GameTemplate) => void;
@@ -34,11 +35,18 @@ interface TemplateCardProps {
 
 export const TemplateCard: FC<TemplateCardProps> = ({
   template,
+  roles,
   onEdit,
   onDelete,
   onSetDefault,
   dragHandleProps,
 }) => {
+  const getRoleNames = (roleIds: string[] | null | undefined): string => {
+    if (!roleIds || roleIds.length === 0) return 'None';
+    return roleIds
+      .map((id) => roles.find((r) => r.id === id)?.name || 'Unknown')
+      .join(', ');
+  };
   return (
     <Card sx={{ mb: 2 }}>
       <CardContent>
@@ -87,6 +95,24 @@ export const TemplateCard: FC<TemplateCardProps> = ({
                   <strong>Location:</strong> {template.where}
                 </Typography>
               )}
+
+              {template.signup_instructions && (
+                <Typography variant="body2">
+                  <strong>Signup Instructions:</strong> {template.signup_instructions}
+                </Typography>
+              )}
+
+              <Typography variant="body2">
+                <strong>Notify Roles:</strong> {getRoleNames(template.notify_role_ids)}
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>Allowed Player Roles:</strong> {getRoleNames(template.allowed_player_role_ids)}
+              </Typography>
+
+              <Typography variant="body2">
+                <strong>Allowed Host Roles:</strong> {getRoleNames(template.allowed_host_role_ids)}
+              </Typography>
             </Stack>
           </Box>
 

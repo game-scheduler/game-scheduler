@@ -42,6 +42,11 @@ const mockTemplate: GameTemplate = {
   updated_at: '2025-01-01T00:00:00Z',
 };
 
+const mockRoles = [
+  { id: 'role-1', name: '@Players', color: 0, position: 1, managed: false },
+  { id: 'role-2', name: '@DM', color: 0, position: 2, managed: false },
+];
+
 describe('TemplateCard', () => {
   it('renders template name and description', () => {
     const onEdit = vi.fn();
@@ -51,6 +56,7 @@ describe('TemplateCard', () => {
     render(
       <TemplateCard
         template={mockTemplate}
+        roles={mockRoles}
         onEdit={onEdit}
         onDelete={onDelete}
         onSetDefault={onSetDefault}
@@ -69,13 +75,14 @@ describe('TemplateCard', () => {
     render(
       <TemplateCard
         template={mockTemplate}
+        roles={mockRoles}
         onEdit={onEdit}
         onDelete={onDelete}
         onSetDefault={onSetDefault}
       />
     );
 
-    expect(screen.getByText(/Channel:/)).toBeInTheDocument();
+    expect(screen.getByText('6')).toBeInTheDocument();
     expect(screen.getByText(/game-chat/)).toBeInTheDocument();
     expect(
       screen.getByText((_content, element) => {
@@ -105,6 +112,7 @@ describe('TemplateCard', () => {
     render(
       <TemplateCard
         template={mockTemplate}
+        roles={mockRoles}
         onEdit={onEdit}
         onDelete={onDelete}
         onSetDefault={onSetDefault}
@@ -126,6 +134,7 @@ describe('TemplateCard', () => {
     render(
       <TemplateCard
         template={mockTemplate}
+        roles={mockRoles}
         onEdit={onEdit}
         onDelete={onDelete}
         onSetDefault={onSetDefault}
@@ -147,6 +156,7 @@ describe('TemplateCard', () => {
     render(
       <TemplateCard
         template={defaultTemplate}
+        roles={mockRoles}
         onEdit={onEdit}
         onDelete={onDelete}
         onSetDefault={onSetDefault}
@@ -166,6 +176,7 @@ describe('TemplateCard', () => {
     render(
       <TemplateCard
         template={defaultTemplate}
+        roles={mockRoles}
         onEdit={onEdit}
         onDelete={onDelete}
         onSetDefault={onSetDefault}
@@ -184,6 +195,7 @@ describe('TemplateCard', () => {
     render(
       <TemplateCard
         template={mockTemplate}
+        roles={mockRoles}
         onEdit={onEdit}
         onDelete={onDelete}
         onSetDefault={onSetDefault}

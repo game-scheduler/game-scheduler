@@ -188,6 +188,7 @@ export const TemplateManagement: FC = () => {
 
       <TemplateList
         templates={templates}
+        roles={roles}
         onEdit={handleEditTemplate}
         onDelete={handleDeleteClick}
         onSetDefault={handleSetDefault}
