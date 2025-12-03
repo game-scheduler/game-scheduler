@@ -32,7 +32,6 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from services.api.auth import discord_client as discord_client_module
-from services.api.services import config as config_service
 from services.api.services import notification_schedule as notification_schedule_service
 from services.api.services import participant_resolver as resolver_module
 from shared.messaging import events as messaging_events
@@ -505,12 +504,9 @@ class GameService:
 
         # Update notification schedule if scheduled_at or reminder_minutes changed
         if schedule_needs_update:
-            # Resolve reminder_minutes using inheritance if not set on game
-            resolver = config_service.SettingsResolver()
-            reminder_minutes = resolver.resolve_reminder_minutes(
-                game=game,
-                channel=game.channel,
-                guild=game.guild,
+            # Use game's reminder_minutes or default to [60, 15]
+            reminder_minutes = (
+                game.reminder_minutes if game.reminder_minutes is not None else [60, 15]
             )
 
             schedule_service = notification_schedule_service.NotificationScheduleService(self.db)
@@ -635,8 +631,8 @@ class GameService:
         if channel_config is None:
             raise ValueError(f"Channel configuration not found for ID: {game.channel_id}")
 
-        resolver = config_service.SettingsResolver()
-        max_players = resolver.resolve_max_players(game, channel_config, guild_config)
+        # Use game's max_players or default to 10
+        max_players = game.max_players if game.max_players is not None else 10
 
         if max_players is not None and participant_count >= max_players:
             raise ValueError("Game is full")

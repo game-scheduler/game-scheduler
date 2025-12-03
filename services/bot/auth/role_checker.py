@@ -26,11 +26,9 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.bot.auth import cache
-from shared.models import channel, guild
 
 if TYPE_CHECKING:
     from discord import Client
@@ -214,42 +212,19 @@ class RoleChecker:
         channel_id: str | None = None,
     ) -> bool:
         """
-        Check if user can host games with inheritance resolution.
+        Check if user can host games.
 
-        Checks channel-specific allowed roles first, then guild allowed roles,
-        then falls back to MANAGE_GUILD permission.
+        Currently checks MANAGE_GUILD permission only.
+        Template-based role restrictions will be added in Phase 2.
 
         Args:
             user_id: Discord user ID
             guild_id: Discord guild ID
-            channel_id: Discord channel ID (optional)
+            channel_id: Discord channel ID (unused, kept for compatibility)
 
         Returns:
             True if user can host games
         """
-        user_role_ids = await self.get_user_role_ids(user_id, guild_id)
-
-        if channel_id:
-            result = await self.db.execute(
-                select(channel.ChannelConfiguration).where(
-                    channel.ChannelConfiguration.channel_id == channel_id
-                )
-            )
-            channel_config = result.scalar_one_or_none()
-
-            if channel_config and channel_config.allowed_host_role_ids:
-                return any(
-                    role_id in channel_config.allowed_host_role_ids for role_id in user_role_ids
-                )
-
-        result = await self.db.execute(
-            select(guild.GuildConfiguration).where(guild.GuildConfiguration.guild_id == guild_id)
-        )
-        guild_config = result.scalar_one_or_none()
-
-        if guild_config and guild_config.allowed_host_role_ids:
-            return any(role_id in guild_config.allowed_host_role_ids for role_id in user_role_ids)
-
         return await self.check_manage_guild_permission(user_id, guild_id)
 
     async def invalidate_user_roles(self, user_id: str, guild_id: str) -> None:

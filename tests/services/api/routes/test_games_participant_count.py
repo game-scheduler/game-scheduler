@@ -63,7 +63,7 @@ async def test_participant_count_includes_discord_users_only(
     user2 = user_model.User(id=user2_id, discord_id="333333333")
 
     guild = guild_model.GuildConfiguration(
-        id=str(uuid.uuid4()), guild_id="999999999", default_max_players=10
+        id=str(uuid.uuid4()), guild_id="999999999"
     )
     channel = channel_model.ChannelConfiguration(
         id=str(uuid.uuid4()),
@@ -132,7 +132,7 @@ async def test_participant_count_includes_placeholder_participants(
     host_user = user_model.User(id=host_id, discord_id="111111111")
 
     guild = guild_model.GuildConfiguration(
-        id=str(uuid.uuid4()), guild_id="999999999", default_max_players=10
+        id=str(uuid.uuid4()), guild_id="999999999"
     )
     channel = channel_model.ChannelConfiguration(
         id=str(uuid.uuid4()),
@@ -216,7 +216,7 @@ async def test_participant_count_includes_mixed_participants(
     user2 = user_model.User(id=user2_id, discord_id="333333333")
 
     guild = guild_model.GuildConfiguration(
-        id=str(uuid.uuid4()), guild_id="999999999", default_max_players=10
+        id=str(uuid.uuid4()), guild_id="999999999"
     )
     channel = channel_model.ChannelConfiguration(
         id=str(uuid.uuid4()),
@@ -305,7 +305,7 @@ async def test_participant_count_with_empty_participants(
     host_user = user_model.User(id=host_id, discord_id="111111111")
 
     guild = guild_model.GuildConfiguration(
-        id=str(uuid.uuid4()), guild_id="999999999", default_max_players=10
+        id=str(uuid.uuid4()), guild_id="999999999"
     )
     channel = channel_model.ChannelConfiguration(
         id=str(uuid.uuid4()),

@@ -107,7 +107,6 @@ def clean_test_data(db_session):
 @pytest.fixture
 def test_guild_data(db_session, clean_test_data):
     """Create test guild via database for API to reference."""
-    import json
 
     guild_id = str(uuid4())
     now = datetime.now(UTC).replace(tzinfo=None)
@@ -115,17 +114,14 @@ def test_guild_data(db_session, clean_test_data):
     db_session.execute(
         text(
             "INSERT INTO guild_configurations "
-            "(id, guild_id, created_at, updated_at, "
-            "default_reminder_minutes) "
-            "VALUES (:id, :guild_id, :created_at, :updated_at, "
-            ":default_reminder_minutes::jsonb)"
+            "(id, guild_id, created_at, updated_at) "
+            "VALUES (:id, :guild_id, :created_at, :updated_at)"
         ),
         {
             "id": guild_id,
             "guild_id": "123456789",
             "created_at": now,
             "updated_at": now,
-            "default_reminder_minutes": json.dumps([60, 30, 15]),
         },
     )
 

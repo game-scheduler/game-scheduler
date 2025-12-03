@@ -21,7 +21,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String
+from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
@@ -44,10 +44,6 @@ class ChannelConfiguration(Base):
     guild_id: Mapped[str] = mapped_column(ForeignKey("guild_configurations.id"))
     channel_id: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    max_players: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    reminder_minutes: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
-    allowed_host_role_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
-    game_category: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)
 

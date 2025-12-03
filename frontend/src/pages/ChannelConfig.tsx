@@ -22,21 +22,17 @@ import {
   Typography,
   Card,
   CardContent,
-  TextField,
   Button,
   Box,
   CircularProgress,
   Alert,
   FormControlLabel,
   Checkbox,
-  Autocomplete,
-  Chip,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { apiClient } from '../api/client';
-import { Channel, Guild, DiscordRole } from '../types';
-import { InheritancePreview } from '../components/InheritancePreview';
+import { Channel } from '../types';
 
 export const ChannelConfig: FC = () => {
   const { channelUuid } = useParams<{ channelUuid: string }>();
@@ -45,17 +41,10 @@ export const ChannelConfig: FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [loadingRoles, setLoadingRoles] = useState(false);
-  const [roles, setRoles] = useState<DiscordRole[]>([]);
 
   const [channel, setChannel] = useState<Channel | null>(null);
-  const [guild, setGuild] = useState<Guild | null>(null);
   const [formData, setFormData] = useState({
     isActive: true,
-    maxPlayers: '',
-    reminderMinutes: '',
-    allowedHostRoleIds: [] as string[],
-    gameCategory: '',
   });
 
   useEffect(() => {
@@ -71,15 +60,8 @@ export const ChannelConfig: FC = () => {
 
         setChannel(channelData);
 
-        const guildResponse = await apiClient.get<Guild>(`/api/v1/guilds/${channelData.guild_id}`);
-        setGuild(guildResponse.data);
-
         setFormData({
           isActive: channelData.is_active,
-          maxPlayers: channelData.max_players?.toString() || '',
-          reminderMinutes: channelData.reminder_minutes?.join(', ') || '',
-          allowedHostRoleIds: channelData.allowed_host_role_ids || [],
-          gameCategory: channelData.game_category || '',
         });
       } catch (err: unknown) {
         console.error('Failed to fetch channel:', err);
@@ -92,26 +74,6 @@ export const ChannelConfig: FC = () => {
     fetchData();
   }, [channelUuid]);
 
-  useEffect(() => {
-    const fetchRoles = async () => {
-      if (!guild?.guild_id) return;
-
-      try {
-        setLoadingRoles(true);
-        const response = await apiClient.get<DiscordRole[]>(
-          `/api/v1/guilds/${guild.guild_id}/roles`
-        );
-        setRoles(response.data);
-      } catch (err: unknown) {
-        console.error('Failed to fetch roles:', err);
-      } finally {
-        setLoadingRoles(false);
-      }
-    };
-
-    fetchRoles();
-  }, [guild]);
-
   const handleSave = async () => {
     if (!channelUuid) return;
 
@@ -120,20 +82,8 @@ export const ChannelConfig: FC = () => {
       setError(null);
       setSuccess(false);
 
-      const reminderMinutes = formData.reminderMinutes
-        ? formData.reminderMinutes
-            .split(',')
-            .map((s) => parseInt(s.trim()))
-            .filter((n) => !isNaN(n))
-        : null;
-
       await apiClient.put(`/api/v1/channels/${channelUuid}`, {
         is_active: formData.isActive,
-        max_players: formData.maxPlayers ? parseInt(formData.maxPlayers) : null,
-        reminder_minutes: reminderMinutes,
-        allowed_host_role_ids:
-          formData.allowedHostRoleIds.length > 0 ? formData.allowedHostRoleIds : null,
-        game_category: formData.gameCategory || null,
       });
 
       setSuccess(true);
@@ -169,17 +119,6 @@ export const ChannelConfig: FC = () => {
     );
   }
 
-  const resolvedMaxPlayers = formData.maxPlayers
-    ? parseInt(formData.maxPlayers)
-    : guild?.default_max_players || 10;
-
-  const resolvedReminders = formData.reminderMinutes
-    ? formData.reminderMinutes
-        .split(',')
-        .map((s) => parseInt(s.trim()))
-        .filter((n) => !isNaN(n))
-    : guild?.default_reminder_minutes || [60, 15];
-
   return (
     <Container sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2 }}>
@@ -208,6 +147,9 @@ export const ChannelConfig: FC = () => {
           <Typography variant="h6" gutterBottom>
             Channel: {channel?.channel_name}
           </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Enable or disable game posting in this channel.
+          </Typography>
           <FormControlLabel
             control={
               <Checkbox
@@ -216,110 +158,6 @@ export const ChannelConfig: FC = () => {
               />
             }
             label="Active (enable game posting in this channel)"
-          />
-        </CardContent>
-      </Card>
-
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Channel Settings
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Override guild defaults for this channel. Leave fields empty to inherit from guild.
-          </Typography>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <TextField
-              label="Max Players (override)"
-              type="number"
-              value={formData.maxPlayers}
-              onChange={(e) => setFormData({ ...formData, maxPlayers: e.target.value })}
-              inputProps={{ min: 1, max: 100 }}
-              helperText="Leave empty to inherit guild default"
-              fullWidth
-            />
-
-            <TextField
-              label="Reminder Times (override)"
-              value={formData.reminderMinutes}
-              onChange={(e) => setFormData({ ...formData, reminderMinutes: e.target.value })}
-              helperText="Comma-separated minutes (e.g., 60, 15). Leave empty to inherit guild default."
-              fullWidth
-            />
-
-            <Autocomplete
-              multiple
-              options={roles}
-              value={roles.filter((role) => formData.allowedHostRoleIds.includes(role.id))}
-              onChange={(_, newValue) =>
-                setFormData({
-                  ...formData,
-                  allowedHostRoleIds: newValue.map((role) => role.id),
-                })
-              }
-              getOptionLabel={(option) => option.name}
-              loading={loadingRoles}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Host Roles (override)"
-                  placeholder="Select roles that can host games"
-                  helperText="Roles that can create games in this channel. Leave empty to inherit guild default."
-                />
-              )}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => {
-                  const { key, ...chipProps } = getTagProps({ index });
-                  return (
-                    <Chip
-                      key={key}
-                      label={option.name}
-                      {...chipProps}
-                      sx={{
-                        backgroundColor: option.color
-                          ? `#${option.color.toString(16).padStart(6, '0')}`
-                          : undefined,
-                        color: option.color ? '#ffffff' : undefined,
-                      }}
-                    />
-                  );
-                })
-              }
-              fullWidth
-            />
-
-            <TextField
-              label="Game Category"
-              value={formData.gameCategory}
-              onChange={(e) => setFormData({ ...formData, gameCategory: e.target.value })}
-              helperText="Category for filtering games (e.g., 'D&D', 'Board Games')"
-              fullWidth
-            />
-          </Box>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Resolved Settings Preview
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            These are the final settings that will be used for games in this channel.
-          </Typography>
-
-          <InheritancePreview
-            label="Max Players"
-            value={resolvedMaxPlayers}
-            inherited={!formData.maxPlayers}
-            inheritedFrom="guild"
-          />
-          <InheritancePreview
-            label="Reminder Times"
-            value={resolvedReminders}
-            inherited={!formData.reminderMinutes}
-            inheritedFrom="guild"
           />
         </CardContent>
       </Card>

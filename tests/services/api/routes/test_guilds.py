@@ -54,9 +54,7 @@ def mock_guild_config():
     config = MagicMock()
     config.id = str(uuid.uuid4())
     config.guild_id = "987654321"
-    config.default_max_players = 10
-    config.default_reminder_minutes = [60, 15]
-    config.allowed_host_role_ids = ["role_123"]
+    config.bot_manager_role_ids = None
     config.require_host_role = False
     config.created_at = datetime(2024, 1, 1, 12, 0, 0)
     config.updated_at = datetime(2024, 1, 1, 12, 0, 0)
@@ -94,13 +92,10 @@ class TestListGuilds:
         """Test listing guilds with configurations."""
         with (
             patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
-            patch("services.api.services.config.ConfigurationService") as mock_service_class,
+            patch("services.api.database.queries.get_guild_by_discord_id") as mock_get_guild,
         ):
             mock_get_guilds.return_value = mock_user_guilds
-
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_discord_id.return_value = mock_guild_config
+            mock_get_guild.return_value = mock_guild_config
 
             result = await guilds.list_guilds(current_user=mock_current_user, db=mock_db)
 
@@ -113,13 +108,10 @@ class TestListGuilds:
         """Test listing guilds when no configurations exist."""
         with (
             patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
-            patch("services.api.services.config.ConfigurationService") as mock_service_class,
+            patch("services.api.database.queries.get_guild_by_discord_id") as mock_get_guild,
         ):
             mock_get_guilds.return_value = mock_user_guilds
-
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_discord_id.return_value = None
+            mock_get_guild.return_value = None
 
             result = await guilds.list_guilds(current_user=mock_current_user, db=mock_db)
 
@@ -137,14 +129,11 @@ class TestGetGuild:
         with (
             patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
             patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
-            patch("services.api.services.config.ConfigurationService") as mock_service_class,
+            patch("services.api.database.queries.get_guild_by_id") as mock_get_guild,
         ):
             mock_get_tokens.return_value = {"access_token": "test_token"}
             mock_get_guilds.return_value = mock_user_guilds
-
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_id.return_value = mock_guild_config
+            mock_get_guild.return_value = mock_guild_config
 
             result = await guilds.get_guild(
                 guild_id=mock_guild_config.id,
@@ -154,15 +143,12 @@ class TestGetGuild:
 
             assert result.guild_id == "987654321"
             assert result.guild_name == "Test Guild"
-            assert result.default_max_players == 10
 
     @pytest.mark.asyncio
     async def test_get_guild_not_found(self, mock_db, mock_current_user):
         """Test retrieving non-existent guild configuration."""
-        with patch("services.api.services.config.ConfigurationService") as mock_service_class:
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_id.return_value = None
+        with patch("services.api.database.queries.get_guild_by_id") as mock_get_guild:
+            mock_get_guild.return_value = None
 
             with pytest.raises(HTTPException) as exc_info:
                 await guilds.get_guild(
@@ -184,14 +170,11 @@ class TestGetGuild:
         with (
             patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
             patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
-            patch("services.api.services.config.ConfigurationService") as mock_service_class,
+            patch("services.api.database.queries.get_guild_by_id") as mock_get_guild,
         ):
             mock_get_tokens.return_value = {"access_token": "test_token"}
             mock_get_guilds.return_value = mock_user_guilds
-
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_id.return_value = mock_guild_config
+            mock_get_guild.return_value = mock_guild_config
 
             with pytest.raises(HTTPException) as exc_info:
                 await guilds.get_guild(
@@ -207,13 +190,10 @@ class TestGetGuild:
         """Test retrieving guild when session is not found."""
         with (
             patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
-            patch("services.api.services.config.ConfigurationService") as mock_service_class,
+            patch("services.api.database.queries.get_guild_by_id") as mock_get_guild,
         ):
             mock_get_tokens.return_value = None
-
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_id.return_value = mock_guild_config
+            mock_get_guild.return_value = mock_guild_config
 
             with pytest.raises(HTTPException) as exc_info:
                 await guilds.get_guild(
@@ -233,31 +213,23 @@ class TestCreateGuildConfig:
         """Test creating new guild configuration."""
         with (
             patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
-            patch("services.api.services.config.ConfigurationService") as mock_service_class,
+            patch("services.api.database.queries.get_guild_by_discord_id") as mock_get_guild,
+            patch("services.api.services.guild_service.create_guild_config") as mock_create,
         ):
             mock_get_guilds.return_value = mock_user_guilds
-
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_discord_id.return_value = None
+            mock_get_guild.return_value = None
 
             new_config = MagicMock()
             new_config.id = str(uuid.uuid4())
             new_config.guild_id = "987654321"
-            new_config.default_max_players = 12
-            new_config.default_reminder_minutes = [60, 15]
-            new_config.allowed_host_role_ids = []
             new_config.require_host_role = False
             new_config.created_at = datetime.now()
             new_config.updated_at = datetime.now()
 
-            mock_service.create_guild_config.return_value = new_config
+            mock_create.return_value = new_config
 
             request = guild_schemas.GuildConfigCreateRequest(
                 guild_id="987654321",
-                default_max_players=12,
-                default_reminder_minutes=[60, 15],
-                allowed_host_role_ids=[],
                 require_host_role=False,
             )
 
@@ -268,16 +240,13 @@ class TestCreateGuildConfig:
             )
 
             assert result.guild_id == "987654321"
-            assert result.default_max_players == 12
-            mock_service.create_guild_config.assert_called_once()
+            mock_create.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_create_guild_already_exists(self, mock_db, mock_current_user, mock_guild_config):
         """Test creating guild configuration that already exists."""
-        with patch("services.api.services.config.ConfigurationService") as mock_service_class:
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_discord_id.return_value = mock_guild_config
+        with patch("services.api.database.queries.get_guild_by_discord_id") as mock_get_guild:
+            mock_get_guild.return_value = mock_guild_config
 
             request = guild_schemas.GuildConfigCreateRequest(
                 guild_id="987654321",
@@ -304,28 +273,23 @@ class TestUpdateGuildConfig:
         """Test updating guild configuration."""
         with (
             patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
-            patch("services.api.services.config.ConfigurationService") as mock_service_class,
+            patch("services.api.database.queries.get_guild_by_id") as mock_get_guild,
+            patch("services.api.services.guild_service.update_guild_config") as mock_update,
         ):
             mock_get_guilds.return_value = mock_user_guilds
-
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_id.return_value = mock_guild_config
+            mock_get_guild.return_value = mock_guild_config
 
             updated_config = MagicMock()
             updated_config.id = mock_guild_config.id
             updated_config.guild_id = "987654321"
-            updated_config.default_max_players = 15
-            updated_config.default_reminder_minutes = [60, 15]
-            updated_config.allowed_host_role_ids = ["role_123"]
-            updated_config.require_host_role = False
+            updated_config.require_host_role = True
             updated_config.created_at = datetime.now()
             updated_config.updated_at = datetime.now()
 
-            mock_service.update_guild_config.return_value = updated_config
+            mock_update.return_value = updated_config
 
             request = guild_schemas.GuildConfigUpdateRequest(
-                default_max_players=15,
+                require_host_role=True,
             )
 
             result = await guilds.update_guild_config(
@@ -335,16 +299,14 @@ class TestUpdateGuildConfig:
                 db=mock_db,
             )
 
-            assert result.default_max_players == 15
-            mock_service.update_guild_config.assert_called_once()
+            assert result.require_host_role is True
+            mock_update.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_update_guild_not_found(self, mock_db, mock_current_user):
         """Test updating non-existent guild configuration."""
-        with patch("services.api.services.config.ConfigurationService") as mock_service_class:
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_id.return_value = None
+        with patch("services.api.database.queries.get_guild_by_id") as mock_get_guild:
+            mock_get_guild.return_value = None
 
             request = guild_schemas.GuildConfigUpdateRequest(
                 default_max_players=15,
@@ -372,7 +334,8 @@ class TestListGuildChannels:
         with (
             patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
             patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
-            patch("services.api.services.config.ConfigurationService") as mock_service_class,
+            patch("services.api.database.queries.get_guild_by_id") as mock_get_guild,
+            patch("services.api.database.queries.get_channels_by_guild") as mock_get_channels,
             patch("services.api.routes.guilds.fetch_channel_name_safe") as mock_fetch_name,
         ):
             mock_get_tokens.return_value = {"access_token": "test_token"}
@@ -384,17 +347,11 @@ class TestListGuildChannels:
             mock_channel.guild_id = mock_guild_config.id
             mock_channel.channel_id = "channel_123"
             mock_channel.is_active = True
-            mock_channel.max_players = None
-            mock_channel.reminder_minutes = None
-            mock_channel.allowed_host_role_ids = None
-            mock_channel.game_category = None
             mock_channel.created_at = datetime.now()
             mock_channel.updated_at = datetime.now()
 
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_id.return_value = mock_guild_config
-            mock_service.get_channels_by_guild.return_value = [mock_channel]
+            mock_get_guild.return_value = mock_guild_config
+            mock_get_channels.return_value = [mock_channel]
 
             result = await guilds.list_guild_channels(
                 guild_id=mock_guild_config.id,
@@ -410,10 +367,8 @@ class TestListGuildChannels:
     @pytest.mark.asyncio
     async def test_list_channels_guild_not_found(self, mock_db, mock_current_user):
         """Test listing channels for non-existent guild."""
-        with patch("services.api.services.config.ConfigurationService") as mock_service_class:
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_id.return_value = None
+        with patch("services.api.database.queries.get_guild_by_id") as mock_get_guild:
+            mock_get_guild.return_value = None
 
             with pytest.raises(HTTPException) as exc_info:
                 await guilds.list_guild_channels(
@@ -435,14 +390,11 @@ class TestListGuildChannels:
         with (
             patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
             patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
-            patch("services.api.services.config.ConfigurationService") as mock_service_class,
+            patch("services.api.database.queries.get_guild_by_id") as mock_get_guild,
         ):
             mock_get_tokens.return_value = {"access_token": "test_token"}
             mock_get_guilds.return_value = mock_user_guilds
-
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
-            mock_service.get_guild_by_id.return_value = mock_guild_config
+            mock_get_guild.return_value = mock_guild_config
 
             with pytest.raises(HTTPException) as exc_info:
                 await guilds.list_guild_channels(

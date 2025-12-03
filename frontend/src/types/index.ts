@@ -25,9 +25,6 @@ export interface Guild {
   id: string;
   guild_id: string;
   guild_name: string;
-  default_max_players: number;
-  default_reminder_minutes: number[];
-  allowed_host_role_ids: string[];
   bot_manager_role_ids: string[] | null;
   require_host_role: boolean;
   created_at: string;
@@ -40,10 +37,6 @@ export interface Channel {
   channel_id: string; // Discord snowflake (internal only)
   channel_name: string;
   is_active: boolean;
-  max_players: number | null;
-  reminder_minutes: number[] | null;
-  allowed_host_role_ids: string[] | null;
-  game_category: string | null;
   created_at: string;
   updated_at: string;
 }

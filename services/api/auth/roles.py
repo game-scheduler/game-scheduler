@@ -31,7 +31,6 @@ from services.api.auth import discord_client
 from shared.cache import client as cache_client
 from shared.cache import keys as cache_keys
 from shared.cache import ttl as cache_ttl
-from shared.models import channel as channel_model
 from shared.models import guild as guild_model
 from shared.utils.discord import DiscordPermissions
 
@@ -139,46 +138,21 @@ class RoleVerificationService:
         access_token: str | None = None,
     ) -> bool:
         """
-        Check if user can host games with inheritance resolution.
+        Check if user can host games.
 
-        Checks channel-specific allowed roles first, then guild allowed roles,
-        then falls back to MANAGE_GUILD permission.
+        Currently checks MANAGE_GUILD permission only.
+        Template-based role restrictions will be added in Phase 2.
 
         Args:
             user_id: Discord user ID
             guild_id: Discord guild ID
-            db: Database session for configuration queries
-            channel_id: Discord channel ID (optional)
-            access_token: User's OAuth2 access token (required if no roles configured)
+            db: Database session (for future template checks)
+            channel_id: Discord channel ID (unused, kept for compatibility)
+            access_token: User's OAuth2 access token
 
         Returns:
             True if user can host games
         """
-        user_role_ids = await self.get_user_role_ids(user_id, guild_id)
-
-        if channel_id:
-            result = await db.execute(
-                select(channel_model.ChannelConfiguration).where(
-                    channel_model.ChannelConfiguration.channel_id == channel_id
-                )
-            )
-            channel_config = result.scalar_one_or_none()
-
-            if channel_config and channel_config.allowed_host_role_ids:
-                return any(
-                    role_id in channel_config.allowed_host_role_ids for role_id in user_role_ids
-                )
-
-        result = await db.execute(
-            select(guild_model.GuildConfiguration).where(
-                guild_model.GuildConfiguration.guild_id == guild_id
-            )
-        )
-        guild_config = result.scalar_one_or_none()
-
-        if guild_config and guild_config.allowed_host_role_ids:
-            return any(role_id in guild_config.allowed_host_role_ids for role_id in user_role_ids)
-
         if access_token:
             return await self.has_permissions(
                 user_id, guild_id, access_token, DiscordPermissions.MANAGE_GUILD

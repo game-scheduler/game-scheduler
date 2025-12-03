@@ -29,8 +29,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api.auth import roles as roles_module
 from services.api.auth import tokens
+from services.api.database import queries
 from services.api.dependencies import auth
-from services.api.services import config as config_service
 from shared import database
 from shared.schemas import auth as auth_schemas
 from shared.utils.discord import DiscordPermissions
@@ -64,8 +64,7 @@ async def _resolve_guild_id(guild_id: str, db: AsyncSession) -> str:
         return guild_id
 
     # Otherwise treat as UUID and look up
-    service = config_service.ConfigurationService(db)
-    guild_config = await service.get_guild_by_id(guild_id)
+    guild_config = await queries.get_guild_by_id(db, guild_id)
     if not guild_config:
         raise HTTPException(status_code=404, detail="Guild not found")
 

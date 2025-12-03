@@ -27,9 +27,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.api import dependencies
 from services.api.auth import discord_client as discord_client_module
 from services.api.auth import oauth2
-from services.api.auth.discord_client import fetch_channel_name_safe
+from services.api.database import queries
 from services.api.dependencies import permissions
-from services.api.services import config as config_service
+from services.api.services import guild_service
 from shared import database
 from shared.schemas import auth as auth_schemas
 from shared.schemas import channel as channel_schemas
@@ -49,8 +49,6 @@ async def list_guilds(
 
     Returns guild configurations with current settings.
     """
-    service = config_service.ConfigurationService(db)
-
     # Get guilds with automatic caching from discord client
     user_guilds = await oauth2.get_user_guilds(
         current_user.access_token, current_user.user.discord_id
@@ -59,7 +57,7 @@ async def list_guilds(
 
     guild_configs = []
     for guild_id, discord_guild_data in user_guilds_dict.items():
-        guild_config = await service.get_guild_by_discord_id(guild_id)
+        guild_config = await queries.get_guild_by_discord_id(db, guild_id)
         if guild_config:
             guild_name = discord_guild_data.get("name", "Unknown Guild")
 
@@ -68,9 +66,6 @@ async def list_guilds(
                     id=guild_config.id,
                     guild_id=guild_config.guild_id,
                     guild_name=guild_name,
-                    default_max_players=guild_config.default_max_players,
-                    default_reminder_minutes=guild_config.default_reminder_minutes,
-                    allowed_host_role_ids=guild_config.allowed_host_role_ids,
                     bot_manager_role_ids=guild_config.bot_manager_role_ids,
                     require_host_role=guild_config.require_host_role,
                     created_at=guild_config.created_at.isoformat(),
@@ -94,9 +89,7 @@ async def get_guild(
     """
     from services.api.auth import tokens
 
-    service = config_service.ConfigurationService(db)
-
-    guild_config = await service.get_guild_by_id(guild_id)
+    guild_config = await queries.get_guild_by_id(db, guild_id)
     if not guild_config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -134,9 +127,6 @@ async def get_guild(
         id=guild_config.id,
         guild_id=guild_config.guild_id,
         guild_name=guild_name,
-        default_max_players=guild_config.default_max_players,
-        default_reminder_minutes=guild_config.default_reminder_minutes,
-        allowed_host_role_ids=guild_config.allowed_host_role_ids,
         bot_manager_role_ids=guild_config.bot_manager_role_ids,
         require_host_role=guild_config.require_host_role,
         created_at=guild_config.created_at.isoformat(),
@@ -157,20 +147,16 @@ async def create_guild_config(
 
     Requires MANAGE_GUILD permission in the guild.
     """
-    service = config_service.ConfigurationService(db)
-
-    existing = await service.get_guild_by_discord_id(request.guild_id)
+    existing = await queries.get_guild_by_discord_id(db, request.guild_id)
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Guild configuration already exists",
         )
 
-    guild_config = await service.create_guild_config(
+    guild_config = await guild_service.create_guild_config(
+        db,
         guild_discord_id=request.guild_id,
-        default_max_players=request.default_max_players,
-        default_reminder_minutes=request.default_reminder_minutes or [60, 15],
-        allowed_host_role_ids=request.allowed_host_role_ids or [],
         require_host_role=request.require_host_role,
     )
 
@@ -184,9 +170,6 @@ async def create_guild_config(
         id=guild_config.id,
         guild_id=guild_config.guild_id,
         guild_name=guild_name,
-        default_max_players=guild_config.default_max_players,
-        default_reminder_minutes=guild_config.default_reminder_minutes,
-        allowed_host_role_ids=guild_config.allowed_host_role_ids,
         bot_manager_role_ids=guild_config.bot_manager_role_ids,
         require_host_role=guild_config.require_host_role,
         created_at=guild_config.created_at.isoformat(),
@@ -206,16 +189,14 @@ async def update_guild_config(
 
     Requires MANAGE_GUILD permission in the guild.
     """
-    service = config_service.ConfigurationService(db)
-
-    guild_config = await service.get_guild_by_id(guild_id)
+    guild_config = await queries.get_guild_by_id(db, guild_id)
     if not guild_config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Guild configuration not found"
         )
 
     updates = request.model_dump(exclude_unset=True)
-    guild_config = await service.update_guild_config(guild_config, **updates)
+    guild_config = await guild_service.update_guild_config(db, guild_config, **updates)
 
     user_guilds = await oauth2.get_user_guilds(
         current_user.access_token, current_user.user.discord_id
@@ -227,9 +208,6 @@ async def update_guild_config(
         id=guild_config.id,
         guild_id=guild_config.guild_id,
         guild_name=guild_name,
-        default_max_players=guild_config.default_max_players,
-        default_reminder_minutes=guild_config.default_reminder_minutes,
-        allowed_host_role_ids=guild_config.allowed_host_role_ids,
         bot_manager_role_ids=guild_config.bot_manager_role_ids,
         require_host_role=guild_config.require_host_role,
         created_at=guild_config.created_at.isoformat(),
@@ -253,9 +231,7 @@ async def list_guild_channels(
     """
     from services.api.auth import tokens
 
-    service = config_service.ConfigurationService(db)
-
-    guild_config = await service.get_guild_by_id(guild_id)
+    guild_config = await queries.get_guild_by_id(db, guild_id)
     if not guild_config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -287,11 +263,11 @@ async def list_guild_channels(
             detail="You are not a member of this guild",
         )
 
-    channels = await service.get_channels_by_guild(guild_config.id)
+    channels = await queries.get_channels_by_guild(db, guild_config.id)
 
     channel_responses = []
     for channel in channels:
-        channel_name = await fetch_channel_name_safe(channel.channel_id)
+        channel_name = await discord_client_module.fetch_channel_name_safe(channel.channel_id)
 
         channel_responses.append(
             channel_schemas.ChannelConfigResponse(
@@ -301,10 +277,6 @@ async def list_guild_channels(
                 channel_id=channel.channel_id,
                 channel_name=channel_name,
                 is_active=channel.is_active,
-                max_players=channel.max_players,
-                reminder_minutes=channel.reminder_minutes,
-                allowed_host_role_ids=channel.allowed_host_role_ids,
-                game_category=channel.game_category,
                 created_at=channel.created_at.isoformat(),
                 updated_at=channel.updated_at.isoformat(),
             )
@@ -329,9 +301,7 @@ async def list_guild_roles(
     """
     from services.api.auth import tokens
 
-    service = config_service.ConfigurationService(db)
-
-    guild_config = await service.get_guild_by_id(guild_id)
+    guild_config = await queries.get_guild_by_id(db, guild_id)
     if not guild_config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -390,9 +360,7 @@ async def validate_mention(
     """
     from services.api.auth import tokens
 
-    service = config_service.ConfigurationService(db)
-
-    guild_config = await service.get_guild_by_id(guild_id)
+    guild_config = await queries.get_guild_by_id(db, guild_id)
     if not guild_config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

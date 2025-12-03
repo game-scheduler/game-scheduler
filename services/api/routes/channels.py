@@ -25,10 +25,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api import dependencies
+from services.api.auth import discord_client as discord_client_module
 from services.api.auth import oauth2
-from services.api.auth.discord_client import fetch_channel_name_safe
+from services.api.database import queries
 from services.api.dependencies import permissions
-from services.api.services import config as config_service
+from services.api.services import channel_service
 from shared import database
 from shared.schemas import auth as auth_schemas
 from shared.schemas import channel as channel_schemas
@@ -49,8 +50,7 @@ async def get_channel(
     Requires user to be member of the parent guild.
     """
 
-    service = config_service.ConfigurationService(db)
-    channel_config = await service.get_channel_by_id(channel_id)
+    channel_config = await queries.get_channel_by_id(db, channel_id)
 
     if not channel_config:
         raise HTTPException(
@@ -81,7 +81,7 @@ async def get_channel(
             detail="You are not a member of this channel's guild",
         )
 
-    channel_name = await fetch_channel_name_safe(channel_config.channel_id)
+    channel_name = await discord_client_module.fetch_channel_name_safe(channel_config.channel_id)
 
     return channel_schemas.ChannelConfigResponse(
         id=channel_config.id,
@@ -90,10 +90,6 @@ async def get_channel(
         channel_id=channel_config.channel_id,
         channel_name=channel_name,
         is_active=channel_config.is_active,
-        max_players=channel_config.max_players,
-        reminder_minutes=channel_config.reminder_minutes,
-        allowed_host_role_ids=channel_config.allowed_host_role_ids,
-        game_category=channel_config.game_category,
         created_at=channel_config.created_at.isoformat(),
         updated_at=channel_config.updated_at.isoformat(),
     )
@@ -112,26 +108,21 @@ async def create_channel_config(
 
     Requires MANAGE_CHANNELS permission in the guild.
     """
-    service = config_service.ConfigurationService(db)
-
-    existing = await service.get_channel_by_discord_id(request.channel_id)
+    existing = await queries.get_channel_by_discord_id(db, request.channel_id)
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Channel configuration already exists",
         )
 
-    channel_config = await service.create_channel_config(
+    channel_config = await channel_service.create_channel_config(
+        db,
         guild_id=request.guild_id,
         channel_discord_id=request.channel_id,
         is_active=request.is_active,
-        max_players=request.max_players,
-        reminder_minutes=request.reminder_minutes,
-        allowed_host_role_ids=request.allowed_host_role_ids,
-        game_category=request.game_category,
     )
 
-    channel_name = await fetch_channel_name_safe(channel_config.channel_id)
+    channel_name = await discord_client_module.fetch_channel_name_safe(channel_config.channel_id)
 
     return channel_schemas.ChannelConfigResponse(
         id=channel_config.id,
@@ -140,10 +131,6 @@ async def create_channel_config(
         channel_id=channel_config.channel_id,
         channel_name=channel_name,
         is_active=channel_config.is_active,
-        max_players=channel_config.max_players,
-        reminder_minutes=channel_config.reminder_minutes,
-        allowed_host_role_ids=channel_config.allowed_host_role_ids,
-        game_category=channel_config.game_category,
         created_at=channel_config.created_at.isoformat(),
         updated_at=channel_config.updated_at.isoformat(),
     )
@@ -161,18 +148,16 @@ async def update_channel_config(
 
     Requires MANAGE_CHANNELS permission in the guild.
     """
-    service = config_service.ConfigurationService(db)
-
-    channel_config = await service.get_channel_by_id(channel_id)
+    channel_config = await queries.get_channel_by_id(db, channel_id)
     if not channel_config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Channel configuration not found"
         )
 
     updates = request.model_dump(exclude_unset=True)
-    channel_config = await service.update_channel_config(channel_config, **updates)
+    channel_config = await channel_service.update_channel_config(db, channel_config, **updates)
 
-    channel_name = await fetch_channel_name_safe(channel_config.channel_id)
+    channel_name = await discord_client_module.fetch_channel_name_safe(channel_config.channel_id)
 
     return channel_schemas.ChannelConfigResponse(
         id=channel_config.id,
@@ -181,10 +166,6 @@ async def update_channel_config(
         channel_id=channel_config.channel_id,
         channel_name=channel_name,
         is_active=channel_config.is_active,
-        max_players=channel_config.max_players,
-        reminder_minutes=channel_config.reminder_minutes,
-        allowed_host_role_ids=channel_config.allowed_host_role_ids,
-        game_category=channel_config.game_category,
         created_at=channel_config.created_at.isoformat(),
         updated_at=channel_config.updated_at.isoformat(),
     )

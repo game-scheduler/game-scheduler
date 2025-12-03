@@ -55,7 +55,6 @@ def mock_guild():
     guild = GuildConfiguration(
         id="guild-123",
         guild_id="987654321",
-        allowed_host_role_ids=["role1"],
     )
     return guild
 

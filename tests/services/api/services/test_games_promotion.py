@@ -78,7 +78,6 @@ def sample_guild():
     return GuildConfiguration(
         id=str(uuid4()),
         guild_id="123456789",
-        default_max_players=5,
     )
 
 
@@ -275,11 +274,13 @@ async def test_promotion_when_participant_removed(
     detect_calls_list = []
 
     async def track_detect_promotions(game, old_overflow_ids):
-        detect_calls_list.append({
-            'game_id': game.id,
-            'old_overflow_ids': old_overflow_ids,
-            'current_participants': [p.user.discord_id for p in game.participants if p.user]
-        })
+        detect_calls_list.append(
+            {
+                "game_id": game.id,
+                "old_overflow_ids": old_overflow_ids,
+                "current_participants": [p.user.discord_id for p in game.participants if p.user],
+            }
+        )
         print("\n_detect_and_notify_promotions called!")
         print(f"  old_overflow_ids: {old_overflow_ids}")
         print(f"  current participants: {[p.user.discord_id for p in game.participants if p.user]}")
@@ -288,7 +289,7 @@ async def test_promotion_when_participant_removed(
         return result
 
     with patch.object(
-        game_service, '_detect_and_notify_promotions', side_effect=track_detect_promotions
+        game_service, "_detect_and_notify_promotions", side_effect=track_detect_promotions
     ):
         with patch.object(game_service, "get_game", side_effect=get_game_side_effect):
             # Mock authorization check
@@ -311,13 +312,11 @@ async def test_promotion_when_participant_removed(
                         f"\nUpdate completed successfully, "
                         f"result id: {result.id if result else 'None'}"
                     )
-                    print(
-                        f"Result participants: "
-                        f"{len(result.participants) if result else 0}"
-                    )
+                    print(f"Result participants: {len(result.participants) if result else 0}")
                 except Exception as e:
                     print(f"\nUpdate failed with exception: {type(e).__name__}: {e}")
                     import traceback
+
                     traceback.print_exc()
                     raise
 

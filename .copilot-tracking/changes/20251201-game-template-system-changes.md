@@ -1,0 +1,102 @@
+<!-- markdownlint-disable-file -->
+
+# Release Changes: Game Template System
+
+**Related Plan**: 20251201-game-template-system-plan.instructions.md
+**Implementation Date**: 2025-12-02
+
+## Summary
+
+Replace three-level inheritance system (Guild → Channel → Game) with template-based game types that provide locked and pre-populated settings.
+
+## Changes
+
+### Added
+
+- services/api/database/**init**.py - Database queries package marker
+- services/api/database/queries.py - Read-only database queries for guild and channel configurations
+- services/api/services/guild_service.py - Business logic for guild create/update operations
+- services/api/services/channel_service.py - Business logic for channel create/update operations
+- tests/services/api/services/test_guild_service.py - Unit tests for guild service operations
+- tests/services/api/services/test_channel_service.py - Unit tests for channel service operations
+- alembic/versions/018_remove_inheritance_fields.py - Database migration to remove inheritance system fields
+
+### Modified
+
+- services/api/routes/guilds.py - Replaced ConfigurationService with database queries and guild_service; removed inheritance fields from responses; fixed import to use module instead of function
+- services/api/routes/channels.py - Replaced ConfigurationService with database queries and channel_service; removed inheritance fields from responses; fixed import to use module instead of function
+- services/api/dependencies/permissions.py - Replaced ConfigurationService import with database queries
+- services/api/services/games.py - Removed SettingsResolver usage, use direct field access with defaults
+- services/api/auth/roles.py - Simplified check_game_host_permission to only check MANAGE_GUILD (template role checks in Phase 2)
+- services/bot/auth/role_checker.py - Simplified check_game_host_permission to only check MANAGE_GUILD (template role checks in Phase 2)
+- shared/models/guild.py - Removed default_max_players, default_reminder_minutes, allowed_host_role_ids fields
+- shared/models/channel.py - Removed max_players, reminder_minutes, allowed_host_role_ids, game_category fields
+- shared/schemas/guild.py - Removed inheritance fields from GuildConfigCreateRequest, GuildConfigUpdateRequest, GuildConfigResponse
+- shared/schemas/channel.py - Removed inheritance fields from ChannelConfigCreateRequest, ChannelConfigUpdateRequest, ChannelConfigResponse
+- frontend/src/types/index.ts - Updated Guild and Channel interfaces to remove obsolete inheritance fields
+- frontend/src/pages/GuildConfig.tsx - Simplified to only manage bot_manager_role_ids and require_host_role fields
+- frontend/src/pages/ChannelConfig.tsx - Simplified to only manage is_active field
+- frontend/src/pages/GuildDashboard.tsx - Removed display of obsolete inheritance fields from guild and channel lists
+- tests/services/api/routes/test_guilds.py - Updated to patch individual query/service functions; removed inheritance field assertions
+- tests/services/api/auth/test_roles.py - Updated check_game_host_permission tests for simplified permission logic
+- tests/services/api/services/test_calendar_export.py - Removed allowed_host_role_ids from mock guild fixture
+- tests/services/api/services/test_games.py - Removed inheritance fields from guild/channel fixtures
+- tests/services/api/services/test_games_edit_participants.py - Removed inheritance fields from guild/channel fixtures
+- tests/services/api/services/test_games_promotion.py - Removed default_max_players from guild fixture
+- tests/services/api/services/test_channel_service.py - Updated tests to remove max_players and reminder_minutes assertions
+- tests/services/api/services/test_guild_service.py - Fixed mocking to use Mock instead of AsyncMock for synchronous db methods
+- tests/services/api/services/test_channel_service.py - Fixed mocking to use Mock instead of AsyncMock for synchronous db methods
+- tests/services/api/routes/test_games_participant_count.py - Removed default_max_players from guild fixtures
+- tests/e2e/test_game_notification_api_flow.py - Removed default_reminder_minutes from raw SQL guild insert
+
+### Removed
+
+- services/api/services/config.py - Deleted ConfigurationService and SettingsResolver classes
+- tests/services/api/services/test_config.py - Deleted tests for removed ConfigurationService
+- frontend/src/components/InheritancePreview.tsx - Removed inheritance preview component
+- frontend/src/components/**tests**/InheritancePreview.test.tsx - Removed inheritance preview tests
+- services/bot/commands/config_guild.py - Removed bot guild configuration command
+- services/bot/commands/config_channel.py - Removed bot channel configuration command
+- tests/services/bot/commands/test_config_guild.py - Removed bot config command tests
+- tests/services/bot/commands/test_config_channel.py - Removed bot config command tests
+
+## Verification
+
+### Code Standards Compliance
+
+- ✅ All new files have copyright notices
+- ✅ Python code follows Google Python Style Guide import conventions (imports modules, not functions)
+- ✅ All imports use module-level imports per project standards
+- ✅ Documentation follows self-explanatory code guidelines
+- ✅ No lint or compilation errors
+
+### Test Coverage
+
+- ✅ `services/api/services/guild_service.py` - 100% coverage with 3 unit tests
+- ✅ `services/api/services/channel_service.py` - 100% coverage with 3 unit tests
+- ✅ `services/api/database/queries.py` - 50% coverage (tested via route tests and integration tests; simple pass-through queries)
+- ✅ Overall API services test coverage: 89% (63 lines missing from 563 total)
+- ✅ All 69 API service unit tests pass
+- ✅ All 10 integration tests pass
+
+### Build Verification
+
+- ✅ API container builds successfully
+- ✅ Bot container builds successfully
+- ✅ Frontend container builds successfully
+- ✅ All Docker containers build without errors
+
+### Integration Tests
+
+- ✅ All PostgreSQL listener integration tests pass
+- ✅ All schedule queries integration tests pass
+- ✅ All notification daemon integration tests pass
+- ✅ 10/10 integration tests passing
+
+## Notes
+
+- Import convention fixes applied to `services/api/routes/guilds.py` and `services/api/routes/channels.py` to follow Google Python Style Guide
+- Test mocking fixes applied to use `Mock` instead of `AsyncMock` for synchronous database methods (`db.add`, `db.refresh`)
+- Frontend TypeScript interfaces updated to remove obsolete fields
+- Frontend UI simplified to remove inheritance-related configuration fields
+- Database queries module has 50% unit test coverage, which is acceptable as these are simple pass-through queries tested via route and integration tests

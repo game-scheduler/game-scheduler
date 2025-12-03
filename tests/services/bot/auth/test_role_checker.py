@@ -25,8 +25,6 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.bot.auth.role_checker import RoleChecker
-from shared.models.channel import ChannelConfiguration
-from shared.models.guild import GuildConfiguration
 
 
 @pytest.fixture
@@ -216,63 +214,8 @@ async def test_check_administrator_permission_true(role_checker, mock_bot):
 
 
 @pytest.mark.asyncio
-async def test_check_game_host_permission_with_channel_roles(role_checker, mock_db):
-    """Test game host permission with channel-specific allowed roles."""
-    role_checker.get_user_role_ids = AsyncMock(return_value=["role123", "role456"])
-
-    # Mock channel config with allowed roles
-    channel_config = ChannelConfiguration(
-        id="ch1",
-        guild_id="g1",
-        channel_id="789",
-        allowed_host_role_ids=["role123"],
-    )
-
-    mock_result = AsyncMock()
-    mock_result.scalar_one_or_none = MagicMock(return_value=channel_config)
-    mock_db.execute = AsyncMock(return_value=mock_result)
-
-    result = await role_checker.check_game_host_permission("user123", "guild456", "789")
-
-    assert result is True
-
-
-@pytest.mark.asyncio
-async def test_check_game_host_permission_with_guild_roles(role_checker, mock_db):
-    """Test game host permission with guild allowed roles."""
-    role_checker.get_user_role_ids = AsyncMock(return_value=["role123", "role456"])
-
-    # Mock no channel config
-    mock_channel_result = AsyncMock()
-    mock_channel_result.scalar_one_or_none = MagicMock(return_value=None)
-
-    # Mock guild config with allowed roles
-    guild_config = GuildConfiguration(
-        id="g1",
-        guild_id="456",
-        allowed_host_role_ids=["role456"],
-    )
-
-    mock_guild_result = AsyncMock()
-    mock_guild_result.scalar_one_or_none = MagicMock(return_value=guild_config)
-
-    mock_db.execute = AsyncMock(side_effect=[mock_channel_result, mock_guild_result])
-
-    result = await role_checker.check_game_host_permission("user123", "456", "789")
-
-    assert result is True
-
-
-@pytest.mark.asyncio
-async def test_check_game_host_permission_fallback_to_manage_guild(role_checker, mock_db):
-    """Test game host permission falls back to MANAGE_GUILD."""
-    role_checker.get_user_role_ids = AsyncMock(return_value=["role123"])
-
-    # Mock no configs
-    mock_result = AsyncMock()
-    mock_result.scalar_one_or_none = MagicMock(return_value=None)
-    mock_db.execute = AsyncMock(return_value=mock_result)
-
+async def test_check_game_host_permission_with_manage_guild(role_checker, mock_db):
+    """Test game host permission with MANAGE_GUILD permission."""
     role_checker.check_manage_guild_permission = AsyncMock(return_value=True)
 
     result = await role_checker.check_game_host_permission("user123", "guild456", "789")
@@ -282,28 +225,26 @@ async def test_check_game_host_permission_fallback_to_manage_guild(role_checker,
 
 
 @pytest.mark.asyncio
-async def test_check_game_host_permission_no_match(role_checker, mock_db):
-    """Test game host permission with no matching roles."""
-    role_checker.get_user_role_ids = AsyncMock(return_value=["role999"])
-
-    # Mock guild config with different allowed roles
-    guild_config = GuildConfiguration(
-        id="g1",
-        guild_id="456",
-        allowed_host_role_ids=["role123", "role456"],
-    )
-
-    mock_guild_result = AsyncMock()
-    mock_guild_result.scalar_one_or_none = MagicMock(return_value=guild_config)
-
-    mock_channel_result = AsyncMock()
-    mock_channel_result.scalar_one_or_none = MagicMock(return_value=None)
-
-    mock_db.execute = AsyncMock(side_effect=[mock_channel_result, mock_guild_result])
+async def test_check_game_host_permission_without_manage_guild(role_checker, mock_db):
+    """Test game host permission without MANAGE_GUILD permission."""
+    role_checker.check_manage_guild_permission = AsyncMock(return_value=False)
 
     result = await role_checker.check_game_host_permission("user123", "456", "789")
 
     assert result is False
+    role_checker.check_manage_guild_permission.assert_called_once_with("user123", "456")
+
+
+@pytest.mark.asyncio
+async def test_check_game_host_permission_fallback_to_manage_guild(role_checker, mock_db):
+    """Test game host permission falls back to MANAGE_GUILD."""
+
+    role_checker.check_manage_guild_permission = AsyncMock(return_value=True)
+
+    result = await role_checker.check_game_host_permission("user123", "guild456", "789")
+
+    assert result is True
+    role_checker.check_manage_guild_permission.assert_called_once_with("user123", "guild456")
 
 
 @pytest.mark.asyncio

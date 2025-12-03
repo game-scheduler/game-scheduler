@@ -30,7 +30,6 @@ import {
   Tabs,
   Tab,
   List,
-  ListItem,
   ListItemText,
   ListItemButton,
 } from '@mui/material';
@@ -154,27 +153,6 @@ export const GuildDashboard: FC = () => {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Default Settings
-                </Typography>
-                <List>
-                  <ListItem>
-                    <ListItemText primary="Max Players" secondary={guild.default_max_players} />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Reminder Times"
-                      secondary={`${guild.default_reminder_minutes.join(', ')} minutes before`}
-                    />
-                  </ListItem>
-                </List>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
                   Quick Actions
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -218,13 +196,7 @@ export const GuildDashboard: FC = () => {
                   >
                     <ListItemText
                       primary={channel.channel_name}
-                      secondary={
-                        <>
-                          {channel.game_category && `Category: ${channel.game_category} • `}
-                          {channel.is_active ? 'Active' : 'Inactive'}
-                          {channel.max_players !== null && ` • Max: ${channel.max_players}`}
-                        </>
-                      }
+                      secondary={channel.is_active ? 'Active' : 'Inactive'}
                     />
                   </ListItemButton>
                 ))}

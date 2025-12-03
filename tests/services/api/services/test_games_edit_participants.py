@@ -80,8 +80,6 @@ def sample_guild():
     return guild_model.GuildConfiguration(
         id=str(uuid.uuid4()),
         guild_id="123456789",
-        default_max_players=5,
-        default_reminder_minutes=[60],
     )
 
 
@@ -92,8 +90,6 @@ def sample_channel(sample_guild):
         id=str(uuid.uuid4()),
         channel_id="987654321",
         guild_id=sample_guild.id,
-        max_players=4,
-        reminder_minutes=[30],
     )
 
 

@@ -49,9 +49,6 @@ export const GuildConfig: FC = () => {
 
   const [guild, setGuild] = useState<Guild | null>(null);
   const [formData, setFormData] = useState({
-    defaultMaxPlayers: 10,
-    defaultReminderMinutes: '60, 15',
-    allowedHostRoleIds: [] as string[],
     botManagerRoleIds: [] as string[],
     requireHostRole: false,
   });
@@ -69,9 +66,6 @@ export const GuildConfig: FC = () => {
 
         setGuild(guildData);
         setFormData({
-          defaultMaxPlayers: guildData.default_max_players,
-          defaultReminderMinutes: guildData.default_reminder_minutes.join(', '),
-          allowedHostRoleIds: guildData.allowed_host_role_ids || [],
           botManagerRoleIds: guildData.bot_manager_role_ids || [],
           requireHostRole: guildData.require_host_role,
         });
@@ -112,15 +106,7 @@ export const GuildConfig: FC = () => {
       setError(null);
       setSuccess(false);
 
-      const reminderMinutes = formData.defaultReminderMinutes
-        .split(',')
-        .map((s) => parseInt(s.trim()))
-        .filter((n) => !isNaN(n));
-
       await apiClient.put(`/api/v1/guilds/${guildId}`, {
-        default_max_players: formData.defaultMaxPlayers,
-        default_reminder_minutes: reminderMinutes,
-        allowed_host_role_ids: formData.allowedHostRoleIds,
         bot_manager_role_ids:
           formData.botManagerRoleIds.length > 0 ? formData.botManagerRoleIds : null,
         require_host_role: formData.requireHostRole,
@@ -182,75 +168,13 @@ export const GuildConfig: FC = () => {
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Default Game Settings
+            Server Settings
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            These settings will be used as defaults for all new games in this server. Individual
-            channels and games can override these values.
+            Configure server-wide permissions and roles for game management.
           </Typography>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <TextField
-              label="Default Max Players"
-              type="number"
-              value={formData.defaultMaxPlayers}
-              onChange={(e) =>
-                setFormData({ ...formData, defaultMaxPlayers: parseInt(e.target.value) || 10 })
-              }
-              inputProps={{ min: 1, max: 100 }}
-              helperText="Default maximum number of players per game (1-100)"
-              fullWidth
-            />
-
-            <TextField
-              label="Default Reminder Times (minutes)"
-              value={formData.defaultReminderMinutes}
-              onChange={(e) => setFormData({ ...formData, defaultReminderMinutes: e.target.value })}
-              helperText="Comma-separated list of minutes before game to send reminders (e.g., 60, 15)"
-              fullWidth
-            />
-
-            <Autocomplete
-              multiple
-              options={roles}
-              value={roles.filter((role) => formData.allowedHostRoleIds.includes(role.id))}
-              onChange={(_, newValue) =>
-                setFormData({
-                  ...formData,
-                  allowedHostRoleIds: newValue.map((role) => role.id),
-                })
-              }
-              getOptionLabel={(option) => option.name}
-              loading={loadingRoles}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Host Roles"
-                  placeholder="Select roles that can host games"
-                  helperText="Roles that can create games. Leave empty to allow users with MANAGE_GUILD permission."
-                />
-              )}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => {
-                  const { key, ...chipProps } = getTagProps({ index });
-                  return (
-                    <Chip
-                      key={key}
-                      label={option.name}
-                      {...chipProps}
-                      sx={{
-                        backgroundColor: option.color
-                          ? `#${option.color.toString(16).padStart(6, '0')}`
-                          : undefined,
-                        color: option.color ? '#ffffff' : undefined,
-                      }}
-                    />
-                  );
-                })
-              }
-              fullWidth
-            />
-
             <Autocomplete
               multiple
               options={roles}
