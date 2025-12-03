@@ -29,13 +29,14 @@ from .base import Base, generate_uuid, utc_now
 if TYPE_CHECKING:
     from .channel import ChannelConfiguration
     from .game import GameSession
+    from .template import GameTemplate
 
 
 class GuildConfiguration(Base):
     """
-    Discord guild (server) configuration with default settings.
+    Discord guild (server) configuration.
 
-    Settings cascade to channels and games via inheritance hierarchy.
+    Manages bot access and template-based game types.
     """
 
     __tablename__ = "guild_configurations"
@@ -52,6 +53,7 @@ class GuildConfiguration(Base):
         "ChannelConfiguration", back_populates="guild"
     )
     games: Mapped[list["GameSession"]] = relationship("GameSession", back_populates="guild")
+    templates: Mapped[list["GameTemplate"]] = relationship("GameTemplate", back_populates="guild")
 
     def __repr__(self) -> str:
         return f"<GuildConfiguration(id={self.id}, guild_id={self.guild_id})>"

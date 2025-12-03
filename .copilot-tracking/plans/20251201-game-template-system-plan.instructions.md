@@ -66,23 +66,27 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
   - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 109-136)
   - Note: Route test files (test_guilds.py, test_channels.py) need manual updates to patch individual functions
 
-### [ ] Phase 2: Database Schema Migration
+### [x] Phase 2: Database Schema Migration
 
-- [ ] Task 2.1: Create GameTemplate model
+- [x] Task 2.1: Create GameTemplate model
 
   - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 138-172)
 
-- [ ] Task 2.2: Update GuildConfiguration and ChannelConfiguration models
+- [x] Task 2.2: Update GuildConfiguration and ChannelConfiguration models
 
   - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 174-191)
 
-- [ ] Task 2.3: Update GameSession model for templates
+- [x] Task 2.3: Update GameSession model for templates
 
   - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 193-207)
 
-- [ ] Task 2.4: Create database migration
+- [x] Task 2.4: Create database migration
 
   - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 209-239)
+
+- [x] Task 2.5: Create default template data migration script
+
+  - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 241-266)
 
 - [ ] Task 2.5: Create default template data migration script
   - Details: .copilot-tracking/details/20251201-game-template-system-details.md (Lines 241-266)

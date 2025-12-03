@@ -24,6 +24,7 @@ from .game import GameSession, GameStatus
 from .guild import GuildConfiguration
 from .notification_schedule import NotificationSchedule
 from .participant import GameParticipant
+from .template import GameTemplate
 from .user import User
 
 __all__ = [
@@ -35,4 +36,5 @@ __all__ = [
     "GameStatus",
     "GameParticipant",
     "NotificationSchedule",
+    "GameTemplate",
 ]

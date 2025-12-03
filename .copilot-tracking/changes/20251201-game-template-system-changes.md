@@ -20,6 +20,10 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - tests/services/api/services/test_guild_service.py - Unit tests for guild service operations
 - tests/services/api/services/test_channel_service.py - Unit tests for channel service operations
 - alembic/versions/018_remove_inheritance_fields.py - Database migration to remove inheritance system fields
+- alembic/versions/019_add_template_system.py - Database migration to add template system (game_templates table, template_id FK to games)
+- shared/models/template.py - GameTemplate model with locked and pre-populated fields for game types
+- scripts/data_migration_create_default_templates.py - Idempotent script to create default templates for existing guilds
+- tests/shared/models/test_template.py - Unit tests for GameTemplate model structure and constraints
 
 ### Modified
 
@@ -29,8 +33,9 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - services/api/services/games.py - Removed SettingsResolver usage, use direct field access with defaults
 - services/api/auth/roles.py - Simplified check_game_host_permission to only check MANAGE_GUILD (template role checks in Phase 2)
 - services/bot/auth/role_checker.py - Simplified check_game_host_permission to only check MANAGE_GUILD (template role checks in Phase 2)
-- shared/models/guild.py - Removed default_max_players, default_reminder_minutes, allowed_host_role_ids fields
-- shared/models/channel.py - Removed max_players, reminder_minutes, allowed_host_role_ids, game_category fields
+- shared/models/guild.py - Removed default_max_players, default_reminder_minutes, allowed_host_role_ids fields; added templates relationship; updated docstring
+- shared/models/channel.py - Removed max_players, reminder_minutes, allowed_host_role_ids, game_category fields; updated docstring
+- shared/models/game.py - Added template_id FK, allowed_player_role_ids, and template relationship; updated docstring
 - shared/schemas/guild.py - Removed inheritance fields from GuildConfigCreateRequest, GuildConfigUpdateRequest, GuildConfigResponse
 - shared/schemas/channel.py - Removed inheritance fields from ChannelConfigCreateRequest, ChannelConfigUpdateRequest, ChannelConfigResponse
 - frontend/src/types/index.ts - Updated Guild and Channel interfaces to remove obsolete inheritance fields
@@ -48,6 +53,8 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - tests/services/api/services/test_channel_service.py - Fixed mocking to use Mock instead of AsyncMock for synchronous db methods
 - tests/services/api/routes/test_games_participant_count.py - Removed default_max_players from guild fixtures
 - tests/e2e/test_game_notification_api_flow.py - Removed default_reminder_minutes from raw SQL guild insert
+- shared/models/**init**.py - Added GameTemplate to model exports
+- scripts/data_migration_create_default_templates.py - Fixed to use get_db_session() instead of get_async_session()
 
 ### Removed
 
@@ -75,8 +82,10 @@ Replace three-level inheritance system (Guild → Channel → Game) with templat
 - ✅ `services/api/services/guild_service.py` - 100% coverage with 3 unit tests
 - ✅ `services/api/services/channel_service.py` - 100% coverage with 3 unit tests
 - ✅ `services/api/database/queries.py` - 50% coverage (tested via route tests and integration tests; simple pass-through queries)
+- ✅ `shared/models/template.py` - 100% structure validation with 8 unit tests
 - ✅ Overall API services test coverage: 89% (63 lines missing from 563 total)
 - ✅ All 69 API service unit tests pass
+- ✅ All 8 GameTemplate model tests pass
 - ✅ All 10 integration tests pass
 
 ### Build Verification

@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from .channel import ChannelConfiguration
     from .guild import GuildConfiguration
     from .participant import GameParticipant
+    from .template import GameTemplate
     from .user import User
 
 
@@ -47,12 +48,13 @@ class GameSession(Base):
     """
     Game session with scheduling and participant management.
 
-    Settings inherit from channel and guild via resolution logic.
+    Settings come from selected template with optional host overrides.
     """
 
     __tablename__ = "game_sessions"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    template_id: Mapped[str] = mapped_column(ForeignKey("game_templates.id"))
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     signup_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -65,12 +67,14 @@ class GameSession(Base):
     host_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     reminder_minutes: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
     notify_role_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    allowed_player_role_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     expected_duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default=GameStatus.SCHEDULED.value, index=True)
     created_at: Mapped[datetime] = mapped_column(default=utc_now, index=True)
     updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)
 
     # Relationships
+    template: Mapped["GameTemplate"] = relationship("GameTemplate", back_populates="games")
     guild: Mapped["GuildConfiguration"] = relationship("GuildConfiguration", back_populates="games")
     channel: Mapped["ChannelConfiguration"] = relationship(
         "ChannelConfiguration", back_populates="games"

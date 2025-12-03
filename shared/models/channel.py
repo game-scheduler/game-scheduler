@@ -33,9 +33,9 @@ if TYPE_CHECKING:
 
 class ChannelConfiguration(Base):
     """
-    Discord channel configuration with optional overrides.
+    Discord channel configuration.
 
-    Settings override guild defaults and cascade to games.
+    Channels can be activated/deactivated for template assignment.
     """
 
     __tablename__ = "channel_configurations"
