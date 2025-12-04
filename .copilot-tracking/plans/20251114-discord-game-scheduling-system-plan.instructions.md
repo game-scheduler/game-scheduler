@@ -348,7 +348,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 1283-1320)
 
-### [ ] Phase 12: Enhance functionality
+### [x] Phase 12: Enhance functionality
 
 - [x] Task 12.1: Implement waitlist support
 
@@ -459,7 +459,7 @@ Implement a complete Discord game scheduling system with microservices architect
   - Verify frontend receives and displays bot manager role selections correctly
   - Fix issue where bot manager role changes appear to save but don't persist
 
-- [ ] Task 12.16: Fix notifications not being sent to game participants
+- [x] Task 12.16: Fix notifications not being sent to game participants
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2066-2102)
 
@@ -506,7 +506,7 @@ Implement a complete Discord game scheduling system with microservices architect
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2303-2330)
 
-- [ ] Task 14.2: Add game templates for recurring sessions
+- [x] Task 14.2: Add game templates for recurring sessions
 
   - Details: .copilot-tracking/details/20251114-discord-game-scheduling-system-details.md (Lines 2332-2350)
 
