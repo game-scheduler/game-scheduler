@@ -35,7 +35,7 @@ import {
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { apiClient } from '../api/client';
-import { Guild, DiscordRole } from '../types';
+import { GuildConfigData, DiscordRole } from '../types';
 
 export const GuildConfig: FC = () => {
   const { guildId } = useParams<{ guildId: string }>();
@@ -47,7 +47,7 @@ export const GuildConfig: FC = () => {
   const [loadingRoles, setLoadingRoles] = useState(false);
   const [roles, setRoles] = useState<DiscordRole[]>([]);
 
-  const [guild, setGuild] = useState<Guild | null>(null);
+  const [guild, setGuild] = useState<GuildConfigData | null>(null);
   const [formData, setFormData] = useState({
     botManagerRoleIds: [] as string[],
     requireHostRole: false,
@@ -61,7 +61,7 @@ export const GuildConfig: FC = () => {
         setLoading(true);
         setError(null);
 
-        const response = await apiClient.get<Guild>(`/api/v1/guilds/${guildId}`);
+        const response = await apiClient.get<GuildConfigData>(`/api/v1/guilds/${guildId}/config`);
         const guildData = response.data;
 
         setGuild(guildData);

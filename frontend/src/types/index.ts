@@ -23,12 +23,14 @@ export interface User {
 
 export interface Guild {
   id: string;
-  guild_id: string;
   guild_name: string;
-  bot_manager_role_ids: string[] | null;
-  require_host_role: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface GuildConfigData extends Guild {
+  bot_manager_role_ids: string[] | null;
+  require_host_role: boolean;
 }
 
 export interface Channel {
