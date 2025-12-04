@@ -42,6 +42,11 @@ Execute verification steps **in order**. Fix issues immediately when found befor
 
 ### 1. Code Convention Compliance
 
+**For each modified file:**
+
+- [ ] **Update Comments and Documentation:**
+  - Ensure that comments and docstrings are accurate and reflect updated code behavior
+
 **For each modified/new file:**
 
 - [ ] **Python files (.py):**
