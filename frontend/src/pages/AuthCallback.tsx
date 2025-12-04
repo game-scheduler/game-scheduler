@@ -34,7 +34,7 @@ export const AuthCallback: FC = () => {
     const completeLogin = async () => {
       try {
         await login();
-        navigate('/guilds');
+        navigate('/');
       } catch (err) {
         console.error('Failed to complete login:', err);
         setError('Failed to fetch user information');
