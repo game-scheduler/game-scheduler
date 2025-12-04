@@ -54,21 +54,22 @@ Complete terminology consistency by changing remaining "Guild" user-facing text 
 - [x] Task 2.3: Update Layout navigation
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 70-80)
 
-### [ ] Phase 3: Streamline Game Creation Flow
+### [x] Phase 3: Streamline Game Creation Flow
 
-- [ ] Task 3.1: Update MyGames create button
+- [x] Task 3.1: Update MyGames create button
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 84-102)
 
-- [ ] Task 3.2: Implement server selection logic
+- [x] Task 3.2: Implement server selection logic
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 104-127)
 
-- [ ] Task 3.3: Create ServerSelectionDialog component
+- [x] Task 3.3: Create ServerSelectionDialog component
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 129-154)
 
 ### [ ] Phase 4: Testing and Verification
 
 - [ ] Task 4.1: Verify navigation flows
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 158-171)
+  - Note: Login redirect fixed to navigate to "/" instead of "/guilds"
 
 - [ ] Task 4.2: Test game creation paths
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 173-184)
