@@ -53,6 +53,7 @@ export const TemplateManagement: FC = () => {
   const [roles, setRoles] = useState<DiscordRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasPermission, setHasPermission] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<GameTemplate | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -74,8 +75,13 @@ export const TemplateManagement: FC = () => {
       setTemplates(templatesResponse);
       setChannels(channelsResponse.data);
       setRoles(rolesResponse.data);
+      setHasPermission(true);
     } catch (err: any) {
       console.error('Failed to fetch data:', err);
+      const statusCode = err.response?.status;
+      if (statusCode === 403) {
+        setHasPermission(false);
+      }
       setError(err.response?.data?.detail || 'Failed to load template data. Please try again.');
     } finally {
       setLoading(false);
@@ -171,9 +177,11 @@ export const TemplateManagement: FC = () => {
           </Button>
           <Typography variant="h4">Game Templates</Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateTemplate}>
-          New Template
-        </Button>
+        {hasPermission && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateTemplate}>
+            New Template
+          </Button>
+        )}
       </Box>
 
       {error && (
@@ -182,18 +190,22 @@ export const TemplateManagement: FC = () => {
         </Alert>
       )}
 
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Templates define game types with locked and pre-populated settings. Drag to reorder.
-      </Typography>
+      {hasPermission && (
+        <>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Templates define game types with locked and pre-populated settings. Drag to reorder.
+          </Typography>
 
-      <TemplateList
-        templates={templates}
-        roles={roles}
-        onEdit={handleEditTemplate}
-        onDelete={handleDeleteClick}
-        onSetDefault={handleSetDefault}
-        onReorder={handleReorder}
-      />
+          <TemplateList
+            templates={templates}
+            roles={roles}
+            onEdit={handleEditTemplate}
+            onDelete={handleDeleteClick}
+            onSetDefault={handleSetDefault}
+            onReorder={handleReorder}
+          />
+        </>
+      )}
 
       <TemplateForm
         open={formOpen}
