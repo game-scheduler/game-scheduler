@@ -35,12 +35,12 @@ Complete terminology consistency by changing remaining "Guild" user-facing text 
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Complete Guild-to-Server Terminology
+### [x] Phase 1: Complete Guild-to-Server Terminology
 
-- [ ] Task 1.1: Update HomePage button label
+- [x] Task 1.1: Update HomePage button label
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 15-25)
 
-- [ ] Task 1.2: Update GuildDashboard error message
+- [x] Task 1.2: Update GuildDashboard error message
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 27-36)
 
 ### [ ] Phase 2: Reorganize Home Screen Navigation

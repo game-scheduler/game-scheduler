@@ -121,7 +121,7 @@ export const GuildDashboard: FC = () => {
   if (!guild) {
     return (
       <Container sx={{ mt: 4 }}>
-        <Alert severity="warning">Guild not found</Alert>
+        <Alert severity="warning">Server not found</Alert>
         <Button sx={{ mt: 2 }} onClick={() => navigate('/guilds')}>
           Back to Servers
         </Button>

@@ -42,7 +42,7 @@ export const HomePage: FC = () => {
                 onClick={() => navigate('/guilds')}
                 sx={{ mr: 2 }}
               >
-                View My Guilds
+                View My Servers
               </Button>
               <Button variant="outlined" size="large" onClick={() => navigate('/my-games')}>
                 My Games
