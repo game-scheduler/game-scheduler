@@ -32,7 +32,6 @@ from services.api.services import template_service as template_service_module
 from shared import database
 from shared.schemas import auth as auth_schemas
 from shared.schemas import template as template_schemas
-from shared.utils.discord import DiscordPermissions
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["templates"])
@@ -56,25 +55,37 @@ async def list_templates(
             status_code=status.HTTP_404_NOT_FOUND, detail="Guild configuration not found"
         )
 
-    # Check if user has MANAGE_GUILD permission
+    # Get templates with permission filtering
     role_service = roles_module.get_role_service()
-    is_admin = await role_service.has_permissions(
+    template_svc = template_service_module.TemplateService(db)
+    templates = await template_svc.get_templates_for_user(
+        guild_id,
         current_user.user.discord_id,
         guild_config.guild_id,
+        role_service,
         current_user.access_token,
-        DiscordPermissions.MANAGE_GUILD,
     )
 
-    # Get user's role IDs for filtering
-    discord_client = discord_client_module.get_discord_client()
-    member = await discord_client.get_guild_member(
-        guild_config.guild_id, current_user.user.discord_id
-    )
-    user_role_ids = member.get("roles", [])
-
-    # Get templates
-    template_svc = template_service_module.TemplateService(db)
-    templates = await template_svc.get_templates_for_user(guild_id, user_role_ids, is_admin)
+    # Validate that user has access to at least one template
+    if not templates:
+        # Check if user is admin to provide appropriate error message
+        is_admin = await role_service.check_bot_manager_permission(
+            current_user.user.discord_id,
+            guild_config.guild_id,
+            db,
+            current_user.access_token,
+        )
+        if is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No templates configured for this server. Please create a template first.",
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to perform this operation on this server. "
+                "Contact a server manager if you believe this is incorrect.",
+            )
 
     # Convert to response format with channel names
     result = []

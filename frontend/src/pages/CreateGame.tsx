@@ -78,7 +78,9 @@ export const CreateGame: FC = () => {
         }
       } catch (err: unknown) {
         console.error('Failed to fetch data:', err);
-        setError('Failed to load server data. Please try again.');
+        setError(
+          (err as any).response?.data?.detail || 'Failed to load server data. Please try again.'
+        );
       } finally {
         setLoading(false);
       }
