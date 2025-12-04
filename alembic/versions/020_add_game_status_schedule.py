@@ -96,20 +96,33 @@ def upgrade() -> None:
         CREATE OR REPLACE FUNCTION notify_game_status_schedule_changed()
         RETURNS TRIGGER AS $$
         BEGIN
-            -- Only notify if change affects near-term schedule (within 10 minutes)
-            IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') AND
-               NEW.transition_time <= NOW() + INTERVAL '10 minutes' AND
-               NEW.executed = FALSE THEN
+            -- Always notify on INSERT/UPDATE/DELETE so daemon can wake immediately
+            -- This enables true event-driven architecture without polling
+            IF TG_OP = 'DELETE' THEN
                 PERFORM pg_notify(
                     'game_status_schedule_changed',
                     json_build_object(
                         'operation', TG_OP,
-                        'schedule_id', NEW.id::text,
-                        'transition_time', NEW.transition_time::text
+                        'schedule_id', OLD.id::text,
+                        'game_id', OLD.game_id::text
                     )::text
                 );
+                RETURN OLD;
+            ELSE
+                -- INSERT or UPDATE
+                IF NEW.executed = FALSE THEN
+                    PERFORM pg_notify(
+                        'game_status_schedule_changed',
+                        json_build_object(
+                            'operation', TG_OP,
+                            'schedule_id', NEW.id::text,
+                            'game_id', NEW.game_id::text,
+                            'transition_time', NEW.transition_time::text
+                        )::text
+                    );
+                END IF;
+                RETURN NEW;
             END IF;
-            RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
         """

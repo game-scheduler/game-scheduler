@@ -17,8 +17,8 @@ RUN pip install --no-cache-dir uv
 COPY pyproject.toml ./
 
 # Install all dependencies including dev dependencies (pytest, etc.)
-# Use brackets to install optional dependencies
-RUN uv pip install --system -e ".[dev]"
+# Use --group to install dependency groups with uv
+RUN uv pip install --system -e . && uv pip install --system --group dev
 
 # Copy application code
 COPY shared/ ./shared/

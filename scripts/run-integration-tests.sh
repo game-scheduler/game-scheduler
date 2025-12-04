@@ -4,6 +4,9 @@
 
 set -e
 
+echo "Building integration test container..."
+docker compose -f docker-compose.integration.yml build integration-tests
+
 cleanup() {
   echo "Cleaning up integration test environment..."
   docker compose -f docker-compose.integration.yml --env-file .env.integration down -v
@@ -12,6 +15,6 @@ cleanup() {
 trap cleanup EXIT
 
 echo "Running integration tests..."
-docker compose -f docker-compose.integration.yml --env-file .env.integration run --rm integration-tests
+docker compose -f docker-compose.integration.yml --env-file .env.integration run --rm integration-tests "$@"
 
 echo "Integration tests passed!"

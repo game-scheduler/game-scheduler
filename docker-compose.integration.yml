@@ -34,7 +34,7 @@ services:
         condition: service_healthy
     networks:
       - app-network
-    command: pytest tests/integration/test_notification_daemon.py -v --tb=short
+    command: pytest tests/integration/ -v --tb=short
 
 # Use tmpfs for test volumes (in-memory, fast, auto-cleanup)
 volumes:

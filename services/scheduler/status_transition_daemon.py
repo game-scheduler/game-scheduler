@@ -66,7 +66,6 @@ class StatusTransitionDaemon:
         database_url: str,
         rabbitmq_url: str,
         max_timeout: int = 300,
-        buffer_seconds: int = 10,
     ):
         """
         Initialize status transition daemon.
@@ -75,12 +74,10 @@ class StatusTransitionDaemon:
             database_url: PostgreSQL connection string (psycopg2 format)
             rabbitmq_url: RabbitMQ connection string
             max_timeout: Maximum seconds to wait between checks (default: 5 min)
-            buffer_seconds: Wake up this many seconds before due time
         """
         self.database_url = database_url
         self.rabbitmq_url = rabbitmq_url
         self.max_timeout = max_timeout
-        self.buffer_seconds = buffer_seconds
 
         self.listener: PostgresNotificationListener | None = None
         self.publisher: SyncEventPublisher | None = None
@@ -90,7 +87,7 @@ class StatusTransitionDaemon:
         """Establish connections to PostgreSQL and RabbitMQ."""
         self.listener = PostgresNotificationListener(self.database_url)
         self.listener.connect()
-        self.listener.listen("game_status_changed")
+        self.listener.listen("game_status_schedule_changed")
 
         self.publisher = SyncEventPublisher()
         self.publisher.connect()
@@ -137,32 +134,28 @@ class StatusTransitionDaemon:
 
         if not next_transition:
             wait_time = self.max_timeout
-            logger.debug(f"No transitions scheduled, waiting {wait_time}s for events or timeout")
+            logger.info(f"No transitions scheduled, waiting {wait_time}s for events or timeout")
         else:
             time_until_due = (next_transition.transition_time - utc_now()).total_seconds()
 
-            if time_until_due <= self.buffer_seconds:
-                # Transition is due now, process it immediately
+            if time_until_due <= 0:
+                # Transition is past due, process immediately
                 self._process_transition(next_transition)
                 return
 
-            # Transition is in the future, wait for it
-            wait_time_float = max(0.0, time_until_due - self.buffer_seconds)
-            wait_time = int(min(wait_time_float, float(self.max_timeout)))
+            # Transition is in the future, wait until due time
+            wait_time = int(min(time_until_due, float(self.max_timeout)))
 
-            logger.debug(
-                f"Next transition due in {time_until_due:.1f}s, "
-                f"waiting {wait_time}s (buffer: {self.buffer_seconds}s)"
-            )
+            logger.info(f"Next transition due in {time_until_due:.1f}s, waiting {wait_time}s")
 
         received, payload = self.listener.wait_for_notification(timeout=wait_time)
 
         if received:
             logger.info(f"Woke up due to NOTIFY event: {payload}")
         elif wait_time >= self.max_timeout:
-            logger.debug(f"Woke up due to periodic check timeout ({self.max_timeout}s)")
+            logger.info(f"Woke up due to periodic check timeout ({self.max_timeout}s)")
         else:
-            logger.debug("Woke up due to transition due time")
+            logger.info("Woke up due to transition due time")
 
     def _process_transition(self, transition: GameStatusSchedule) -> None:
         """

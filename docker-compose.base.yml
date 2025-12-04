@@ -233,6 +233,33 @@ services:
     networks:
       - app-network
 
+  status-transition-daemon:
+    build:
+      context: .
+      dockerfile: docker/status-transition-daemon.Dockerfile
+      tags:
+        - ${IMAGE_REGISTRY:-}game-scheduler-status-transition-daemon:${IMAGE_TAG:-latest}
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    image: ${IMAGE_REGISTRY:-}game-scheduler-status-transition-daemon:${IMAGE_TAG:-latest}
+    container_name: ${CONTAINER_PREFIX:-gamebot}-status-transition-daemon
+    restart: ${RESTART_POLICY:-unless-stopped}
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'python -m services.scheduler.status_transition_daemon' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app-network
+
   frontend:
     build:
       context: .

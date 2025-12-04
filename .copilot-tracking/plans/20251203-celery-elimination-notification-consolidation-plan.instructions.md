@@ -71,15 +71,15 @@ Eliminate Celery completely from the codebase by migrating game status transitio
 - [x] Task 3.3: Delete status schedule on game cancellation/deletion
   - Details: .copilot-tracking/details/20251203-celery-elimination-notification-consolidation-details.md (Lines 167-185)
 
-### [ ] Phase 4: Deploy and Validate
+### [x] Phase 4: Deploy and Validate
 
-- [ ] Task 4.1: Add status-transition-daemon service to docker-compose
+- [x] Task 4.1: Add status-transition-daemon service to docker-compose
   - Details: .copilot-tracking/details/20251203-celery-elimination-notification-consolidation-details.md (Lines 202-225)
 
-- [ ] Task 4.2: Create Dockerfile for status-transition-daemon
+- [x] Task 4.2: Create Dockerfile for status-transition-daemon
   - Details: .copilot-tracking/details/20251203-celery-elimination-notification-consolidation-details.md (Lines 227-245)
 
-- [ ] Task 4.3: Test status transitions end-to-end
+- [x] Task 4.3: Test status transitions end-to-end
   - Details: .copilot-tracking/details/20251203-celery-elimination-notification-consolidation-details.md (Lines 247-270)
 
 ### [ ] Phase 5: Remove Celery Infrastructure
