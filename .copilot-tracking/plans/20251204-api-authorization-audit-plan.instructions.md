@@ -92,12 +92,12 @@ Fix critical authorization vulnerabilities in REST API endpoints to prevent unau
 - [x] Task 4.5: Verify no bespoke auth code remains in route handlers
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 342-358)
 
-### [ ] Phase 5: Information Leak Audit
+### [x] Phase 5: Information Leak Audit
 
-- [ ] Task 5.1: Audit all endpoints for proper 404 vs 403 usage
+- [x] Task 5.1: Audit all endpoints for proper 404 vs 403 usage
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 362-378)
 
-- [ ] Task 5.2: Add comprehensive negative authorization tests
+- [x] Task 5.2: Add comprehensive negative authorization tests
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 380-396)
 
 ### [ ] Phase 6: Documentation and Prevention

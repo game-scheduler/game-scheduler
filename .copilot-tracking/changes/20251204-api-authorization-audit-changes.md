@@ -24,6 +24,7 @@ Comprehensive security audit and fixes for REST API authorization vulnerabilitie
 - tests/services/api/dependencies/test_permissions.py - Added comprehensive unit tests for verify_guild_membership helper
 - tests/services/api/dependencies/test_permissions.py - Added comprehensive unit tests for verify_template_access helper (404 for non-members)
 - tests/services/api/dependencies/test_permissions.py - Added comprehensive unit tests for verify_game_access helper (404 for non-members, 403 for missing roles)
+- tests/services/api/test_negative_authorization.py - Added comprehensive negative authorization tests (24 test cases) verifying proper 404 vs 403 responses and information disclosure prevention
 
 ### Modified
 
@@ -64,6 +65,13 @@ Comprehensive security audit and fixes for REST API authorization vulnerabilitie
 2. The game routes use verify_game_access helper consistently across list, detail, and join endpoints
 3. Route-level unit tests can mock the helper to verify it's called appropriately
 Integration tests would require complex Docker setup and Discord API mocking while providing minimal additional coverage beyond what unit tests already verify.
+
+**Phase 5 Completion - Information Leak Audit**:
+- tests/services/api/test_negative_authorization.py - Added comprehensive negative authorization tests (24 test cases) verifying 404 vs 403 behavior
+- Audit confirmed all endpoints properly use 404 for non-members and 403 for members lacking roles
+- Tests cover guild membership, template access, game access, game management, and export authorization
+- Tests verify information disclosure prevention (non-members cannot enumerate guilds)
+- All authorization logic confirmed to use centralized helper functions
 
 ### Removed
 
