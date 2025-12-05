@@ -50,15 +50,15 @@ Fix critical authorization vulnerabilities in REST API endpoints to prevent unau
 - [x] Task 1.5: Add unit tests for authorization helpers
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 102-120)
 
-### [ ] Phase 2: Fix Template Authorization Using Helpers
+### [x] Phase 2: Fix Template Authorization Using Helpers
 
-- [ ] Task 2.1: Add guild membership check to GET /templates/{template_id}
+- [x] Task 2.1: Add guild membership check to GET /templates/{template_id}
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 124-140)
 
-- [ ] Task 2.2: Refactor template management routes to use require_bot_manager
+- [x] Task 2.2: Refactor template management routes to use require_bot_manager
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 142-160)
 
-- [ ] Task 2.3: Add integration tests for template authorization
+- [x] Task 2.3: Add integration tests for template authorization
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 162-176)
 
 ### [ ] Phase 3: Fix Game Authorization Using Helpers

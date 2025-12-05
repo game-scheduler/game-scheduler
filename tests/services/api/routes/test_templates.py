@@ -166,12 +166,16 @@ class TestGetTemplate:
                 "services.api.services.template_service.TemplateService"
             ) as mock_template_service,
             patch("services.api.auth.discord_client.fetch_channel_name_safe") as mock_fetch_name,
+            patch(
+                "services.api.dependencies.permissions.verify_template_access"
+            ) as mock_verify_access,
         ):
             mock_service = AsyncMock()
             mock_service.get_template_by_id.return_value = mock_template
             mock_template_service.return_value = mock_service
 
             mock_fetch_name.return_value = "test-channel"
+            mock_verify_access.return_value = mock_template
 
             result = await templates.get_template(
                 template_id=mock_template.id, current_user=mock_current_user, db=mock_db
@@ -231,12 +235,16 @@ class TestCreateTemplate:
                 "services.api.services.template_service.TemplateService"
             ) as mock_template_service,
             patch("services.api.auth.discord_client.fetch_channel_name_safe") as mock_fetch_name,
+            patch(
+                "services.api.dependencies.permissions.require_bot_manager"
+            ) as mock_require_manager,
         ):
             mock_get_guild.return_value = mock_guild_config
 
             mock_role_service = AsyncMock()
             mock_role_service.check_bot_manager_permission.return_value = True
             mock_get_role_service.return_value = mock_role_service
+            mock_require_manager.return_value = mock_current_user
 
             mock_service = AsyncMock()
             mock_service.create_template.return_value = mock_template
@@ -267,12 +275,16 @@ class TestCreateTemplate:
         with (
             patch("services.api.database.queries.get_guild_by_id") as mock_get_guild,
             patch("services.api.auth.roles.get_role_service") as mock_get_role_service,
+            patch(
+                "services.api.dependencies.permissions.require_bot_manager"
+            ) as mock_require_manager,
         ):
             mock_get_guild.return_value = mock_guild_config
 
             mock_role_service = AsyncMock()
             mock_role_service.check_bot_manager_permission.return_value = False
             mock_get_role_service.return_value = mock_role_service
+            mock_require_manager.side_effect = HTTPException(status_code=403, detail="Forbidden")
 
             with pytest.raises(HTTPException) as exc_info:
                 await templates.create_template(
@@ -301,6 +313,9 @@ class TestDeleteTemplate:
             ) as mock_template_service,
             patch("services.api.database.queries.get_guild_by_id") as mock_get_guild,
             patch("services.api.auth.roles.get_role_service") as mock_get_role_service,
+            patch(
+                "services.api.dependencies.permissions.require_bot_manager"
+            ) as mock_require_manager,
         ):
             mock_template_svc = AsyncMock()
             mock_template_svc.get_template.return_value = mock_template
@@ -311,6 +326,7 @@ class TestDeleteTemplate:
             mock_role_service = AsyncMock()
             mock_role_service.check_bot_manager_permission.return_value = True
             mock_get_role_service.return_value = mock_role_service
+            mock_require_manager.return_value = mock_current_user
 
             with pytest.raises(HTTPException) as exc_info:
                 await templates.delete_template(

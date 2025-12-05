@@ -128,6 +128,11 @@ async def get_template(
     if not template:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
+    # Verify guild membership - returns 404 if not member to prevent info disclosure
+    template = await dependencies.permissions.verify_template_access(
+        template, current_user.user.discord_id, current_user.access_token, db
+    )
+
     # Resolve channel name
     channel_name = await discord_client_module.fetch_channel_name_safe(template.channel.channel_id)
 
@@ -171,16 +176,9 @@ async def create_template(
             status_code=status.HTTP_404_NOT_FOUND, detail="Guild configuration not found"
         )
 
-    # Check bot manager permission
+    # Verify bot manager permission using dependency
     role_service = roles_module.get_role_service()
-    has_permission = await role_service.check_bot_manager_permission(
-        current_user.user.discord_id, guild_config.guild_id, db, current_user.access_token
-    )
-    if not has_permission:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bot manager role required to create templates",
-        )
+    await dependencies.permissions.require_bot_manager(guild_id, current_user, role_service, db)
 
     template_svc = template_service_module.TemplateService(db)
     template = await template_svc.create_template(
@@ -239,22 +237,11 @@ async def update_template(
     if not template:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
-    guild_config = await queries.get_guild_by_id(db, template.guild_id)
-    if not guild_config:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Guild configuration not found"
-        )
-
-    # Check bot manager permission
+    # Verify bot manager permission using dependency
     role_service = roles_module.get_role_service()
-    has_permission = await role_service.check_bot_manager_permission(
-        current_user.user.discord_id, guild_config.guild_id, db, current_user.access_token
+    await dependencies.permissions.require_bot_manager(
+        template.guild_id, current_user, role_service, db
     )
-    if not has_permission:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bot manager role required to update templates",
-        )
 
     # Update template
     updated_template = await template_svc.update_template(
@@ -302,22 +289,11 @@ async def delete_template(
     if not template:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
-    guild_config = await queries.get_guild_by_id(db, template.guild_id)
-    if not guild_config:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Guild configuration not found"
-        )
-
-    # Check bot manager permission
+    # Verify bot manager permission using dependency
     role_service = roles_module.get_role_service()
-    has_permission = await role_service.check_bot_manager_permission(
-        current_user.user.discord_id, guild_config.guild_id, db, current_user.access_token
+    await dependencies.permissions.require_bot_manager(
+        template.guild_id, current_user, role_service, db
     )
-    if not has_permission:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bot manager role required to delete templates",
-        )
 
     # Prevent deleting default template
     if template.is_default:
@@ -344,22 +320,11 @@ async def set_default_template(
     if not template:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
-    guild_config = await queries.get_guild_by_id(db, template.guild_id)
-    if not guild_config:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Guild configuration not found"
-        )
-
-    # Check bot manager permission
+    # Verify bot manager permission using dependency
     role_service = roles_module.get_role_service()
-    has_permission = await role_service.check_bot_manager_permission(
-        current_user.user.discord_id, guild_config.guild_id, db, current_user.access_token
+    await dependencies.permissions.require_bot_manager(
+        template.guild_id, current_user, role_service, db
     )
-    if not has_permission:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bot manager role required to set default template",
-        )
 
     updated_template = await template_svc.set_default(template_id)
 
@@ -410,21 +375,10 @@ async def reorder_templates(
     if not first_template:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
-    guild_config = await queries.get_guild_by_id(db, first_template.guild_id)
-    if not guild_config:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Guild configuration not found"
-        )
-
-    # Check bot manager permission
+    # Verify bot manager permission using dependency
     role_service = roles_module.get_role_service()
-    has_permission = await role_service.check_bot_manager_permission(
-        current_user.user.discord_id, guild_config.guild_id, db, current_user.access_token
+    await dependencies.permissions.require_bot_manager(
+        first_template.guild_id, current_user, role_service, db
     )
-    if not has_permission:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bot manager role required to reorder templates",
-        )
 
     await template_svc.reorder_templates(request.template_orders)
