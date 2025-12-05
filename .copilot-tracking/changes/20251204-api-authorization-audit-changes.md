@@ -9,7 +9,7 @@
 
 Comprehensive security audit and fixes for REST API authorization vulnerabilities. Centralizes authorization logic, enforces proper guild membership checks, and prevents information disclosure about guilds user isn't member of.
 
-**Test Coverage**: 82% for services/api/dependencies/permissions.py (exceeds 80% minimum requirement)
+**Test Coverage**: 99% for services/api/dependencies/permissions.py (44 test cases covering all critical authorization paths, edge cases, and error scenarios)
 
 ## Changes
 
@@ -25,6 +25,7 @@ Comprehensive security audit and fixes for REST API authorization vulnerabilitie
 - tests/services/api/dependencies/test_permissions.py - Added comprehensive unit tests for verify_template_access helper (404 for non-members)
 - tests/services/api/dependencies/test_permissions.py - Added comprehensive unit tests for verify_game_access helper (404 for non-members, 403 for missing roles)
 - tests/services/api/test_negative_authorization.py - Added comprehensive negative authorization tests (24 test cases) verifying proper 404 vs 403 responses and information disclosure prevention
+- tests/services/api/dependencies/test_permissions.py - Added 21 additional test cases covering exception handling, session expiration, guild not found scenarios, and all edge cases in can_manage_game and can_export_game (bringing total to 44 tests achieving 99% coverage)
 
 ### Modified
 
@@ -72,6 +73,97 @@ Integration tests would require complex Docker setup and Discord API mocking whi
 - Tests cover guild membership, template access, game access, game management, and export authorization
 - Tests verify information disclosure prevention (non-members cannot enumerate guilds)
 - All authorization logic confirmed to use centralized helper functions
+- .github/instructions/api-authorization.instructions.md - Created comprehensive authorization patterns documentation including 404 vs 403 usage, available helpers/dependencies, mandatory rules prohibiting inline auth code, guild membership verification requirements, template/game role restrictions, and new endpoint authorization checklist
 
 ### Removed
+
+## Release Summary
+
+**Total Files Affected**: 12
+
+### Files Created (2)
+
+- .github/instructions/api-authorization.instructions.md - Comprehensive authorization patterns and security guidelines for REST API development
+- tests/services/api/test_negative_authorization.py - Comprehensive negative authorization test suite (24 test cases)
+
+### Files Modified (10)
+
+- services/api/dependencies/permissions.py - Added 5 new authorization helpers (require_bot_manager, verify_guild_membership, verify_template_access, verify_game_access, get_guild_name) and updated 2 existing helpers to use guild membership verification
+- services/api/routes/templates.py - Added guild membership verification to detail endpoint and refactored 5 management endpoints to use require_bot_manager dependency
+- services/api/routes/games.py - Added guild membership and player role verification to list, detail, and join endpoints using verify_game_access helper
+- services/api/routes/guilds.py - Migrated 4 endpoints to use verify_guild_membership helper and 3 endpoints to use get_guild_name helper
+- services/api/routes/channels.py - Migrated detail endpoint to use verify_guild_membership helper
+- services/api/routes/export.py - Updated export endpoint to pass current_user for guild membership verification
+- tests/services/api/dependencies/test_permissions.py - Added comprehensive unit tests for all new authorization helpers
+- tests/services/api/routes/test_templates.py - Updated 4 tests to mock new authorization helpers
+- .copilot-tracking/plans/20251204-api-authorization-audit-plan.instructions.md - Marked all phases and tasks as completed
+- .copilot-tracking/changes/20251204-api-authorization-audit-changes.md - Documented all implementation changes
+
+### Files Removed (0)
+
+### Dependencies & Infrastructure
+
+- **New Dependencies**: None - uses existing FastAPI, Discord OAuth2, SQLAlchemy, and pytest infrastructure
+- **Updated Dependencies**: None
+- **Infrastructure Changes**: 
+  - Centralized authorization logic in services/api/dependencies/permissions.py
+  - Eliminated inline authorization code from all route handlers
+  - Standardized 404 vs 403 response patterns across all endpoints
+- **Configuration Updates**: None
+
+### Security Improvements
+
+- **Fixed 4 Critical Authorization Vulnerabilities**:
+  1. Template detail endpoint now requires guild membership (returns 404 for non-members)
+  2. Game list properly filtered by guild membership and player role restrictions
+  3. Game detail endpoint now requires guild membership (returns 404 for non-members)
+  4. Game join endpoint now verifies player roles from template (returns 404 for non-members, 403 for missing roles)
+
+- **Centralized Authorization Logic**:
+  - Created require_bot_manager dependency eliminating 30+ lines of duplicated code across 6 endpoints
+  - Created 4 authorization helpers for consistent guild membership and role verification
+  - Zero inline authorization code remains in route handlers
+
+- **Information Disclosure Prevention**:
+  - All endpoints return 404 for non-guild-members (not 403) preventing resource enumeration
+  - Users cannot discover existence of guilds they don't belong to
+  - Comprehensive negative authorization tests verify information disclosure prevention
+
+- **Documentation for Future Prevention**:
+  - Created comprehensive authorization patterns guide
+  - Documented mandatory rules prohibiting inline authorization code
+  - Provided authorization checklist for new endpoints
+
+### Test Coverage
+
+- **Unit Tests**: 99% coverage for services/api/dependencies/permissions.py (44 test cases)
+- **Test Categories**:
+  - Session token expiration scenarios (5 tests)
+  - Guild membership verification (3 tests)
+  - Template access authorization (3 tests)
+  - Game access authorization (5 tests)
+  - Bot manager authorization (3 tests)
+  - Game management authorization (4 tests)
+  - Export authorization (6 tests)
+  - Exception handling and edge cases (4 tests)
+  - Guild resolution and helper functions (4 tests)
+  - Discord permission checks (7 tests)
+- **Negative Tests**: 24 test cases verifying proper authorization enforcement and information disclosure prevention
+- **Authorization Scenarios Covered**:
+  - Non-members receive 404
+  - Members without roles receive 403
+  - Authorized users succeed
+  - Session expiration handling
+  - Guild not found scenarios
+  - Exception handling in external API calls
+  - Token data unavailable scenarios
+  - Participant/host/bot manager authorization chains
+
+### Deployment Notes
+
+- **No Breaking Changes**: All changes maintain backward compatibility
+- **No Database Migrations**: Authorization logic only, no schema changes
+- **No Configuration Required**: Uses existing Discord OAuth2 and role verification infrastructure
+- **Immediate Security Benefits**: Deploy to fix critical authorization vulnerabilities
+- **Monitoring**: No new monitoring required - authorization failures logged via existing FastAPI error handling
 
