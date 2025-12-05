@@ -65,14 +65,28 @@ Complete terminology consistency by changing remaining "Guild" user-facing text 
 - [x] Task 3.3: Create ServerSelectionDialog component
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 129-154)
 
-### [ ] Phase 4: Testing and Verification
+### [ ] Phase 4: Remove Channels Tab from Server Detail Screen
 
-- [ ] Task 4.1: Verify navigation flows
-  - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 158-171)
+- [ ] Task 4.1: Remove channels tab from GuildDashboard
+  - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 186-205)
+
+- [ ] Task 4.2: Delete ChannelConfig page and route
+  - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 207-220)
+
+- [ ] Task 4.3: Verify Channel type still needed
+  - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 222-234)
+
+### [ ] Phase 5: Testing and Verification
+
+- [ ] Task 5.1: Verify navigation flows
+  - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 238-251)
   - Note: Login redirect fixed to navigate to "/" instead of "/guilds"
 
-- [ ] Task 4.2: Test game creation paths
-  - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 173-184)
+- [ ] Task 5.2: Test game creation paths
+  - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 253-264)
+
+- [ ] Task 5.3: Verify server dashboard tabs
+  - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 266-275)
 
 ## Dependencies
 
@@ -90,5 +104,8 @@ Complete terminology consistency by changing remaining "Guild" user-facing text 
 - Game creation skips server dashboard when coming from My Games
 - Single server users go directly to create form
 - Multi-server users see server selection then create form
+- Channels tab removed from server detail screen
+- ChannelConfig page removed from codebase
+- Server dashboard has only Overview and Games tabs
 - All navigation flows work correctly
 - Build completes without errors

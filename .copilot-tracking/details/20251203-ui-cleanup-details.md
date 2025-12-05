@@ -166,9 +166,71 @@ Build reusable dialog for selecting a server from user's available servers.
 - **Dependencies**:
   - Task 3.2 completion
 
-## Phase 4: Testing and Verification
+## Phase 4: Remove Channels Tab from Server Detail Screen
 
-### Task 4.1: Verify navigation flows
+### Task 4.1: Remove channels tab from GuildDashboard
+
+Remove the Channels tab, state management, and API calls from the server detail screen.
+
+- **Files**:
+  - frontend/src/pages/GuildDashboard.tsx - Remove channels-related code
+    - Remove `channels` state declaration (line 61)
+    - Remove channels API fetch from Promise.all (line 87)
+    - Remove `setChannels` call (line 91)
+    - Remove Channel import from types (line 40)
+    - Remove Channels tab label (line 175)
+    - Remove TabPanel for channels (lines 207-237)
+    - Update Games tab handleTabChange check from `newValue === 2` to `newValue === 1` (line 71)
+- **Success**:
+  - Server detail screen shows only Overview and Games tabs
+  - No channels state or API calls in component
+  - Games tab navigation works with new index
+  - Build succeeds without errors
+- **Research References**:
+  - #file:../research/20251203-ui-cleanup-research.md (Lines 59-78) - Channels tab removal details
+- **Dependencies**:
+  - None - can be done independently
+
+### Task 4.2: Delete ChannelConfig page and route
+
+Remove the obsolete channel configuration page and its route definition.
+
+- **Files**:
+  - frontend/src/pages/ChannelConfig.tsx - Delete entire file (180 lines)
+  - frontend/src/App.tsx - Remove ChannelConfig import (line 29) and route (line 55)
+- **Success**:
+  - ChannelConfig.tsx removed from filesystem
+  - ChannelConfig import and route removed from App.tsx
+  - No broken imports or references
+  - Build succeeds
+- **Research References**:
+  - #file:../research/20251203-ui-cleanup-research.md (Lines 80-88) - Files requiring changes
+- **Dependencies**:
+  - Task 4.1 recommended first to remove navigation to this page
+
+### Task 4.3: Verify Channel type still needed
+
+Verify the Channel interface in types/index.ts is still used by other components.
+
+- **Files**:
+  - frontend/src/types/index.ts (lines 36-44) - Channel interface definition
+  - Verification: Channel type used in:
+    - GameForm.tsx (channels prop for channel selection)
+    - BrowseGames.tsx (channels state for filtering)
+    - EditGame.tsx (Channel import, likely for editing)
+    - GameSession interface (channel_id and channel_name fields)
+- **Success**:
+  - Channel interface retained because it's used by multiple components
+  - Only remove Channel import from GuildDashboard and ChannelConfig
+  - Document that Channel type remains for game-related channel references
+- **Research References**:
+  - #file:../research/20251203-ui-cleanup-research.md (Lines 90-92) - Type verification needed
+- **Dependencies**:
+  - None - verification task only
+
+## Phase 5: Testing and Verification
+
+### Task 5.1: Verify navigation flows
 
 Test all navigation paths through the application.
 
@@ -186,7 +248,7 @@ Test all navigation paths through the application.
 - **Dependencies**:
   - Phase 2 completion
 
-### Task 4.2: Test game creation paths
+### Task 5.2: Test game creation paths
 
 Verify game creation works correctly from all entry points.
 
@@ -203,6 +265,23 @@ Verify game creation works correctly from all entry points.
   - #file:../research/20251203-ui-cleanup-research.md (Lines 131-138) - Multi-server flow details
 - **Dependencies**:
   - Phase 3 completion
+
+### Task 5.3: Verify server dashboard tabs
+
+Confirm that server detail screen shows correct tabs after Channels removal.
+
+- **Files**:
+  - frontend/src/pages/GuildDashboard.tsx - Verify tab structure
+- **Success**:
+  - Server dashboard displays only Overview and Games tabs
+  - Overview tab shows quick actions and information
+  - Games tab click navigates to games list
+  - Tab indices work correctly (Overview=0, Games=1)
+  - No references to Channels tab remain
+- **Research References**:
+  - #file:../research/20251203-ui-cleanup-research.md (Lines 59-78) - Channels tab removal
+- **Dependencies**:
+  - Phase 4 completion
 
 ## Dependencies
 

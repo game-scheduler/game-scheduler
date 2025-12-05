@@ -121,7 +121,73 @@ From Discord's official documentation:
 
 ---
 
-## Issue 2: Reorganize Home Screen and Navigation
+## Issue 2: Remove Channels Tab from Server Detail Screen
+
+### Current Implementation
+
+**Location**: `frontend/src/pages/GuildDashboard.tsx`
+
+The server detail screen (GuildDashboard) has three tabs:
+1. Overview - Quick actions for creating/browsing games
+2. **Channels** - Lists configured channels (TO BE REMOVED)
+3. Games - Navigates to games list page
+
+**Channels Tab Components**:
+- Tab label at line 175: `<Tab label="Channels" />`
+- Tab panel content (lines 207-237): Shows list of channels with navigation to channel config
+- State management: `channels` state (line 61), API fetch (line 87), `setChannels` (line 91)
+
+**Associated Features Being Removed**:
+- Channel list display showing channel names and active/inactive status
+- Click navigation to channel configuration page: `/channels/${channel.id}/config`
+- ChannelConfig page component (`frontend/src/pages/ChannelConfig.tsx`)
+- Route definition in `frontend/src/App.tsx` (line 55)
+
+### Investigation Findings
+
+**Files Requiring Changes**:
+
+1. **frontend/src/pages/GuildDashboard.tsx**
+   - Remove `channels` state and related API call
+   - Remove "Channels" tab from Tabs component
+   - Remove TabPanel for channels (index 1)
+   - Adjust tab indices: Games tab from index 2 to index 1
+   - Remove Channel import from types
+
+2. **frontend/src/App.tsx**
+   - Remove ChannelConfig import (line 29)
+   - Remove route: `/channels/:channelUuid/config` (line 55)
+
+3. **frontend/src/pages/ChannelConfig.tsx**
+   - Entire file can be deleted (180 lines)
+   - No other components reference it
+
+4. **frontend/src/types/index.ts**
+   - Channel interface (lines 36-44) may still be used elsewhere
+   - VERIFICATION NEEDED: Check if Channel type used in game session data
+
+### Rationale for Removal
+
+Channels are now automatically created and managed by the system when games are posted. Users no longer need manual channel configuration or visibility into channel status.
+
+### Implementation Guidance
+
+- **Objectives**: Remove obsolete Channels tab and configuration page from UI
+- **Key Tasks**: 
+  1. Remove channels tab, state, and API calls from GuildDashboard
+  2. Delete ChannelConfig page and route
+  3. Adjust remaining tab indices in GuildDashboard
+  4. Verify Channel type not needed in frontend types
+- **Dependencies**: None - purely UI removal
+- **Success Criteria**: 
+  - Channels tab no longer visible on server detail screen
+  - Channel configuration page no longer accessible
+  - Games tab functions correctly with new index
+  - No broken imports or references
+
+---
+
+## Issue 3: Reorganize Home Screen and Navigation
 
 ### User Experience Change
 
