@@ -29,15 +29,12 @@ import {
   Alert,
   Tabs,
   Tab,
-  List,
-  ListItemText,
-  ListItemButton,
 } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AddIcon from '@mui/icons-material/Add';
 import CategoryIcon from '@mui/icons-material/Category';
 import { apiClient } from '../api/client';
-import { Guild, Channel } from '../types';
+import { Guild } from '../types';
 import { canUserCreateGames } from '../utils/permissions';
 
 interface TabPanelProps {
@@ -58,7 +55,6 @@ export const GuildDashboard: FC = () => {
   const { guildId } = useParams<{ guildId: string }>();
   const navigate = useNavigate();
   const [guild, setGuild] = useState<Guild | null>(null);
-  const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
@@ -66,7 +62,7 @@ export const GuildDashboard: FC = () => {
   const [canCreateGames, setCanCreateGames] = useState(false);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    if (newValue === 2) {
+    if (newValue === 1) {
       // Games tab - navigate to games page
       navigate(`/guilds/${guildId}/games`);
     } else {
@@ -82,13 +78,9 @@ export const GuildDashboard: FC = () => {
         setLoading(true);
         setError(null);
 
-        const [guildResponse, channelsResponse] = await Promise.all([
-          apiClient.get<Guild>(`/api/v1/guilds/${guildId}`),
-          apiClient.get<Channel[]>(`/api/v1/guilds/${guildId}/channels`),
-        ]);
+        const guildResponse = await apiClient.get<Guild>(`/api/v1/guilds/${guildId}`);
 
         setGuild(guildResponse.data);
-        setChannels(channelsResponse.data);
 
         // Try to fetch config to determine if user is a manager
         try {
@@ -172,7 +164,6 @@ export const GuildDashboard: FC = () => {
 
       <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 2 }}>
         <Tab label="Overview" />
-        <Tab label="Channels" />
         <Tab label="Games" />
       </Tabs>
 
@@ -202,39 +193,6 @@ export const GuildDashboard: FC = () => {
             </Card>
           </Grid>
         </Grid>
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={1}>
-        <Card>
-          <CardContent>
-            <Box
-              sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}
-            >
-              <Typography variant="h6">Configured Channels</Typography>
-            </Box>
-
-            {channels.length === 0 ? (
-              <Alert severity="info">
-                No channels configured yet. Channels will be created automatically when you post
-                your first game.
-              </Alert>
-            ) : (
-              <List>
-                {channels.map((channel) => (
-                  <ListItemButton
-                    key={channel.id}
-                    onClick={() => navigate(`/channels/${channel.id}/config`)}
-                  >
-                    <ListItemText
-                      primary={channel.channel_name}
-                      secondary={channel.is_active ? 'Active' : 'Inactive'}
-                    />
-                  </ListItemButton>
-                ))}
-              </List>
-            )}
-          </CardContent>
-        </Card>
       </TabPanel>
     </Container>
   );

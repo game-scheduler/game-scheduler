@@ -65,15 +65,15 @@ Complete terminology consistency by changing remaining "Guild" user-facing text 
 - [x] Task 3.3: Create ServerSelectionDialog component
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 129-154)
 
-### [ ] Phase 4: Remove Channels Tab from Server Detail Screen
+### [x] Phase 4: Remove Channels Tab from Server Detail Screen
 
-- [ ] Task 4.1: Remove channels tab from GuildDashboard
+- [x] Task 4.1: Remove channels tab from GuildDashboard
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 186-205)
 
-- [ ] Task 4.2: Delete ChannelConfig page and route
+- [x] Task 4.2: Delete ChannelConfig page and route
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 207-220)
 
-- [ ] Task 4.3: Verify Channel type still needed
+- [x] Task 4.3: Verify Channel type still needed
   - Details: .copilot-tracking/details/20251203-ui-cleanup-details.md (Lines 222-234)
 
 ### [ ] Phase 5: Testing and Verification

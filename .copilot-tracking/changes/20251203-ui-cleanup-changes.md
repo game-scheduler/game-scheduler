@@ -30,8 +30,11 @@ Complete terminology consistency by changing remaining "Guild" user-facing text 
 - services/api/auth/roles.py - Enhanced check_game_host_permission to handle template role restrictions (bot managers always allowed, otherwise checks allowed_host_role_ids)
 - services/api/dependencies/permissions.py - Simplified can_manage_game to use check_bot_manager_permission instead of manually checking MANAGE_GUILD
 - services/api/routes/templates.py - Simplified admin check to use check_bot_manager_permission and get_user_role_ids from role service
+- frontend/src/pages/GuildDashboard.tsx - Removed Channels tab, channels state, and channels API call; adjusted Games tab index from 2 to 1
+- frontend/src/App.tsx - Removed ChannelConfig import and route from routing configuration
 
 ### Removed
 
 - frontend/src/pages/HomePage.tsx - Removed obsolete HomePage component since MyGames is now the home screen
+- frontend/src/pages/ChannelConfig.tsx - Removed obsolete channel configuration page (channels now auto-created by system)
 

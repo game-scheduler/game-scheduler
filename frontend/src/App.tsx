@@ -26,7 +26,6 @@ import { MyGames } from './pages/MyGames';
 import { GuildListPage } from './pages/GuildListPage';
 import { GuildDashboard } from './pages/GuildDashboard';
 import { GuildConfig } from './pages/GuildConfig';
-import { ChannelConfig } from './pages/ChannelConfig';
 import { BrowseGames } from './pages/BrowseGames';
 import { GameDetails } from './pages/GameDetails';
 import { CreateGame } from './pages/CreateGame';
@@ -52,7 +51,6 @@ function App() {
                 <Route path="/guilds/:guildId" element={<GuildDashboard />} />
                 <Route path="/guilds/:guildId/config" element={<GuildConfig />} />
                 <Route path="/guilds/:guildId/templates" element={<TemplateManagement />} />
-                <Route path="/channels/:channelUuid/config" element={<ChannelConfig />} />
                 <Route path="/guilds/:guildId/games" element={<BrowseGames />} />
                 <Route path="/guilds/:guildId/games/new" element={<CreateGame />} />
                 <Route path="/games/:gameId" element={<GameDetails />} />
