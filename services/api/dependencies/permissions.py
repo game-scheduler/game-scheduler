@@ -40,13 +40,12 @@ from shared.utils.discord import DiscordPermissions
 logger = logging.getLogger(__name__)
 
 
-async def verify_guild_membership(user_discord_id: str, guild_id: str, access_token: str) -> bool:
+async def _check_guild_membership(user_discord_id: str, guild_id: str, access_token: str) -> bool:
     """
-    Verify user is a member of the specified Discord guild.
+    Check if user is a member of a Discord guild (low-level helper).
 
-    This helper function checks guild membership without raising exceptions,
-    allowing callers to decide on appropriate response codes (404 vs 403).
-    Results are cached via the OAuth2 API for performance.
+    This is an internal helper that returns a boolean without raising exceptions.
+    Use verify_guild_membership for route-level authorization that raises 404.
 
     Args:
         user_discord_id: Discord ID of the user
@@ -60,8 +59,50 @@ async def verify_guild_membership(user_discord_id: str, guild_id: str, access_to
         user_guilds = await oauth2.get_user_guilds(access_token, user_discord_id)
         return any(guild["id"] == guild_id for guild in user_guilds)
     except Exception as e:
-        logger.error(f"Failed to verify guild membership for user {user_discord_id}: {e}")
+        logger.error(f"Failed to check guild membership for user {user_discord_id}: {e}")
         return False
+
+
+async def verify_guild_membership(
+    guild_id: str,
+    current_user: auth_schemas.CurrentUser,
+    db: AsyncSession,
+) -> list[dict]:
+    """
+    Verify user is a member of the specified Discord guild.
+
+    Returns the list of user's guilds if member, raises 404 if not member.
+    This prevents information disclosure about guilds the user doesn't belong to.
+
+    Args:
+        guild_id: Discord guild ID (snowflake)
+        current_user: Current authenticated user
+        db: Database session
+
+    Returns:
+        List of user's guilds if member
+
+    Raises:
+        HTTPException(404): If user is not a member of the guild
+        HTTPException(401): If session token is invalid
+    """
+    token_data = await tokens.get_user_tokens(current_user.session_token)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="No session found")
+
+    access_token = token_data["access_token"]
+    user_guilds = await oauth2.get_user_guilds(access_token, current_user.user.discord_id)
+
+    is_member = any(g["id"] == guild_id for g in user_guilds)
+
+    if not is_member:
+        logger.warning(
+            f"User {current_user.user.discord_id} attempted to access guild {guild_id} "
+            f"where they are not a member"
+        )
+        raise HTTPException(status_code=404, detail="Guild not found")
+
+    return user_guilds
 
 
 async def verify_template_access(
@@ -91,7 +132,7 @@ async def verify_template_access(
         raise HTTPException(status_code=404, detail="Template not found")
 
     # Check guild membership
-    is_member = await verify_guild_membership(user_discord_id, guild_config.guild_id, access_token)
+    is_member = await _check_guild_membership(user_discord_id, guild_config.guild_id, access_token)
 
     if not is_member:
         logger.warning(
@@ -137,7 +178,7 @@ async def verify_game_access(
         raise HTTPException(status_code=404, detail="Game not found")
 
     # Check guild membership first - return 404 if not member to prevent info disclosure
-    is_member = await verify_guild_membership(user_discord_id, guild_config.guild_id, access_token)
+    is_member = await _check_guild_membership(user_discord_id, guild_config.guild_id, access_token)
 
     if not is_member:
         logger.warning(
@@ -300,6 +341,40 @@ async def require_manage_channels(
     return current_user
 
 
+async def get_guild_name(
+    guild_discord_id: str,
+    current_user: auth_schemas.CurrentUser,
+    db: AsyncSession,
+) -> str:
+    """
+    Get display name for a Discord guild.
+
+    Fetches guild name from user's guild list. This function should only be
+    called after guild membership has been verified (e.g., via verify_guild_membership
+    or an authorization dependency).
+
+    Args:
+        guild_discord_id: Discord guild ID (snowflake)
+        current_user: Current authenticated user
+        db: Database session
+
+    Returns:
+        Guild display name, or "Unknown Guild" if not found
+
+    Raises:
+        HTTPException(401): If session token is invalid
+    """
+    token_data = await tokens.get_user_tokens(current_user.session_token)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="No session found")
+
+    access_token = token_data["access_token"]
+    user_guilds = await oauth2.get_user_guilds(access_token, current_user.user.discord_id)
+    user_guilds_dict = {g["id"]: g for g in user_guilds}
+
+    return user_guilds_dict.get(guild_discord_id, {}).get("name", "Unknown Guild")
+
+
 async def require_bot_manager(
     guild_id: str,
     # B008: FastAPI dependency injection requires Depends() in default arguments
@@ -420,6 +495,8 @@ async def can_manage_game(
     1. The game host
     2. A Bot Manager (has bot_manager_role_ids or MANAGE_GUILD permission)
 
+    Raises HTTPException with 404 if user not member of guild.
+
     Args:
         game_host_id: Discord ID of the game host
         guild_id: Discord guild ID
@@ -429,7 +506,13 @@ async def can_manage_game(
 
     Returns:
         True if user can manage the game
+
+    Raises:
+        HTTPException: 404 if not guild member, to prevent information disclosure
     """
+    # Verify guild membership first - returns 404 if not member
+    await verify_guild_membership(guild_id, current_user, db)
+
     if current_user.user.discord_id == game_host_id:
         return True
 
@@ -452,6 +535,7 @@ async def can_export_game(
     role_service: roles_module.RoleVerificationService,
     db: AsyncSession,
     access_token: str | None = None,
+    current_user: auth_schemas.CurrentUser | None = None,
 ) -> bool:
     """
     Check if user can export a game to calendar format.
@@ -462,6 +546,8 @@ async def can_export_game(
     3. A Bot Manager (has bot_manager_role_ids)
     4. An administrator (MANAGE_GUILD permission)
 
+    Raises HTTPException with 404 if user not member of guild.
+
     Args:
         game_host_id: Database UUID of the game host
         game_participants: List of GameParticipant objects
@@ -471,10 +557,18 @@ async def can_export_game(
         role_service: Role verification service
         db: Database session
         access_token: OAuth2 access token (required for admin check)
+        current_user: Current authenticated user (for guild membership check)
 
     Returns:
         True if user can export the game
+
+    Raises:
+        HTTPException: 404 if not guild member, to prevent information disclosure
     """
+    # Verify guild membership first - returns 404 if not member
+    if current_user:
+        await verify_guild_membership(guild_id, current_user, db)
+
     # Check if user is the host
     if game_host_id == user_id:
         return True

@@ -75,21 +75,21 @@ Fix critical authorization vulnerabilities in REST API endpoints to prevent unau
 - [x] Task 3.4: Add integration tests for game authorization
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 244-262)
 
-### [ ] Phase 4: Migrate All Remaining Endpoints to Use Helpers
+### [x] Phase 4: Migrate All Remaining Endpoints to Use Helpers
 
-- [ ] Task 4.1: Audit and migrate guild endpoints
+- [x] Task 4.1: Audit and migrate guild endpoints
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 266-284)
 
-- [ ] Task 4.2: Audit and migrate channel endpoints
+- [x] Task 4.2: Audit and migrate channel endpoints
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 286-302)
 
-- [ ] Task 4.3: Audit and migrate game management endpoints
+- [x] Task 4.3: Audit and migrate game management endpoints
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 304-322)
 
-- [ ] Task 4.4: Audit and migrate export endpoints
+- [x] Task 4.4: Audit and migrate export endpoints
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 324-340)
 
-- [ ] Task 4.5: Verify no bespoke auth code remains in route handlers
+- [x] Task 4.5: Verify no bespoke auth code remains in route handlers
   - Details: .copilot-tracking/details/20251204-api-authorization-audit-details.md (Lines 342-358)
 
 ### [ ] Phase 5: Information Leak Audit

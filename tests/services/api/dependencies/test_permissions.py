@@ -308,33 +308,79 @@ async def test_require_bot_manager_no_permission(mock_current_user, mock_role_se
 
 @pytest.mark.asyncio
 async def test_verify_guild_membership_success():
-    """Test verify_guild_membership with member."""
+    """Test verify_guild_membership with member returns guilds."""
+    from unittest.mock import MagicMock
+
+    mock_user = MagicMock()
+    mock_user.discord_id = "user123"
+    mock_user.session_token = "session123"
+
+    mock_current_user = MagicMock()
+    mock_current_user.user = mock_user
+    mock_current_user.session_token = "session123"
+
+    mock_db = AsyncMock()
     user_guilds = [{"id": "guild123"}, {"id": "guild456"}]
 
-    with patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds):
-        result = await permissions.verify_guild_membership("user123", "guild123", "test_token")
+    with (
+        patch("services.api.auth.tokens.get_user_tokens", return_value={"access_token": "token"}),
+        patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds),
+    ):
+        result = await permissions.verify_guild_membership("guild123", mock_current_user, mock_db)
 
-    assert result is True
+    assert result == user_guilds
 
 
 @pytest.mark.asyncio
 async def test_verify_guild_membership_not_member():
-    """Test verify_guild_membership with non-member."""
+    """Test verify_guild_membership with non-member raises 404."""
+    from unittest.mock import MagicMock
+
+    mock_user = MagicMock()
+    mock_user.discord_id = "user123"
+    mock_user.session_token = "session123"
+
+    mock_current_user = MagicMock()
+    mock_current_user.user = mock_user
+    mock_current_user.session_token = "session123"
+
+    mock_db = AsyncMock()
     user_guilds = [{"id": "guild456"}, {"id": "guild789"}]
 
-    with patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds):
-        result = await permissions.verify_guild_membership("user123", "guild123", "test_token")
+    with (
+        patch("services.api.auth.tokens.get_user_tokens", return_value={"access_token": "token"}),
+        patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await permissions.verify_guild_membership("guild123", mock_current_user, mock_db)
 
-    assert result is False
+    assert exc_info.value.status_code == 404
+    assert "Guild not found" in exc_info.value.detail
 
 
 @pytest.mark.asyncio
-async def test_verify_guild_membership_api_error():
-    """Test verify_guild_membership with API error."""
-    with patch("services.api.auth.oauth2.get_user_guilds", side_effect=Exception("API error")):
-        result = await permissions.verify_guild_membership("user123", "guild123", "test_token")
+async def test_verify_guild_membership_no_session():
+    """Test verify_guild_membership with no session raises 401."""
+    from unittest.mock import MagicMock
 
-    assert result is False
+    mock_user = MagicMock()
+    mock_user.discord_id = "user123"
+    mock_user.session_token = "session123"
+
+    mock_current_user = MagicMock()
+    mock_current_user.user = mock_user
+    mock_current_user.session_token = "session123"
+
+    mock_db = AsyncMock()
+
+    with (
+        patch("services.api.auth.tokens.get_user_tokens", return_value=None),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await permissions.verify_guild_membership("guild123", mock_current_user, mock_db)
+
+    assert exc_info.value.status_code == 401
+    assert "No session found" in exc_info.value.detail
 
 
 @pytest.mark.asyncio
@@ -353,7 +399,7 @@ async def test_verify_template_access_success():
 
     with (
         patch("services.api.database.queries.get_guild_by_id", return_value=mock_guild_config),
-        patch("services.api.dependencies.permissions.verify_guild_membership", return_value=True),
+        patch("services.api.dependencies.permissions._check_guild_membership", return_value=True),
     ):
         result = await permissions.verify_template_access(
             mock_template, "user123", "test_token", mock_db
@@ -378,7 +424,7 @@ async def test_verify_template_access_not_member():
 
     with (
         patch("services.api.database.queries.get_guild_by_id", return_value=mock_guild_config),
-        patch("services.api.dependencies.permissions.verify_guild_membership", return_value=False),
+        patch("services.api.dependencies.permissions._check_guild_membership", return_value=False),
     ):
         with pytest.raises(HTTPException) as exc_info:
             await permissions.verify_template_access(
@@ -428,7 +474,7 @@ async def test_verify_game_access_success():
 
     with (
         patch("services.api.database.queries.get_guild_by_id", return_value=mock_guild_config),
-        patch("services.api.dependencies.permissions.verify_guild_membership", return_value=True),
+        patch("services.api.dependencies.permissions._check_guild_membership", return_value=True),
     ):
         result = await permissions.verify_game_access(
             mock_game, "user123", "test_token", mock_db, mock_role_service
@@ -454,7 +500,7 @@ async def test_verify_game_access_not_member():
 
     with (
         patch("services.api.database.queries.get_guild_by_id", return_value=mock_guild_config),
-        patch("services.api.dependencies.permissions.verify_guild_membership", return_value=False),
+        patch("services.api.dependencies.permissions._check_guild_membership", return_value=False),
     ):
         with pytest.raises(HTTPException) as exc_info:
             await permissions.verify_game_access(
@@ -484,7 +530,7 @@ async def test_verify_game_access_role_check_success():
 
     with (
         patch("services.api.database.queries.get_guild_by_id", return_value=mock_guild_config),
-        patch("services.api.dependencies.permissions.verify_guild_membership", return_value=True),
+        patch("services.api.dependencies.permissions._check_guild_membership", return_value=True),
     ):
         result = await permissions.verify_game_access(
             mock_game, "user123", "test_token", mock_db, mock_role_service
@@ -515,7 +561,7 @@ async def test_verify_game_access_role_check_fails():
 
     with (
         patch("services.api.database.queries.get_guild_by_id", return_value=mock_guild_config),
-        patch("services.api.dependencies.permissions.verify_guild_membership", return_value=True),
+        patch("services.api.dependencies.permissions._check_guild_membership", return_value=True),
     ):
         with pytest.raises(HTTPException) as exc_info:
             await permissions.verify_game_access(

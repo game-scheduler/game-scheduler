@@ -85,8 +85,6 @@ async def get_guild(
     Returns guild name and metadata without sensitive configuration data.
     Requires user to be member of the guild.
     """
-    from services.api.auth import tokens
-
     guild_config = await queries.get_guild_by_id(db, guild_id)
     if not guild_config:
         raise HTTPException(
@@ -94,32 +92,11 @@ async def get_guild(
             detail="Guild configuration not found",
         )
 
-    token_data = await tokens.get_user_tokens(current_user.session_token)
-    if not token_data:
-        raise HTTPException(status_code=401, detail="No session found")
-
-    access_token = token_data["access_token"]
-    user_guilds = await oauth2.get_user_guilds(access_token, current_user.user.discord_id)
+    # Verify guild membership, returns 404 if not member to prevent information disclosure
+    user_guilds = await permissions.verify_guild_membership(guild_config.guild_id, current_user, db)
     user_guilds_dict = {g["id"]: g for g in user_guilds}
 
-    discord_guild_id = guild_config.guild_id
-
-    logger.info(
-        f"get_guild: UUID {guild_id} maps to Discord guild {discord_guild_id}. "
-        f"User has access to {len(user_guilds_dict)} guilds"
-    )
-
-    if discord_guild_id not in user_guilds_dict:
-        logger.warning(
-            f"get_guild: Discord guild {discord_guild_id} not found in "
-            f"user's {len(user_guilds_dict)} guilds"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not a member of this guild",
-        )
-
-    guild_name = user_guilds_dict[discord_guild_id].get("name", "Unknown Guild")
+    guild_name = user_guilds_dict[guild_config.guild_id].get("name", "Unknown Guild")
 
     return guild_schemas.GuildBasicInfoResponse(
         id=guild_config.id,
@@ -140,8 +117,6 @@ async def get_guild_config(
 
     Requires MANAGE_GUILD permission in the guild.
     """
-    from services.api.auth import tokens
-
     guild_config = await queries.get_guild_by_id(db, guild_id)
     if not guild_config:
         raise HTTPException(
@@ -149,14 +124,7 @@ async def get_guild_config(
             detail="Guild configuration not found",
         )
 
-    token_data = await tokens.get_user_tokens(current_user.session_token)
-    if not token_data:
-        raise HTTPException(status_code=401, detail="No session found")
-
-    access_token = token_data["access_token"]
-    user_guilds = await oauth2.get_user_guilds(access_token, current_user.user.discord_id)
-    user_guilds_dict = {g["id"]: g for g in user_guilds}
-    guild_name = user_guilds_dict.get(guild_config.guild_id, {}).get("name", "Unknown Guild")
+    guild_name = await permissions.get_guild_name(guild_config.guild_id, current_user, db)
 
     return guild_schemas.GuildConfigResponse(
         id=guild_config.id,
@@ -194,11 +162,7 @@ async def create_guild_config(
         require_host_role=request.require_host_role,
     )
 
-    user_guilds = await oauth2.get_user_guilds(
-        current_user.access_token, current_user.user.discord_id
-    )
-    user_guilds_dict = {g["id"]: g for g in user_guilds}
-    guild_name = user_guilds_dict.get(request.guild_id, {}).get("name", "Unknown Guild")
+    guild_name = await permissions.get_guild_name(request.guild_id, current_user, db)
 
     return guild_schemas.GuildConfigResponse(
         id=guild_config.id,
@@ -232,11 +196,7 @@ async def update_guild_config(
     updates = request.model_dump(exclude_unset=True)
     guild_config = await guild_service.update_guild_config(db, guild_config, **updates)
 
-    user_guilds = await oauth2.get_user_guilds(
-        current_user.access_token, current_user.user.discord_id
-    )
-    user_guilds_dict = {g["id"]: g for g in user_guilds}
-    guild_name = user_guilds_dict.get(guild_config.guild_id, {}).get("name", "Unknown Guild")
+    guild_name = await permissions.get_guild_name(guild_config.guild_id, current_user, db)
 
     return guild_schemas.GuildConfigResponse(
         id=guild_config.id,
@@ -262,8 +222,6 @@ async def list_guild_channels(
 
     Returns channels with their settings and inheritance information.
     """
-    from services.api.auth import tokens
-
     guild_config = await queries.get_guild_by_id(db, guild_id)
     if not guild_config:
         raise HTTPException(
@@ -271,30 +229,8 @@ async def list_guild_channels(
             detail="Guild configuration not found",
         )
 
-    token_data = await tokens.get_user_tokens(current_user.session_token)
-    if not token_data:
-        raise HTTPException(status_code=401, detail="No session found")
-
-    access_token = token_data["access_token"]
-    user_guilds = await oauth2.get_user_guilds(access_token, current_user.user.discord_id)
-    user_guilds_dict = {g["id"]: g for g in user_guilds}
-
-    discord_guild_id = guild_config.guild_id
-
-    logger.info(
-        f"list_guild_channels: UUID {guild_id} maps to Discord guild {discord_guild_id}. "
-        f"User has access to {len(user_guilds_dict)} guilds"
-    )
-
-    if discord_guild_id not in user_guilds_dict:
-        logger.warning(
-            f"list_guild_channels: Discord guild {discord_guild_id} not found in "
-            f"user's {len(user_guilds_dict)} guilds"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not a member of this guild",
-        )
+    # Verify guild membership, returns 404 if not member to prevent information disclosure
+    await permissions.verify_guild_membership(guild_config.guild_id, current_user, db)
 
     channels = await queries.get_channels_by_guild(db, guild_config.id)
 
@@ -332,8 +268,6 @@ async def list_guild_roles(
 
     Returns roles suitable for notification mentions.
     """
-    from services.api.auth import tokens
-
     guild_config = await queries.get_guild_by_id(db, guild_id)
     if not guild_config:
         raise HTTPException(
@@ -341,22 +275,10 @@ async def list_guild_roles(
             detail="Guild configuration not found",
         )
 
-    token_data = await tokens.get_user_tokens(current_user.session_token)
-    if not token_data:
-        raise HTTPException(status_code=401, detail="No session found")
-
-    access_token = token_data["access_token"]
-    user_guilds = await oauth2.get_user_guilds(access_token, current_user.user.discord_id)
-    user_guilds_dict = {g["id"]: g for g in user_guilds}
+    # Verify guild membership, returns 404 if not member to prevent information disclosure
+    await permissions.verify_guild_membership(guild_config.guild_id, current_user, db)
 
     discord_guild_id = guild_config.guild_id
-
-    if discord_guild_id not in user_guilds_dict:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not a member of this guild",
-        )
-
     roles = await discord_client.fetch_guild_roles(discord_guild_id)
     logger.info(f"Fetched {len(roles)} roles for guild {discord_guild_id}")
 
@@ -418,8 +340,6 @@ async def validate_mention(
     Checks if the mention can be resolved to a valid guild member.
     Does not return user details, only validation status.
     """
-    from services.api.auth import tokens
-
     guild_config = await queries.get_guild_by_id(db, guild_id)
     if not guild_config:
         raise HTTPException(
@@ -427,22 +347,11 @@ async def validate_mention(
             detail="Guild configuration not found",
         )
 
-    token_data = await tokens.get_user_tokens(current_user.session_token)
-    if not token_data:
-        raise HTTPException(status_code=401, detail="No session found")
-
-    access_token = token_data["access_token"]
-    user_guilds = await oauth2.get_user_guilds(access_token, current_user.user.discord_id)
-    user_guilds_dict = {g["id"]: g for g in user_guilds}
+    # Verify guild membership, returns 404 if not member to prevent information disclosure
+    await permissions.verify_guild_membership(guild_config.guild_id, current_user, db)
 
     discord_guild_id = guild_config.guild_id
-
-    if discord_guild_id not in user_guilds_dict:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not a member of this guild",
-        )
-
+    access_token = current_user.access_token
     mention = request.mention.strip()
     if not mention:
         return guild_schemas.ValidateMentionResponse(valid=False, error="Mention cannot be empty")

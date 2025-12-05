@@ -26,7 +26,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api import dependencies
 from services.api.auth import discord_client as discord_client_module
-from services.api.auth import oauth2
 from services.api.database import queries
 from services.api.dependencies import permissions
 from services.api.services import channel_service
@@ -57,29 +56,8 @@ async def get_channel(
             status_code=status.HTTP_404_NOT_FOUND, detail="Channel configuration not found"
         )
 
-    user_guilds = await oauth2.get_user_guilds(
-        current_user.access_token, current_user.user.discord_id
-    )
-    user_guild_ids = {g["id"] for g in user_guilds}
-
-    # channel_config.guild.guild_id is the Discord guild ID (snowflake)
-    discord_guild_id = channel_config.guild.guild_id
-
-    logger.info(
-        f"Channel UUID {channel_id} (Discord ID {channel_config.channel_id}) "
-        f"belongs to Discord guild {discord_guild_id}, "
-        f"User has access to {len(user_guild_ids)} guilds"
-    )
-
-    if discord_guild_id not in user_guild_ids:
-        logger.warning(
-            f"Guild membership check failed: channel's discord_guild_id={discord_guild_id} "
-            f"not in user's guilds: {list(user_guild_ids)[:3]}..."
-        )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not a member of this channel's guild",
-        )
+    # Verify guild membership, returns 404 if not member to prevent information disclosure
+    await permissions.verify_guild_membership(channel_config.guild.guild_id, current_user, db)
 
     channel_name = await discord_client_module.fetch_channel_name_safe(channel_config.channel_id)
 

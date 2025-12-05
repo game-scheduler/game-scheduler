@@ -91,6 +91,7 @@ async def export_game(
         role_service=role_service,
         db=db,
         access_token=user.access_token,
+        current_user=user,
     )
 
     service = CalendarExportService(db)
