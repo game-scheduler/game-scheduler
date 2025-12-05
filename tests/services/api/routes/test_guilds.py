@@ -100,7 +100,7 @@ class TestListGuilds:
             result = await guilds.list_guilds(current_user=mock_current_user, db=mock_db)
 
             assert len(result.guilds) == 2
-            assert result.guilds[0].guild_id == "987654321"
+            assert result.guilds[0].id == mock_guild_config.id
             assert result.guilds[0].guild_name == "Test Guild"
 
     @pytest.mark.asyncio
@@ -141,7 +141,7 @@ class TestGetGuild:
                 db=mock_db,
             )
 
-            assert result.guild_id == "987654321"
+            assert result.id == mock_guild_config.id
             assert result.guild_name == "Test Guild"
 
     @pytest.mark.asyncio
@@ -183,7 +183,7 @@ class TestGetGuild:
                     db=mock_db,
                 )
 
-            assert exc_info.value.status_code == 403
+            assert exc_info.value.status_code == 404
 
     @pytest.mark.asyncio
     async def test_get_guild_no_session(self, mock_db, mock_current_user, mock_guild_config):
@@ -215,6 +215,9 @@ class TestCreateGuildConfig:
             patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
             patch("services.api.database.queries.get_guild_by_discord_id") as mock_get_guild,
             patch("services.api.services.guild_service.create_guild_config") as mock_create,
+            patch(
+                "services.api.dependencies.permissions.get_guild_name", return_value="Test Guild"
+            ),
         ):
             mock_get_guilds.return_value = mock_user_guilds
             mock_get_guild.return_value = None
@@ -239,7 +242,7 @@ class TestCreateGuildConfig:
                 db=mock_db,
             )
 
-            assert result.guild_id == "987654321"
+            assert result.id == new_config.id
             mock_create.assert_called_once()
 
     @pytest.mark.asyncio
@@ -275,6 +278,9 @@ class TestUpdateGuildConfig:
             patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
             patch("services.api.database.queries.get_guild_by_id") as mock_get_guild,
             patch("services.api.services.guild_service.update_guild_config") as mock_update,
+            patch(
+                "services.api.dependencies.permissions.get_guild_name", return_value="Test Guild"
+            ),
         ):
             mock_get_guilds.return_value = mock_user_guilds
             mock_get_guild.return_value = mock_guild_config
@@ -403,4 +409,4 @@ class TestListGuildChannels:
                     db=mock_db,
                 )
 
-            assert exc_info.value.status_code == 403
+            assert exc_info.value.status_code == 404

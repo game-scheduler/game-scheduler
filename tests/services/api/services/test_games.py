@@ -65,6 +65,14 @@ def mock_participant_resolver():
 
 
 @pytest.fixture
+def mock_role_service():
+    """Create mock role service."""
+    role_service = AsyncMock()
+    role_service.check_game_host_permission = AsyncMock(return_value=True)
+    return role_service
+
+
+@pytest.fixture
 def game_service(mock_db, mock_event_publisher, mock_discord_client, mock_participant_resolver):
     """Create game service instance."""
     return games_service.GameService(
@@ -136,6 +144,7 @@ async def test_create_game_without_participants(
     mock_db,
     mock_event_publisher,
     mock_participant_resolver,
+    mock_role_service,
     sample_game_data,
     sample_template,
     sample_guild,
@@ -170,7 +179,7 @@ async def test_create_game_without_participants(
     reload_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
-        side_effect=[template_result, guild_result, channel_result, host_result, reload_result]
+        side_effect=[template_result, guild_result, host_result, channel_result, reload_result]
     )
     mock_db.flush = AsyncMock()
     mock_db.commit = AsyncMock()
@@ -184,11 +193,12 @@ async def test_create_game_without_participants(
 
     mock_db.add.side_effect = mock_add_side_effect
 
-    game = await game_service.create_game(
-        game_data=sample_game_data,
-        host_user_id=sample_user.id,
-        access_token="token",
-    )
+    with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
+        game = await game_service.create_game(
+            game_data=sample_game_data,
+            host_user_id=sample_user.id,
+            access_token="token",
+        )
 
     assert isinstance(game, game_model.GameSession)
     assert game.title == "Test Game"
@@ -203,6 +213,7 @@ async def test_create_game_with_where_field(
     mock_db,
     mock_event_publisher,
     mock_participant_resolver,
+    mock_role_service,
     sample_template,
     sample_guild,
     sample_channel,
@@ -245,7 +256,7 @@ async def test_create_game_with_where_field(
     reload_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
-        side_effect=[template_result, guild_result, channel_result, host_result, reload_result]
+        side_effect=[template_result, guild_result, host_result, channel_result, reload_result]
     )
     mock_db.flush = AsyncMock()
     mock_db.commit = AsyncMock()
@@ -258,11 +269,12 @@ async def test_create_game_with_where_field(
 
     mock_db.add.side_effect = mock_add_side_effect
 
-    game = await game_service.create_game(
-        game_data=game_data,
-        host_user_id=sample_user.id,
-        access_token="token",
-    )
+    with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
+        game = await game_service.create_game(
+            game_data=game_data,
+            host_user_id=sample_user.id,
+            access_token="token",
+        )
 
     assert isinstance(game, game_model.GameSession)
     assert game.where == "Discord Voice Channel #gaming"
@@ -274,6 +286,7 @@ async def test_create_game_with_valid_participants(
     game_service,
     mock_db,
     mock_participant_resolver,
+    mock_role_service,
     sample_game_data,
     sample_template,
     sample_guild,
@@ -327,7 +340,7 @@ async def test_create_game_with_valid_participants(
     reload_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
-        side_effect=[template_result, guild_result, channel_result, host_result, reload_result]
+        side_effect=[template_result, guild_result, host_result, channel_result, reload_result]
     )
     mock_db.flush = AsyncMock()
     mock_db.commit = AsyncMock()
@@ -340,11 +353,12 @@ async def test_create_game_with_valid_participants(
 
     mock_db.add.side_effect = mock_add_side_effect
 
-    game = await game_service.create_game(
-        game_data=sample_game_data,
-        host_user_id=sample_user.id,
-        access_token="token",
-    )
+    with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
+        game = await game_service.create_game(
+            game_data=sample_game_data,
+            host_user_id=sample_user.id,
+            access_token="token",
+        )
 
     assert isinstance(game, game_model.GameSession)
     mock_participant_resolver.resolve_initial_participants.assert_called_once()
@@ -355,6 +369,7 @@ async def test_create_game_with_invalid_participants(
     game_service,
     mock_db,
     mock_participant_resolver,
+    mock_role_service,
     sample_game_data,
     sample_template,
     sample_guild,
@@ -381,11 +396,14 @@ async def test_create_game_with_invalid_participants(
     host_result.scalar_one_or_none.return_value = sample_user
 
     mock_db.execute = AsyncMock(
-        side_effect=[template_result, guild_result, channel_result, host_result]
+        side_effect=[template_result, guild_result, host_result, channel_result]
     )
     mock_participant_resolver.ensure_user_exists = AsyncMock(return_value=sample_user)
 
-    with pytest.raises(resolver_module.ValidationError) as exc_info:
+    with (
+        patch("services.api.auth.roles.get_role_service", return_value=mock_role_service),
+        pytest.raises(resolver_module.ValidationError) as exc_info,
+    ):
         await game_service.create_game(
             game_data=sample_game_data,
             host_user_id=sample_user.id,
@@ -401,6 +419,7 @@ async def test_create_game_timezone_conversion(
     game_service,
     mock_db,
     mock_participant_resolver,
+    mock_role_service,
     sample_template,
     sample_guild,
     sample_channel,
@@ -447,7 +466,7 @@ async def test_create_game_timezone_conversion(
     reload_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
-        side_effect=[template_result, guild_result, channel_result, host_result, reload_result]
+        side_effect=[template_result, guild_result, host_result, channel_result, reload_result]
     )
     mock_db.flush = AsyncMock()
     mock_db.commit = AsyncMock()
@@ -465,11 +484,12 @@ async def test_create_game_timezone_conversion(
 
     mock_db.add = MagicMock(side_effect=capture_add)
 
-    await game_service.create_game(
-        game_data=game_data,
-        host_user_id=sample_user.id,
-        access_token="token",
-    )
+    with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
+        await game_service.create_game(
+            game_data=game_data,
+            host_user_id=sample_user.id,
+            access_token="token",
+        )
 
     # Verify the stored time was converted to UTC (15:00, not 10:00)
     assert added_game is not None

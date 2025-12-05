@@ -81,10 +81,15 @@ async def test_get_templates_for_user_admin(template_service, mock_db, sample_te
     mock_result.scalars.return_value = mock_scalars
     mock_db.execute.return_value = mock_result
 
+    mock_role_service = AsyncMock()
+    mock_role_service.check_game_host_permission.return_value = True
+
     templates = await template_service.get_templates_for_user(
         guild_id="guild-uuid-1",
-        user_role_ids=["role3"],
-        is_admin=True,
+        user_id="user123",
+        discord_guild_id="123456789",
+        role_service=mock_role_service,
+        access_token="access_token",
     )
 
     assert len(templates) == 2
@@ -103,10 +108,15 @@ async def test_get_templates_for_user_with_role_filtering(
     mock_result.scalars.return_value = mock_scalars
     mock_db.execute.return_value = mock_result
 
+    mock_role_service = AsyncMock()
+    mock_role_service.check_game_host_permission.return_value = True
+
     templates = await template_service.get_templates_for_user(
         guild_id="guild-uuid-1",
-        user_role_ids=["role1"],
-        is_admin=False,
+        user_id="user123",
+        discord_guild_id="123456789",
+        role_service=mock_role_service,
+        access_token="access_token",
     )
 
     assert len(templates) == 1
@@ -122,10 +132,15 @@ async def test_get_templates_for_user_no_matching_roles(template_service, mock_d
     mock_result.scalars.return_value = mock_scalars
     mock_db.execute.return_value = mock_result
 
+    mock_role_service = AsyncMock()
+    mock_role_service.check_game_host_permission.return_value = False
+
     templates = await template_service.get_templates_for_user(
         guild_id="guild-uuid-1",
-        user_role_ids=["role3"],
-        is_admin=False,
+        user_id="user123",
+        discord_guild_id="123456789",
+        role_service=mock_role_service,
+        access_token="access_token",
     )
 
     assert len(templates) == 0
@@ -150,10 +165,15 @@ async def test_get_templates_for_user_empty_allowed_roles(template_service, mock
     mock_result.scalars.return_value = mock_scalars
     mock_db.execute.return_value = mock_result
 
+    mock_role_service = AsyncMock()
+    mock_role_service.check_game_host_permission.return_value = True
+
     templates = await template_service.get_templates_for_user(
         guild_id="guild-uuid-1",
-        user_role_ids=["any-role"],
-        is_admin=False,
+        user_id="user123",
+        discord_guild_id="123456789",
+        role_service=mock_role_service,
+        access_token="access_token",
     )
 
     assert len(templates) == 1

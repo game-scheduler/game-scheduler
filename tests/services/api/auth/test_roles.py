@@ -23,7 +23,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from services.api.auth import discord_client, roles
-from services.api.auth.roles import DiscordPermissions
 
 
 @pytest.fixture
@@ -75,7 +74,7 @@ async def test_get_user_role_ids_from_api(role_service, mock_cache, mock_discord
     ):
         role_ids = await role_service.get_user_role_ids("user123", "guild456")
 
-    assert role_ids == ["role1", "role2", "role3"]
+    assert role_ids == ["role1", "role2", "role3", "guild456"]
     mock_cache.get_json.assert_called_once()
     mock_discord_client.get_guild_member.assert_called_once_with("guild456", "user123")
     mock_cache.set_json.assert_called_once()
@@ -92,7 +91,7 @@ async def test_get_user_role_ids_force_refresh(role_service, mock_cache, mock_di
     ):
         role_ids = await role_service.get_user_role_ids("user123", "guild456", force_refresh=True)
 
-    assert role_ids == ["role1"]
+    assert role_ids == ["role1", "guild456"]
     mock_cache.get_json.assert_not_called()
     mock_discord_client.get_guild_member.assert_called_once()
 
@@ -120,18 +119,19 @@ async def test_check_game_host_permission_with_manage_guild(role_service):
     mock_db = AsyncMock()
     mock_access_token = "test_token"
 
-    with patch.object(role_service, "has_permissions", return_value=True) as mock_has_permissions:
+    with patch.object(
+        role_service, "check_bot_manager_permission", return_value=True
+    ) as mock_check_manager:
         has_perm = await role_service.check_game_host_permission(
             "user123",
             "guild456",
             mock_db,
+            allowed_host_role_ids=["role1", "role2"],
             access_token=mock_access_token,
         )
 
     assert has_perm is True
-    mock_has_permissions.assert_called_once_with(
-        "user123", "guild456", mock_access_token, DiscordPermissions.MANAGE_GUILD
-    )
+    mock_check_manager.assert_called_once_with("user123", "guild456", mock_db, mock_access_token)
 
 
 @pytest.mark.asyncio
@@ -139,14 +139,22 @@ async def test_check_game_host_permission_without_token(role_service):
     """Test game host permission without access token returns False."""
     mock_db = AsyncMock()
 
-    has_perm = await role_service.check_game_host_permission(
-        "user123",
-        "guild456",
-        mock_db,
-        access_token=None,
-    )
+    with (
+        patch.object(
+            role_service, "check_bot_manager_permission", return_value=False
+        ) as mock_check_manager,
+        patch.object(role_service, "get_user_role_ids", return_value=["role2"]),
+    ):
+        has_perm = await role_service.check_game_host_permission(
+            "user123",
+            "guild456",
+            mock_db,
+            allowed_host_role_ids=["role1"],
+            access_token=None,
+        )
 
     assert has_perm is False
+    mock_check_manager.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -155,16 +163,22 @@ async def test_check_game_host_permission_no_permission(role_service):
     mock_db = AsyncMock()
     mock_access_token = "test_token"
 
-    with patch.object(role_service, "has_permissions", return_value=False) as mock_has_permissions:
+    with (
+        patch.object(
+            role_service, "check_bot_manager_permission", return_value=False
+        ) as mock_check_manager,
+        patch.object(role_service, "get_user_role_ids", return_value=["role2"]),
+    ):
         has_perm = await role_service.check_game_host_permission(
             "user123",
             "guild456",
             mock_db,
+            allowed_host_role_ids=["role1"],
             access_token=mock_access_token,
         )
 
     assert has_perm is False
-    mock_has_permissions.assert_called_once()
+    mock_check_manager.assert_called_once()
 
 
 @pytest.mark.asyncio

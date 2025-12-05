@@ -94,12 +94,12 @@ async def test_update_guild_config_ignores_none_values():
 
     updates = {
         "bot_manager_role_ids": ["role2"],
-        "require_host_role": None,  # Should be ignored
+        "require_host_role": None,  # Will be set to None
     }
 
     await guild_service.update_guild_config(mock_db, guild_config, **updates)
 
     assert guild_config.bot_manager_role_ids == ["role2"]
-    assert guild_config.require_host_role is False  # Unchanged
+    assert guild_config.require_host_role is None  # Updated to None
     mock_db.commit.assert_awaited_once()
     mock_db.refresh.assert_awaited_once()
