@@ -7,7 +7,7 @@ applyTo: "**/*.py"
 
 ## Python Instructions
 
-- Ensure functions have descriptive names and always use modern (python 3.11+)
+- Ensure functions have descriptive names and always use modern (python 3.13+)
   type hints.
 - Use pydantic for type validation.
 - Break down complex functions into smaller, more manageable functions.
@@ -39,7 +39,8 @@ applyTo: "**/*.py"
 ## Code Style and Formatting
 
 - Follow the **PEP 8** style guide for Python.
-- Place function and class docstrings immediately after the `def` or `class` keyword.
+- Place function and class docstrings immediately after the `def` or `class`
+  keyword.
 - Use blank lines to separate functions, classes, and code blocks where
   appropriate.
 - Imports must be at the top of the file, never inside functions.
@@ -51,15 +52,18 @@ applyTo: "**/*.py"
 Inspired by the Google Python Style Guide section 2.2.4:
 
 - Use import only for packages and modules.
-- Do no import package or module contents (e.g. functions/classes/etc. directly) except for
-  testing and typing.
-- Use from x import y where x is the package prefix and y is the module name with no prefix.
+- Do no import package or module contents (e.g. functions/classes/etc. directly)
+  except for testing and typing.
+- Use from x import y where x is the package prefix and y is the module name
+  with no prefix.
 - Use from x import y as z in only in one of the following circumstances:
   - Two modules named y are to be imported.
   - y conflicts with a top-level name defined in the current module.
-  - y conflicts with a common parameter name that is part of the public API (e.g., features).
+  - y conflicts with a common parameter name that is part of the public API
+    (e.g., features).
   - y is an inconveniently long name.
-  - y is too generic in the context of your code (e.g., from storage.file_system import options as fs_options).
+  - y is too generic in the context of your code (e.g., from storage.file_system
+    import options as fs_options).
   - If import y as z is a standard abbreviation (e.g., import numpy as np).
 
 ### Examples of Imports
@@ -94,8 +98,8 @@ Inspired by the Google Python Style Guide section 2.2.4:
 
 - Name modules, packages, methods, functions, global variables, instance
   variables, function parameters, local variables with snake_case.
-- Name classes and exceptions using pascal case (camel case with the first letter
-  capitalized).
+- Name classes and exceptions using pascal case (camel case with the first
+  letter capitalized).
 - Name global constants in all upper caps snake case.
 
 These names are all self describing (i.e. module_name shows how to name modules)
@@ -108,7 +112,8 @@ module_name, package_name, ClassName, method_name, ExceptionName, function_name,
 
 - Write clear and concise comments for each function.
 - Provide docstrings following PEP 257 conventions.
-- For libraries or external dependencies, mention their usage and purpose in comments.
+- For libraries or external dependencies, mention their usage and purpose in
+  comments.
 - Follow the recommendations for these sections from the Google style guide:
 
   ```
@@ -169,7 +174,9 @@ module_name, package_name, ClassName, method_name, ExceptionName, function_name,
 
 ### Docstring Anti-Patterns
 
-- Do not mention users or callers in doc strings. The purpose of doc strings is to explain the code. The callers and users can change over time, rendering the docstring obsolete.
+- Do not mention users or callers in doc strings. The purpose of doc strings is
+  to explain the code. The callers and users can change over time, rendering the
+  docstring obsolete.
 
   ```python
   // Bad: Never name users or callers in doc strings
@@ -184,9 +191,11 @@ module_name, package_name, ClassName, method_name, ExceptionName, function_name,
 
 - Handle edge cases and write clear exception handling.
 - Always include test cases for critical paths of the application.
-- Account for common edge cases like empty inputs, invalid data types, and large datasets.
+- Account for common edge cases like empty inputs, invalid data types, and large
+  datasets.
 - Include comments for edge cases and the expected behavior in those cases.
-- Write unit tests for functions and document them with docstrings explaining the test cases.
+- Write unit tests for functions and document them with docstrings explaining
+  the test cases.
 
 ## Example of Proper Documentation
 

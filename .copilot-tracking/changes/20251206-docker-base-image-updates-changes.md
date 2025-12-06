@@ -44,6 +44,12 @@ PostgreSQL 15→17, and optionally Node.js 20→22.
   redis:7.4-alpine for latest patches in 7.x line
 - docker-compose.base.yml - Updated PostgreSQL image from postgres:15-alpine to
   postgres:17-alpine for latest stable version with extended support
+- frontend/README.md - Updated Node.js version requirement from 18+ to 22+ to
+  match Docker image update
+- .github/instructions/python.instructions.md - Updated Python version reference
+  from 3.11+ to 3.13+ to match Docker image update
+- RUNTIME_CONFIG.md - Added documentation note about current base image versions
+  (PostgreSQL 17, Redis 7.4, Python 3.13, Node.js 22, Nginx 1.28)
 
 ### Testing and Validation
 
@@ -92,3 +98,89 @@ PostgreSQL 15→17, and optionally Node.js 20→22.
 - All services can connect and query PostgreSQL 17 without issues
 
 ### Removed
+
+## Release Summary
+
+**Total Files Affected**: 14
+
+### Files Created (2)
+
+- scripts/migrate_postgres_15_to_17.sh - PostgreSQL major version upgrade
+  migration script with backup and rollback support
+- tests/integration/test_database_infrastructure.py - Comprehensive database
+  infrastructure validation test suite (9 tests)
+
+### Files Modified (12)
+
+- docker/api.Dockerfile - Updated Python base image from 3.11-slim to 3.13-slim
+  (both stages)
+- docker/bot.Dockerfile - Updated Python base image from 3.11-slim to 3.13-slim
+  (both stages)
+- docker/init.Dockerfile - Updated Python base image from 3.11-slim to 3.13-slim
+- docker/notification-daemon.Dockerfile - Updated Python base image from
+  3.11-slim to 3.13-slim (both stages)
+- docker/status-transition-daemon.Dockerfile - Updated Python base image from
+  3.11-slim to 3.13-slim (both stages)
+- docker/test.Dockerfile - Updated Python base image from 3.11-slim to 3.13-slim
+- docker/frontend.Dockerfile - Updated Node.js from 20-alpine to 22-alpine and
+  Nginx from 1.25-alpine to 1.28-alpine
+- docker-compose.base.yml - Updated PostgreSQL from 15-alpine to 17-alpine and
+  Redis from 7-alpine to 7.4-alpine
+- frontend/README.md - Updated Node.js version requirement from 18+ to 22+
+- .github/instructions/python.instructions.md - Updated Python version reference
+  from 3.11+ to 3.13+
+- RUNTIME_CONFIG.md - Added documentation note about current base image versions
+- .copilot-tracking/plans/20251206-docker-base-image-updates-plan.instructions.md -
+  Marked all phases complete
+
+### Files Removed (0)
+
+None
+
+### Dependencies & Infrastructure
+
+- **New Dependencies**: None - all updates use official Docker Hub images
+- **Updated Dependencies**:
+  - Python: 3.11-slim → 3.13-slim (active bugfix support until Oct 2029)
+  - Node.js: 20-alpine → 22-alpine (maintenance LTS until April 2027)
+  - Nginx: 1.25-alpine → 1.28-alpine (current stable branch)
+  - PostgreSQL: 15-alpine → 17-alpine (support until Nov 2029)
+  - Redis: 7-alpine → 7.4-alpine (latest in 7.x line)
+  - RabbitMQ: 4.2-management-alpine (no change - already latest)
+- **Infrastructure Changes**:
+  - PostgreSQL major version upgrade (15→17) requires data migration
+  - Migration script provided: scripts/migrate_postgres_15_to_17.sh
+  - All Alembic migrations compatible with PostgreSQL 17
+  - Database triggers and LISTEN/NOTIFY functionality verified
+- **Configuration Updates**:
+  - Documentation updated to reflect new version requirements
+  - No environment variable changes required
+  - No application code changes required
+
+### Deployment Notes
+
+**PostgreSQL Migration:**
+
+1. The PostgreSQL upgrade from 15 to 17 is a major version change
+2. Data migration script provided: `scripts/migrate_postgres_15_to_17.sh`
+3. Script performs automatic backup before upgrade with rollback support
+4. All database tests pass with PostgreSQL 17.7
+
+**Image Compatibility:**
+
+- All Python services compatible with Python 3.13 (no code changes required)
+- All dependency versions compatible with updated base images
+- Multi-architecture support maintained (ARM64 and AMD64)
+
+**Testing:**
+
+- 43 integration tests pass successfully (34 original + 9 new database tests)
+- All services build successfully with updated images
+- No breaking changes in application functionality
+- Build time: ~6.8 minutes for full rebuild
+
+**Rollback:**
+
+- To rollback, revert changes to Dockerfiles and docker-compose.base.yml
+- For PostgreSQL, use backup created by migration script if needed
+- No application code changes required for rollback

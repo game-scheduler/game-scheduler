@@ -97,6 +97,9 @@ During local development with `npm run dev`, the frontend uses:
    before services start
 4. Same container image works across all environments (dev, test, prod)
 
+**Note:** The system uses PostgreSQL 17, Redis 7.4, Python 3.13, Node.js 22, and
+Nginx 1.28 for long-term support and security.
+
 ### Configuration
 
 Set these environment variables in your `.env` file:

@@ -15,7 +15,7 @@ React + TypeScript + Vite frontend for the Discord Game Scheduler application.
 
 ### Prerequisites
 
-- Node.js 18+ or Bun
+- Node.js 22+ or Bun
 - Running API service at http://localhost:8000
 
 ### Installation
