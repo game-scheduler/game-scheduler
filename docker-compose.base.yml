@@ -33,8 +33,21 @@ services:
       - app-network
 
   rabbitmq:
-    image: rabbitmq:4.2-management-alpine
+    build:
+      context: .
+      dockerfile: docker/rabbitmq.Dockerfile
+      args:
+        RABBITMQ_USER: ${RABBITMQ_DEFAULT_USER:-gamebot}
+        RABBITMQ_PASS: ${RABBITMQ_DEFAULT_PASS:-dev_password_change_in_prod}
+      tags:
+        - ${IMAGE_REGISTRY:-}game-scheduler-rabbitmq:${IMAGE_TAG:-latest}
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    image: ${IMAGE_REGISTRY:-}game-scheduler-rabbitmq:${IMAGE_TAG:-latest}
     container_name: ${CONTAINER_PREFIX:-gamebot}-rabbitmq
+    restart: ${RESTART_POLICY:-unless-stopped}
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
@@ -43,8 +56,6 @@ services:
       - "${RABBITMQ_MGMT_HOST_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
-      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/conf.d/99-custom.conf:ro
     healthcheck:
       test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
       interval: 10s

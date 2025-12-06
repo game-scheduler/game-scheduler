@@ -17,6 +17,9 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       RABBITMQ_URL: ${RABBITMQ_URL}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
       REDIS_URL: ${REDIS_URL}
       TEST_ENVIRONMENT: ${TEST_ENVIRONMENT}
       POSTGRES_HOST: postgres
@@ -34,7 +37,7 @@ services:
         condition: service_healthy
     networks:
       - app-network
-    command: pytest tests/integration/ -v --tb=short
+    command: tests/integration/ -v --tb=short
 
 # Use tmpfs for test volumes (in-memory, fast, auto-cleanup)
 volumes:

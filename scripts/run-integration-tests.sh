@@ -15,6 +15,10 @@ cleanup() {
 trap cleanup EXIT
 
 echo "Running integration tests..."
-docker compose -f docker-compose.integration.yml --env-file .env.integration run --rm integration-tests "$@"
+if [ $# -eq 0 ]; then
+  docker compose -f docker-compose.integration.yml --env-file .env.integration run --rm integration-tests
+else
+  docker compose -f docker-compose.integration.yml --env-file .env.integration run --rm integration-tests "$@"
+fi
 
 echo "Integration tests passed!"
