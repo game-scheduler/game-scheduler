@@ -77,27 +77,27 @@ variable configuration, enabling same container image across all environments.
     .copilot-tracking/details/20251205-rabbitmq-runtime-configuration-details.md
     (Lines 54-65)
 
-### [ ] Phase 2: Expand Init Container for RabbitMQ Infrastructure
+### [x] Phase 2: Expand Init Container for RabbitMQ Infrastructure
 
-- [ ] Task 2.1: Create scripts/init_rabbitmq.py
+- [x] Task 2.1: Create scripts/init_rabbitmq.py
 
   - Details:
     .copilot-tracking/details/20251205-rabbitmq-runtime-configuration-details.md
     (Lines 69-117)
 
-- [ ] Task 2.2: Update docker/init-entrypoint.sh
+- [x] Task 2.2: Update docker/init-entrypoint.sh
 
   - Details:
     .copilot-tracking/details/20251205-rabbitmq-runtime-configuration-details.md
     (Lines 119-135)
 
-- [ ] Task 2.3: Update docker-compose.base.yml init service
+- [x] Task 2.3: Update docker-compose.base.yml init service
 
   - Details:
     .copilot-tracking/details/20251205-rabbitmq-runtime-configuration-details.md
     (Lines 137-150)
 
-- [ ] Task 2.4: Verify infrastructure initialization
+- [x] Task 2.4: Verify infrastructure initialization
   - Details:
     .copilot-tracking/details/20251205-rabbitmq-runtime-configuration-details.md
     (Lines 152-163)

@@ -21,6 +21,7 @@ RUN uv pip install --system -e .
 COPY shared/ ./shared/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
+COPY scripts/init_rabbitmq.py ./scripts/
 COPY docker/init-entrypoint.sh ./
 
 # Make entrypoint executable

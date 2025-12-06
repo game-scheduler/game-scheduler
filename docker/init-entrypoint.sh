@@ -26,4 +26,7 @@ for table in $TABLES; do
   fi
 done
 
+echo "Initializing RabbitMQ infrastructure..."
+python3 scripts/init_rabbitmq.py
+
 echo "=== Initialization Complete ==="
