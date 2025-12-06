@@ -27,9 +27,11 @@ import logging
 import time
 from collections.abc import Callable
 
+import pika
 from sqlalchemy.orm import Session
 
 from shared.database import SyncSessionLocal
+from shared.messaging.events import Event
 from shared.messaging.sync_publisher import SyncEventPublisher
 from shared.models.base import utc_now
 
@@ -57,6 +59,8 @@ class SchedulerDaemon:
         status_field: str,
         event_builder: Callable,
         max_timeout: int = 900,
+        process_dlq: bool = False,
+        dlq_check_interval: int = 900,
     ):
         """
         Initialize generic scheduler daemon.
@@ -70,6 +74,8 @@ class SchedulerDaemon:
             status_field: Name of boolean field indicating processed status
             event_builder: Function to build Event from schedule record
             max_timeout: Maximum seconds to wait between checks (default: 15 min)
+            process_dlq: Whether to process dead letter queue (default: False)
+            dlq_check_interval: Seconds between DLQ checks (default: 15 min)
         """
         self.database_url = database_url
         self.rabbitmq_url = rabbitmq_url
@@ -79,10 +85,13 @@ class SchedulerDaemon:
         self.status_field = status_field
         self.event_builder = event_builder
         self.max_timeout = max_timeout
+        self.process_dlq = process_dlq
+        self.dlq_check_interval = dlq_check_interval
 
         self.listener: PostgresNotificationListener | None = None
         self.publisher: SyncEventPublisher | None = None
         self.db: Session | None = None
+        self.last_dlq_check: float = 0
 
     def connect(self) -> None:
         """Establish connections to PostgreSQL and RabbitMQ."""
@@ -114,9 +123,18 @@ class SchedulerDaemon:
 
         self.connect()
 
+        if self.process_dlq:
+            self._process_dlq_messages()
+            self.last_dlq_check = time.time()
+
         while not shutdown_flag():
             try:
                 self._process_loop_iteration()
+
+                if self.process_dlq and time.time() - self.last_dlq_check > self.dlq_check_interval:
+                    self._process_dlq_messages()
+                    self.last_dlq_check = time.time()
+
             except KeyboardInterrupt:
                 logger.info("Keyboard interrupt received")
                 break
@@ -229,6 +247,63 @@ class SchedulerDaemon:
         except Exception:
             logger.exception(f"Failed to process scheduled item {item.id}")
             self.db.rollback()
+
+    def _process_dlq_messages(self) -> None:
+        """
+        Consume messages from DLQ and republish to primary queue.
+
+        Processes all messages currently in the dead letter queue by:
+        1. Consuming each message with manual acknowledgment
+        2. Republishing to primary queue without TTL
+        3. ACKing successful republish or NACKing failures
+
+        The bot handler performs defensive staleness checks, so republishing
+        without TTL is safe - stale notifications will be skipped.
+        """
+        try:
+            connection = pika.BlockingConnection(pika.URLParameters(self.rabbitmq_url))
+            channel = connection.channel()
+
+            queue_state = channel.queue_declare(queue="DLQ", durable=True)
+            message_count = queue_state.method.message_count
+
+            if message_count == 0:
+                logger.debug("DLQ is empty, nothing to process")
+                connection.close()
+                return
+
+            logger.info(f"Processing {message_count} messages from DLQ")
+
+            processed = 0
+            republished = 0
+
+            for method, _properties, body in channel.consume("DLQ", auto_ack=False):
+                try:
+                    event = Event.model_validate_json(body)
+
+                    if self.publisher is None:
+                        raise RuntimeError("Publisher not initialized")
+
+                    self.publisher.publish(event, expiration_ms=None)
+                    republished += 1
+
+                    channel.basic_ack(method.delivery_tag)
+                    processed += 1
+
+                    if processed >= message_count:
+                        break
+
+                except Exception as e:
+                    logger.error(f"Error processing DLQ message: {e}")
+                    channel.basic_nack(method.delivery_tag, requeue=False)
+
+            channel.cancel()
+            connection.close()
+
+            logger.info(f"DLQ processing: {republished} messages republished")
+
+        except Exception as e:
+            logger.error(f"Error during DLQ processing: {e}", exc_info=True)
 
     def _cleanup(self) -> None:
         """Clean up connections."""

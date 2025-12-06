@@ -67,6 +67,8 @@ def main() -> None:
         time_field="notification_time",
         status_field="sent",
         event_builder=build_game_reminder_event,
+        process_dlq=True,
+        dlq_check_interval=900,
     )
 
     daemon.run(lambda: shutdown_requested)

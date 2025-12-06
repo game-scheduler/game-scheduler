@@ -62,7 +62,7 @@
       }
     },
     {
-      "name": "dead_letter_queue",
+      "name": "DLQ",
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
@@ -137,7 +137,7 @@
     {
       "source": "game_scheduler.dlx",
       "vhost": "/",
-      "destination": "dead_letter_queue",
+      "destination": "DLQ",
       "destination_type": "queue",
       "routing_key": "#",
       "arguments": {}

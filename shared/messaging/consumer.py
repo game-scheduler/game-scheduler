@@ -117,30 +117,44 @@ class EventConsumer:
         logger.debug(f"Registered handler for event type: {event_type}")
 
     async def _process_message(self, message: AbstractIncomingMessage) -> None:
-        """Process incoming message with error handling."""
-        async with message.process():
+        """
+        Process incoming message with manual acknowledgment.
+
+        Handles message processing with explicit ACK/NACK to prevent message loss.
+        Successfully processed messages are ACKed. Failed messages are NACKed
+        without requeue, sending them to the dead letter queue for daemon processing.
+
+        Args:
+            message: Incoming RabbitMQ message to process
+        """
+        try:
+            event = Event.model_validate_json(message.body)
+
+            handlers = self._handlers.get(event.event_type.value, [])
+
+            if not handlers:
+                await message.ack()
+                logger.warning(f"No handlers registered for event: {event.event_type}")
+                return
+
+            for handler in handlers:
+                await handler(event)
+
+            await message.ack()
+            logger.debug(f"Successfully processed and ACKed {event.event_type}")
+
+        except Exception as e:
+            await message.nack(requeue=False)
+            event_type = "unknown"
             try:
                 event = Event.model_validate_json(message.body)
-
-                handlers = self._handlers.get(event.event_type.value, [])
-
-                if not handlers:
-                    logger.warning(f"No handlers registered for event: {event.event_type}")
-                    return
-
-                for handler in handlers:
-                    try:
-                        await handler(event)
-                    except Exception as e:
-                        logger.error(
-                            f"Handler error for event {event.event_type}: {e}",
-                            exc_info=True,
-                        )
-                        raise
-
-            except Exception as e:
-                logger.error(f"Failed to process message: {e}", exc_info=True)
-                raise
+                event_type = event.event_type
+            except Exception:
+                pass
+            logger.error(
+                f"Handler failed, sending to DLQ for daemon processing: {event_type}, error: {e}",
+                exc_info=True,
+            )
 
     async def start_consuming(self) -> None:
         """Start consuming messages from queue."""

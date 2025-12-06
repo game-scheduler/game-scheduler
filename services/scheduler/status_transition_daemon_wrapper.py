@@ -67,6 +67,8 @@ def main() -> None:
         time_field="transition_time",
         status_field="executed",
         event_builder=build_status_transition_event,
+        process_dlq=True,
+        dlq_check_interval=900,
     )
 
     daemon.run(lambda: shutdown_requested)

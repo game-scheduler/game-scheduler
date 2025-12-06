@@ -34,6 +34,7 @@ from shared.cache.ttl import CacheTTL
 from shared.database import get_db_session
 from shared.messaging.consumer import EventConsumer
 from shared.messaging.events import Event, EventType, GameReminderDueEvent, NotificationSendDMEvent
+from shared.models.base import utc_now
 from shared.models.game import GameSession
 from shared.models.participant import GameParticipant
 from shared.schemas.events import GameStatusTransitionDueEvent
@@ -315,6 +316,13 @@ class EventHandlers:
 
                 if not game:
                     logger.error(f"Game not found: {reminder_event.game_id}")
+                    return
+
+                if game.scheduled_at < utc_now():
+                    logger.info(
+                        f"Game {reminder_event.game_id} already started at "
+                        f"{game.scheduled_at}, skipping stale notification"
+                    )
                     return
 
                 if game.status != "SCHEDULED":

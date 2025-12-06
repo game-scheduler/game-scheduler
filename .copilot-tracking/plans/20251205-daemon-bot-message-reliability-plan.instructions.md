@@ -59,34 +59,34 @@ Fix critical message loss bug in bot consumer and implement daemon-based DLQ pro
 - [x] Task 2.3: Update daemon to handle tuple returns
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 107-120)
 
-### [ ] Phase 3: Fix Bot Consumer Auto-ACK
+### [x] Phase 3: Fix Bot Consumer Auto-ACK
 
-- [ ] Task 3.1: Replace message.process() with manual ACK/NACK
+- [x] Task 3.1: Replace message.process() with manual ACK/NACK
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 122-140)
 
-- [ ] Task 3.2: Make bot handler defensive for stale notifications
+- [x] Task 3.2: Make bot handler defensive for stale notifications
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 142-158)
 
-### [ ] Phase 4: Daemon DLQ Processing
+### [x] Phase 4: Daemon DLQ Processing
 
-- [ ] Task 4.1: Add DLQ processing configuration to SchedulerDaemon
+- [x] Task 4.1: Add DLQ processing configuration to SchedulerDaemon
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 160-178)
 
-- [ ] Task 4.2: Implement DLQ message processing logic
+- [x] Task 4.2: Implement DLQ message processing logic
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 180-210)
 
-- [ ] Task 4.3: Enable DLQ processing in daemon wrappers
+- [x] Task 4.3: Enable DLQ processing in daemon wrappers
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 212-228)
 
-### [ ] Phase 5: Testing and Validation
+### [x] Phase 5: Testing and Validation
 
-- [ ] Task 5.1: Add integration tests for manual ACK/NACK behavior
+- [x] Task 5.1: Add integration tests for manual ACK/NACK behavior
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 230-248)
 
-- [ ] Task 5.2: Add integration tests for DLQ processing
+- [x] Task 5.2: Add integration tests for DLQ processing
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 250-268)
 
-- [ ] Task 5.3: Add integration tests for per-message TTL
+- [x] Task 5.3: Add integration tests for per-message TTL
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 270-285)
 
 ## Dependencies
