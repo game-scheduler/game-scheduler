@@ -89,21 +89,29 @@ def create_infrastructure(rabbitmq_url: str) -> None:
     channel.queue_declare(queue="DLQ", durable=True)
     print("  ✓ Queue 'DLQ' declared (infinite TTL)")
 
-    # Create bindings
+    # Create bindings (matching original definitions.json.template)
     bindings = [
-        ("bot_events", "bot.#"),
-        ("api_events", "api.#"),
-        ("scheduler_events", "scheduler.#"),
-        ("notification_queue", "notification.#"),
+        # bot_events receives game, guild, and channel events
+        ("bot_events", "game.*"),
+        ("bot_events", "guild.*"),
+        ("bot_events", "channel.*"),
+        # api_events receives game events for API updates
+        ("api_events", "game.*"),
+        # scheduler_events receives specific game lifecycle events
+        ("scheduler_events", "game.created"),
+        ("scheduler_events", "game.updated"),
+        ("scheduler_events", "game.cancelled"),
+        # notification_queue receives DM notifications
+        ("notification_queue", "notification.send_dm"),
     ]
 
     for queue_name, routing_key in bindings:
         channel.queue_bind(exchange="game_scheduler", queue=queue_name, routing_key=routing_key)
         print(f"  ✓ Binding '{queue_name}' -> '{routing_key}'")
 
-    # Bind DLQ to dead letter exchange
+    # Bind DLQ to dead letter exchange (catch-all)
     channel.queue_bind(exchange="game_scheduler.dlx", queue="DLQ", routing_key="#")
-    print("  ✓ Binding 'DLQ' -> 'game_scheduler.dlx'")
+    print("  ✓ Binding 'DLQ' -> 'game_scheduler.dlx' (catch-all)")
 
     connection.close()
 
