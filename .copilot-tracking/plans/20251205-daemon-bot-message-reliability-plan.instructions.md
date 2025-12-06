@@ -48,15 +48,15 @@ Fix critical message loss bug in bot consumer and implement daemon-based DLQ pro
 - [x] Task 1.3: Update notification schedule population service
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 47-62)
 
-### [ ] Phase 2: Per-Message TTL Implementation
+### [x] Phase 2: Per-Message TTL Implementation
 
-- [ ] Task 2.1: Enhance sync_publisher with expiration support
+- [x] Task 2.1: Enhance sync_publisher with expiration support
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 64-80)
 
-- [ ] Task 2.2: Update event builders to return (Event, TTL) tuples
+- [x] Task 2.2: Update event builders to return (Event, TTL) tuples
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 82-105)
 
-- [ ] Task 2.3: Update daemon to handle tuple returns
+- [x] Task 2.3: Update daemon to handle tuple returns
   - Details: .copilot-tracking/details/20251205-daemon-bot-message-reliability-details.md (Lines 107-120)
 
 ### [ ] Phase 3: Fix Bot Consumer Auto-ACK

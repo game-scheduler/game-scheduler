@@ -209,11 +209,16 @@ class SchedulerDaemon:
             raise RuntimeError("Daemon not properly initialized")
 
         try:
-            event = self.event_builder(item)
+            result = self.event_builder(item)
 
-            self.publisher.publish_dict(
-                event_type=event.event_type.value,
-                data=event.data,
+            if isinstance(result, tuple):
+                event, expiration_ms = result
+            else:
+                event, expiration_ms = result, None
+
+            self.publisher.publish(
+                event=event,
+                expiration_ms=expiration_ms,
             )
 
             self._mark_item_processed(item.id)

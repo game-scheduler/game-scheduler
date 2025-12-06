@@ -87,6 +87,7 @@ class SyncEventPublisher:
         self,
         event: Event,
         routing_key: str | None = None,
+        expiration_ms: int | None = None,
     ) -> None:
         """
         Publish event to exchange.
@@ -95,6 +96,8 @@ class SyncEventPublisher:
             event: Event to publish.
             routing_key: Optional routing key override. Uses event_type if not
                 provided.
+            expiration_ms: Optional per-message TTL in milliseconds. When set,
+                message expires after this duration if not consumed.
 
         Raises:
             RuntimeError: If not connected.
@@ -108,15 +111,20 @@ class SyncEventPublisher:
 
         message_body = event.model_dump_json().encode()
 
+        properties = pika.BasicProperties(
+            delivery_mode=pika.DeliveryMode.Persistent,
+            content_type="application/json",
+        )
+
+        if expiration_ms is not None:
+            properties.expiration = str(expiration_ms)
+
         try:
             self._channel.basic_publish(
                 exchange=self.exchange_name,
                 routing_key=routing_key,
                 body=message_body,
-                properties=pika.BasicProperties(
-                    delivery_mode=pika.DeliveryMode.Persistent,
-                    content_type="application/json",
-                ),
+                properties=properties,
             )
         except (pika.exceptions.StreamLostError, pika.exceptions.ConnectionClosed) as e:
             logger.warning(f"Connection lost during publish, reconnecting and retrying: {e}")
@@ -126,10 +134,7 @@ class SyncEventPublisher:
                 exchange=self.exchange_name,
                 routing_key=routing_key,
                 body=message_body,
-                properties=pika.BasicProperties(
-                    delivery_mode=pika.DeliveryMode.Persistent,
-                    content_type="application/json",
-                ),
+                properties=properties,
             )
 
         logger.debug(f"Published event: {event.event_type} with routing key: {routing_key}")

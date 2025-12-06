@@ -35,13 +35,14 @@ from shared.models import NotificationSchedule
 
 @pytest.fixture
 def mock_event_builder():
-    """Mock event builder function that returns proper Event objects."""
+    """Mock event builder function that returns proper (Event, TTL) tuples."""
 
     def builder(record):
-        return Event(
+        event = Event(
             event_type=EventType.GAME_REMINDER_DUE,
             data={"game_id": str(record.game_id), "reminder_minutes": record.reminder_minutes},
         )
+        return event, None
 
     return builder
 
@@ -287,10 +288,11 @@ class TestSchedulerDaemonProcessItem:
         daemon._process_item(mock_item)
 
         # Verify event published
-        mock_publisher.publish_dict.assert_called_once()
-        call_args = mock_publisher.publish_dict.call_args
-        assert call_args[1]["event_type"] == EventType.GAME_REMINDER_DUE.value
-        assert game_id in str(call_args[1]["data"])
+        mock_publisher.publish.assert_called_once()
+        call_args = mock_publisher.publish.call_args
+        assert call_args[1]["event"].event_type == EventType.GAME_REMINDER_DUE
+        assert game_id in str(call_args[1]["event"].data)
+        assert call_args[1]["expiration_ms"] is None
 
         # Verify item marked as processed
         assert mock_item.sent is True
@@ -305,7 +307,7 @@ class TestSchedulerDaemonProcessItem:
         daemon.db = mock_db
         daemon.publisher = mock_publisher
 
-        mock_publisher.publish_dict.side_effect = Exception("RabbitMQ unavailable")
+        mock_publisher.publish.side_effect = Exception("RabbitMQ unavailable")
 
         mock_item = MagicMock()
         mock_item.id = str(uuid4())
@@ -335,7 +337,7 @@ class TestSchedulerDaemonProcessItem:
         mock_db.rollback.assert_called_once()
         mock_db.commit.assert_not_called()
         # Should not attempt to publish
-        mock_publisher.publish_dict.assert_not_called()
+        mock_publisher.publish.assert_not_called()
 
     def test_process_item_rolls_back_on_commit_failure(self, daemon):
         """_process_item rolls back when commit fails."""
@@ -623,3 +625,98 @@ class TestSchedulerDaemonCleanup:
         mock_listener.close.assert_called_once()
         mock_publisher.close.assert_called_once()
         mock_db.close.assert_called_once()
+
+
+class TestSchedulerDaemonTupleHandling:
+    """Test daemon handling of event builder tuple returns."""
+
+    def test_process_item_handles_tuple_return_with_ttl(self, daemon):
+        """_process_item correctly unpacks tuple with TTL and passes to publisher."""
+        mock_db = MagicMock()
+        mock_publisher = MagicMock()
+        daemon.db = mock_db
+        daemon.publisher = mock_publisher
+
+        ttl_value = 30000
+
+        def builder_with_ttl(record):
+            event = Event(
+                event_type=EventType.GAME_REMINDER_DUE,
+                data={"game_id": str(record.game_id)},
+            )
+            return event, ttl_value
+
+        daemon.event_builder = builder_with_ttl
+
+        item_id = str(uuid4())
+        mock_item = MagicMock()
+        mock_item.id = item_id
+        mock_item.game_id = str(uuid4())
+        mock_item.sent = False
+
+        mock_db.query.return_value.filter_by.return_value.first.return_value = mock_item
+
+        daemon._process_item(mock_item)
+
+        mock_publisher.publish.assert_called_once()
+        call_args = mock_publisher.publish.call_args
+        assert call_args[1]["expiration_ms"] == ttl_value
+
+    def test_process_item_handles_tuple_return_with_none_ttl(self, daemon):
+        """_process_item correctly unpacks tuple with None TTL."""
+        mock_db = MagicMock()
+        mock_publisher = MagicMock()
+        daemon.db = mock_db
+        daemon.publisher = mock_publisher
+
+        def builder_no_ttl(record):
+            event = Event(
+                event_type=EventType.GAME_STATUS_TRANSITION_DUE,
+                data={"game_id": str(record.game_id)},
+            )
+            return event, None
+
+        daemon.event_builder = builder_no_ttl
+
+        item_id = str(uuid4())
+        mock_item = MagicMock()
+        mock_item.id = item_id
+        mock_item.game_id = str(uuid4())
+        mock_item.sent = False
+
+        mock_db.query.return_value.filter_by.return_value.first.return_value = mock_item
+
+        daemon._process_item(mock_item)
+
+        mock_publisher.publish.assert_called_once()
+        call_args = mock_publisher.publish.call_args
+        assert call_args[1]["expiration_ms"] is None
+
+    def test_process_item_handles_legacy_single_event_return(self, daemon):
+        """_process_item handles legacy event builders returning just Event."""
+        mock_db = MagicMock()
+        mock_publisher = MagicMock()
+        daemon.db = mock_db
+        daemon.publisher = mock_publisher
+
+        def legacy_builder(record):
+            return Event(
+                event_type=EventType.GAME_REMINDER_DUE,
+                data={"game_id": str(record.game_id)},
+            )
+
+        daemon.event_builder = legacy_builder
+
+        item_id = str(uuid4())
+        mock_item = MagicMock()
+        mock_item.id = item_id
+        mock_item.game_id = str(uuid4())
+        mock_item.sent = False
+
+        mock_db.query.return_value.filter_by.return_value.first.return_value = mock_item
+
+        daemon._process_item(mock_item)
+
+        mock_publisher.publish.assert_called_once()
+        call_args = mock_publisher.publish.call_args
+        assert call_args[1]["expiration_ms"] is None
