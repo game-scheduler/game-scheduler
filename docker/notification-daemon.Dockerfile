@@ -18,6 +18,23 @@ COPY pyproject.toml ./
 # Install Python dependencies using project configuration
 RUN uv pip install --system .
 
+# Development stage
+FROM base AS development
+
+# Create non-root user for development
+RUN addgroup --system appgroup && adduser --system --group appuser
+
+# Set working directory ownership
+RUN chown -R appuser:appgroup /app
+
+# Create cache directory with proper permissions
+RUN mkdir -p /home/appuser/.cache && chown -R appuser:appgroup /home/appuser/.cache
+
+USER appuser
+
+# Use python -m for module execution in development
+CMD ["python", "-m", "services.scheduler.notification_daemon_wrapper"]
+
 # Production stage
 FROM python:3.13-slim AS production
 

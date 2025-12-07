@@ -19,6 +19,30 @@ COPY pyproject.toml ./
 # Install Python dependencies
 RUN uv pip install --system .
 
+# Development stage
+FROM base AS development
+
+# Create non-root user for development
+RUN addgroup --system appgroup && adduser --system --group appuser
+
+# Set working directory ownership
+RUN chown -R appuser:appgroup /app
+
+# Create cache directory with proper permissions
+RUN mkdir -p /home/appuser/.cache && chown -R appuser:appgroup /home/appuser/.cache
+
+USER appuser
+
+# Expose API port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl --fail http://localhost:8000/health || exit 1
+
+# Use uvicorn with reload for development
+CMD ["uvicorn", "services.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
 # Production stage
 FROM python:3.13-slim AS production
 

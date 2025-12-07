@@ -18,6 +18,27 @@ COPY pyproject.toml ./
 # Install Python dependencies
 RUN uv pip install --system .
 
+# Development stage
+FROM base AS development
+
+# Create non-root user for development
+RUN addgroup --system appgroup && adduser --system --group appuser
+
+# Set working directory ownership
+RUN chown -R appuser:appgroup /app
+
+# Create cache directory with proper permissions
+RUN mkdir -p /home/appuser/.cache && chown -R appuser:appgroup /home/appuser/.cache
+
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)"
+
+# Use python -m for module execution in development
+CMD ["python", "-m", "services.bot.main"]
+
 # Production stage
 FROM python:3.13-slim AS production
 
