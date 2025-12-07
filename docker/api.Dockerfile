@@ -22,8 +22,10 @@ RUN uv pip install --system .
 # Development stage
 FROM base AS development
 
-# Create non-root user for development
-RUN addgroup --system appgroup && adduser --system --group appuser
+# Create non-root user with UID 1000
+# Note: Source files must be world-readable for volume mounts to work
+RUN addgroup --system --gid 1000 appgroup && \
+    adduser --system --uid 1000 --gid 1000 appuser
 
 # Set working directory ownership
 RUN chown -R appuser:appgroup /app

@@ -1,7 +1,7 @@
 # Production overrides - use with explicit -f flag
 # This file ensures production build targets are used with code baked into images
 #
-# Usage: docker compose -f compose.yml -f compose.production.yaml up -d
+# Usage: docker compose -f docker-compose.yml -f compose.production.yaml up -d
 #
 # Features:
 # - Targets production stages in Dockerfiles

@@ -10,12 +10,18 @@ RUN npm ci --only=production=false
 # Development stage with Vite dev server
 FROM base AS development
 
+# Use existing node user (UID 1000)
+# Note: Source files must be world-readable for volume mounts to work
+RUN chown -R node:node /app
+
 # Copy configuration files needed for Vite dev server
 COPY frontend/vite.config.ts ./
 COPY frontend/tsconfig.json ./
 COPY frontend/tsconfig.node.json ./
 
 # Source code NOT copied - will be mounted via volume in compose.override.yaml
+
+USER node
 
 # Expose Vite dev server port
 EXPOSE 5173

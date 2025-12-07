@@ -5,9 +5,12 @@
 #
 # Features:
 # - Targets development stages in Dockerfiles
-# - Mounts source code as read-only volumes
+# - Mounts source code as volumes
 # - Enables hot-reload for all services
 # - Adds development environment variables
+#
+# IMPORTANT: Source files must be world-readable (chmod o+r) for the container
+# user (UID 1000) to access volume-mounted code
 
 services:
   api:

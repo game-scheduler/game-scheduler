@@ -90,6 +90,15 @@ The development environment automatically:
 
 ### Development Workflow
 
+**Prerequisites:**
+
+- Source files must be **world-readable** for volume mounts to work
+- Development containers run as non-root user (UID 1000)
+- If you encounter permission errors, ensure files have read access:
+  ```bash
+  chmod -R o+r shared/ services/ frontend/
+  ```
+
 **Making code changes:**
 
 1. Edit files in `shared/`, `services/`, or `frontend/src/`
