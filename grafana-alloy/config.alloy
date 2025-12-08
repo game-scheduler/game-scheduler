@@ -1,0 +1,67 @@
+// Grafana Alloy Configuration for OpenTelemetry Collection
+// This configuration receives OTLP data from services and forwards to Grafana Cloud
+
+// ========================================
+// Logging Configuration
+// ========================================
+logging {
+  level  = "debug"
+  format = "logfmt"
+}
+
+// ========================================
+// OTLP Receiver
+// ========================================
+// Receives traces, metrics, and logs from instrumented services
+
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces  = [otelcol.processor.batch.default.input]
+    metrics = [otelcol.processor.batch.default.input]
+    logs    = [otelcol.processor.batch.default.input]
+  }
+}
+
+// ========================================
+// Batch Processor
+// ========================================
+// Batches telemetry data for efficient export
+
+otelcol.processor.batch "default" {
+  timeout = "10s"
+
+  output {
+    traces  = [otelcol.exporter.otlp.grafana_cloud.input]
+    metrics = [otelcol.exporter.otlp.grafana_cloud.input]
+    logs    = [otelcol.exporter.otlp.grafana_cloud.input]
+  }
+}
+
+// ========================================
+// Basic Authentication for Grafana Cloud
+// ========================================
+
+otelcol.auth.basic "grafana_cloud" {
+  username = env("GRAFANA_CLOUD_TEMPO_INSTANCE_ID")
+  password = env("GRAFANA_CLOUD_API_KEY")
+}
+
+// ========================================
+// OTLP Exporter to Grafana Cloud Tempo
+// ========================================
+// Sends traces directly to Tempo using gRPC with TLS
+
+otelcol.exporter.otlp "grafana_cloud" {
+  client {
+    endpoint = env("GRAFANA_CLOUD_TEMPO_ENDPOINT")
+    auth     = otelcol.auth.basic.grafana_cloud.handler
+  }
+}

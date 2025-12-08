@@ -255,3 +255,26 @@ services:
       retries: 3
     networks:
       - app-network
+
+  grafana-alloy:
+    image: grafana/alloy:latest
+    container_name: ${CONTAINER_PREFIX:-gamebot}-grafana-alloy
+    restart: ${RESTART_POLICY:-unless-stopped}
+    volumes:
+      - ./grafana-alloy/config.alloy:/etc/alloy/config.alloy:ro
+    ports:
+      - "${ALLOY_OTLP_GRPC_PORT:-4317}:4317"
+      - "${ALLOY_OTLP_HTTP_PORT:-4318}:4318"
+      - "12345:12345"
+    environment:
+      GRAFANA_CLOUD_TEMPO_INSTANCE_ID: ${GRAFANA_CLOUD_TEMPO_INSTANCE_ID:-}
+      GRAFANA_CLOUD_PROMETHEUS_INSTANCE_ID: ${GRAFANA_CLOUD_PROMETHEUS_INSTANCE_ID:-}
+      GRAFANA_CLOUD_LOKI_INSTANCE_ID: ${GRAFANA_CLOUD_LOKI_INSTANCE_ID:-}
+      GRAFANA_CLOUD_API_KEY: ${GRAFANA_CLOUD_API_KEY:-}
+      GRAFANA_CLOUD_TEMPO_ENDPOINT: ${GRAFANA_CLOUD_TEMPO_ENDPOINT:-}
+      GRAFANA_CLOUD_PROMETHEUS_ENDPOINT: ${GRAFANA_CLOUD_PROMETHEUS_ENDPOINT:-}
+    command:
+      run --server.http.listen-addr=0.0.0.0:12345
+      --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    networks:
+      - app-network
