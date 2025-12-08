@@ -65,3 +65,61 @@ otelcol.exporter.otlp "grafana_cloud" {
     auth     = otelcol.auth.basic.grafana_cloud.handler
   }
 }
+
+// ========================================
+// PostgreSQL Metrics Collection
+// ========================================
+// Built-in PostgreSQL exporter for database metrics
+
+prometheus.exporter.postgres "integrations_postgres_exporter" {
+  data_source_names = [format("postgresql://%s:%s@postgres:5432/%s?sslmode=disable", env("POSTGRES_USER"), env("POSTGRES_PASSWORD"), env("POSTGRES_DB"))]
+}
+
+// Discovery and Labeling for PostgreSQL
+discovery.relabel "integrations_postgres_exporter" {
+  targets = prometheus.exporter.postgres.integrations_postgres_exporter.targets
+
+  rule {
+    target_label = "job"
+    replacement  = "integrations/postgres_exporter"
+  }
+  rule {
+    target_label = "instance"
+    replacement  = "postgres"
+  }
+}
+
+// Metric Filtering (cost optimization)
+prometheus.relabel "integrations_postgres_exporter" {
+  forward_to = [prometheus.remote_write.grafana_cloud_mimir.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex = "pg_settings_.*|pg_stat_activity_.*|pg_stat_bgwriter_.*|pg_stat_database_.*|pg_up|up"
+    action = "keep"
+  }
+}
+
+// Scrape PostgreSQL Exporter
+prometheus.scrape "integrations_postgres_exporter" {
+  targets    = discovery.relabel.integrations_postgres_exporter.output
+  forward_to = [prometheus.relabel.integrations_postgres_exporter.receiver]
+  job_name   = "integrations/postgres_exporter"
+  scrape_interval = "60s"
+}
+
+// ========================================
+// Prometheus Remote Write to Grafana Cloud Mimir
+// ========================================
+// Sends infrastructure metrics to Grafana Cloud Mimir
+// CRITICAL: Uses DIFFERENT instance ID than OTLP/Tempo
+
+prometheus.remote_write "grafana_cloud_mimir" {
+  endpoint {
+    url = env("GRAFANA_CLOUD_PROMETHEUS_ENDPOINT")
+    basic_auth {
+      username = env("GRAFANA_CLOUD_PROMETHEUS_INSTANCE_ID")
+      password = env("GRAFANA_CLOUD_API_KEY")
+    }
+  }
+}

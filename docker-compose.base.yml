@@ -273,6 +273,9 @@ services:
       GRAFANA_CLOUD_API_KEY: ${GRAFANA_CLOUD_API_KEY:-}
       GRAFANA_CLOUD_TEMPO_ENDPOINT: ${GRAFANA_CLOUD_TEMPO_ENDPOINT:-}
       GRAFANA_CLOUD_PROMETHEUS_ENDPOINT: ${GRAFANA_CLOUD_PROMETHEUS_ENDPOINT:-}
+      POSTGRES_USER: ${POSTGRES_USER:-gamebot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password_change_in_prod}
+      POSTGRES_DB: ${POSTGRES_DB:-game_scheduler}
     command:
       run --server.http.listen-addr=0.0.0.0:12345
       --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy

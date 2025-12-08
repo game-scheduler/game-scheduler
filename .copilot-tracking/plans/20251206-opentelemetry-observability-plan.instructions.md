@@ -79,27 +79,27 @@ aggregation using OpenTelemetry with Grafana Cloud as the observability backend.
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
     (Lines 127-145)
 
-### [ ] Phase 2: PostgreSQL Metrics Collection
+### [x] Phase 2: PostgreSQL Metrics Collection
 
-- [ ] Task 2.1: Configure PostgreSQL exporter in Alloy
+- [x] Task 2.1: Configure PostgreSQL exporter in Alloy
 
   - Details:
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
     (Lines 147-180)
 
-- [ ] Task 2.2: Configure Prometheus remote write
+- [x] Task 2.2: Configure Prometheus remote write
 
   - Details:
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
     (Lines 182-205)
 
-- [ ] Task 2.3: Verify PostgreSQL metrics in Grafana Cloud
+- [x] Task 2.3: Verify PostgreSQL metrics in Grafana Cloud
 
   - Details:
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
     (Lines 207-225)
 
-- [ ] Task 2.4: Remove redundant postgres-exporter service
+- [x] Task 2.4: Remove redundant postgres-exporter service
   - Details:
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
     (Lines 227-240)
