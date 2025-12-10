@@ -117,33 +117,33 @@ aggregation using OpenTelemetry with Grafana Cloud as the observability backend.
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
     (Lines 272-285)
 
-### [ ] Phase 4: API Service Instrumentation
+### [x] Phase 4: API Service Instrumentation
 
-- [ ] Task 4.1: Add OpenTelemetry Python packages
+- [x] Task 4.1: Add OpenTelemetry Python packages
 
   - Details:
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
     (Lines 287-310)
 
-- [ ] Task 4.2: Create shared telemetry initialization module
+- [x] Task 4.2: Create shared telemetry initialization module
 
   - Details:
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
     (Lines 312-360)
 
-- [ ] Task 4.3: Instrument API service startup
+- [x] Task 4.3: Instrument API service startup
 
   - Details:
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
     (Lines 362-390)
 
-- [ ] Task 4.4: Configure API service environment variables
+- [x] Task 4.4: Configure API service environment variables
 
   - Details:
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
     (Lines 392-410)
 
-- [ ] Task 4.5: Verify API traces, metrics, and logs
+- [x] Task 4.5: Verify API traces, metrics, and logs
   - Details:
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
     (Lines 412-435)

@@ -28,11 +28,13 @@ import sys
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from services.api import middleware
 from services.api.config import get_api_config
 from services.api.routes import auth, channels, export, games, guilds, templates
 from shared.cache import client as redis_client
+from shared.telemetry import init_telemetry
 
 # Configure logging at module level before anything else
 logging.basicConfig(
@@ -48,6 +50,9 @@ logging.getLogger("uvicorn.error").setLevel(logging.INFO)
 logging.getLogger("services.api").setLevel(logging.INFO)
 
 logger = logging.getLogger(__name__)
+
+# Initialize OpenTelemetry instrumentation
+init_telemetry("api-service")
 
 
 @asynccontextmanager
@@ -104,8 +109,12 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health_check():
         """Health check endpoint for monitoring."""
+        logger.info("Health check endpoint called")
         return {"status": "healthy", "service": "api"}
 
     logger.info(f"FastAPI application created (environment: {config.environment})")
+
+    # Instrument FastAPI for automatic HTTP tracing
+    FastAPIInstrumentor.instrument_app(app)
 
     return app

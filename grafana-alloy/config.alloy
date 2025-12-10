@@ -1,18 +1,23 @@
 // Grafana Alloy Configuration for OpenTelemetry Collection
-// This configuration receives OTLP data from services and forwards to Grafana Cloud
+// 
+// Architecture:
+// 1. Application telemetry (traces/metrics/logs) → OTLP Gateway → Tempo/Mimir/Loki
+// 2. Infrastructure metrics (PostgreSQL/Redis) → Prometheus Remote Write → Mimir
+//
+// Key Learning: OTLP Gateway instance ID differs from Prometheus instance ID
 
 // ========================================
 // Logging Configuration
 // ========================================
 logging {
-  level  = "debug"
+  level  = "info"
   format = "logfmt"
 }
 
 // ========================================
-// OTLP Receiver
+// OTLP Receiver - Application Telemetry
 // ========================================
-// Receives traces, metrics, and logs from instrumented services
+// Receives traces, metrics, and logs from instrumented Python services
 
 otelcol.receiver.otlp "default" {
   grpc {
@@ -33,49 +38,52 @@ otelcol.receiver.otlp "default" {
 // ========================================
 // Batch Processor
 // ========================================
-// Batches telemetry data for efficient export
+// Batches telemetry for efficient export (default 10s timeout)
 
 otelcol.processor.batch "default" {
   timeout = "10s"
 
   output {
-    traces  = [otelcol.exporter.otlp.grafana_cloud.input]
-    metrics = [otelcol.exporter.otlp.grafana_cloud.input]
-    logs    = [otelcol.exporter.otlp.grafana_cloud.input]
+    traces  = [otelcol.exporter.otlphttp.grafana_cloud_otlp.input]
+    metrics = [otelcol.exporter.otlphttp.grafana_cloud_otlp.input]
+    logs    = [otelcol.exporter.otlphttp.grafana_cloud_otlp.input]
   }
 }
 
 // ========================================
-// Basic Authentication for Grafana Cloud
+// OTLP Gateway Authentication
 // ========================================
+// Instance ID for OTLP Gateway (not Prometheus!)
+// This single gateway routes all three signal types to their backends
 
-otelcol.auth.basic "grafana_cloud" {
-  username = env("GRAFANA_CLOUD_TEMPO_INSTANCE_ID")
+otelcol.auth.basic "grafana_cloud_otlp" {
+  username = env("GRAFANA_CLOUD_OTLP_INSTANCE_ID")
   password = env("GRAFANA_CLOUD_API_KEY")
 }
 
 // ========================================
-// OTLP Exporter to Grafana Cloud Tempo
+// OTLP HTTP Exporter - Unified Application Telemetry
 // ========================================
-// Sends traces directly to Tempo using gRPC with TLS
+// Single exporter handles all application signals via HTTP/protobuf:
+// - Traces → Tempo
+// - Metrics → Mimir  
+// - Logs → Loki
 
-otelcol.exporter.otlp "grafana_cloud" {
+otelcol.exporter.otlphttp "grafana_cloud_otlp" {
   client {
-    endpoint = env("GRAFANA_CLOUD_TEMPO_ENDPOINT")
-    auth     = otelcol.auth.basic.grafana_cloud.handler
+    endpoint = "https://otlp-gateway-prod-us-west-0.grafana.net/otlp"
+    auth     = otelcol.auth.basic.grafana_cloud_otlp.handler
   }
 }
 
 // ========================================
-// PostgreSQL Metrics Collection
+// PostgreSQL Metrics - Infrastructure Monitoring
 // ========================================
-// Built-in PostgreSQL exporter for database metrics
 
 prometheus.exporter.postgres "integrations_postgres_exporter" {
   data_source_names = [format("postgresql://%s:%s@postgres:5432/%s?sslmode=disable", env("POSTGRES_USER"), env("POSTGRES_PASSWORD"), env("POSTGRES_DB"))]
 }
 
-// Discovery and Labeling for PostgreSQL
 discovery.relabel "integrations_postgres_exporter" {
   targets = prometheus.exporter.postgres.integrations_postgres_exporter.targets
 
@@ -89,7 +97,7 @@ discovery.relabel "integrations_postgres_exporter" {
   }
 }
 
-// Metric Filtering (cost optimization)
+// Cost optimization: Keep only essential metrics
 prometheus.relabel "integrations_postgres_exporter" {
   forward_to = [prometheus.remote_write.grafana_cloud_mimir.receiver]
 
@@ -100,24 +108,22 @@ prometheus.relabel "integrations_postgres_exporter" {
   }
 }
 
-// Scrape PostgreSQL Exporter
 prometheus.scrape "integrations_postgres_exporter" {
-  targets    = discovery.relabel.integrations_postgres_exporter.output
-  forward_to = [prometheus.relabel.integrations_postgres_exporter.receiver]
-  job_name   = "integrations/postgres_exporter"
+  targets         = discovery.relabel.integrations_postgres_exporter.output
+  forward_to      = [prometheus.relabel.integrations_postgres_exporter.receiver]
+  job_name        = "integrations/postgres_exporter"
   scrape_interval = "60s"
 }
 
 // ========================================
-// Redis Metrics Collection
+// Redis Metrics - Infrastructure Monitoring
 // ========================================
-// Built-in Redis exporter for cache metrics
 
 prometheus.exporter.redis "integrations_redis_exporter" {
   redis_addr = "redis:6379"
 }
 
-// Metric Filtering for Redis (cost optimization)
+// Cost optimization: Keep only essential metrics
 prometheus.relabel "integrations_redis_exporter" {
   forward_to = [prometheus.remote_write.grafana_cloud_mimir.receiver]
 
@@ -128,7 +134,6 @@ prometheus.relabel "integrations_redis_exporter" {
   }
 }
 
-// Scrape Redis Exporter
 prometheus.scrape "integrations_redis_exporter" {
   targets         = prometheus.exporter.redis.integrations_redis_exporter.targets
   forward_to      = [prometheus.relabel.integrations_redis_exporter.receiver]
@@ -137,10 +142,10 @@ prometheus.scrape "integrations_redis_exporter" {
 }
 
 // ========================================
-// Prometheus Remote Write to Grafana Cloud Mimir
+// Prometheus Remote Write - Infrastructure Metrics Only
 // ========================================
-// Sends infrastructure metrics to Grafana Cloud Mimir
-// CRITICAL: Uses DIFFERENT instance ID than OTLP/Tempo
+// Sends PostgreSQL and Redis metrics to Mimir
+// Uses separate Prometheus instance ID (different from OTLP Gateway)
 
 prometheus.remote_write "grafana_cloud_mimir" {
   endpoint {

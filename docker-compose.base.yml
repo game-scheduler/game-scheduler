@@ -149,6 +149,12 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      OTEL_SERVICE_NAME: api-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://grafana-alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
     ports:
       - "${API_HOST_PORT:-8000}:8000"
     depends_on:
@@ -273,6 +279,7 @@ services:
       GRAFANA_CLOUD_API_KEY: ${GRAFANA_CLOUD_API_KEY:-}
       GRAFANA_CLOUD_TEMPO_ENDPOINT: ${GRAFANA_CLOUD_TEMPO_ENDPOINT:-}
       GRAFANA_CLOUD_PROMETHEUS_ENDPOINT: ${GRAFANA_CLOUD_PROMETHEUS_ENDPOINT:-}
+      GRAFANA_CLOUD_LOKI_ENDPOINT: ${GRAFANA_CLOUD_LOKI_ENDPOINT:-}
       POSTGRES_USER: ${POSTGRES_USER:-gamebot}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password_change_in_prod}
       POSTGRES_DB: ${POSTGRES_DB:-game_scheduler}
