@@ -445,9 +445,64 @@ Confirm daemons generate traces and inherit context from RabbitMQ messages.
   - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 1382-1410) - Phase 6 implementation steps
 - **Dependencies**: Phase 6 Tasks 6.1-6.3 completion
 
-## Phase 7: Grafana Cloud Dashboards
+## Phase 7: RabbitMQ Metrics Collection
 
-### Task 7.1: Import pre-built PostgreSQL dashboard
+### Task 7.1: Enable RabbitMQ Prometheus plugin
+
+Enable the built-in rabbitmq_prometheus plugin in RabbitMQ to expose metrics on port 15692.
+
+- **Files**:
+  - `docker-compose.base.yml` - Add plugin enable command to rabbitmq service
+- **Success**:
+  - RabbitMQ container has rabbitmq_prometheus plugin enabled
+  - Metrics endpoint accessible at http://rabbitmq:15692/metrics
+  - Endpoint returns Prometheus-formatted metrics
+  - Metrics include queue depth, connection count, message rates, consumer count
+  - No errors in RabbitMQ logs related to prometheus plugin
+- **Research References**:
+  - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 51-66) - RabbitMQ Prometheus Plugin capabilities and configuration
+  - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 97-107) - RabbitMQ metrics collection method
+- **Dependencies**: Phase 6 completion
+
+### Task 7.2: Configure RabbitMQ metrics scraping in Alloy
+
+Add RabbitMQ metrics scraping configuration to Grafana Alloy using Prometheus receiver.
+
+- **Files**:
+  - `grafana-alloy/config.alloy` - Add RabbitMQ scraping configuration
+- **Success**:
+  - prometheus.scrape configured to scrape rabbitmq:15692
+  - discovery.relabel adds job="integrations/rabbitmq" and instance="rabbitmq"
+  - Scrape interval set to 60s (per research recommendation)
+  - prometheus.relabel forwards metrics to prometheus.remote_write
+  - Alloy logs show successful RabbitMQ scrape target
+  - Configuration follows same pattern as PostgreSQL and Redis exporters
+- **Research References**:
+  - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 350-370) - RabbitMQ metrics configuration and available metric families
+  - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 254-258) - Prometheus scrape config example for RabbitMQ
+- **Dependencies**: Task 7.1 completion
+
+### Task 7.3: Verify RabbitMQ metrics in Grafana Cloud
+
+Confirm RabbitMQ metrics are flowing to Grafana Cloud Mimir and queryable.
+
+- **Files**: N/A (verification task)
+- **Success**:
+  - No scrape errors in Alloy logs for RabbitMQ endpoint
+  - Wait 60 seconds for initial scrape
+  - Query rabbitmq_up in Grafana Cloud Mimir returns value 1
+  - Query rabbitmq_queue_messages shows queue depths
+  - Query rabbitmq_connections shows connection count
+  - Query rabbitmq_consumers shows consumer count
+  - Metrics have correct labels (job="integrations/rabbitmq", instance="rabbitmq")
+- **Research References**:
+  - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 350-370) - Available RabbitMQ metric families
+  - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 56-62) - Comprehensive RabbitMQ metrics list
+- **Dependencies**: Task 7.2 completion
+
+## Phase 8: Grafana Cloud Dashboards
+
+### Task 8.1: Import pre-built PostgreSQL dashboard
 
 Import official PostgreSQL dashboard from Grafana dashboard library.
 
@@ -463,7 +518,7 @@ Import official PostgreSQL dashboard from Grafana dashboard library.
   - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 610-630) - Grafana Cloud benefits including dashboard templates
 - **Dependencies**: Phase 2 completion
 
-### Task 7.2: Import pre-built Redis dashboard
+### Task 8.2: Import pre-built Redis dashboard
 
 Import official Redis dashboard from Grafana dashboard library.
 
@@ -479,7 +534,24 @@ Import official Redis dashboard from Grafana dashboard library.
   - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 610-630) - Grafana Cloud dashboard templates
 - **Dependencies**: Phase 3 completion
 
-### Task 7.3: Create custom service overview dashboard
+### Task 8.3: Import pre-built RabbitMQ dashboard
+
+Import official RabbitMQ dashboard from Grafana dashboard library.
+
+- **Files**: N/A (Grafana Cloud UI)
+- **Success**:
+  - Navigate to Grafana Cloud Dashboards → Import
+  - Search for official RabbitMQ dashboard from grafana.com/orgs/rabbitmq
+  - Import dashboard (e.g., RabbitMQ Overview or RabbitMQ Monitoring)
+  - Configure data source to use Grafana Cloud Mimir
+  - Dashboard displays RabbitMQ metrics (queue depth, message rates, connections, consumers)
+  - Metrics match labels from Alloy (job="integrations/rabbitmq")
+- **Research References**:
+  - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 62-63) - Official Grafana RabbitMQ dashboards
+  - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 106-107) - Pre-built dashboard availability
+- **Dependencies**: Phase 7 completion
+
+### Task 8.4: Create custom service overview dashboard
 
 Build custom dashboard showing service health, request rates, and latencies.
 
@@ -491,14 +563,14 @@ Build custom dashboard showing service health, request rates, and latencies.
   - Add panel: Error rate by service and status code
   - Add panel: Active database connections (pg_stat_database_numbackends)
   - Add panel: Redis memory usage (redis_memory_used_bytes)
-  - Add panel: RabbitMQ queue depth (if metrics available)
+  - Add panel: RabbitMQ queue depth (rabbitmq_queue_messages)
   - Variables configured for filtering by service name
   - Dashboard saved in Grafana Cloud
 - **Research References**:
   - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 1433-1455) - Grafana Cloud metric queries
-- **Dependencies**: Phases 2-6 completion
+- **Dependencies**: Phases 2-7 completion
 
-### Task 7.4: Configure alerting rules
+### Task 8.5: Configure alerting rules
 
 Set up basic alerting for critical issues.
 
@@ -507,13 +579,15 @@ Set up basic alerting for critical issues.
   - Create alert: "API Service Down" when up{job="api-service"} == 0 for 2 minutes
   - Create alert: "PostgreSQL Down" when pg_up == 0 for 1 minute
   - Create alert: "Redis Down" when redis_up == 0 for 1 minute
+  - Create alert: "RabbitMQ Down" when rabbitmq_up == 0 for 1 minute
   - Create alert: "High Error Rate" when rate(http_server_requests_total{status=~"5.."}[5m]) > 0.05 for 5 minutes
   - Create alert: "High API Latency" when histogram_quantile(0.99, http_server_duration_bucket{service_name="api-service"}) > 1.0 for 10 minutes
+  - Create alert: "RabbitMQ Queue Backlog" when rabbitmq_queue_messages > 1000 for 5 minutes
   - Alert notification channel configured (email or webhook)
   - Test alerts trigger correctly
 - **Research References**:
   - #file:../research/20251206-opentelemetry-compatibility-research.md (Lines 385-395) - Success criteria including performance monitoring
-- **Dependencies**: Phases 2-6 completion
+- **Dependencies**: Phases 2-7 completion
 
 ## Dependencies
 
@@ -528,7 +602,7 @@ Set up basic alerting for critical issues.
 - Bot commands create trace spans with Discord event context
 - Scheduled daemon tasks create root spans with proper attributes
 - RabbitMQ message context propagates from publishers to consumers
-- PostgreSQL and Redis metrics visible in Grafana Cloud Mimir
+- PostgreSQL, Redis, and RabbitMQ metrics visible in Grafana Cloud Mimir
 - Structured logs with trace correlation available in Grafana Cloud Loki
 - All services remain within Grafana Cloud free tier limits (50GB traces, 50GB logs, 10k metric series)
 - No critical performance degradation (<5% latency increase)

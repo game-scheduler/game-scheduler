@@ -48,6 +48,22 @@
   - JavaScript/Node.js instrumentation libraries available for PostgreSQL, Redis
   - No native RabbitMQ metrics exporter (requires client-side instrumentation)
 
+#### RabbitMQ Prometheus Plugin
+
+- #fetch:"https://www.rabbitmq.com/docs/prometheus"
+  - **Built-in Plugin**: `rabbitmq_prometheus` ships with RabbitMQ 3.8.0+
+  - **Default Endpoint**: `http://localhost:15692/metrics` (Prometheus text format)
+  - **Comprehensive Metrics**: Queue metrics, connection/channel metrics, node metrics, Erlang VM metrics, Raft metrics, authentication metrics
+  - **Multiple Endpoint Types**:
+    - `/metrics` - Aggregated metrics (default, most efficient)
+    - `/metrics/per-object` - Per-object metrics (queue/connection/channel specific)
+    - `/metrics/detailed?family=<metric_family>&vhost=<vhost>` - Selective metrics (most efficient for large deployments)
+  - **Metric Families**: `queue_coarse_metrics`, `queue_metrics`, `queue_delivery_metrics`, `channel_metrics`, `connection_metrics`, `exchange_metrics`, `node_metrics`, `ra_metrics` (Raft)
+  - **Grafana Integration**: Official pre-built dashboards available at grafana.com/orgs/rabbitmq
+  - **Configuration**: No configuration needed for basic usage, plugin enabled with `rabbitmq-plugins enable rabbitmq_prometheus`
+  - **Scraping Recommendation**: 60s interval for Prometheus, 10s `collect_statistics_interval` for RabbitMQ (production)
+  - **Performance**: Aggregated metrics scale well with large deployments (80k+ queues); per-object metrics expensive with many entities
+
 #### OpenTelemetry Collector
 
 - #fetch:"https://opentelemetry.io/docs/collector/"
@@ -58,6 +74,7 @@
   - Deployable as **sidecar, gateway, or agent**
   - Built-in receivers for PostgreSQL, Redis metrics collection
   - Batching, retry logic, and data transformation capabilities
+  - **Prometheus Scraping**: Can scrape Prometheus endpoints (like RabbitMQ) and convert to OTLP
 
 ### Infrastructure Component Analysis
 
@@ -79,12 +96,14 @@
 
 #### RabbitMQ 4.2-management-alpine
 
-- **OpenTelemetry Support**: ⚠️ **PARTIAL - Client-side Only**
-- **Method**: No native OTel exporter or collector receiver
+- **OpenTelemetry Support**: ✅ **YES - Via Built-in Prometheus Plugin + Collector Scraping**
+- **Method**: Built-in `rabbitmq_prometheus` plugin exposes Prometheus metrics
+- **Prometheus Endpoint**: `http://localhost:15692/metrics` (default port)
 - **Client-side**: Python instrumentation via
-  `opentelemetry-instrumentation-aio-pika` for aio-pika client
-- **Limitation**: Management plugin prefers Prometheus format
-- **Workaround**: Collector can scrape Prometheus endpoints and convert to OTLP
+  `opentelemetry-instrumentation-aio-pika` for aio-pika client (message tracing)
+- **Integration Strategy**: Collector scrapes Prometheus endpoints and exports to OTLP
+- **Metrics Available**: Queue depth, connection count, message rates, consumer count, node resources, Erlang VM metrics, Raft metrics (quorum queues), and more
+- **Official Grafana Dashboards**: Pre-built dashboards available at grafana.com/orgs/rabbitmq
 
 #### Nginx 1.28-alpine
 
@@ -229,6 +248,13 @@ receivers:
     databases: [game_scheduler]
   redis:
     endpoint: redis:6379
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'rabbitmq'
+          static_configs:
+            - targets: ['rabbitmq:15692']
+          scrape_interval: 60s
 
 processors:
   batch:
@@ -252,7 +278,7 @@ service:
       processors: [batch, memory_limiter]
       exporters: [otlp, jaeger]
     metrics:
-      receivers: [otlp, postgresql, redis]
+      receivers: [otlp, postgresql, redis, prometheus]
       processors: [batch, memory_limiter]
       exporters: [otlp, prometheus]
 ```
@@ -299,7 +325,7 @@ OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
 - Deploy as sidecar or gateway service in docker-compose
 - Configure `postgresqlreceiver` for database metrics
 - Configure `redisreceiver` for cache metrics
-- Optionally scrape RabbitMQ management Prometheus endpoint
+- Configure Prometheus receiver to scrape RabbitMQ's built-in `/metrics` endpoint
 
 **Docker Compose Addition**:
 
@@ -320,6 +346,33 @@ otel-collector:
     - redis
     - rabbitmq
 ```
+
+**RabbitMQ Metrics Configuration**:
+
+The collector's Prometheus receiver will scrape RabbitMQ's built-in metrics endpoint:
+
+```yaml
+receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'rabbitmq'
+          static_configs:
+            - targets: ['rabbitmq:15692']
+          scrape_interval: 60s
+          # Optional: scrape only specific metric families
+          # metrics_path: '/metrics/detailed?family=queue_coarse_metrics&family=queue_consumer_count'
+```
+
+**Available RabbitMQ Metric Families**:
+- `queue_coarse_metrics` - Queue depth (ready, unacked, total)
+- `queue_consumer_count` - Consumer count per queue
+- `queue_metrics` - Detailed queue metrics (memory, bytes, paging)
+- `queue_delivery_metrics` - Message delivery rates
+- `connection_metrics` - Connection statistics
+- `channel_metrics` - Channel statistics
+- `node_metrics` - Node resource usage
+- `ra_metrics` - Raft consensus metrics (quorum queues)
 
 ### Phase 3: Observability Backend Selection
 
@@ -401,7 +454,8 @@ impact
 - ✅ Redis operations appear as child spans
 - ✅ RabbitMQ message publish/consume creates linked spans
 - ✅ Daemon scheduled tasks create root spans with context
-- ✅ Infrastructure metrics (Postgres connections, Redis memory, etc.) collected
+- ✅ Infrastructure metrics (Postgres connections, Redis memory, RabbitMQ queue depth) collected
+- ✅ RabbitMQ metrics (queue depth, consumer count, message rates) available
 - ✅ Logs include trace IDs for correlation
 - ✅ No critical performance degradation in production workload
 

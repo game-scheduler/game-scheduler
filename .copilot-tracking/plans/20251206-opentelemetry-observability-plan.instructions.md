@@ -198,30 +198,55 @@ aggregation using OpenTelemetry with Grafana Cloud as the observability backend.
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
     (Lines 652-675)
 
-### [ ] Phase 7: Grafana Cloud Dashboards
+### [ ] Phase 7: RabbitMQ Metrics Collection
 
-- [ ] Task 7.1: Import pre-built PostgreSQL dashboard
-
-  - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
-    (Lines 677-695)
-
-- [ ] Task 7.2: Import pre-built Redis dashboard
+- [ ] Task 7.1: Enable RabbitMQ Prometheus plugin
 
   - Details:
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
-    (Lines 697-715)
+    (Lines 450-466)
 
-- [ ] Task 7.3: Create custom service overview dashboard
+- [ ] Task 7.2: Configure RabbitMQ metrics scraping in Alloy
 
   - Details:
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
-    (Lines 717-750)
+    (Lines 467-484)
 
-- [ ] Task 7.4: Configure alerting rules
+- [ ] Task 7.3: Verify RabbitMQ metrics in Grafana Cloud
   - Details:
     .copilot-tracking/details/20251206-opentelemetry-observability-details.md
-    (Lines 752-780)
+    (Lines 485-502)
+
+### [ ] Phase 8: Grafana Cloud Dashboards
+
+- [ ] Task 8.1: Import pre-built PostgreSQL dashboard
+
+  - Details:
+    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    (Lines 505-520)
+
+- [ ] Task 8.2: Import pre-built Redis dashboard
+
+  - Details:
+    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    (Lines 521-536)
+
+- [ ] Task 8.3: Import pre-built RabbitMQ dashboard
+
+  - Details:
+    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    (Lines 537-553)
+
+- [ ] Task 8.4: Create custom service overview dashboard
+
+  - Details:
+    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    (Lines 554-572)
+
+- [ ] Task 8.5: Configure alerting rules
+  - Details:
+    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    (Lines 573-591)
 
 ## Dependencies
 
@@ -237,7 +262,7 @@ aggregation using OpenTelemetry with Grafana Cloud as the observability backend.
 - Bot commands create trace spans with Discord event context
 - Scheduled daemon tasks create root spans with proper attributes
 - RabbitMQ message context propagates from publishers to consumers
-- PostgreSQL and Redis metrics visible in Grafana Cloud Mimir
+- PostgreSQL, Redis, and RabbitMQ metrics visible in Grafana Cloud Mimir
 - Structured logs with trace correlation available in Grafana Cloud Loki
 - All services remain within Grafana Cloud free tier limits (50GB traces, 50GB
   logs, 10k metric series)
