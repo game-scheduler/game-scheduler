@@ -37,26 +37,26 @@ Enable comprehensive self-monitoring for Grafana Alloy collector to export its o
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Add Alloy Metrics Self-Monitoring
+### [x] Phase 1: Add Alloy Metrics Self-Monitoring
 
-- [ ] Task 1.1: Add prometheus.exporter.self component
+- [x] Task 1.1: Add prometheus.exporter.self component
   - Details: .copilot-tracking/details/20251210-alloy-self-monitoring-details.md (Lines 18-29)
 
-- [ ] Task 1.2: Configure prometheus.scrape for Alloy metrics
+- [x] Task 1.2: Configure prometheus.scrape for Alloy metrics
   - Details: .copilot-tracking/details/20251210-alloy-self-monitoring-details.md (Lines 31-43)
 
-- [ ] Task 1.3: Add otelcol.receiver.prometheus for metrics conversion
+- [x] Task 1.3: Add otelcol.receiver.prometheus for metrics conversion
   - Details: .copilot-tracking/details/20251210-alloy-self-monitoring-details.md (Lines 45-57)
 
-### [ ] Phase 2: Enable Alloy Logs Export
+### [x] Phase 2: Enable Alloy Logs Export
 
-- [ ] Task 2.1: Configure logging block for Loki export
+- [x] Task 2.1: Configure logging block for Loki export
   - Details: .copilot-tracking/details/20251210-alloy-self-monitoring-details.md (Lines 61-74)
 
-- [ ] Task 2.2: Add loki.write component for Grafana Cloud
+- [x] Task 2.2: Add loki.write component for Grafana Cloud
   - Details: .copilot-tracking/details/20251210-alloy-self-monitoring-details.md (Lines 76-91)
 
-- [ ] Task 2.3: Add Loki environment variables to docker-compose
+- [x] Task 2.3: Add Loki environment variables to docker-compose
   - Details: .copilot-tracking/details/20251210-alloy-self-monitoring-details.md (Lines 93-105)
 
 ### [ ] Phase 3: Enable Alloy Trace Sampling

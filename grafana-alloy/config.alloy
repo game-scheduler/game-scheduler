@@ -9,9 +9,21 @@
 // ========================================
 // Logging Configuration
 // ========================================
+// Alloy self-monitoring: Export logs to Grafana Cloud Loki
 logging {
-  level  = "info"
-  format = "logfmt"
+  level    = "info"
+  format   = "json"
+  write_to = [loki.write.grafana_cloud_loki.receiver]
+}
+
+loki.write "grafana_cloud_loki" {
+  endpoint {
+    url = env("GRAFANA_CLOUD_LOKI_ENDPOINT")
+    basic_auth {
+      username = env("GRAFANA_CLOUD_LOKI_INSTANCE_ID")
+      password = env("GRAFANA_CLOUD_API_KEY")
+    }
+  }
 }
 
 // ========================================
@@ -137,6 +149,27 @@ prometheus.scrape "integrations_rabbitmq" {
   }]
   forward_to      = [prometheus.remote_write.grafana_cloud_mimir.receiver]
   scrape_interval = "60s"
+}
+
+// ========================================
+// Alloy Self-Monitoring - Metrics
+// ========================================
+// Export Alloy's internal metrics for operational visibility
+
+prometheus.exporter.self "default" {
+}
+
+prometheus.scrape "alloy_self" {
+  targets         = prometheus.exporter.self.default.targets
+  forward_to      = [otelcol.receiver.prometheus.alloy_metrics.receiver]
+  job_name        = "alloy/self-monitoring"
+  scrape_interval = "60s"
+}
+
+otelcol.receiver.prometheus "alloy_metrics" {
+  output {
+    metrics = [otelcol.exporter.otlphttp.grafana_cloud_otlp.input]
+  }
 }
 
 // ========================================
