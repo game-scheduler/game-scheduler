@@ -183,10 +183,10 @@ For production deployments, use the production compose configuration:
 
 ```bash
 # Build production images
-docker compose -f compose.yml -f compose.production.yaml build
+docker compose -f docker-compose.yml -f compose.production.yaml build
 
 # Start production services
-docker compose -f compose.yml -f compose.production.yaml up -d
+docker compose -f docker-compose.yml -f compose.production.yaml up -d
 ```
 
 Production builds:

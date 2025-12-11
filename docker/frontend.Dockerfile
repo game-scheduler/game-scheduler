@@ -48,7 +48,7 @@ ARG VITE_API_URL
 RUN npm run build
 
 # Production stage using nginx
-FROM nginx:1.28-alpine
+FROM nginx:1.28-alpine AS production
 
 # Install curl for healthcheck
 RUN apk add --no-cache curl

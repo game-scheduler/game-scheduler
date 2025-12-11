@@ -1,14 +1,13 @@
-# Production overrides - use with explicit -f flag
+# Testing overrides - use with explicit -f flag
 # This file ensures production build targets are used with code baked into images
 #
-# Usage: docker compose -f docker-compose.yml -f compose.production.yaml up -d
+# Usage: docker compose -f docker-compose.yml -f compose.testing.yaml up -d
 #
 # Features:
 # - Targets production stages in Dockerfiles
 # - No source code volume mounts (code copied into images)
 # - Restart policies for production resilience
 # - Optimized, minimal images with security hardening
-# - Log levels default to WARN for reduced verbosity
 
 services:
   api:
@@ -16,32 +15,32 @@ services:
       target: production
     restart: always
     environment:
-      LOG_LEVEL: ${API_LOG_LEVEL:-WARN}
+      LOG_LEVEL: ${API_LOG_LEVEL:-INFO}
 
   bot:
     build:
       target: production
     restart: always
     environment:
-      LOG_LEVEL: ${BOT_LOG_LEVEL:-WARN}
+      LOG_LEVEL: ${BOT_LOG_LEVEL:-INFO}
 
   notification-daemon:
     build:
       target: production
     restart: always
     environment:
-      LOG_LEVEL: ${NOTIFICATION_DAEMON_LOG_LEVEL:-WARN}
+      LOG_LEVEL: ${NOTIFICATION_DAEMON_LOG_LEVEL:-INFO}
 
   status-transition-daemon:
     build:
       target: production
     restart: always
     environment:
-      LOG_LEVEL: ${STATUS_TRANSITION_DAEMON_LOG_LEVEL:-WARN}
+      LOG_LEVEL: ${STATUS_TRANSITION_DAEMON_LOG_LEVEL:-INFO}
 
   frontend:
     build:
       target: production
     restart: always
     environment:
-      NGINX_LOG_LEVEL: ${NGINX_LOG_LEVEL:-warn}
+      NGINX_LOG_LEVEL: ${NGINX_LOG_LEVEL:-info}
