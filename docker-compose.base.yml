@@ -24,8 +24,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -44,10 +42,6 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
       RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit log_levels [{connection,${RABBITMQ_LOG_LEVEL:-info}}]
-    ports:
-      - "${RABBITMQ_HOST_PORT:-5672}:5672"
-      - "${RABBITMQ_MGMT_HOST_PORT:-15672}:15672"
-      - "${RABBITMQ_PROMETHEUS_PORT:-15692}:15692"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
@@ -64,8 +58,6 @@ services:
     image: redis:7.4-alpine
     container_name: ${CONTAINER_PREFIX:-gamebot}-redis
     command: ${REDIS_COMMAND:-redis-server --appendonly yes --loglevel ${REDIS_LOG_LEVEL:-verbose}}
-    ports:
-      - "${REDIS_HOST_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -321,8 +313,6 @@ services:
     environment:
       API_URL: ${API_URL:-}
       NGINX_LOG_LEVEL: ${NGINX_LOG_LEVEL:-info}
-    ports:
-      - "${FRONTEND_HOST_PORT:-3000}:80"
     depends_on:
       api:
         condition: service_healthy
@@ -341,8 +331,6 @@ services:
     volumes:
       - ./grafana-alloy/config.alloy:/etc/alloy/config.alloy:ro
     ports:
-      - "${ALLOY_OTLP_GRPC_PORT:-4317}:4317"
-      - "${ALLOY_OTLP_HTTP_PORT:-4318}:4318"
       - "12345:12345"
     environment:
       ALLOY_LOG_LEVEL: ${ALLOY_LOG_LEVEL:-info}
