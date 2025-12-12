@@ -54,7 +54,12 @@ def rabbitmq_channel(rabbitmq_connection):
     channel = rabbitmq_connection.channel()
 
     # Purge all queues before each test to ensure clean state
-    queues_to_purge = ["bot_events", "notification_queue"]
+    queues_to_purge = [
+        "bot_events",
+        "notification_queue",
+        "bot_events.dlq",
+        "notification_queue.dlq",
+    ]
     for queue_name in queues_to_purge:
         try:
             channel.queue_purge(queue_name)
@@ -99,6 +104,20 @@ def test_notification_queue_exists(rabbitmq_channel):
     assert result.method.queue == "notification_queue"
 
 
+def test_bot_events_dlq_exists(rabbitmq_channel):
+    """Verify bot_events.dlq queue exists and is durable."""
+    result = rabbitmq_channel.queue_declare(queue="bot_events.dlq", passive=True, durable=True)
+    assert result.method.queue == "bot_events.dlq"
+
+
+def test_notification_queue_dlq_exists(rabbitmq_channel):
+    """Verify notification_queue.dlq queue exists and is durable."""
+    result = rabbitmq_channel.queue_declare(
+        queue="notification_queue.dlq", passive=True, durable=True
+    )
+    assert result.method.queue == "notification_queue.dlq"
+
+
 def test_bot_events_bindings(rabbitmq_channel):
     """Verify bot_events has correct routing key bindings."""
     expected_routing_keys = ["game.*", "guild.*", "channel.*"]
@@ -133,9 +152,8 @@ def test_notification_queue_bindings(rabbitmq_channel):
 
 def test_primary_queues_have_dlx_configured(rabbitmq_channel):
     """Verify primary queues route rejected messages to DLX."""
-    # Note: DLQ processing is now handled by dedicated retry service
-    # This test verifies messages are dead-lettered to DLX exchange
     primary_queues = ["bot_events", "notification_queue"]
+    expected_dlqs = {"bot_events": "bot_events.dlq", "notification_queue": "notification_queue.dlq"}
 
     for queue_name in primary_queues:
         # Determine appropriate routing key for this queue
@@ -154,8 +172,47 @@ def test_primary_queues_have_dlx_configured(rabbitmq_channel):
         assert method is not None, f"Message should arrive in {queue_name}"
         rabbitmq_channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
-    # Messages should be dead-lettered to DLX
-    # Note: We can't verify DLQ routing here since per-queue DLQs will be added in Phase 2
+        # Verify message was routed to the appropriate per-queue DLQ
+        dlq_name = expected_dlqs[queue_name]
+        method, properties, body = rabbitmq_channel.basic_get(queue=dlq_name, auto_ack=True)
+        assert method is not None, f"Rejected message should be in {dlq_name}"
+        assert body == test_body, "DLQ message content should match"
+
+
+def test_dlq_bindings_to_dlx(rabbitmq_channel):
+    """Verify DLQs are bound to dead letter exchange with appropriate routing keys."""
+    # Test bot_events.dlq receives messages with game.*, guild.*, channel.* routing keys
+    bot_events_keys = ["game.created", "guild.updated", "channel.deleted"]
+    for routing_key in bot_events_keys:
+        test_body = f"test_{routing_key}".encode()
+        rabbitmq_channel.basic_publish(
+            exchange="game_scheduler.dlx", routing_key=routing_key, body=test_body
+        )
+
+    # All messages should arrive in bot_events.dlq
+    for _ in bot_events_keys:
+        method, properties, body = rabbitmq_channel.basic_get(queue="bot_events.dlq", auto_ack=True)
+        assert method is not None, "Message should be routed to bot_events.dlq"
+
+    # Test notification_queue.dlq receives messages with notification.send_dm routing key
+    test_body = b"test_notification"
+    rabbitmq_channel.basic_publish(
+        exchange="game_scheduler.dlx", routing_key="notification.send_dm", body=test_body
+    )
+
+    method, properties, body = rabbitmq_channel.basic_get(
+        queue="notification_queue.dlq", auto_ack=True
+    )
+    assert method is not None, "Message should be routed to notification_queue.dlq"
+
+    # Verify bot_events.dlq does NOT receive notification messages
+    test_body = b"test_notification_2"
+    rabbitmq_channel.basic_publish(
+        exchange="game_scheduler.dlx", routing_key="notification.send_dm", body=test_body
+    )
+
+    method, properties, body = rabbitmq_channel.basic_get(queue="bot_events.dlq", auto_ack=True)
+    assert method is None, "Notification messages should not be routed to bot_events.dlq"
 
 
 def test_primary_queues_have_ttl_configured(rabbitmq_channel):

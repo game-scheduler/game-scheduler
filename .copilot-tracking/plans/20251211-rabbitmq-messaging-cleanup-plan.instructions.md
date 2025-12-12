@@ -54,15 +54,15 @@ Fix DLQ exponential growth bug and remove unused RabbitMQ queues by implementing
 - [x] Task 1.4: Update integration tests to remove unused queue references
   - Details: .copilot-tracking/details/20251211-rabbitmq-messaging-cleanup-details.md (Lines 72-90)
 
-### [ ] Phase 2: Implement Per-Queue DLQ Pattern
+### [x] Phase 2: Implement Per-Queue DLQ Pattern
 
-- [ ] Task 2.1: Add per-queue DLQ constants to infrastructure.py
+- [x] Task 2.1: Add per-queue DLQ constants to infrastructure.py
   - Details: .copilot-tracking/details/20251211-rabbitmq-messaging-cleanup-details.md (Lines 92-115)
 
-- [ ] Task 2.2: Update init_rabbitmq.py to create per-queue DLQs
+- [x] Task 2.2: Update init_rabbitmq.py to create per-queue DLQs
   - Details: .copilot-tracking/details/20251211-rabbitmq-messaging-cleanup-details.md (Lines 117-145)
 
-- [ ] Task 2.3: Remove shared "DLQ" queue declaration
+- [x] Task 2.3: Remove shared "DLQ" queue declaration
   - Details: .copilot-tracking/details/20251211-rabbitmq-messaging-cleanup-details.md (Lines 147-160)
 
 ### [ ] Phase 3: Create Dedicated Retry Service

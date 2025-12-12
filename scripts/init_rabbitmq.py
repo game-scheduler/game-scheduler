@@ -27,6 +27,8 @@ import pika
 from pika.exceptions import AMQPConnectionError
 
 from shared.messaging.infrastructure import (
+    DEAD_LETTER_QUEUES,
+    DLQ_BINDINGS,
     DLX_EXCHANGE,
     MAIN_EXCHANGE,
     PRIMARY_QUEUE_ARGUMENTS,
@@ -80,6 +82,16 @@ def create_infrastructure(rabbitmq_url: str) -> None:
     # Declare dead letter exchange
     channel.exchange_declare(exchange=DLX_EXCHANGE, exchange_type="topic", durable=True)
     print(f"  ✓ Exchange '{DLX_EXCHANGE}' declared")
+
+    # Declare dead letter queues (no TTL, durable)
+    for dlq_name in DEAD_LETTER_QUEUES:
+        channel.queue_declare(queue=dlq_name, durable=True)
+        print(f"  ✓ DLQ '{dlq_name}' declared")
+
+    # Bind DLQs to dead letter exchange
+    for dlq_name, routing_key in DLQ_BINDINGS:
+        channel.queue_bind(exchange=DLX_EXCHANGE, queue=dlq_name, routing_key=routing_key)
+        print(f"  ✓ Binding '{dlq_name}' -> DLX '{routing_key}'")
 
     # Declare primary queues with TTL and DLX
     for queue_name in PRIMARY_QUEUES:

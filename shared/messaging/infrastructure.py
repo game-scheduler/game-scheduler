@@ -41,6 +41,10 @@ DLX_EXCHANGE = "game_scheduler.dlx"
 QUEUE_BOT_EVENTS = "bot_events"
 QUEUE_NOTIFICATION = "notification_queue"
 
+# Dead letter queue names (per-queue DLQ pattern)
+QUEUE_BOT_EVENTS_DLQ = "bot_events.dlq"
+QUEUE_NOTIFICATION_DLQ = "notification_queue.dlq"
+
 # Queue configuration
 PRIMARY_QUEUE_TTL_MS = 3600000  # 1 hour in milliseconds
 
@@ -55,6 +59,12 @@ PRIMARY_QUEUES = [
     QUEUE_NOTIFICATION,
 ]
 
+# List of dead letter queues (no TTL, durable)
+DEAD_LETTER_QUEUES = [
+    QUEUE_BOT_EVENTS_DLQ,
+    QUEUE_NOTIFICATION_DLQ,
+]
+
 # Routing key bindings (queue_name, routing_key)
 QUEUE_BINDINGS = [
     # bot_events receives game, guild, and channel events
@@ -63,4 +73,16 @@ QUEUE_BINDINGS = [
     (QUEUE_BOT_EVENTS, "channel.*"),
     # notification_queue receives DM notifications
     (QUEUE_NOTIFICATION, "notification.send_dm"),
+]
+
+# DLQ bindings to dead letter exchange
+# Each DLQ receives messages from its corresponding primary queue
+# using the same routing keys
+DLQ_BINDINGS = [
+    # bot_events.dlq receives dead-lettered messages with game.*, guild.*, channel.* keys
+    (QUEUE_BOT_EVENTS_DLQ, "game.*"),
+    (QUEUE_BOT_EVENTS_DLQ, "guild.*"),
+    (QUEUE_BOT_EVENTS_DLQ, "channel.*"),
+    # notification_queue.dlq receives dead-lettered messages with notification.send_dm key
+    (QUEUE_NOTIFICATION_DLQ, "notification.send_dm"),
 ]
