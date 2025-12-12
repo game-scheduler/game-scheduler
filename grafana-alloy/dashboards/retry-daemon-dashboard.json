@@ -1,0 +1,246 @@
+{
+  "dashboard": {
+    "title": "Retry Daemon Monitoring",
+    "description": "Monitoring dashboard for DLQ retry service",
+    "tags": ["retry", "rabbitmq", "dlq"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "DLQ Depth Over Time",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "expr": "retry_dlq_depth",
+            "legendFormat": "{{dlq_name}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Messages", "logBase": 1 },
+          { "format": "short", "logBase": 1 }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": { "params": [10], "type": "gt" },
+              "operator": { "type": "and" },
+              "query": { "params": ["A", "5m", "now"] },
+              "reducer": { "params": [], "type": "avg" },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High DLQ Depth",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 2,
+        "title": "Message Processing Rate",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "targets": [
+          {
+            "expr": "rate(retry_messages_processed_total[5m])",
+            "legendFormat": "Processed - {{dlq_name}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(retry_messages_failed_total[5m])",
+            "legendFormat": "Failed - {{dlq_name}}",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Messages/sec", "logBase": 1 },
+          { "format": "short", "logBase": 1 }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Processing Duration",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(retry_processing_duration_bucket[5m]))",
+            "legendFormat": "p99 - {{dlq_name}}",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(retry_processing_duration_bucket[5m]))",
+            "legendFormat": "p95 - {{dlq_name}}",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(retry_processing_duration_bucket[5m]))",
+            "legendFormat": "p50 - {{dlq_name}}",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          { "format": "s", "label": "Duration", "logBase": 1 },
+          { "format": "short", "logBase": 1 }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Messages by Event Type",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+        "targets": [
+          {
+            "expr": "sum by (event_type) (rate(retry_messages_processed_total[5m]))",
+            "legendFormat": "{{event_type}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Messages/sec", "logBase": 1 },
+          { "format": "short", "logBase": 1 }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Failure Rate by Error Type",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+        "targets": [
+          {
+            "expr": "sum by (error_type) (rate(retry_messages_failed_total[5m]))",
+            "legendFormat": "{{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Failures/sec", "logBase": 1 },
+          { "format": "short", "logBase": 1 }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": { "params": [0.1], "type": "gt" },
+              "operator": { "type": "and" },
+              "query": { "params": ["A", "5m", "now"] },
+              "reducer": { "params": [], "type": "avg" },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High Failure Rate",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 6,
+        "title": "Service Health Status",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 16 },
+        "targets": [
+          {
+            "expr": "up{job=\"retry-daemon\"}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "red", "value": null },
+                { "color": "green", "value": 1 }
+              ]
+            },
+            "mappings": [
+              { "type": "value", "value": "0", "text": "Down" },
+              { "type": "value", "value": "1", "text": "Up" }
+            ]
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Total Messages Processed",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 16 },
+        "targets": [
+          {
+            "expr": "sum(retry_messages_processed_total)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value",
+          "textMode": "value_and_name"
+        }
+      },
+      {
+        "id": 8,
+        "title": "Consecutive Failures Alert",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 12, "x": 12, "y": 20 },
+        "targets": [
+          {
+            "expr": "max by (dlq_name) (retry_consecutive_failures)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 1 },
+                { "color": "red", "value": 3 }
+              ]
+            }
+          }
+        },
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": { "params": [3], "type": "gt" },
+              "operator": { "type": "and" },
+              "query": { "params": ["A", "5m", "now"] },
+              "reducer": { "params": [], "type": "last" },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Consecutive Processing Failures",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      }
+    ]
+  }
+}

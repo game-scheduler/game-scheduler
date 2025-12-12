@@ -20,6 +20,9 @@ Fix DLQ exponential growth bug and remove unused RabbitMQ queues by implementing
 - tests/integration/test_retry_daemon.py - Created end-to-end integration tests verifying DLQ exponential growth bug fix (3/5 passing including critical bug fix test)
 - tests/services/retry/__init__.py - Created unit test package for retry service
 - tests/services/retry/test_retry_daemon.py - Created comprehensive unit tests for RetryDaemon class (18/18 passing with 100% coverage)
+- grafana-alloy/dashboards/retry-daemon-dashboard.json - Created Grafana dashboard with 8 panels monitoring DLQ depth, processing rates, duration, failures, and health
+- grafana-alloy/dashboards/README.md - Created comprehensive dashboard documentation with metrics overview, alert configuration, and troubleshooting guide
+- tests/services/retry/test_retry_daemon_observability.py - Created observability tests for metrics, health checks, and span attributes (9/9 passing)
 
 ### Modified
 
@@ -47,6 +50,11 @@ Fix DLQ exponential growth bug and remove unused RabbitMQ queues by implementing
 - services/scheduler/generic_scheduler_daemon.py - Removed _process_dlq_messages method and pika import
 - services/scheduler/generic_scheduler_daemon.py - Fixed _process_item to not re-raise exceptions after rollback (maintain daemon stability)
 - tests/services/scheduler/test_generic_scheduler_daemon.py - Removed TestSchedulerDaemonDLQProcessing test class
+- services/retry/retry_daemon.py - Added OpenTelemetry metrics (messages_processed_counter, messages_failed_counter, dlq_depth_gauge, processing_duration_histogram)
+- services/retry/retry_daemon.py - Added detailed span attributes for message processing (routing_key, event_type, retry_count)
+- services/retry/retry_daemon.py - Added health check metrics tracking (last_successful_processing_time, consecutive_failures)
+- services/retry/retry_daemon.py - Added is_healthy() method with RabbitMQ connectivity check and failure threshold detection
+- services/retry/retry_daemon.py - Moved pika import to module level (removed inline imports from methods)
 
 ### Removed
 

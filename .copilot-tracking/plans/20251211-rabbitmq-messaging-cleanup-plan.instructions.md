@@ -113,21 +113,21 @@ Fix DLQ exponential growth bug and remove unused RabbitMQ queues by implementing
 - [x] Task 5.3: Verify all existing tests pass with new architecture
   - Details: .copilot-tracking/details/20251211-rabbitmq-messaging-cleanup-details.md (Lines 477-495)
 
-### [ ] Phase 6: Enhanced Observability
+### [x] Phase 6: Enhanced Observability
 
-- [ ] Task 6.1: Add OpenTelemetry metrics to RetryDaemon
+- [x] Task 6.1: Add OpenTelemetry metrics to RetryDaemon
   - Details: Add counters for processed/failed messages, gauges for DLQ depth
   - Add histogram for processing duration per DLQ
 
-- [ ] Task 6.2: Add detailed span attributes for message processing
+- [x] Task 6.2: Add detailed span attributes for message processing
   - Details: Add event_type, routing_key, retry_count to spans
   - Track individual message processing in child spans
 
-- [ ] Task 6.3: Add health check metrics
+- [x] Task 6.3: Add health check metrics
   - Details: Expose last successful processing time, consecutive failures
   - Add readiness indicator based on RabbitMQ connectivity
 
-- [ ] Task 6.4: Create Grafana dashboard for retry daemon
+- [x] Task 6.4: Create Grafana dashboard for retry daemon
   - Details: Visualize DLQ depth over time, processing rates, failure rates
   - Alert on consecutive processing failures or growing DLQ depth
 
