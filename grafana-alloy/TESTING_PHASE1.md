@@ -9,7 +9,7 @@ Before testing, ensure you have:
 
 1. ✅ Completed Grafana Cloud account setup (Task 1.1)
 2. ✅ Created `grafana-alloy/config.alloy` (Task 1.2)
-3. ✅ Added `grafana-alloy` service to `docker-compose.base.yml` (Task 1.3)
+3. ✅ Added `grafana-alloy` service to `compose.yaml` (Task 1.3)
 4. ✅ Configured environment variables in `.env` file (Task 1.4)
 
 ## Step 1: Verify Environment Variables
@@ -246,7 +246,7 @@ ALLOY_OTLP_HTTP_PORT=14318
 # Verify docker-compose is loading .env
 docker compose config | grep GRAFANA_CLOUD
 
-# If empty, ensure .env is in same directory as docker-compose.yml
+# If empty, ensure .env symlink is configured correctly
 ls -la .env
 ```
 

@@ -68,25 +68,35 @@ scalable scheduling:
 
 ### Quick Start
 
-1. Copy environment template:
+1. Ensure the `.env` symlink points to development environment:
 
 ```bash
-cp .env.example .env
+# This symlink is already configured for development
+ls -la .env
+# Should show: .env -> env/env.dev
 ```
 
-2. Update `.env` with your Discord bot credentials
+2. Update `env/env.dev` with your Discord bot credentials if needed
 
 3. Start all services:
 
 ```bash
-docker compose --env-file .env up
+# Development uses .env symlink automatically
+docker compose up
 ```
+
+**How Development Environment Works:**
+
+The `.env` symlink points to `env/env.dev`, which contains:
+- `COMPOSE_FILE=compose.yaml:compose.override.yaml` - Specifies which compose files to load
+- Development-specific configuration (DEBUG logging, all ports exposed)
 
 The development environment automatically:
 
 - **Mounts your source code** as volumes (no rebuilds needed!)
 - **Enables hot-reload** for instant code changes
 - **Uses development stages** from Dockerfiles
+- **Exposes all ports** including management UIs (RabbitMQ, Grafana)
 
 ### Development Workflow
 
@@ -156,6 +166,8 @@ docker compose restart api
 Start specific services for development:
 
 ```bash
+# Development uses .env symlink automatically (no --env-file needed)
+
 # Start infrastructure only
 docker compose up -d postgres rabbitmq redis
 
@@ -179,15 +191,35 @@ Graviton) and AMD64 (traditional x86) architectures using Docker Bake.
 
 ### Production Builds
 
-For production deployments, use the production compose configuration:
+For production deployments, use the production environment file:
 
 ```bash
-# Build production images
-docker compose -f docker-compose.yml -f compose.production.yaml build
+# Build production images (uses env/env.prod)
+docker compose --env-file env/env.prod build
 
 # Start production services
-docker compose -f docker-compose.yml -f compose.production.yaml up -d
+docker compose --env-file env/env.prod up -d
 ```
+
+**Environment-Specific Configurations:**
+
+Each environment file (in `env/` directory) contains a `COMPOSE_FILE` variable specifying which compose files to load:
+
+- **Production** (`env/env.prod`): `COMPOSE_FILE=compose.yaml`
+  - Production-only base configuration
+  - INFO logging level
+  - No port mappings (use reverse proxy)
+  - Restart policies enabled
+
+- **Staging** (`env/env.staging`): `COMPOSE_FILE=compose.yaml:compose.staging.yaml`
+  - Production builds with DEBUG logging
+  - Frontend and API ports exposed for testing
+  - Restart policies enabled
+
+- **Development** (`env/env.dev`): `COMPOSE_FILE=compose.yaml:compose.override.yaml`
+  - Development stages with hot-reload
+  - DEBUG logging, all ports exposed
+  - Source code mounted as volumes
 
 Production builds:
 
@@ -268,24 +300,32 @@ Configure in `.env` file:
 │       └── game_status_schedule.py         # Status schedule model
 ├── docker/                     # Dockerfiles for each service
 ├── alembic/                    # Database migrations
-├── docker-compose.base.yml     # Shared service definitions
-├── docker-compose.yml          # Development environment
-├── docker-compose.integration.yml  # Integration test environment
-└── docker-compose.e2e.yml      # E2E test environment
+├── env/                        # Environment configurations
+│   ├── env.dev                 # Development (COMPOSE_FILE=compose.yaml:compose.override.yaml)
+│   ├── env.prod                # Production (COMPOSE_FILE=compose.yaml)
+│   ├── env.staging             # Staging (COMPOSE_FILE=compose.yaml:compose.staging.yaml)
+│   ├── env.e2e                 # E2E tests (COMPOSE_FILE=compose.yaml:compose.e2e.yaml)
+│   └── env.int                 # Integration tests (COMPOSE_FILE=compose.yaml:compose.int.yaml)
+├── compose.yaml                # Base configuration (production-ready)
+├── compose.override.yaml       # Development overrides (auto-loaded via .env symlink)
+├── compose.prod.yaml           # Production overrides (minimal)
+├── compose.staging.yaml        # Staging overrides (DEBUG logging, app ports)
+├── compose.int.yaml            # Integration test overrides
+└── compose.e2e.yaml            # E2E test overrides
 ```
 
 ## Docker Compose Architecture
 
-The project uses a layered Docker Compose structure to minimize duplication:
+The project uses modern Docker Compose with environment-controlled configuration:
 
-- **`docker-compose.base.yml`**: Shared service definitions (images,
-  healthchecks, dependencies)
-- **`docker-compose.yml`**: Development environment overrides (persistent
-  volumes, exposed ports)
-- **`docker-compose.integration.yml`**: Integration test environment (postgres,
-  rabbitmq, redis only)
-- **`docker-compose.e2e.yml`**: E2E test environment (full stack with Discord
-  bot)
+- **`compose.yaml`**: Production-ready base configuration with all services
+- **Environment files** (in `env/`): Each contains `COMPOSE_FILE` variable specifying which compose files to merge
+- **Override files**: Environment-specific modifications (logging, ports, volumes, build targets)
+
+**How it works:**
+- Each `env/env.*` file sets `COMPOSE_FILE=compose.yaml:compose.{env}.yaml`
+- Single `--env-file env/env.{environment}` parameter controls entire configuration
+- Development uses `.env` symlink → `env/env.dev` for automatic configuration
 
 This design ensures all environments stay in sync while allowing
 environment-specific configurations. See [TESTING_E2E.md](TESTING_E2E.md) for

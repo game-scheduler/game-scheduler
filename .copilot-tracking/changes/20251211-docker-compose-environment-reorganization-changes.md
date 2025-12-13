@@ -48,3 +48,12 @@ Consolidating Docker Compose files to use modern naming conventions and standard
 - scripts/run-integration-tests.sh - Updated to use --env-file env/env.int and removed explicit -f flags (COMPOSE_FILE variable handles compose file selection)
 - scripts/run-e2e-tests.sh - Updated to use --env-file env/env.e2e and removed explicit -f flags, updated file existence checks and source commands to reference env/env.e2e
 - scripts/migrate_postgres_15_to_17.sh - Updated documentation reference from docker-compose.base.yml to compose.yaml in rollback instructions
+
+### Phase 6 Changes - Documentation Updates
+
+- DEPLOYMENT_QUICKSTART.md - Updated all compose file references to use --env-file env/env.prod.local pattern, documented COMPOSE_FILE variable behavior, updated environment configuration sections to reference env/ directory, added environment-specific logging and port exposure documentation
+- README.md - Updated development setup to document .env symlink pattern, added COMPOSE_FILE variable explanation, documented all five environments (dev, prod, staging, e2e, int) with their compose file patterns, updated project structure to show env/ directory and compose file organization, replaced docker-compose.base.yml references with modern compose.yaml base configuration
+- TESTING_E2E.md - Updated environment file references to env/env.int and env/env.e2e with COMPOSE_FILE variable documentation, updated test execution commands to use --env-file env/env.{environment} pattern, updated CI/CD examples to create env files in env/ directory, updated security notes to reference env/* .gitignore protection
+- DOCKER_PORTS.md - Updated base configuration reference from docker-compose.base.yml to compose.yaml, updated test environment references from docker-compose.test.yml to compose.e2e.yaml and compose.int.yaml, updated production reference from compose.production.yaml to compose.prod.yaml, added compose.staging.yaml to See Also section
+- grafana-alloy/TESTING_PHASE1.md - Updated prerequisites reference from docker-compose.base.yml to compose.yaml, updated troubleshooting section to reference .env symlink instead of .env being in same directory as docker-compose.yml
+- grafana-alloy/TESTING_PHASE2.md - Updated database name reference comment from docker-compose.base.yml to compose.yaml

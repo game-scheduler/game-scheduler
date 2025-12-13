@@ -8,7 +8,7 @@ Services communicate via the internal Docker network (`app-network`) by default.
 
 ## Port Exposure by Environment
 
-### Base Configuration (`docker-compose.base.yml`)
+### Base Configuration (`compose.yaml`)
 
 **NO ports exposed to host**
 
@@ -24,14 +24,14 @@ Services communicate via the internal Docker network (`app-network`) by default.
 - API: `localhost:8000` (configurable via `API_HOST_PORT`)
 - RabbitMQ Management UI: `localhost:15672` (configurable via `RABBITMQ_MGMT_HOST_PORT`)
 
-### Test (`docker-compose.test.yml`)
+### Test (`compose.e2e.yaml`, `compose.int.yaml`)
 
 **Application ports only**
 
 - Frontend: `localhost:3000` (configurable via `FRONTEND_HOST_PORT`)
 - API: `localhost:8000` (configurable via `API_HOST_PORT`)
 
-### Production (`compose.production.yaml`)
+### Production (`compose.prod.yaml`)
 
 **NO ports exposed to host**
 
@@ -151,5 +151,7 @@ If you previously accessed infrastructure services directly via localhost:
 
 - [RUNTIME_CONFIG.md](RUNTIME_CONFIG.md) - Runtime configuration options
 - [DEPLOYMENT_QUICKSTART.md](DEPLOYMENT_QUICKSTART.md) - Deployment instructions
-- [docker-compose.base.yml](docker-compose.base.yml) - Base service definitions
+- [compose.yaml](compose.yaml) - Base service definitions
 - [compose.override.yaml](compose.override.yaml) - Development overrides
+- [compose.prod.yaml](compose.prod.yaml) - Production overrides
+- [compose.staging.yaml](compose.staging.yaml) - Staging overrides

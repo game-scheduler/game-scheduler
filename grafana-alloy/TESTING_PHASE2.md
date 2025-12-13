@@ -43,7 +43,7 @@ docker logs gamebot-grafana-alloy --tail 50
 
 - Verify database credentials in `.env` match PostgreSQL service
 - Verify database name is correct (should be `game_scheduler` based on
-  docker-compose.base.yml)
+  compose.yaml)
 - Check PostgreSQL container is running: `docker ps | grep postgres`
 
 ## Step 3: Wait for Initial Scrape

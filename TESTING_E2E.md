@@ -63,11 +63,14 @@ Generate OAuth2 invite URL:
 
 ### 6. Configure Environment Variables
 
-Create separate environment files for each test type:
+The project uses environment files in the `env/` directory. Update the test environment files:
 
-#### `.env.integration` (for integration tests - no Discord required)
+#### `env/env.int` (for integration tests - no Discord required)
 
 ```bash
+# Compose file configuration
+COMPOSE_FILE=compose.yaml:compose.int.yaml
+
 # Infrastructure settings
 CONTAINER_PREFIX=gamebot-integration
 POSTGRES_USER=gamebot_integration
@@ -85,9 +88,12 @@ REDIS_URL=redis://redis:6379/0
 TEST_ENVIRONMENT=true
 ```
 
-#### `.env.e2e` (for end-to-end tests - requires Discord bot)
+#### `env/env.e2e` (for end-to-end tests - requires Discord bot)
 
 ```bash
+# Compose file configuration
+COMPOSE_FILE=compose.yaml:compose.e2e.yaml
+
 # Infrastructure settings
 CONTAINER_PREFIX=gamebot-e2e
 POSTGRES_USER=gamebot_e2e
@@ -114,6 +120,8 @@ API_HOST_PORT=8001
 FRONTEND_HOST_PORT=3001
 ```
 
+**Note:** The `COMPOSE_FILE` variable in each env file specifies which compose files Docker Compose will load. This eliminates the need for explicit `-f` flags in commands.
+
 ## Running Tests
 
 ### Integration Tests (No Discord Required)
@@ -127,7 +135,8 @@ Test notification daemon and PostgreSQL LISTEN/NOTIFY without Discord:
 Or manually:
 
 ```bash
-docker compose -f docker-compose.test.yml --env-file .env.integration --profile integration up \
+# The COMPOSE_FILE variable in env/env.int specifies compose.yaml:compose.int.yaml
+docker compose --env-file env/env.int --profile integration up \
   --build --abort-on-container-exit
 ```
 
@@ -142,19 +151,20 @@ Test complete flow including Discord bot interactions:
 Or manually:
 
 ```bash
-docker compose -f docker-compose.test.yml --env-file .env.e2e --profile e2e up \
+# The COMPOSE_FILE variable in env/env.e2e specifies compose.yaml:compose.e2e.yaml
+docker compose --env-file env/env.e2e --profile e2e up \
   --build --abort-on-container-exit
 ```
 
 ## Test Environment Isolation
 
-The project uses separate Docker Compose files for each test type:
+The project uses environment-controlled Docker Compose configuration for each test type:
 
-- **`docker-compose.base.yml`**: Shared service definitions (images, healthchecks, dependencies)
-- **`docker-compose.integration.yml`**: Integration tests (postgres, rabbitmq, redis only)
-- **`docker-compose.e2e.yml`**: E2E tests (full stack with Discord bot)
-- **`.env.integration`**: Integration test environment (no Discord required)
-- **`.env.e2e`**: E2E test environment (includes Discord bot credentials)
+- **`compose.yaml`**: Base configuration shared by all environments
+- **`compose.int.yaml`**: Integration test overrides (postgres, rabbitmq, redis only)
+- **`compose.e2e.yaml`**: E2E test overrides (full stack with Discord bot)
+- **`env/env.int`**: Integration test environment (sets `COMPOSE_FILE=compose.yaml:compose.int.yaml`)
+- **`env/env.e2e`**: E2E test environment (sets `COMPOSE_FILE=compose.yaml:compose.e2e.yaml`)
 
 Different configurations for each test type:
 
@@ -187,8 +197,9 @@ For automated testing in CI/CD pipelines:
 ```yaml
 - name: Run Integration Tests
   run: |
-    # Create .env.integration
-    cat > .env.integration << EOF
+    # Create env/env.int
+    cat > env/env.int << EOF
+    COMPOSE_FILE=compose.yaml:compose.int.yaml
     CONTAINER_PREFIX=gamebot-integration
     POSTGRES_USER=gamebot_integration
     POSTGRES_PASSWORD=integration_password
@@ -202,8 +213,9 @@ For automated testing in CI/CD pipelines:
 
 - name: Run E2E Tests
   run: |
-    # Create .env.e2e from secrets
-    cat > .env.e2e << EOF
+    # Create env/env.e2e from secrets
+    cat > env/env.e2e << EOF
+    COMPOSE_FILE=compose.yaml:compose.e2e.yaml
     CONTAINER_PREFIX=gamebot-e2e
     POSTGRES_USER=gamebot_e2e
     POSTGRES_PASSWORD=e2e_password
@@ -234,13 +246,15 @@ For automated testing in CI/CD pipelines:
 
 ⚠️ **IMPORTANT**:
 
-- Never commit `.env.test` to version control
+- Never commit `env/env.int` or `env/env.e2e` to version control with real credentials
 - Keep test bot tokens separate from production
 - Limit test guild membership to test accounts only
 - Use minimal bot permissions for test bot
+- The `.gitignore` already protects `env/*` from being committed
 
-Add to `.gitignore`:
+Existing `.gitignore` protection:
 
 ```
-.env.test
+env/*
+.env*
 ```
