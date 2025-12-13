@@ -14,11 +14,18 @@ Consolidating Docker Compose files to use modern naming conventions and standard
 ### Added
 
 - compose.yaml - Production-ready base configuration merging docker-compose.base.yml and docker-compose.yml with production defaults (INFO logging, restart: always, no port mappings)
+- compose.e2e.yaml - End-to-end test environment configuration (renamed from docker-compose.e2e.yml)
+- compose.int.yaml - Integration test environment configuration (renamed from docker-compose.integration.yml)
+- compose.prod.yaml - Production environment overrides (renamed from compose.production.yaml)
+- compose.staging.yaml - Staging environment overrides (renamed from compose.testing.yaml)
 
 ### Modified
 
-- docker-compose.e2e.yml - Removed include directive, now uses merge pattern with compose.yaml
-- docker-compose.integration.yml - Removed include directive, now uses merge pattern with compose.yaml
-
 ### Removed
+
+- docker-compose.e2e.yml - Renamed to compose.e2e.yaml following modern Docker Compose naming conventions
+- docker-compose.integration.yml - Renamed to compose.int.yaml following modern Docker Compose naming conventions
+- compose.production.yaml - Renamed to compose.prod.yaml following modern Docker Compose naming conventions
+- compose.testing.yaml - Renamed to compose.staging.yaml following modern Docker Compose naming conventions
+- docker-compose.test.yml - Deleted deprecated test configuration file superseded by dedicated e2e and integration test environments
 
