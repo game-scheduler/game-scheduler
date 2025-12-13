@@ -2,10 +2,10 @@
 // 
 // Architecture:
 // 1. Application telemetry (traces/metrics/logs) → OTLP Gateway → Tempo/Mimir/Loki
-// 2. Infrastructure metrics (PostgreSQL/Redis/RabbitMQ) → OTEL processors → OTLP Gateway → Mimir
-// 3. All metrics have service.name resource attribute for consistent filtering
+// 2. Infrastructure metrics (PostgreSQL/Redis/RabbitMQ) → Prometheus → OTEL batch → Mimir
+// 3. Metrics identified by job and instance labels for filtering
 //
-// Key Learning: All metrics routed through OTLP for unified resource attributes
+// Key Learning: Infrastructure metrics routed through OTLP batch processor for efficiency
 
 // ========================================
 // Logging Configuration
@@ -15,7 +15,18 @@
 logging {
   level    = coalesce(env("ALLOY_LOG_LEVEL"), "info")
   format   = "json"
-  write_to = [loki.write.grafana_cloud_loki.receiver]
+  write_to = [loki.process.alloy_logs.receiver]
+}
+
+loki.process "alloy_logs" {
+  forward_to = [loki.write.grafana_cloud_loki.receiver]
+  
+  stage.static_labels {
+    values = {
+      service     = "grafana-alloy",
+      environment = coalesce(env("ENVIRONMENT"), "production"),
+    }
+  }
 }
 
 loki.write "grafana_cloud_loki" {
@@ -45,11 +56,31 @@ discovery.docker "containers" {
 loki.source.docker "containers" {
   host             = "unix:///var/run/docker.sock"
   targets          = discovery.docker.containers.targets
-  forward_to       = [loki.process.add_static_labels.receiver]
+  forward_to       = [loki.process.add_container_labels.receiver]
   refresh_interval = "5s"
+  relabel_rules    = discovery.relabel.docker_labels.rules
 }
 
-loki.process "add_static_labels" {
+discovery.relabel "docker_labels" {
+  targets = []
+  
+  rule {
+    source_labels = ["__meta_docker_container_label_service"]
+    target_label  = "service"
+  }
+  
+  rule {
+    source_labels = ["__meta_docker_container_label_environment"]
+    target_label  = "environment"
+  }
+  
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label  = "container"
+  }
+}
+
+loki.process "add_container_labels" {
   forward_to = [loki.write.grafana_cloud_loki.receiver]
   
   stage.docker {}
@@ -157,18 +188,6 @@ prometheus.scrape "integrations_postgres_exporter" {
 
 otelcol.receiver.prometheus "postgres_metrics" {
   output {
-    metrics = [otelcol.processor.resource.add_service_name_postgres.input]
-  }
-}
-
-otelcol.processor.resource "add_service_name_postgres" {
-  attributes {
-    insert {
-      key   = "service.name"
-      value = "postgres"
-    }
-  }
-  output {
     metrics = [otelcol.processor.batch.default.input]
   }
 }
@@ -192,18 +211,6 @@ prometheus.scrape "integrations_redis_exporter" {
 
 otelcol.receiver.prometheus "redis_metrics" {
   output {
-    metrics = [otelcol.processor.resource.add_service_name_redis.input]
-  }
-}
-
-otelcol.processor.resource "add_service_name_redis" {
-  attributes {
-    insert {
-      key   = "service.name"
-      value = "redis"
-    }
-  }
-  output {
     metrics = [otelcol.processor.batch.default.input]
   }
 }
@@ -226,18 +233,6 @@ prometheus.scrape "integrations_rabbitmq" {
 
 otelcol.receiver.prometheus "rabbitmq_metrics" {
   output {
-    metrics = [otelcol.processor.resource.add_service_name_rabbitmq.input]
-  }
-}
-
-otelcol.processor.resource "add_service_name_rabbitmq" {
-  attributes {
-    insert {
-      key   = "service.name"
-      value = "rabbitmq"
-    }
-  }
-  output {
     metrics = [otelcol.processor.batch.default.input]
   }
 }
@@ -259,7 +254,19 @@ prometheus.scrape "alloy_self" {
 
 otelcol.receiver.prometheus "alloy_metrics" {
   output {
-    metrics = [otelcol.exporter.otlphttp.grafana_cloud_otlp.input]
+    metrics = [otelcol.processor.attributes.alloy_metrics.input]
+  }
+}
+
+otelcol.processor.attributes "alloy_metrics" {
+  action {
+    key    = "service.name"
+    value  = "grafana-alloy"
+    action = "insert"
+  }
+  
+  output {
+    metrics = [otelcol.processor.batch.default.input]
   }
 }
 
@@ -269,7 +276,19 @@ otelcol.receiver.prometheus "alloy_metrics" {
 // Export Alloy's internal traces for operational visibility
 tracing {
   sampling_fraction = 1.0
-  write_to          = [otelcol.exporter.otlphttp.grafana_cloud_otlp.input]
+  write_to          = [otelcol.processor.attributes.alloy_traces.input]
+}
+
+otelcol.processor.attributes "alloy_traces" {
+  action {
+    key    = "service.name"
+    value  = "grafana-alloy"
+    action = "insert"
+  }
+  
+  output {
+    traces = [otelcol.processor.batch.default.input]
+  }
 }
 
 // ========================================
