@@ -50,7 +50,7 @@ def upgrade() -> None:
         """
         INSERT INTO game_status_schedule (id, game_id, target_status, transition_time, executed)
         SELECT
-            gen_random_uuid(),
+            gen_random_uuid()::text,
             gs.id,
             'COMPLETED',
             gs.scheduled_at + INTERVAL '1 minute' * COALESCE(gs.expected_duration_minutes, 60),
