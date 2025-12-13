@@ -345,106 +345,788 @@ return format_game_announcement(
 
 *Note: User may have more issues to document. This research file will be updated as additional issues are identified.*
 
-### Issue 5: Missing Game Completion Transition for Games Without Duration
+### Issue 5: Unused Environment Variables
 
-**Problem**: Games transition from SCHEDULED → IN_PROGRESS at the scheduled time, but there's no automatic transition to COMPLETED status for games that don't have an `expected_duration_minutes` set. These games remain in IN_PROGRESS status indefinitely.
+**Problem**: Several environment variables are defined in `.env.example` and `env/` files but are not actually used by any application code or Docker configurations, creating maintenance burden and confusion.
 
 **Impact**:
-- Games without duration stay IN_PROGRESS forever unless manually marked complete
-- Historical game data inaccurate (games appear ongoing when they ended)
+- Confusion about which environment variables are actually required
+- Maintenance overhead keeping unused variables in sync across files
+- Potential security concerns if sensitive unused values are left in files
+- Larger environment files with unnecessary documentation
+
+**Identified Unused Variables**:
+
+1. **`DISCORD_REDIRECT_URI`**:
+   - Defined in: `.env.example`, `env/env.dev`, `env/env.prod`, all environment files
+   - Passed to bot service in: `compose.yaml` (`DISCORD_REDIRECT_URI: ${DISCORD_REDIRECT_URI:-}`)
+   - Used in code: **NO** - No Python code references this variable
+   - OAuth redirect URI is constructed by API service using `API_URL` instead
+   - Previous research (`20251130-oauth-redirect-uri-configuration-research.md`) confirmed it's unused
+   - **Status**: UNUSED - Safe to remove from all locations
+
+2. **`API_HOST`**:
+   - Defined in: `.env.example`, `env/env.dev`, `env/env.prod`
+   - Used in code: `services/api/config.py` loads `API_HOST` environment variable
+   - Used in production: `services/api/main.py` passes to `uvicorn.Config(host=config.api_host)`
+   - Used in development: `compose.override.yaml` hardcodes `--host 0.0.0.0` in command override
+   - **Status**: USED IN PRODUCTION - Used when running via `python -m services.api.main`
+   - **Action**: KEEP - Required for production uvicorn startup
+
+3. **`API_PORT`**:
+   - Defined in: `.env.example`, `env/env.dev`, `env/env.prod`
+   - Used in code: `services/api/config.py` loads `API_PORT` environment variable
+   - Used in production: `services/api/main.py` passes to `uvicorn.Config(port=config.api_port)`
+   - Used in development: `compose.override.yaml` hardcodes `--port 8000` in command override
+   - **Status**: USED IN PRODUCTION - Used when running via `python -m services.api.main`
+   - **Action**: KEEP - Required for production uvicorn startup
+
+4. **`POSTGRES_LOG_LEVEL`**:
+   - Defined in: `.env.example`, `env/env.dev`, `env/env.prod`
+   - Used in compose: `compose.yaml` postgres service command uses `${POSTGRES_LOG_LEVEL:-info}`
+   - **Status**: USED - PostgreSQL container startup uses this for logging configuration
+   - **Action**: KEEP
+
+5. **`RABBITMQ_LOG_LEVEL`**:
+   - Defined in: `.env.example`, `env/env.dev`, `env/env.prod`
+   - Used in compose: `compose.yaml` rabbitmq service uses `${RABBITMQ_LOG_LEVEL:-info}`
+   - **Status**: USED - RabbitMQ container startup uses this for logging configuration
+   - **Action**: KEEP
+
+6. **`REDIS_LOG_LEVEL`**:
+   - Defined in: `.env.example`, `env/env.dev`, `env/env.prod`
+   - Used in compose: `compose.yaml` redis service command uses `${REDIS_LOG_LEVEL:-notice}`
+   - **Status**: USED - Redis container startup uses this for logging configuration
+   - **Action**: KEEP
+
+7. **`NGINX_LOG_LEVEL`**:
+   - Defined in: `.env.example`, `env/env.dev`, `env/env.prod`
+   - Used in compose: `compose.yaml` frontend service environment passes `NGINX_LOG_LEVEL`
+   - Used in entrypoint: `docker/frontend-entrypoint.sh` substitutes into nginx config
+   - Used in config: `docker/frontend-nginx.conf` uses `${NGINX_LOG_LEVEL}`
+   - **Status**: USED - Nginx logging configuration uses this at runtime
+   - **Action**: KEEP
+
+**Analysis Summary**:
+
+**Variables to REMOVE**:
+- `DISCORD_REDIRECT_URI` - Completely unused, OAuth redirect URI constructed from API_URL instead
+
+**Variables to KEEP** (actively used):
+- `API_HOST` - Used by production API startup (services/api/main.py via uvicorn.Config)
+- `API_PORT` - Used by production API startup (services/api/main.py via uvicorn.Config)
+- `POSTGRES_LOG_LEVEL` - PostgreSQL logging configuration
+- `RABBITMQ_LOG_LEVEL` - RabbitMQ logging configuration
+- `REDIS_LOG_LEVEL` - Redis logging configuration
+- `NGINX_LOG_LEVEL` - Nginx logging configuration
+- `API_URL` - Frontend runtime configuration for API endpoint
+- `FRONTEND_URL` - API CORS configuration
+
+**Note on API_HOST and API_PORT**:
+- Development override (`compose.override.yaml`) hardcodes uvicorn command with `--host 0.0.0.0 --port 8000`
+- Production container uses `python -m services.api.main` which reads from config
+- Tests verify these values are used correctly in uvicorn.Config
+- These variables ARE used, just not in development mode
+
+**Files Affected**:
+- `.env.example` - Remove `DISCORD_REDIRECT_URI`
+- `env/env.dev` - Remove `DISCORD_REDIRECT_URI`
+- `env/env.prod` - Remove `DISCORD_REDIRECT_URI`
+- `env/env.staging` - Remove `DISCORD_REDIRECT_URI`
+- `env/env.int` - Remove `DISCORD_REDIRECT_URI`
+- `env/env.e2e` - Remove `DISCORD_REDIRECT_URI`
+- `compose.yaml` - Remove `DISCORD_REDIRECT_URI` from bot service environment section
+- `DEPLOYMENT_QUICKSTART.md` - Remove reference to `DISCORD_REDIRECT_URI`
+
+**Verification Needed**:
+- Verify OAuth flow works without `DISCORD_REDIRECT_URI` environment variable (already confirmed in `20251130-oauth-redirect-uri-configuration-research.md`)
+- Test bot service starts correctly without the unused environment variable
+
+**Implementation Approach**:
+1. Remove `DISCORD_REDIRECT_URI` from all environment files (`.env.example`, `env/env.*`)
+2. Remove `DISCORD_REDIRECT_URI: ${DISCORD_REDIRECT_URI:-}` from bot service in `compose.yaml`
+3. Remove documentation reference in `DEPLOYMENT_QUICKSTART.md`
+4. Run OAuth flow test to confirm functionality unchanged
+5. Verify all services start correctly in development and production modes
+
+### Issue 6: Missing Game Completion Status Schedule Entries
+
+**Problem**: The system only creates ONE `game_status_schedule` entry per game (SCHEDULED → IN_PROGRESS). It never creates a SECOND entry for the IN_PROGRESS → COMPLETED transition. This means NO games automatically transition to COMPLETED status, regardless of whether they have `expected_duration_minutes` set.
+
+**Impact**:
+- ALL games stay IN_PROGRESS forever (no automatic completion for any game)
+- Historical game data completely inaccurate (all past games appear ongoing)
 - Discord messages never update to show COMPLETED status
-- Game lists cluttered with old "in progress" games
-- No clear indication when game actually finished
+- Game lists cluttered with hundreds of "in progress" games
+- No game completion notifications are ever sent
+- Database query confirmed: All games only have `target_status=IN_PROGRESS` schedule entries
+
+**Current Behavior** (Verified via database inspection):
+```sql
+SELECT gs.id, gs.title, gs.status, gs.expected_duration_minutes, 
+       gss.target_status, gss.transition_time, gss.executed 
+FROM game_sessions gs 
+LEFT JOIN game_status_schedule gss ON gs.id = gss.game_id;
+
+-- Result: ALL games only have ONE schedule entry with target_status='IN_PROGRESS'
+-- NO games have a second entry with target_status='COMPLETED'
+```
+
+```python
+# services/api/services/games.py - create_game() method (lines 240-249)
+# Only creates SCHEDULED → IN_PROGRESS transition
+if game.status == game_model.GameStatus.SCHEDULED.value:
+    status_schedule = game_status_schedule_model.GameStatusSchedule(
+        id=str(uuid.uuid4()),
+        game_id=game.id,
+        target_status=game_model.GameStatus.IN_PROGRESS.value,  # ← Only IN_PROGRESS!
+        transition_time=game.scheduled_at,
+        executed=False,
+    )
+    self.db.add(status_schedule)
+    # MISSING: No code to create COMPLETED transition schedule!
+```
+
+**Root Cause Analysis**:
+1. `create_game()` creates single schedule entry: `target_status=IN_PROGRESS`, `transition_time=scheduled_at`
+2. At scheduled time: Status transition daemon processes entry, game transitions to IN_PROGRESS
+3. **No code exists** to create a second schedule entry for COMPLETED transition
+4. Game stays IN_PROGRESS forever
+5. No completion notification ever created in database
+
+**Game Creation Flow** (Actual):
+1. User creates game with `scheduled_at` and optional `expected_duration_minutes`
+2. **One** `game_status_schedule` entry created: `target_status=IN_PROGRESS`
+3. At scheduled time: Game transitions to IN_PROGRESS
+4. **Zero** further status transitions scheduled
+5. Game remains IN_PROGRESS indefinitely (verified in production database)
+
+**Desired Behavior**:
+- System should create TWO status schedule entries at game creation
+- First entry: SCHEDULED → IN_PROGRESS at `scheduled_at` time
+- Second entry: IN_PROGRESS → COMPLETED at `scheduled_at + expected_duration_minutes`
+- Games with `expected_duration_minutes=NULL` should use default duration (e.g., 60 minutes)
+- Both status transitions should trigger Discord message updates
+
+**Implementation Solution**:
+
+**Primary Fix: Create COMPLETED Schedule Entry at Game Creation**
+```python
+# services/api/services/games.py - Modify create_game() method (after line 249)
+# After creating IN_PROGRESS schedule, also create COMPLETED schedule
+
+# Populate status transition schedule for SCHEDULED games
+if game.status == game_model.GameStatus.SCHEDULED.value:
+    # Create IN_PROGRESS transition (existing code)
+    status_schedule = game_status_schedule_model.GameStatusSchedule(
+        id=str(uuid.uuid4()),
+        game_id=game.id,
+        target_status=game_model.GameStatus.IN_PROGRESS.value,
+        transition_time=game.scheduled_at,
+        executed=False,
+    )
+    self.db.add(status_schedule)
+    
+    # NEW: Create COMPLETED transition
+    DEFAULT_GAME_DURATION_MINUTES = 60  # Default to 1 hour
+    duration_minutes = expected_duration_minutes or DEFAULT_GAME_DURATION_MINUTES
+    completion_time = game.scheduled_at + timedelta(minutes=duration_minutes)
+    
+    completion_schedule = game_status_schedule_model.GameStatusSchedule(
+        id=str(uuid.uuid4()),
+        game_id=game.id,
+        target_status=game_model.GameStatus.COMPLETED.value,
+        transition_time=completion_time,
+        executed=False,
+    )
+    self.db.add(completion_schedule)
+```
+
+**Secondary Fix: Update Schedule Logic in update_game() Method**
+```python
+# services/api/services/games.py - Modify update_game() method (around lines 556-591)
+# Currently only handles IN_PROGRESS schedule, needs to handle COMPLETED schedule too
+
+if status_schedule_needs_update:
+    # Get ALL existing status schedules
+    status_schedule_result = await self.db.execute(
+        select(game_status_schedule_model.GameStatusSchedule).where(
+            game_status_schedule_model.GameStatusSchedule.game_id == game.id
+        )
+    )
+    status_schedules = status_schedule_result.scalars().all()
+    
+    if game.status == game_model.GameStatus.SCHEDULED.value:
+        # Find or create IN_PROGRESS schedule
+        in_progress_schedule = next(
+            (s for s in status_schedules if s.target_status == "IN_PROGRESS"), None
+        )
+        if in_progress_schedule:
+            in_progress_schedule.transition_time = game.scheduled_at
+            in_progress_schedule.executed = False
+        else:
+            # Create new IN_PROGRESS schedule (existing code)
+            ...
+        
+        # Find or create COMPLETED schedule
+        completed_schedule = next(
+            (s for s in status_schedules if s.target_status == "COMPLETED"), None
+        )
+        DEFAULT_GAME_DURATION_MINUTES = 60
+        duration_minutes = game.expected_duration_minutes or DEFAULT_GAME_DURATION_MINUTES
+        completion_time = game.scheduled_at + timedelta(minutes=duration_minutes)
+        
+        if completed_schedule:
+            completed_schedule.transition_time = completion_time
+            completed_schedule.executed = False
+        else:
+            # Create new COMPLETED schedule
+            ...
+    else:
+        # Game not SCHEDULED - delete all schedules
+        for schedule in status_schedules:
+            await self.db.delete(schedule)
+```
+
+**Files Requiring Changes**:
+1. **`services/api/services/games.py`**:
+   - `create_game()` method (line ~240-249): Add COMPLETED schedule creation
+   - `update_game()` method (line ~556-591): Handle both IN_PROGRESS and COMPLETED schedules
+   
+2. **Configuration** (new constant):
+   - Add `DEFAULT_GAME_DURATION_MINUTES = 60` constant
+   - Could be in `shared/models/game.py` or separate config file
+
+3. **Database Migration** (cleanup existing data):
+   - Create migration to add missing COMPLETED schedules to existing IN_PROGRESS games
+   - Calculate completion time as `scheduled_at + expected_duration_minutes` (or default)
+
+**Testing Requirements**:
+- Test game creation creates TWO schedule entries
+- Test games with explicit `expected_duration_minutes` use that value
+- Test games without duration use default (60 minutes)
+- Test update_game() maintains both schedule entries correctly
+- Test status transition daemon processes COMPLETED transitions
+- Test Discord messages update when game reaches COMPLETED status
+- Test that completion notifications are created and sent
+
+**Migration Strategy for Existing Games**:
+```sql
+-- Find all IN_PROGRESS games without COMPLETED schedule
+INSERT INTO game_status_schedule (id, game_id, target_status, transition_time, executed)
+SELECT 
+    gen_random_uuid(),
+    gs.id,
+    'COMPLETED',
+    gs.scheduled_at + INTERVAL '60 minutes',  -- Default duration
+    FALSE
+FROM game_sessions gs
+WHERE gs.status = 'IN_PROGRESS'
+AND NOT EXISTS (
+    SELECT 1 FROM game_status_schedule gss 
+    WHERE gss.game_id = gs.id AND gss.target_status = 'COMPLETED'
+);
+```
+
+### Issue 7: Init Service Has No Observability
+
+**Problem**: The init service (`scripts/init_rabbitmq.py` and `docker/init-entrypoint.sh`) does not initialize OpenTelemetry instrumentation, so it produces no traces or logs to the observability stack.
+
+**Impact**:
+- No visibility into init service execution in Grafana Cloud
+- Cannot trace database migrations or RabbitMQ initialization failures
+- Difficult to debug deployment issues during initialization phase
+- No metrics for init service duration or success/failure rates
+- Init process is "black box" with only console output
 
 **Current Behavior**:
 ```python
-# Status transition lifecycle (from services/scheduler/utils/status_transitions.py)
-def get_next_status(current_status: str) -> str | None:
-    if current_status == GameStatus.SCHEDULED:
-        return GameStatus.IN_PROGRESS  # ✓ Happens at scheduled_at time
-    elif current_status == GameStatus.IN_PROGRESS:
-        return GameStatus.COMPLETED    # ✗ Only if expected_duration_minutes set
-    return None
+# scripts/init_rabbitmq.py - No telemetry initialization
+def main() -> None:
+    """Main initialization entry point."""
+    print("=== RabbitMQ Infrastructure Initialization ===")
+    # ... initialization logic ...
+    # No init_telemetry() call
+    # No OpenTelemetry spans or metrics
+```
 
-# Game model (shared/models/game.py)
-expected_duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
-
-# Status schedule creation (services/api/services/games.py)
-# Creates transition to IN_PROGRESS at scheduled_at time
-# Creates transition to COMPLETED at scheduled_at + expected_duration_minutes
-# BUT: If expected_duration_minutes is None, no COMPLETED transition scheduled
+```bash
+# docker/init-entrypoint.sh - No telemetry
+echo "Running database migrations..."
+alembic upgrade head
+echo "✓ Migrations complete"
+# No tracing or observability
 ```
 
 **Analysis**:
-- `expected_duration_minutes` field is optional (nullable)
-- Status transition daemon creates COMPLETED schedule only when duration exists
-- Games without duration never get a COMPLETED transition scheduled
-- Two status transitions exist: SCHEDULED → IN_PROGRESS, IN_PROGRESS → COMPLETED
-- First transition always happens, second only if duration specified
-
-**Game Creation Flow**:
-1. User creates game with `scheduled_at` but no `expected_duration_minutes`
-2. `game_status_schedule` entry created: `transition_time = scheduled_at`, `target_status = IN_PROGRESS`
-3. At scheduled time: daemon transitions game to IN_PROGRESS
-4. No further status transitions scheduled
-5. Game remains IN_PROGRESS indefinitely
+- All other services initialize telemetry:
+  - `services/api/app.py`: `init_telemetry("api-service")`
+  - `services/bot/main.py`: `init_telemetry("bot-service")`
+  - `services/scheduler/notification_daemon_wrapper.py`: `init_telemetry("notification-daemon")`
+  - `services/scheduler/status_transition_daemon_wrapper.py`: `init_telemetry("status-transition-daemon")`
+  - `services/retry/retry_daemon_wrapper.py`: `init_telemetry("retry-daemon")`
+- Init service runs critical startup tasks:
+  - Database migrations via `alembic upgrade head`
+  - RabbitMQ infrastructure setup (exchanges, queues, bindings)
+  - Schema verification
+- Init service is short-lived (runs once at startup), but still valuable to trace
+- Init failures block entire application startup
 
 **Desired Behavior**:
-- Games without `expected_duration_minutes` should still transition to COMPLETED
-- Use a default duration (e.g., 60 minutes) for games without explicit duration
-- Alternative: Require duration to be set during game creation (prevent None)
-- Alternative: Allow manual "Mark Complete" action but also have automatic fallback
-- Completion transition should happen even for games without explicit end time
+- Init service should initialize OpenTelemetry with service name `"init-service"`
+- Database migration steps should be traced with spans
+- RabbitMQ infrastructure creation should be traced
+- Console output should continue (for Docker logs) but also send to observability
+- Init service duration and success metrics should be recorded
 
-**Implementation Options**:
-
-**Option 1: Default Duration (Recommended)**
+**Implementation Approach**:
 ```python
-# When creating status schedule, use default if no duration specified
-DEFAULT_GAME_DURATION_MINUTES = 60  # 1 hour default
+# scripts/init_rabbitmq.py - Add telemetry initialization
+import logging
+from shared.telemetry import init_telemetry
+from opentelemetry import trace
 
-if game.expected_duration_minutes:
-    completion_time = game.scheduled_at + timedelta(minutes=game.expected_duration_minutes)
-else:
-    completion_time = game.scheduled_at + timedelta(minutes=DEFAULT_GAME_DURATION_MINUTES)
-
-# Create COMPLETED transition schedule
-status_schedule = GameStatusSchedule(
-    game_id=game.id,
-    target_status=GameStatus.COMPLETED.value,
-    transition_time=completion_time,
-    executed=False,
-)
+def main() -> None:
+    """Main initialization entry point."""
+    # Initialize telemetry first
+    init_telemetry("init-service")
+    
+    tracer = trace.get_tracer(__name__)
+    
+    print("=== RabbitMQ Infrastructure Initialization ===")
+    
+    with tracer.start_as_current_span("init.rabbitmq") as span:
+        rabbitmq_url = os.getenv("RABBITMQ_URL")
+        if not rabbitmq_url:
+            span.set_status(trace.Status(trace.StatusCode.ERROR, "RABBITMQ_URL not set"))
+            print("✗ RABBITMQ_URL environment variable not set")
+            sys.exit(1)
+        
+        print("Waiting for RabbitMQ...")
+        wait_for_rabbitmq(rabbitmq_url)
+        
+        print("Creating RabbitMQ infrastructure...")
+        try:
+            create_infrastructure(rabbitmq_url)
+            span.set_status(trace.Status(trace.StatusCode.OK))
+            print("✓ RabbitMQ infrastructure initialized successfully")
+        except Exception as e:
+            span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+            span.record_exception(e)
+            print(f"✗ Failed to initialize RabbitMQ infrastructure: {e}")
+            sys.exit(1)
 ```
 
-**Option 2: Require Duration at Creation**
-```python
-# In game creation validation
-if not game_data.expected_duration_minutes:
-    raise ValueError("expected_duration_minutes is required")
+```bash
+# docker/init-entrypoint.sh - Add telemetry for migrations
+echo "Running database migrations..."
+# Wrap alembic command with telemetry span
+PYTHONPATH=/app python3 -c "
+from shared.telemetry import init_telemetry
+from opentelemetry import trace
+import subprocess
+import sys
+
+init_telemetry('init-service')
+tracer = trace.get_tracer(__name__)
+
+with tracer.start_as_current_span('init.database_migration') as span:
+    result = subprocess.run(['alembic', 'upgrade', 'head'], capture_output=True)
+    if result.returncode != 0:
+        span.set_status(trace.Status(trace.StatusCode.ERROR, 'Migration failed'))
+        span.record_exception(Exception(result.stderr.decode()))
+        sys.exit(result.returncode)
+    span.set_status(trace.Status(trace.StatusCode.OK))
+"
+echo "✓ Migrations complete"
 ```
-
-**Option 3: Prompt for Completion**
-- Send notification to host after default duration
-- Message: "Is [Game Title] complete? React to mark as done or specify additional time"
-- Requires Discord interaction handling
-
-**Recommendation**: Option 1 (Default Duration)
-- Least disruptive to users
-- Games naturally progress through full lifecycle
-- Host can still manually override if needed
-- Sensible default (1 hour) covers most casual games
-- Easy to implement in existing status transition logic
 
 **Files Affected**:
-- `services/api/services/games.py` - `create_game()` and `update_game()` methods
-- `services/api/services/games.py` - Status schedule creation logic
-- Configuration/constants file - Add `DEFAULT_GAME_DURATION_MINUTES = 60`
-- Frontend - Display default duration in UI when not specified
-- Documentation - Explain default completion behavior
+- `scripts/init_rabbitmq.py` - Add `init_telemetry()` call and span wrapping
+- `docker/init-entrypoint.sh` - Add telemetry wrapper for alembic migrations
+- `docker/init.Dockerfile` - Ensure OpenTelemetry packages installed (likely already via shared dependencies)
 
-**Additional Considerations**:
-- Should host receive notification when game auto-completes?
-- Should completion notification differentiate between explicit duration vs default?
-- Should default duration be configurable per guild/channel?
-- What about very long games (all-day events, multi-session campaigns)?
+**Benefits**:
+- Complete observability across all application services
+- Trace init failures to specific step (migrations vs RabbitMQ setup)
+- Monitor init service duration trends over time
+- Correlate init issues with downstream service startup problems
+- Visibility into cold-start behavior during deployments
+
+### Issue 8: Infrastructure Metrics Missing service.name and Logs Not Collected
+
+**Problem**: Infrastructure services (postgres, rabbitmq, redis) send metrics to Grafana Cloud but without `service.name` attributes, and their logs are not collected at all. Docker logs also have no rotation limits.
+
+**Impact**:
+- Infrastructure metrics lack `service.name` resource attribute (only have `job` and `instance` labels)
+- Cannot filter/group infrastructure metrics by service in Grafana dashboards
+- Inconsistent with application services which all have `service.name` from OpenTelemetry
+- No centralized log aggregation for infrastructure services
+- Docker logs grow unbounded, consuming disk space indefinitely
+- Difficult to correlate infrastructure issues with application telemetry
+
+**Current Behavior**:
+```alloy
+// grafana-alloy/config.alloy - Infrastructure metrics bypass OTEL processing
+prometheus.scrape "integrations_postgres_exporter" {
+  targets         = discovery.relabel.integrations_postgres_exporter.output
+  forward_to      = [prometheus.remote_write.grafana_cloud_mimir.receiver]  // Direct to Mimir
+  // No OTEL processor - no service.name attribute added
+}
+
+prometheus.scrape "integrations_rabbitmq" {
+  targets = [{
+    __address__ = "rabbitmq:15692",
+    job         = "integrations/rabbitmq",
+    instance    = "rabbitmq",
+  }]
+  forward_to = [prometheus.remote_write.grafana_cloud_mimir.receiver]  // Direct to Mimir
+  // Only job and instance labels, no service.name
+}
+```
+
+```bash
+# Docker logs have no rotation limits
+$ docker inspect gamebot-postgres | grep -A 5 "LogConfig"
+"LogConfig": {
+    "Type": "json-file",
+    "Config": {}  # No max-size, max-file, or other limits
+}
+```
+
+```yaml
+# compose.yaml - No logging configuration for infrastructure services
+services:
+  postgres:
+    image: postgres:17-alpine
+    # ... no logging: section
+    
+  rabbitmq:
+    image: rabbitmq:4.2-management-alpine
+    # ... no logging: section
+    
+  redis:
+    image: redis:7.4-alpine
+    # ... no logging: section
+    
+  grafana-alloy:
+    image: grafana/alloy:latest
+    # ... no logging: section
+```
+
+**Analysis**:
+- Infrastructure metrics currently go: Prometheus scraper → Direct to Mimir (bypasses OTEL)
+- Application metrics go: OTEL SDK → OTLP receiver → Batch processor → Mimir (with service.name)
+- Alloy self-monitoring goes: Prometheus → `otelcol.receiver.prometheus` → OTLP exporter (gets service.name)
+- Infrastructure services need to route through OTEL processor to get resource attributes
+- Docker logs have no rotation → unbounded disk growth on long-running deployments
+- Infrastructure logs contain critical debugging information but aren't centralized:
+  - PostgreSQL: query logs, connection errors, replication issues
+  - RabbitMQ: queue depths, message delivery failures, connection tracking
+  - Redis: cache hit/miss rates, memory usage, eviction events
+  - Grafana Alloy: pipeline processing, scrape errors, delivery failures
+
+**Desired Behavior**:
+1. **OTEL Resource Attributes**: Infrastructure metrics should have `service.name` attribute
+2. **Docker Log Rotation**: All services should have max-size and max-file limits
+3. **Log Aggregation**: Infrastructure logs should be collected and sent to Grafana Cloud
+4. **Unified Observability**: Consistent resource attributes across all services
+
+**Implementation Solutions**:
+
+**Solution 1: Add service.name to Infrastructure Metrics via OTEL Processor**
+```alloy
+// grafana-alloy/config.alloy - Route infrastructure metrics through OTEL
+
+// Convert Prometheus metrics to OTEL format with resource attributes
+otelcol.receiver.prometheus "postgres_metrics" {
+  output {
+    metrics = [otelcol.processor.resource.add_service_name_postgres.input]
+  }
+}
+
+otelcol.processor.resource "add_service_name_postgres" {
+  attributes {
+    insert {
+      key   = "service.name"
+      value = "postgres"
+    }
+  }
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
+// Update postgres scrape to send to OTEL instead of direct Mimir
+prometheus.scrape "integrations_postgres_exporter" {
+  targets         = discovery.relabel.integrations_postgres_exporter.output
+  forward_to      = [otelcol.receiver.prometheus.postgres_metrics.receiver]  // Changed!
+  job_name        = "integrations/postgres_exporter"
+  scrape_interval = "60s"
+}
+
+// Similar for redis and rabbitmq...
+```
+
+**Solution 2: Docker Logging Driver with Rotation (Immediate Fix)**
+```yaml
+# compose.yaml - Add to all services
+services:
+  postgres:
+    image: postgres:17-alpine
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,environment"
+    labels:
+      service: "postgres"
+      environment: "${ENVIRONMENT:-production}"
+```
+
+**Solution 3: Grafana Alloy Docker Log Collection**
+```yaml
+# grafana-alloy/config.alloy - Add Docker log collection
+loki.source.docker "infrastructure_logs" {
+  host = "unix:///var/run/docker.sock"
+  targets = [
+    {
+      __meta_docker_container_name = "gamebot-postgres",
+      job = "postgres",
+    },
+    {
+      __meta_docker_container_name = "gamebot-rabbitmq",
+      job = "rabbitmq",
+    },
+    {
+      __meta_docker_container_name = "gamebot-redis",
+      job = "redis",
+    },
+  ]
+  forward_to = [loki.write.grafana_cloud.receiver]
+  relabel_rules = loki.relabel.docker_logs.rules
+}
+
+loki.relabel "docker_logs" {
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label  = "container"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_service"]
+    target_label  = "service"
+  }
+}
+```
+
+```yaml
+# compose.yaml - Mount Docker socket for Alloy
+  grafana-alloy:
+    image: grafana/alloy:latest
+    volumes:
+      - ./grafana-alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # NEW
+```
+
+**Recommendation: Phased Approach**
+1. **Phase 1**: Add service.name to infrastructure metrics (Solution 1) - improves filtering/grouping
+2. **Phase 2**: Add Docker log rotation to all services (Solution 2) - prevents disk exhaustion
+3. **Phase 3**: Configure Grafana Alloy to collect Docker logs (Solution 3) - centralizes logs
+
+**Detailed Implementation**:
+
+**Phase 1: Add service.name to Infrastructure Metrics**
+```alloy
+// grafana-alloy/config.alloy - Add OTEL processors for each infrastructure service
+
+// PostgreSQL metrics with service.name
+otelcol.receiver.prometheus "postgres_metrics" {
+  output {
+    metrics = [otelcol.processor.resource.add_service_name_postgres.input]
+  }
+}
+
+otelcol.processor.resource "add_service_name_postgres" {
+  attributes {
+    insert {
+      key   = "service.name"
+      value = "postgres"
+    }
+  }
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
+prometheus.scrape "integrations_postgres_exporter" {
+  targets         = discovery.relabel.integrations_postgres_exporter.output
+  forward_to      = [otelcol.receiver.prometheus.postgres_metrics.receiver]  // NEW: Route through OTEL
+  job_name        = "integrations/postgres_exporter"
+  scrape_interval = "60s"
+}
+
+// Redis metrics with service.name
+otelcol.receiver.prometheus "redis_metrics" {
+  output {
+    metrics = [otelcol.processor.resource.add_service_name_redis.input]
+  }
+}
+
+otelcol.processor.resource "add_service_name_redis" {
+  attributes {
+    insert {
+      key   = "service.name"
+      value = "redis"
+    }
+  }
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
+prometheus.scrape "integrations_redis_exporter" {
+  targets         = prometheus.exporter.redis.integrations_redis_exporter.targets
+  forward_to      = [otelcol.receiver.prometheus.redis_metrics.receiver]  // NEW: Route through OTEL
+  job_name        = "integrations/redis_exporter"
+  scrape_interval = "60s"
+}
+
+// RabbitMQ metrics with service.name
+otelcol.receiver.prometheus "rabbitmq_metrics" {
+  output {
+    metrics = [otelcol.processor.resource.add_service_name_rabbitmq.input]
+  }
+}
+
+otelcol.processor.resource "add_service_name_rabbitmq" {
+  attributes {
+    insert {
+      key   = "service.name"
+      value = "rabbitmq"
+    }
+  }
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
+prometheus.scrape "integrations_rabbitmq" {
+  targets = [{
+    __address__ = "rabbitmq:15692",
+    job         = "integrations/rabbitmq",
+    instance    = "rabbitmq",
+  }]
+  forward_to      = [otelcol.receiver.prometheus.rabbitmq_metrics.receiver]  // NEW: Route through OTEL
+  scrape_interval = "60s"
+}
+
+// Remove prometheus.remote_write since all metrics now go through OTLP
+// DELETE: prometheus.remote_write "grafana_cloud_mimir" { ... }
+```
+
+**Phase 2: Docker Log Rotation (Quick Win)**
+```yaml
+# Create x-logging-default YAML anchor in compose.yaml
+x-logging-default: &logging-default
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+    compress: "true"
+    labels: "service,environment"
+
+services:
+  postgres:
+    logging: *logging-default
+    labels:
+      service: "postgres"
+      environment: "${ENVIRONMENT:-production}"
+      
+  rabbitmq:
+    logging: *logging-default
+    labels:
+      service: "rabbitmq"
+      environment: "${ENVIRONMENT:-production}"
+      
+  redis:
+    logging: *logging-default
+    labels:
+      service: "redis"
+      environment: "${ENVIRONMENT:-production}"
+      
+  grafana-alloy:
+    logging: *logging-default
+    labels:
+      service: "grafana-alloy"
+      environment: "${ENVIRONMENT:-production}"
+```
+
+**Phase 3: Grafana Alloy Log Collection**
+```alloy
+// grafana-alloy/config.alloy - Add Docker log collection
+loki.source.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  targets          = discovery.docker.containers.targets
+  forward_to       = [loki.process.add_static_labels.receiver]
+  refresh_interval = "5s"
+}
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+  
+  filter {
+    name   = "label"
+    values = ["service"]  // Only collect containers with 'service' label
+  }
+}
+
+loki.process "add_static_labels" {
+  forward_to = [loki.write.grafana_cloud_loki.receiver]
+  
+  stage.docker {}  // Parse Docker JSON logs
+  
+  stage.labels {
+    values = {
+      service     = "",  // From Docker label
+      environment = "",  // From Docker label
+      container   = "",  // From Docker metadata
+    }
+  }
+}
+```
+
+```yaml
+# compose.yaml - Mount Docker socket for Alloy
+  grafana-alloy:
+    image: grafana/alloy:latest
+    volumes:
+      - ./grafana-alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    user: "${ALLOY_USER_ID:-0}"  // May need root for socket access
+```
+
+**Files Affected**:
+- `grafana-alloy/config.alloy` - Add OTEL resource processors and route metrics through OTLP
+- `compose.yaml` - Add logging configuration and labels to all services
+- `.env.example` - Document ENVIRONMENT variable for log labels
+- Documentation - Explain unified observability architecture
+
+**Testing Requirements**:
+- Verify infrastructure metrics have `service.name` attribute in Grafana Cloud
+- Test filtering metrics by service.name in Grafana dashboards
+- Verify log files rotate when size limit reached
+- Verify old log files are compressed
+- Test log collection in Grafana Alloy
+- Confirm infrastructure logs appear in Grafana Cloud Loki
+- Test log queries filtering by service label
+- Verify no disk space exhaustion after extended runtime
+
+**Benefits**:
+- **Consistent Resource Attributes**: All services (application + infrastructure) have `service.name`
+- **Improved Dashboards**: Can filter/group infrastructure metrics by service
+- **Prevents Disk Exhaustion**: Log rotation prevents unbounded disk usage
+- **Centralized Logs**: All logs (application + infrastructure) in Grafana Cloud
+- **Unified Observability**: Correlate infrastructure and application telemetry
+- **Searchable Infrastructure Logs**: Query PostgreSQL/RabbitMQ/Redis logs with LogQL
+- **Historical Analysis**: Track infrastructure behavior trends over time
