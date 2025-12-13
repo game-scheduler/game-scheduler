@@ -139,6 +139,15 @@ Remove unnecessary port mappings from Docker Compose configurations to minimize 
 - [x] Task 10.3: Configure Grafana Alloy to collect Docker logs
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 445-460)
 
+### [x] Phase 11: Fix Status Transition Handler Validation
+
+- [x] Task 11.1: Replace hardcoded SCHEDULED check with is_valid_transition()
+  - Import `is_valid_transition` from `services.scheduler.utils.status_transitions`
+  - Replace `if game.status != "SCHEDULED"` check with `is_valid_transition()` call
+  - Add idempotency check to skip if already at target status
+  - Update logging to show current → target status transitions
+  - **Completed**: Fixed handler to accept all valid lifecycle transitions (IN_PROGRESS → COMPLETED now works)
+
 ## Dependencies
 
 - Docker Compose with multi-file support (already in use)

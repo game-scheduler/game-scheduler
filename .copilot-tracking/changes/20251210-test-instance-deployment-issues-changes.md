@@ -255,6 +255,18 @@ None
 - Game hosts receive notification reminders
 - Notify roles trigger Discord pings correctly
 
+**Phase 11 Changes (Fix Status Transition Handler Validation)**:
+- services/bot/events/handlers.py - Added import of is_valid_transition from services.scheduler.utils.status_transitions
+- services/bot/events/handlers.py - Modified _handle_status_transition_due() to validate transitions using is_valid_transition() instead of hardcoded SCHEDULED check
+- services/bot/events/handlers.py - Added idempotency check to skip transitions if already at target status
+- services/bot/events/handlers.py - Updated logging to show current → target status transitions
+
+**Phase 11 Testing**:
+- Integration Tests: 37 tests passed, 13 warnings (deprecation warnings in external libraries, not project code)
+- Build Verification: Bot Docker image builds successfully
+- Code Quality: All lint checks pass (ruff check, ruff format), no VS Code errors
+- Functionality: Status transitions now work for full game lifecycle (SCHEDULED → IN_PROGRESS → COMPLETED)
+
 **Breaking Changes**:
 - Direct localhost access to infrastructure services no longer available
 - Use `docker exec` for debugging (documented in .env.example and DOCKER_PORTS.md)

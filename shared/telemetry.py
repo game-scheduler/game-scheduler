@@ -56,6 +56,13 @@ def init_telemetry(service_name: str) -> None:
     Args:
         service_name: Name of the service for telemetry identification
     """
+    # Skip telemetry initialization in test environment
+    # PYTEST_RUNNING is set in conftest.py before any imports
+    # PYTEST_CURRENT_TEST is set by pytest during test execution
+    if os.getenv("PYTEST_RUNNING") or os.getenv("PYTEST_CURRENT_TEST"):
+        logger.debug(f"Skipping telemetry initialization for {service_name} (test environment)")
+        return
+
     otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://grafana-alloy:4318")
     resource = Resource.create({"service.name": service_name})
 
@@ -121,6 +128,9 @@ def flush_telemetry() -> None:
     Call this before exiting short-lived processes to ensure all buffered
     traces, metrics, and logs are sent to the backend.
     """
+    if os.getenv("PYTEST_RUNNING") or os.getenv("PYTEST_CURRENT_TEST"):
+        return
+
     print("   ⏳ Flushing telemetry data...")
 
     # Flush traces

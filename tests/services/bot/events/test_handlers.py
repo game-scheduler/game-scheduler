@@ -478,13 +478,13 @@ async def test_handle_status_transition_due_game_not_found(event_handlers):
 async def test_handle_status_transition_due_already_transitioned(
     event_handlers, sample_game, sample_user
 ):
-    """Test status transition when game already transitioned."""
+    """Test status transition when game already at target status (idempotency)."""
     game_id = sample_game.id
     target_status = "COMPLETED"
 
     sample_game.host = sample_user
     sample_game.participants = []
-    sample_game.status = "IN_PROGRESS"
+    sample_game.status = "COMPLETED"  # Already at target status
 
     mock_channel_config = MagicMock()
     mock_channel_config.channel_id = "123456789"
@@ -511,7 +511,8 @@ async def test_handle_status_transition_due_already_transitioned(
                 }
                 await event_handlers._handle_status_transition_due(data)
 
-                assert sample_game.status == "IN_PROGRESS"
+                # Game should remain at COMPLETED, no commit or refresh
+                assert sample_game.status == "COMPLETED"
                 mock_db.commit.assert_not_awaited()
                 mock_refresh.assert_not_called()
 

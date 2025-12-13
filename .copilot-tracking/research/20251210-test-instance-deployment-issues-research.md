@@ -1130,3 +1130,146 @@ loki.process "add_static_labels" {
 - **Unified Observability**: Correlate infrastructure and application telemetry
 - **Searchable Infrastructure Logs**: Query PostgreSQL/RabbitMQ/Redis logs with LogQL
 - **Historical Analysis**: Track infrastructure behavior trends over time
+
+### Issue 9: Status Transition Handler Only Accepts SCHEDULED Status
+
+**Problem**: The bot's `_handle_status_transition_due()` method hardcodes a check for `game.status != "SCHEDULED"` and rejects all transitions from other statuses. This prevents the COMPLETED status transition from executing because the game is already IN_PROGRESS.
+
+**Impact**:
+- IN_PROGRESS → COMPLETED transitions are silently skipped
+- Games stay IN_PROGRESS forever even though COMPLETED schedule entry exists
+- Daemon correctly processes both schedule entries, but bot handler rejects the second one
+- Phase 8 code creates both schedule entries correctly, but only first one succeeds
+
+**Current Behavior**:
+```python
+# services/bot/events/handlers.py:603-608
+if game.status != "SCHEDULED":
+    logger.warning(
+        f"Game {game_id} status is {game.status}, expected SCHEDULED. "
+        f"Skipping transition to {transition_event.target_status}"
+    )
+    return
+```
+
+**What Actually Happens**:
+1. Status transition daemon reads first schedule entry (target_status=IN_PROGRESS, transition_time=scheduled_at)
+2. Daemon publishes `game.status_transition_due` event with target_status=IN_PROGRESS
+3. Bot handler receives event, checks `game.status == "SCHEDULED"` ✓, transitions to IN_PROGRESS ✓
+4. Daemon marks first entry as executed, queries for next entry
+5. Daemon reads second schedule entry (target_status=COMPLETED, transition_time=scheduled_at+duration)
+6. Daemon publishes `game.status_transition_due` event with target_status=COMPLETED
+7. Bot handler receives event, checks `game.status == "SCHEDULED"` ✗ (it's now IN_PROGRESS), SKIPS transition ✗
+8. Daemon marks second entry as executed anyway (already published)
+9. Game stays IN_PROGRESS forever
+
+**Root Cause Analysis**:
+- Handler was originally designed assuming only SCHEDULED → IN_PROGRESS transitions
+- Phase 8 added COMPLETED transitions but didn't update handler validation logic
+- Handler should validate transition is valid based on current status, not hardcode SCHEDULED check
+
+**Desired Behavior**:
+- Handler should accept any valid status transition according to game lifecycle rules
+- Use existing `is_valid_transition()` utility from `services/scheduler/utils/status_transitions.py`
+- Log current status and target status for debugging
+- Only reject truly invalid transitions (e.g., COMPLETED → SCHEDULED)
+
+**Valid Transitions** (from `status_transitions.py`):
+- SCHEDULED → IN_PROGRESS ✓
+- SCHEDULED → CANCELLED ✓
+- IN_PROGRESS → COMPLETED ✓ (currently broken)
+- IN_PROGRESS → CANCELLED ✓
+- COMPLETED → (none) ✓
+- CANCELLED → (none) ✓
+
+**Implementation Solution**:
+```python
+# services/bot/events/handlers.py - Fix _handle_status_transition_due method
+from shared.utils.status_transitions import is_valid_transition
+
+async def _handle_status_transition_due(self, data: dict[str, Any]) -> None:
+    """
+    Handle game.status_transition_due event by updating game status.
+
+    Transitions game status to target status if the transition is valid
+    according to game lifecycle rules.
+
+    Args:
+        data: Event payload with game_id, target_status, and transition_time
+    """
+    logger.info(f"=== Received game.status_transition_due event: {data} ===")
+
+    try:
+        transition_event = GameStatusTransitionDueEvent(**data)
+        logger.info(
+            f"Parsed status transition event: game_id={transition_event.game_id}, "
+            f"target_status={transition_event.target_status}"
+        )
+    except Exception as e:
+        logger.error(f"Invalid status transition event data: {e}", exc_info=True)
+        return
+
+    game_id = str(transition_event.game_id)
+
+    try:
+        async with get_db_session() as db:
+            game = await self._get_game_with_participants(db, game_id)
+            if not game:
+                logger.error(f"Game {game_id} not found for status transition")
+                return
+
+            # Validate transition is valid based on current status
+            if not is_valid_transition(game.status, transition_event.target_status):
+                logger.warning(
+                    f"Invalid status transition for game {game_id}: "
+                    f"{game.status} → {transition_event.target_status}. Skipping."
+                )
+                return
+
+            # Check if already at target status (idempotency)
+            if game.status == transition_event.target_status:
+                logger.info(
+                    f"Game {game_id} already at status {game.status}, skipping transition"
+                )
+                return
+
+            game.status = transition_event.target_status
+            # updated_at handled automatically by SQLAlchemy onupdate
+            await db.commit()
+
+            logger.info(
+                f"✓ Transitioned game {game_id} from {game.status} to "
+                f"{transition_event.target_status}"
+            )
+
+        # Refresh Discord message to reflect new status
+        await self._refresh_game_message(game_id)
+
+    except Exception as e:
+        logger.error(
+            f"Failed to handle status transition for game {game_id}: {e}",
+            exc_info=True,
+        )
+```
+
+**Files Affected**:
+- `services/bot/events/handlers.py` - Update `_handle_status_transition_due()` method
+  - Import `is_valid_transition` from `services.scheduler.utils.status_transitions`
+  - Replace hardcoded SCHEDULED check with `is_valid_transition()` call
+  - Add idempotency check (skip if already at target status)
+  - Update logging to show current → target status
+
+**Testing Requirements**:
+- Test SCHEDULED → IN_PROGRESS transition still works
+- Test IN_PROGRESS → COMPLETED transition now works
+- Test invalid transitions are rejected (e.g., COMPLETED → IN_PROGRESS)
+- Test idempotency: resending same transition event doesn't cause errors
+- Verify Discord message updates correctly for COMPLETED status
+- Check logs show proper transition flow: current → target status
+
+**Benefits**:
+- Games automatically transition to COMPLETED status as designed
+- Handler supports full game lifecycle (not just start transitions)
+- Clearer validation logic using existing utility function
+- Better error messages showing current and target status
+- Idempotent behavior prevents issues from duplicate events

@@ -18,7 +18,7 @@
 
 """Tests for game status transition validation."""
 
-from services.scheduler.utils.status_transitions import (
+from shared.utils.status_transitions import (
     GameStatus,
     get_next_status,
     is_valid_transition,

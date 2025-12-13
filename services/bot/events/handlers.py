@@ -39,6 +39,7 @@ from shared.models.game import GameSession
 from shared.models.participant import GameParticipant
 from shared.schemas.events import GameStatusTransitionDueEvent
 from shared.utils import participant_sorting
+from shared.utils.status_transitions import is_valid_transition
 
 logger = logging.getLogger(__name__)
 
@@ -573,8 +574,8 @@ class EventHandlers:
         """
         Handle game.status_transition_due event by updating game status.
 
-        Transitions game status from SCHEDULED to the target status and
-        refreshes the Discord message to reflect the change.
+        Transitions game status to target status if the transition is valid
+        according to game lifecycle rules.
 
         Args:
             data: Event payload with game_id, target_status, and transition_time
@@ -600,19 +601,28 @@ class EventHandlers:
                     logger.error(f"Game {game_id} not found for status transition")
                     return
 
-                if game.status != "SCHEDULED":
+                # Validate transition is valid based on current status
+                if not is_valid_transition(game.status, transition_event.target_status):
                     logger.warning(
-                        f"Game {game_id} status is {game.status}, expected SCHEDULED. "
-                        f"Skipping transition to {transition_event.target_status}"
+                        f"Invalid status transition for game {game_id}: "
+                        f"{game.status} → {transition_event.target_status}. Skipping."
                     )
                     return
 
+                # Check if already at target status (idempotency)
+                if game.status == transition_event.target_status:
+                    logger.info(
+                        f"Game {game_id} already at status {game.status}, skipping transition"
+                    )
+                    return
+
+                current_status = game.status
                 game.status = transition_event.target_status
                 # updated_at handled automatically by SQLAlchemy onupdate
                 await db.commit()
 
                 logger.info(
-                    f"✓ Transitioned game {game_id} from SCHEDULED to "
+                    f"✓ Transitioned game {game_id} from {current_status} to "
                     f"{transition_event.target_status}"
                 )
 
