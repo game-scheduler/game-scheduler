@@ -24,6 +24,7 @@ import sys
 import time
 
 import pika
+from opentelemetry import trace
 from pika.exceptions import AMQPConnectionError
 
 from shared.messaging.infrastructure import (
@@ -35,6 +36,7 @@ from shared.messaging.infrastructure import (
     PRIMARY_QUEUES,
     QUEUE_BINDINGS,
 )
+from shared.telemetry import init_telemetry
 
 
 def wait_for_rabbitmq(rabbitmq_url: str, max_retries: int = 30) -> None:
@@ -108,23 +110,31 @@ def create_infrastructure(rabbitmq_url: str) -> None:
 
 def main() -> None:
     """Main initialization entry point."""
+    init_telemetry("init-service")
+    tracer = trace.get_tracer(__name__)
+
     print("=== RabbitMQ Infrastructure Initialization ===")
 
-    rabbitmq_url = os.getenv("RABBITMQ_URL")
-    if not rabbitmq_url:
-        print("✗ RABBITMQ_URL environment variable not set")
-        sys.exit(1)
+    with tracer.start_as_current_span("init.rabbitmq") as span:
+        rabbitmq_url = os.getenv("RABBITMQ_URL")
+        if not rabbitmq_url:
+            span.set_status(trace.Status(trace.StatusCode.ERROR, "RABBITMQ_URL not set"))
+            print("✗ RABBITMQ_URL environment variable not set")
+            sys.exit(1)
 
-    print("Waiting for RabbitMQ...")
-    wait_for_rabbitmq(rabbitmq_url)
+        print("Waiting for RabbitMQ...")
+        wait_for_rabbitmq(rabbitmq_url)
 
-    print("Creating RabbitMQ infrastructure...")
-    try:
-        create_infrastructure(rabbitmq_url)
-        print("✓ RabbitMQ infrastructure initialized successfully")
-    except Exception as e:
-        print(f"✗ Failed to initialize RabbitMQ infrastructure: {e}")
-        sys.exit(1)
+        print("Creating RabbitMQ infrastructure...")
+        try:
+            create_infrastructure(rabbitmq_url)
+            span.set_status(trace.Status(trace.StatusCode.OK))
+            print("✓ RabbitMQ infrastructure initialized successfully")
+        except Exception as e:
+            span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+            span.record_exception(e)
+            print(f"✗ Failed to initialize RabbitMQ infrastructure: {e}")
+            sys.exit(1)
 
 
 if __name__ == "__main__":

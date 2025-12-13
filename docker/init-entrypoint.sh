@@ -12,7 +12,26 @@ done
 echo "✓ PostgreSQL is ready"
 
 echo "Running database migrations..."
-alembic upgrade head
+PYTHONPATH=/app python3 -c "
+from shared.telemetry import init_telemetry
+from opentelemetry import trace
+import subprocess
+import sys
+
+init_telemetry('init-service')
+tracer = trace.get_tracer(__name__)
+
+with tracer.start_as_current_span('init.database_migration') as span:
+    result = subprocess.run(['alembic', 'upgrade', 'head'], capture_output=True, text=True)
+    print(result.stdout, end='')
+    if result.stderr:
+        print(result.stderr, end='', file=sys.stderr)
+    if result.returncode != 0:
+        span.set_status(trace.Status(trace.StatusCode.ERROR, 'Migration failed'))
+        span.record_exception(Exception(result.stderr))
+        sys.exit(result.returncode)
+    span.set_status(trace.Status(trace.StatusCode.OK))
+"
 echo "✓ Migrations complete"
 
 echo "Verifying database schema..."

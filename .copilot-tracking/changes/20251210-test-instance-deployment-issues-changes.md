@@ -90,6 +90,11 @@ Removed unnecessary port mappings from Docker Compose configurations to minimize
 - Build Verification: Docker API image builds successfully
 - Integration Tests: RabbitMQ health check timeout (infrastructure issue, not code-related - RabbitMQ starts successfully in 3.8s)
 
+**Phase 9 Changes (Add Observability to Init Service)**:
+- scripts/init_rabbitmq.py - Added init_telemetry("init-service") call at script start, wrapped RabbitMQ initialization in init.rabbitmq span with error handling
+- docker/init-entrypoint.sh - Wrapped alembic upgrade command with Python telemetry wrapper, added init.database_migration span with error recording
+- alembic/versions/022_add_completed_schedules.py - Shortened revision ID from "022_add_completed_status_schedules" (37 chars) to "022_add_completed_schedules" (27 chars) to fit alembic_version.version_num VARCHAR(32) constraint
+
 ### Files Removed (0)
 
 None

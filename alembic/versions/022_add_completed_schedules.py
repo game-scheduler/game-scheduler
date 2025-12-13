@@ -18,7 +18,7 @@
 
 """Add COMPLETED status schedules for existing IN_PROGRESS games
 
-Revision ID: 022_add_completed_status_schedules
+Revision ID: 022_add_completed_schedules
 Revises: 021_add_game_scheduled_at_to_notification_schedule
 Create Date: 2025-12-13
 
@@ -28,7 +28,7 @@ from collections.abc import Sequence
 
 from alembic import op
 
-revision: str = "022_add_completed_status_schedules"
+revision: str = "022_add_completed_schedules"
 down_revision: str | None = "021_add_game_scheduled_at"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None

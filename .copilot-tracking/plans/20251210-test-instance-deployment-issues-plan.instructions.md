@@ -120,12 +120,12 @@ Remove unnecessary port mappings from Docker Compose configurations to minimize 
 - [x] Task 8.4: Create database migration for existing games
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 360-375)
 
-### [ ] Phase 9: Add Observability to Init Service
+### [x] Phase 9: Add Observability to Init Service
 
-- [ ] Task 9.1: Add telemetry to init_rabbitmq.py script
+- [x] Task 9.1: Add telemetry to init_rabbitmq.py script
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 377-392)
 
-- [ ] Task 9.2: Add telemetry wrapper to database migrations
+- [x] Task 9.2: Add telemetry wrapper to database migrations
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 394-409)
 
 ### [ ] Phase 10: Add service.name to Infrastructure Metrics
