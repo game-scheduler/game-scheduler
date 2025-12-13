@@ -1,46 +1,58 @@
-# Testing overrides - use with explicit -f flag
-# This file ensures production build targets are used with code baked into images
+# Staging overrides - use with --env-file env/env.staging
+# Production builds with DEBUG logging and app-only port exposure
 #
-# Usage: docker compose -f docker-compose.yml -f compose.testing.yaml up -d
+# Usage: docker compose --env-file env/env.staging up -d
 #
-# Features:
-# - Targets production stages in Dockerfiles
-# - No source code volume mounts (code copied into images)
-# - Restart policies for production resilience
-# - Optimized, minimal images with security hardening
+# Staging configuration:
+# - LOG_LEVEL: DEBUG (for troubleshooting)
+# - restart: always (production-like behavior)
+# - Frontend and API ports exposed (no infrastructure ports)
+# - Production build targets (code baked into images)
 
 services:
   api:
     build:
       target: production
-    restart: always
+    ports:
+      - "${API_HOST_PORT:-8000}:8000"
     environment:
-      LOG_LEVEL: ${API_LOG_LEVEL:-INFO}
+      LOG_LEVEL: DEBUG
 
   bot:
     build:
       target: production
-    restart: always
     environment:
-      LOG_LEVEL: ${BOT_LOG_LEVEL:-INFO}
+      LOG_LEVEL: DEBUG
 
   notification-daemon:
     build:
       target: production
-    restart: always
     environment:
-      LOG_LEVEL: ${NOTIFICATION_DAEMON_LOG_LEVEL:-INFO}
+      LOG_LEVEL: DEBUG
 
   status-transition-daemon:
     build:
       target: production
-    restart: always
     environment:
-      LOG_LEVEL: ${STATUS_TRANSITION_DAEMON_LOG_LEVEL:-INFO}
+      LOG_LEVEL: DEBUG
 
   frontend:
     build:
       target: production
-    restart: always
+    ports:
+      - "${FRONTEND_HOST_PORT:-3000}:80"
     environment:
-      NGINX_LOG_LEVEL: ${NGINX_LOG_LEVEL:-info}
+      NGINX_LOG_LEVEL: debug
+
+  postgres:
+    command: [
+      "postgres",
+      "-c", "log_min_messages=debug1"
+    ]
+
+  rabbitmq:
+    environment:
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit log_levels [{connection,debug}]
+
+  redis:
+    command: redis-server --appendonly yes --loglevel debug

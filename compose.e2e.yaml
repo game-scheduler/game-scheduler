@@ -1,11 +1,43 @@
-# End-to-end test environment configuration
-# Uses base service definitions from compose.yaml via merge pattern
-#
-# Usage: docker compose -f docker-compose.e2e.yml --env-file .env.e2e up --abort-on-container-exit
-#
+# End-to-end test overrides - use with --env-file env/env.e2e
 # Tests complete notification flow including Discord bot interactions
+#
+# Usage: docker compose --env-file env/env.e2e up --abort-on-container-exit
+#
+# E2E test configuration:
+# - LOG_LEVEL: DEBUG for all services
+# - No port mappings (tests run inside container network)
+# - tmpfs volumes for speed
+# - Test service with full dependencies
 
 services:
+  api:
+    environment:
+      LOG_LEVEL: DEBUG
+
+  bot:
+    environment:
+      LOG_LEVEL: DEBUG
+
+  notification-daemon:
+    environment:
+      LOG_LEVEL: DEBUG
+
+  status-transition-daemon:
+    environment:
+      LOG_LEVEL: DEBUG
+
+  postgres:
+    command: [
+      "postgres",
+      "-c", "log_min_messages=debug1"
+    ]
+
+  rabbitmq:
+    environment:
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit log_levels [{connection,debug}]
+
+  redis:
+    command: redis-server --appendonly yes --loglevel debug
   e2e-tests:
     build:
       context: .

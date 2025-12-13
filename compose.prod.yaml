@@ -1,47 +1,31 @@
-# Production overrides - use with explicit -f flag
-# This file ensures production build targets are used with code baked into images
+# Production overrides - use with --env-file env/env.prod
+# Minimal overrides since compose.yaml provides production-ready defaults
 #
-# Usage: docker compose -f docker-compose.yml -f compose.production.yaml up -d
+# Usage: docker compose --env-file env/env.prod up -d
 #
-# Features:
-# - Targets production stages in Dockerfiles
-# - No source code volume mounts (code copied into images)
-# - Restart policies for production resilience
-# - Optimized, minimal images with security hardening
-# - Log levels default to WARN for reduced verbosity
+# Production configuration:
+# - LOG_LEVEL: INFO (from compose.yaml base)
+# - restart: always (from compose.yaml base)
+# - No port mappings (reverse proxy handles external access)
+# - Production build targets from Dockerfiles
 
 services:
   api:
     build:
       target: production
-    restart: always
-    environment:
-      LOG_LEVEL: ${API_LOG_LEVEL:-WARN}
 
   bot:
     build:
       target: production
-    restart: always
-    environment:
-      LOG_LEVEL: ${BOT_LOG_LEVEL:-WARN}
 
   notification-daemon:
     build:
       target: production
-    restart: always
-    environment:
-      LOG_LEVEL: ${NOTIFICATION_DAEMON_LOG_LEVEL:-WARN}
 
   status-transition-daemon:
     build:
       target: production
-    restart: always
-    environment:
-      LOG_LEVEL: ${STATUS_TRANSITION_DAEMON_LOG_LEVEL:-WARN}
 
   frontend:
     build:
       target: production
-    restart: always
-    environment:
-      NGINX_LOG_LEVEL: ${NGINX_LOG_LEVEL:-warn}

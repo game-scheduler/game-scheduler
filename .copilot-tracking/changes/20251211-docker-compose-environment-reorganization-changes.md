@@ -21,6 +21,12 @@ Consolidating Docker Compose files to use modern naming conventions and standard
 
 ### Modified
 
+- compose.prod.yaml - Simplified to minimal overrides with only production build targets, LOG_LEVEL INFO inherited from base
+- compose.staging.yaml - Updated with DEBUG logging, production builds, restart: always, frontend and API ports exposed
+- compose.override.yaml - Updated with DEBUG logging for all services, all infrastructure management ports exposed
+- compose.e2e.yaml - Updated with DEBUG logging for all services, no port mappings, infrastructure logging configured
+- compose.int.yaml - Updated with DEBUG logging for infrastructure services, no port mappings
+
 ### Removed
 
 - docker-compose.e2e.yml - Renamed to compose.e2e.yaml following modern Docker Compose naming conventions

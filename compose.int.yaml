@@ -1,13 +1,31 @@
-# Integration test environment configuration
-# Uses base service definitions from compose.yaml via merge pattern
+# Integration test overrides - use with --env-file env/env.integration
+# Tests service integration with infrastructure components
 #
 # Usage: 
 #   Run all tests: ./scripts/run-integration-tests.sh
 #   Run specific test: ./scripts/run-integration-tests.sh tests/integration/test_retry_daemon.py -v
 #
+# Integration test configuration:
+# - LOG_LEVEL: DEBUG for all services
+# - No port mappings (tests run inside container network)
+# - tmpfs volumes for speed
+# - Test service with infrastructure dependencies
+#
 # Note: Container ENTRYPOINT is 'pytest', so pass pytest args directly (not 'pytest' itself)
 
 services:
+  postgres:
+    command: [
+      "postgres",
+      "-c", "log_min_messages=debug1"
+    ]
+
+  rabbitmq:
+    environment:
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit log_levels [{connection,debug}]
+
+  redis:
+    command: redis-server --appendonly yes --loglevel debug
   integration-tests:
     build:
       context: .
