@@ -85,13 +85,13 @@ Consolidate Docker Compose files to use modern naming conventions (`compose.yaml
 - [x] Task 3.5: Configure compose.int.yaml for integration testing
   - Details: .copilot-tracking/details/20251211-docker-compose-environment-reorganization-details.md (Lines 145-159)
 
-### [ ] Phase 4: Configure COMPOSE_FILE in Environment Files
+### [x] Phase 4: Configure COMPOSE_FILE in Environment Files
 
-- [ ] Task 4.1: Create env/env.staging configuration file
+- [x] Task 4.1: Create env/env.staging configuration file
 
   - Details: .copilot-tracking/details/20251211-docker-compose-environment-reorganization-details.md (Lines 161-173)
 
-- [ ] Task 4.2: Add COMPOSE_FILE variable to all environment files
+- [x] Task 4.2: Add COMPOSE_FILE variable to all environment files
   - Details: .copilot-tracking/details/20251211-docker-compose-environment-reorganization-details.md (Lines 175-190)
 
 ### [ ] Phase 5: Update Scripts

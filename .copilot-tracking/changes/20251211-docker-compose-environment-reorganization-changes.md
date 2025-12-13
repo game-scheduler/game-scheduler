@@ -35,3 +35,19 @@ Consolidating Docker Compose files to use modern naming conventions and standard
 - compose.testing.yaml - Renamed to compose.staging.yaml following modern Docker Compose naming conventions
 - docker-compose.test.yml - Deleted deprecated test configuration file superseded by dedicated e2e and integration test environments
 
+### Phase 4 Changes - COMPOSE_FILE Configuration
+
+- env/env.staging - Added COMPOSE_FILE=compose.yaml:compose.staging.yaml and CONTAINER_PREFIX=gamebot-staging for staging environment isolation
+- env/env.dev - Added COMPOSE_FILE=compose.yaml:compose.override.yaml to explicitly specify development compose files
+- env/env.prod - Added COMPOSE_FILE=compose.yaml to specify production base configuration only
+- env/env.e2e - Added COMPOSE_FILE=compose.yaml:compose.e2e.yaml for end-to-end test environment
+- env/env.int - Added COMPOSE_FILE=compose.yaml:compose.int.yaml for integration test environment
+
+### Phase 4 Changes - COMPOSE_FILE Configuration
+
+- env/env.staging - Added COMPOSE_FILE=compose.yaml:compose.staging.yaml and CONTAINER_PREFIX=gamebot-staging for staging environment isolation
+- env/env.dev - Added COMPOSE_FILE=compose.yaml:compose.override.yaml to explicitly specify development compose files
+- env/env.prod - Added COMPOSE_FILE=compose.yaml to specify production base configuration only
+- env/env.e2e - Added COMPOSE_FILE=compose.yaml:compose.e2e.yaml for end-to-end test environment
+- env/env.int - Added COMPOSE_FILE=compose.yaml:compose.int.yaml for integration test environment
+
