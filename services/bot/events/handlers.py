@@ -335,12 +335,12 @@ class EventHandlers:
                 # Filter to real participants only (exclude placeholders)
                 real_participants = [p for p in game.participants if p.user_id and p.user]
 
-                if not real_participants:
-                    logger.info(f"No real participants found for game {reminder_event.game_id}")
-                    return
-
-                # Sort participants by position and join time
-                sorted_participants = participant_sorting.sort_participants(real_participants)
+                # Sort participants by position and join time (if any exist)
+                sorted_participants = (
+                    participant_sorting.sort_participants(real_participants)
+                    if real_participants
+                    else []
+                )
 
                 # Determine max players for active roster
                 max_players = game.max_players or 10
@@ -390,10 +390,28 @@ class EventHandlers:
                             exc_info=True,
                         )
 
+                # Send notification to game host
+                if game.host and game.host.discord_id:
+                    try:
+                        await self._send_reminder_dm(
+                            user_discord_id=game.host.discord_id,
+                            game_title=game.title,
+                            game_time_unix=game_time_unix,
+                            reminder_minutes=reminder_event.reminder_minutes,
+                            is_waitlist=False,
+                            is_host=True,
+                        )
+                        logger.info(f"Sent reminder to host {game.host.discord_id}")
+                    except Exception as e:
+                        logger.error(
+                            f"Failed to send reminder to host {game.host.discord_id}: {e}",
+                            exc_info=True,
+                        )
+
                 logger.info(
                     f"✓ Completed reminder notifications for game {reminder_event.game_id}: "
                     f"{len(confirmed_participants)} confirmed, "
-                    f"{len(overflow_participants)} waitlist"
+                    f"{len(overflow_participants)} waitlist, host notified"
                 )
 
         except Exception as e:
@@ -447,9 +465,10 @@ class EventHandlers:
         game_time_unix: int,
         reminder_minutes: int,
         is_waitlist: bool,
+        is_host: bool = False,
     ) -> None:
         """
-        Send reminder DM to a single participant.
+        Send reminder DM to a single participant or host.
 
         Args:
             user_discord_id: Discord user ID (snowflake string)
@@ -457,9 +476,13 @@ class EventHandlers:
             game_time_unix: Unix timestamp of game start time
             reminder_minutes: Minutes before game
             is_waitlist: Whether participant is on waitlist
+            is_host: Whether recipient is the game host
         """
-        waitlist_prefix = "🎫 **[Waitlist]** " if is_waitlist else ""
-        message = f"{waitlist_prefix}Your game '{game_title}' starts <t:{game_time_unix}:R>"
+        if is_host:
+            message = f"🎮 **[Host]** Your game '{game_title}' starts <t:{game_time_unix}:R>"
+        else:
+            waitlist_prefix = "🎫 **[Waitlist]** " if is_waitlist else ""
+            message = f"{waitlist_prefix}Your game '{game_title}' starts <t:{game_time_unix}:R>"
         await self._send_dm(user_discord_id, message)
 
     async def _handle_send_notification(self, data: dict[str, Any]) -> None:

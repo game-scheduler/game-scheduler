@@ -46,6 +46,8 @@ Removed unnecessary port mappings from Docker Compose configurations to minimize
 - compose.production.yaml - Verified zero port exposure (reverse proxy handles external routing)ntend:3000, api:8000)
 - .env.example - Added comprehensive documentation explaining port exposure strategy across environments, docker exec debugging commands, and observability architecture
 - compose.production.yaml - Verified zero port exposure (reverse proxy handles external routing)
+- services/bot/events/handlers.py - Added is_host parameter to _send_reminder_dm method to customize host reminder messages
+- services/bot/events/handlers.py - Added host notification logic to _handle_game_reminder_due method to send reminders to game hosts
 
 ### Files Removed (0)
 

@@ -79,12 +79,12 @@ Remove unnecessary port mappings from Docker Compose configurations to minimize 
 - [x] Task 4.2: Verify compose.production.yaml has no port mappings
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 165-178)
 
-### [ ] Phase 5: Fix Game Host Notifications
+### [x] Phase 5: Fix Game Host Notifications
 
-- [ ] Task 5.1: Add is_host parameter to _send_reminder_dm method
+- [x] Task 5.1: Add is_host parameter to _send_reminder_dm method
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 190-205)
 
-- [ ] Task 5.2: Send reminder to game host in _handle_game_reminder_due
+- [x] Task 5.2: Send reminder to game host in _handle_game_reminder_due
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 207-222)
 
 ### [ ] Phase 6: Verify Notify Roles Functionality
