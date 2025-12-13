@@ -49,6 +49,12 @@ Removed unnecessary port mappings from Docker Compose configurations to minimize
 - services/bot/events/handlers.py - Added is_host parameter to _send_reminder_dm method to customize host reminder messages
 - services/bot/events/handlers.py - Added host notification logic to _handle_game_reminder_due method to send reminders to game hosts
 
+**Phase 6 Verification (Notify Roles)**:
+- Verified notify_role_ids field properly stored in database and loaded with game objects
+- Confirmed role mentions appear in Discord announcement messages using correct format (<@&role_id>)
+- Tested that users with mentioned roles receive Discord notifications
+- No code changes required - feature working as designed
+
 ### Files Removed (0)
 
 None
