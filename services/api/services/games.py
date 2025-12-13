@@ -24,6 +24,7 @@ Handles game CRUD operations, participant management, and event publishing.
 import datetime
 import logging
 import uuid
+from collections.abc import Sequence
 from typing import Any
 
 from sqlalchemy import func
@@ -49,6 +50,9 @@ from shared.schemas import game as game_schemas
 from shared.utils import participant_sorting
 
 logger = logging.getLogger(__name__)
+
+# Default game duration when expected_duration_minutes is not set
+DEFAULT_GAME_DURATION_MINUTES = 60
 
 
 class GameService:
@@ -239,14 +243,28 @@ class GameService:
 
         # Populate status transition schedule for SCHEDULED games
         if game.status == game_model.GameStatus.SCHEDULED.value:
-            status_schedule = game_status_schedule_model.GameStatusSchedule(
+            # Create IN_PROGRESS transition at scheduled time
+            in_progress_schedule = game_status_schedule_model.GameStatusSchedule(
                 id=str(uuid.uuid4()),
                 game_id=game.id,
                 target_status=game_model.GameStatus.IN_PROGRESS.value,
                 transition_time=game.scheduled_at,
                 executed=False,
             )
-            self.db.add(status_schedule)
+            self.db.add(in_progress_schedule)
+
+            # Create COMPLETED transition at scheduled time + duration
+            duration_minutes = expected_duration_minutes or DEFAULT_GAME_DURATION_MINUTES
+            completion_time = game.scheduled_at + datetime.timedelta(minutes=duration_minutes)
+
+            completed_schedule = game_status_schedule_model.GameStatusSchedule(
+                id=str(uuid.uuid4()),
+                game_id=game.id,
+                target_status=game_model.GameStatus.COMPLETED.value,
+                transition_time=completion_time,
+                executed=False,
+            )
+            self.db.add(completed_schedule)
 
         await self.db.commit()
 
@@ -342,6 +360,296 @@ class GameService:
 
         return list(games), total
 
+    def _update_game_fields(
+        self,
+        game: game_model.GameSession,
+        update_data: game_schemas.GameUpdateRequest,
+    ) -> tuple[bool, bool]:
+        """
+        Update game fields from request data.
+
+        Args:
+            game: Game session to update
+            update_data: Update data
+
+        Returns:
+            Tuple of (schedule_needs_update, status_schedule_needs_update)
+        """
+        schedule_needs_update = False
+        status_schedule_needs_update = False
+
+        if update_data.title is not None:
+            game.title = update_data.title
+        if update_data.description is not None:
+            game.description = update_data.description
+        if update_data.signup_instructions is not None:
+            game.signup_instructions = update_data.signup_instructions
+        if update_data.scheduled_at is not None:
+            # Database stores timestamps as naive UTC, so convert timezone-aware inputs
+            if update_data.scheduled_at.tzinfo is not None:
+                game.scheduled_at = update_data.scheduled_at.astimezone(datetime.UTC).replace(
+                    tzinfo=None
+                )
+            else:
+                game.scheduled_at = update_data.scheduled_at
+            schedule_needs_update = True
+            status_schedule_needs_update = True
+        if update_data.where is not None:
+            game.where = update_data.where
+        if update_data.max_players is not None:
+            game.max_players = update_data.max_players
+        if update_data.reminder_minutes is not None:
+            game.reminder_minutes = update_data.reminder_minutes
+            schedule_needs_update = True
+        if update_data.expected_duration_minutes is not None:
+            game.expected_duration_minutes = update_data.expected_duration_minutes
+        if update_data.notify_role_ids is not None:
+            game.notify_role_ids = update_data.notify_role_ids
+        if update_data.status is not None:
+            game.status = update_data.status
+            status_schedule_needs_update = True
+
+        return schedule_needs_update, status_schedule_needs_update
+
+    async def _remove_participants(
+        self,
+        game: game_model.GameSession,
+        participant_ids: list[str],
+    ) -> None:
+        """
+        Remove specified participants from game.
+
+        Args:
+            game: Game session
+            participant_ids: List of participant IDs to remove
+        """
+        for participant_id in participant_ids:
+            result = await self.db.execute(
+                select(participant_model.GameParticipant).where(
+                    participant_model.GameParticipant.id == participant_id,
+                    participant_model.GameParticipant.game_session_id == game.id,
+                )
+            )
+            participant = result.scalar_one_or_none()
+            if participant:
+                await self._publish_player_removed(game, participant)
+                await self.db.delete(participant)
+        await self.db.flush()
+
+    async def _update_prefilled_participants(
+        self,
+        game: game_model.GameSession,
+        participant_data_list: list[dict[str, Any]],
+    ) -> None:
+        """
+        Update pre-filled participants for a game.
+
+        Args:
+            game: Game session
+            participant_data_list: List of participant data dicts
+
+        Raises:
+            ValidationError: If @mentions cannot be resolved
+        """
+        # Get current pre-filled participants
+        current_prefilled = await self.db.execute(
+            select(participant_model.GameParticipant).where(
+                participant_model.GameParticipant.game_session_id == game.id,
+                participant_model.GameParticipant.pre_filled_position.isnot(None),
+            )
+        )
+        current_participants = current_prefilled.scalars().all()
+
+        # Separate existing participants (by ID) from new mentions
+        existing_participant_ids = set()
+        mentions_with_positions = []
+
+        for participant_data in participant_data_list:
+            if participant_data.get("participant_id"):
+                existing_participant_ids.add(participant_data["participant_id"])
+            elif str(participant_data.get("mention", "")).strip():
+                mentions_with_positions.append(
+                    (
+                        str(participant_data["mention"]),
+                        int(participant_data.get("pre_filled_position", 0)),
+                    )
+                )
+
+        # Remove pre-filled participants not in the existing list
+        for p in current_participants:
+            if p.id not in existing_participant_ids:
+                await self.db.delete(p)
+
+        # Update positions for existing participants
+        for participant_data in participant_data_list:
+            if participant_data.get("participant_id"):
+                participant_id = str(participant_data["participant_id"])
+                position = int(participant_data.get("pre_filled_position", 0))
+                for p in current_participants:
+                    if p.id == participant_id:
+                        p.pre_filled_position = position
+                        break
+
+        await self.db.flush()
+
+        # Resolve and add new mentions
+        if mentions_with_positions:
+            await self._add_new_mentions(
+                game=game,
+                mentions_with_positions=mentions_with_positions,
+            )
+
+    async def _add_new_mentions(
+        self,
+        game: game_model.GameSession,
+        mentions_with_positions: list[tuple[str, int]],
+    ) -> None:
+        """
+        Resolve and add new participant mentions.
+
+        Args:
+            game: Game session
+            mentions_with_positions: List of (mention, position) tuples
+
+        Raises:
+            ValidationError: If @mentions cannot be resolved
+        """
+        mentions = [mention for mention, _ in mentions_with_positions]
+
+        (
+            valid_participants,
+            validation_errors,
+        ) = await self.participant_resolver.resolve_initial_participants(
+            game.guild.guild_id,
+            mentions,
+            "",
+        )
+
+        if validation_errors:
+            raise resolver_module.ValidationError(
+                invalid_mentions=validation_errors,
+                valid_participants=[p["original_input"] for p in valid_participants],
+            )
+
+        # Create participant records
+        for idx, p_data in enumerate(valid_participants):
+            position = mentions_with_positions[idx][1]
+            if p_data["type"] == "discord":
+                user = await self.participant_resolver.ensure_user_exists(
+                    self.db, p_data["discord_id"]
+                )
+                new_participant = participant_model.GameParticipant(
+                    game_session_id=game.id,
+                    user_id=user.id,
+                    display_name=None,
+                    pre_filled_position=position,
+                )
+            else:
+                new_participant = participant_model.GameParticipant(
+                    game_session_id=game.id,
+                    user_id=None,
+                    display_name=p_data["display_name"],
+                    pre_filled_position=position,
+                )
+            self.db.add(new_participant)
+
+        await self.db.flush()
+
+    async def _update_status_schedules(
+        self,
+        game: game_model.GameSession,
+    ) -> None:
+        """
+        Update status transition schedules for game.
+
+        Args:
+            game: Game session
+        """
+        status_schedule_result = await self.db.execute(
+            select(game_status_schedule_model.GameStatusSchedule).where(
+                game_status_schedule_model.GameStatusSchedule.game_id == game.id
+            )
+        )
+        status_schedules = status_schedule_result.scalars().all()
+
+        if game.status == game_model.GameStatus.SCHEDULED.value:
+            # Ensure both IN_PROGRESS and COMPLETED schedules exist
+            await self._ensure_in_progress_schedule(game, status_schedules)
+            await self._ensure_completed_schedule(game, status_schedules)
+        else:
+            # Delete all schedules if game is not SCHEDULED
+            for schedule in status_schedules:
+                await self.db.delete(schedule)
+
+    async def _ensure_in_progress_schedule(
+        self,
+        game: game_model.GameSession,
+        status_schedules: Sequence[game_status_schedule_model.GameStatusSchedule],
+    ) -> None:
+        """
+        Ensure IN_PROGRESS status schedule exists and is up to date.
+
+        Args:
+            game: Game session
+            status_schedules: Existing status schedules
+        """
+        in_progress_schedule = next(
+            (
+                s
+                for s in status_schedules
+                if s.target_status == game_model.GameStatus.IN_PROGRESS.value
+            ),
+            None,
+        )
+        if in_progress_schedule:
+            in_progress_schedule.transition_time = game.scheduled_at
+            in_progress_schedule.executed = False
+        else:
+            in_progress_schedule = game_status_schedule_model.GameStatusSchedule(
+                id=str(uuid.uuid4()),
+                game_id=game.id,
+                target_status=game_model.GameStatus.IN_PROGRESS.value,
+                transition_time=game.scheduled_at,
+                executed=False,
+            )
+            self.db.add(in_progress_schedule)
+
+    async def _ensure_completed_schedule(
+        self,
+        game: game_model.GameSession,
+        status_schedules: Sequence[game_status_schedule_model.GameStatusSchedule],
+    ) -> None:
+        """
+        Ensure COMPLETED status schedule exists and is up to date.
+
+        Args:
+            game: Game session
+            status_schedules: Existing status schedules
+        """
+        completed_schedule = next(
+            (
+                s
+                for s in status_schedules
+                if s.target_status == game_model.GameStatus.COMPLETED.value
+            ),
+            None,
+        )
+        duration_minutes = game.expected_duration_minutes or DEFAULT_GAME_DURATION_MINUTES
+        completion_time = game.scheduled_at + datetime.timedelta(minutes=duration_minutes)
+
+        if completed_schedule:
+            completed_schedule.transition_time = completion_time
+            completed_schedule.executed = False
+        else:
+            completed_schedule = game_status_schedule_model.GameStatusSchedule(
+                id=str(uuid.uuid4()),
+                game_id=game.id,
+                target_status=game_model.GameStatus.COMPLETED.value,
+                transition_time=completion_time,
+                executed=False,
+            )
+            self.db.add(completed_schedule)
+
     async def update_game(
         self,
         game_id: str,
@@ -386,7 +694,7 @@ class GameService:
                 "Only the host, Bot Managers, or guild admins can edit games."
             )
 
-        # Capture current participant state before updates (for promotion detection)
+        # Capture current participant state for promotion detection
         old_max_players = game.max_players or 10
         old_all_participants = [p for p in game.participants if p.user_id and p.user]
         old_sorted_participants = participant_sorting.sort_participants(old_all_participants)
@@ -396,193 +704,30 @@ class GameService:
             if p.user is not None
         }
 
-        # Track if notification schedule needs updating
-        schedule_needs_update = False
-        # Track if status schedule needs updating
-        status_schedule_needs_update = False
+        # Update game fields
+        schedule_needs_update, status_schedule_needs_update = self._update_game_fields(
+            game, update_data
+        )
 
-        # Update fields
-        if update_data.title is not None:
-            game.title = update_data.title
-        if update_data.description is not None:
-            game.description = update_data.description
-        if update_data.signup_instructions is not None:
-            game.signup_instructions = update_data.signup_instructions
-        if update_data.scheduled_at is not None:
-            # Database stores timestamps as naive UTC, so convert timezone-aware inputs
-            if update_data.scheduled_at.tzinfo is not None:
-                game.scheduled_at = update_data.scheduled_at.astimezone(datetime.UTC).replace(
-                    tzinfo=None
-                )
-            else:
-                # Already naive, assume UTC
-                game.scheduled_at = update_data.scheduled_at
-            schedule_needs_update = True
-            status_schedule_needs_update = True
-        if update_data.where is not None:
-            game.where = update_data.where
-        if update_data.max_players is not None:
-            game.max_players = update_data.max_players
-        if update_data.reminder_minutes is not None:
-            game.reminder_minutes = update_data.reminder_minutes
-            schedule_needs_update = True
-        if update_data.expected_duration_minutes is not None:
-            game.expected_duration_minutes = update_data.expected_duration_minutes
-        if update_data.notify_role_ids is not None:
-            game.notify_role_ids = update_data.notify_role_ids
-        if update_data.status is not None:
-            game.status = update_data.status
-            status_schedule_needs_update = True
+        # Handle participant removals
+        if update_data.removed_participant_ids:
+            await self._remove_participants(game, update_data.removed_participant_ids)
 
         # Handle participant updates
-        if update_data.removed_participant_ids:
-            # Remove specified participants
-            for participant_id in update_data.removed_participant_ids:
-                result = await self.db.execute(
-                    select(participant_model.GameParticipant).where(
-                        participant_model.GameParticipant.id == participant_id,
-                        participant_model.GameParticipant.game_session_id == game.id,
-                    )
-                )
-                participant = result.scalar_one_or_none()
-                if participant:
-                    # Publish player removed event before deleting
-                    await self._publish_player_removed(game, participant)
-                    await self.db.delete(participant)
-            await self.db.flush()
-
         if update_data.participants is not None:
-            # Get current pre-filled participants
-            current_prefilled = await self.db.execute(
-                select(participant_model.GameParticipant).where(
-                    participant_model.GameParticipant.game_session_id == game.id,
-                    participant_model.GameParticipant.pre_filled_position.isnot(None),
-                )
-            )
-            current_participants = current_prefilled.scalars().all()
+            await self._update_prefilled_participants(game, update_data.participants)
 
-            # Separate existing participants (by ID) from new mentions
-            existing_participant_ids = set()
-            mentions_with_positions = []
-
-            for participant_data in update_data.participants:
-                if participant_data.get("participant_id"):
-                    # Existing participant - keep track of it
-                    existing_participant_ids.add(participant_data["participant_id"])
-                elif str(participant_data.get("mention", "")).strip():
-                    # New mention - needs validation
-                    mentions_with_positions.append(
-                        (
-                            str(participant_data["mention"]),
-                            int(participant_data.get("pre_filled_position", 0)),
-                        )
-                    )
-
-            # Remove only pre-filled participants that are NOT in the existing list
-            for p in current_participants:
-                if p.id not in existing_participant_ids:
-                    await self.db.delete(p)
-
-            # Update positions for existing participants
-            for participant_data in update_data.participants:
-                if participant_data.get("participant_id"):
-                    participant_id = str(participant_data["participant_id"])
-                    position = int(participant_data.get("pre_filled_position", 0))
-                    # Find and update this participant's position
-                    for p in current_participants:
-                        if p.id == participant_id:
-                            p.pre_filled_position = position
-                            break
-
-            await self.db.flush()
-
-            # Resolve and add new mentions
-            if mentions_with_positions:
-                mentions = [mention for mention, _ in mentions_with_positions]
-
-                # Resolve all participants at once
-                valid_participants: list[dict[str, Any]]
-                validation_errors: list[dict[str, Any]]
-                (
-                    valid_participants,
-                    validation_errors,
-                ) = await self.participant_resolver.resolve_initial_participants(
-                    game.guild.guild_id,
-                    mentions,
-                    "",  # No access token needed for bot search
-                )
-
-                if validation_errors:
-                    # Raise validation error with all form data
-                    raise resolver_module.ValidationError(
-                        invalid_mentions=validation_errors,
-                        valid_participants=[p["original_input"] for p in valid_participants],
-                    )
-
-                # Create participant records
-                for idx, p_data in enumerate(valid_participants):
-                    position = mentions_with_positions[idx][1]
-                    if p_data["type"] == "discord":
-                        user = await self.participant_resolver.ensure_user_exists(
-                            self.db, p_data["discord_id"]
-                        )
-                        new_participant = participant_model.GameParticipant(
-                            game_session_id=game.id,
-                            user_id=user.id,
-                            display_name=None,
-                            pre_filled_position=position,
-                        )
-                    else:  # placeholder
-                        new_participant = participant_model.GameParticipant(
-                            game_session_id=game.id,
-                            user_id=None,
-                            display_name=p_data["display_name"],
-                            pre_filled_position=position,
-                        )
-                    self.db.add(new_participant)
-
-            await self.db.flush()
-
-        # Update notification schedule if scheduled_at or reminder_minutes changed
+        # Update notification schedule if needed
         if schedule_needs_update:
-            # Use game's reminder_minutes or default to [60, 15]
             reminder_minutes = (
                 game.reminder_minutes if game.reminder_minutes is not None else [60, 15]
             )
-
             schedule_service = notification_schedule_service.NotificationScheduleService(self.db)
             await schedule_service.update_schedule(game, reminder_minutes)
 
-        # Update status transition schedule if scheduled_at or status changed
+        # Update status transition schedules if needed
         if status_schedule_needs_update:
-            # Get existing status schedule
-            status_schedule_result = await self.db.execute(
-                select(game_status_schedule_model.GameStatusSchedule).where(
-                    game_status_schedule_model.GameStatusSchedule.game_id == game.id
-                )
-            )
-            status_schedule = status_schedule_result.scalar_one_or_none()
-
-            if game.status == game_model.GameStatus.SCHEDULED.value:
-                # Game is SCHEDULED - ensure schedule exists and is up to date
-                if status_schedule:
-                    # Update existing schedule
-                    status_schedule.transition_time = game.scheduled_at
-                    status_schedule.executed = False
-                else:
-                    # Create new schedule
-                    status_schedule = game_status_schedule_model.GameStatusSchedule(
-                        id=str(uuid.uuid4()),
-                        game_id=game.id,
-                        target_status=game_model.GameStatus.IN_PROGRESS.value,
-                        transition_time=game.scheduled_at,
-                        executed=False,
-                    )
-                    self.db.add(status_schedule)
-            else:
-                # Game is not SCHEDULED - delete schedule if it exists
-                if status_schedule:
-                    await self.db.delete(status_schedule)
+            await self._update_status_schedules(game)
 
         await self.db.commit()
 

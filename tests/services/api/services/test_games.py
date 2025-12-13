@@ -20,6 +20,7 @@
 
 import datetime
 import uuid
+from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -567,6 +568,8 @@ async def test_list_games_with_filters(game_service, mock_db, sample_guild):
 @pytest.mark.asyncio
 async def test_update_game_success(game_service, mock_db, sample_user, sample_guild):
     """Test updating game by host."""
+    from datetime import datetime
+
     from shared.schemas.auth import CurrentUser
 
     game_id = str(uuid.uuid4())
@@ -576,9 +579,12 @@ async def test_update_game_success(game_service, mock_db, sample_user, sample_gu
         host_id=sample_user.id,
         guild_id=sample_guild.id,
         channel_id=str(uuid.uuid4()),
+        scheduled_at=datetime.now(UTC).replace(tzinfo=None),
+        status="SCHEDULED",
     )
     mock_game.host = sample_user
     mock_game.guild = sample_guild
+    mock_game.participants = []
 
     game_result = MagicMock()
     game_result.scalar_one_or_none.return_value = mock_game
@@ -926,3 +932,388 @@ async def test_leave_game_not_participant(game_service, mock_db, sample_user):
 
     with pytest.raises(ValueError, match="Not a participant"):
         await game_service.leave_game(game_id=game_id, user_discord_id=sample_user.discord_id)
+
+
+@pytest.mark.asyncio
+async def test_ensure_in_progress_schedule_creates_new(game_service, mock_db, sample_game_data):
+    """Test _ensure_in_progress_schedule creates new schedule when none exists."""
+    from shared.models import game_status_schedule as game_status_schedule_model
+
+    game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        expected_duration_minutes=120,
+        status="SCHEDULED",
+    )
+    existing_schedules: list[game_status_schedule_model.GameStatusSchedule] = []
+
+    mock_db.add = MagicMock()
+
+    await game_service._ensure_in_progress_schedule(game, existing_schedules)
+
+    mock_db.add.assert_called_once()
+    added_schedule = mock_db.add.call_args[0][0]
+    assert isinstance(added_schedule, game_status_schedule_model.GameStatusSchedule)
+    assert added_schedule.game_id == game.id
+    assert added_schedule.target_status == game_model.GameStatus.IN_PROGRESS.value
+    assert added_schedule.transition_time == game.scheduled_at
+    assert added_schedule.executed is False
+
+
+@pytest.mark.asyncio
+async def test_ensure_in_progress_schedule_updates_existing(game_service, mock_db):
+    """Test _ensure_in_progress_schedule updates existing schedule."""
+    from shared.models import game_status_schedule as game_status_schedule_model
+
+    old_time = datetime.datetime.now(datetime.UTC)
+    new_time = old_time + datetime.timedelta(hours=1)
+
+    game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        scheduled_at=new_time,
+        expected_duration_minutes=120,
+        status="SCHEDULED",
+    )
+
+    existing_schedule = game_status_schedule_model.GameStatusSchedule(
+        id=str(uuid.uuid4()),
+        game_id=game.id,
+        target_status=game_model.GameStatus.IN_PROGRESS.value,
+        transition_time=old_time,
+        executed=True,
+    )
+    existing_schedules = [existing_schedule]
+
+    mock_db.add = MagicMock()
+
+    await game_service._ensure_in_progress_schedule(game, existing_schedules)
+
+    mock_db.add.assert_not_called()
+    assert existing_schedule.transition_time == new_time
+    assert existing_schedule.executed is False
+
+
+@pytest.mark.asyncio
+async def test_ensure_completed_schedule_creates_new(game_service, mock_db):
+    """Test _ensure_completed_schedule creates new schedule when none exists."""
+    from shared.models import game_status_schedule as game_status_schedule_model
+
+    scheduled_time = datetime.datetime.now(datetime.UTC)
+    game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        scheduled_at=scheduled_time,
+        expected_duration_minutes=60,
+        status="SCHEDULED",
+    )
+    existing_schedules: list[game_status_schedule_model.GameStatusSchedule] = []
+
+    mock_db.add = MagicMock()
+
+    await game_service._ensure_completed_schedule(game, existing_schedules)
+
+    mock_db.add.assert_called_once()
+    added_schedule = mock_db.add.call_args[0][0]
+    assert isinstance(added_schedule, game_status_schedule_model.GameStatusSchedule)
+    assert added_schedule.game_id == game.id
+    assert added_schedule.target_status == game_model.GameStatus.COMPLETED.value
+    expected_time = scheduled_time + datetime.timedelta(minutes=60)
+    assert added_schedule.transition_time == expected_time
+    assert added_schedule.executed is False
+
+
+@pytest.mark.asyncio
+async def test_ensure_completed_schedule_uses_default_duration(game_service, mock_db):
+    """Test _ensure_completed_schedule uses DEFAULT_GAME_DURATION_MINUTES when duration is None."""
+    from shared.models import game_status_schedule as game_status_schedule_model
+
+    scheduled_time = datetime.datetime.now(datetime.UTC)
+    game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        scheduled_at=scheduled_time,
+        expected_duration_minutes=None,
+        status="SCHEDULED",
+    )
+    existing_schedules: list[game_status_schedule_model.GameStatusSchedule] = []
+
+    mock_db.add = MagicMock()
+
+    await game_service._ensure_completed_schedule(game, existing_schedules)
+
+    mock_db.add.assert_called_once()
+    added_schedule = mock_db.add.call_args[0][0]
+    # Should use DEFAULT_GAME_DURATION_MINUTES (60)
+    expected_time = scheduled_time + datetime.timedelta(minutes=60)
+    assert added_schedule.transition_time == expected_time
+
+
+@pytest.mark.asyncio
+async def test_ensure_completed_schedule_updates_existing(game_service, mock_db):
+    """Test _ensure_completed_schedule updates existing schedule."""
+    from shared.models import game_status_schedule as game_status_schedule_model
+
+    old_time = datetime.datetime.now(datetime.UTC)
+    new_scheduled_time = old_time + datetime.timedelta(hours=2)
+
+    game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        scheduled_at=new_scheduled_time,
+        expected_duration_minutes=90,
+        status="SCHEDULED",
+    )
+
+    existing_schedule = game_status_schedule_model.GameStatusSchedule(
+        id=str(uuid.uuid4()),
+        game_id=game.id,
+        target_status=game_model.GameStatus.COMPLETED.value,
+        transition_time=old_time,
+        executed=True,
+    )
+    existing_schedules = [existing_schedule]
+
+    mock_db.add = MagicMock()
+
+    await game_service._ensure_completed_schedule(game, existing_schedules)
+
+    mock_db.add.assert_not_called()
+    expected_time = new_scheduled_time + datetime.timedelta(minutes=90)
+    assert existing_schedule.transition_time == expected_time
+    assert existing_schedule.executed is False
+
+
+@pytest.mark.asyncio
+async def test_update_status_schedules_for_scheduled_game(game_service, mock_db):
+    """Test _update_status_schedules ensures both schedules exist for SCHEDULED game."""
+
+    scheduled_time = datetime.datetime.now(datetime.UTC)
+    game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        scheduled_at=scheduled_time,
+        expected_duration_minutes=60,
+        status="SCHEDULED",
+    )
+
+    schedules_result = MagicMock()
+    schedules_result.scalars.return_value.all.return_value = []
+    mock_db.execute = AsyncMock(return_value=schedules_result)
+    mock_db.add = MagicMock()
+
+    await game_service._update_status_schedules(game)
+
+    # Should add both IN_PROGRESS and COMPLETED schedules
+    assert mock_db.add.call_count == 2
+    added_schedules = [call[0][0] for call in mock_db.add.call_args_list]
+
+    in_progress_schedule = next(
+        s for s in added_schedules if s.target_status == game_model.GameStatus.IN_PROGRESS.value
+    )
+    completed_schedule = next(
+        s for s in added_schedules if s.target_status == game_model.GameStatus.COMPLETED.value
+    )
+
+    assert in_progress_schedule.transition_time == scheduled_time
+    assert completed_schedule.transition_time == scheduled_time + datetime.timedelta(minutes=60)
+
+
+@pytest.mark.asyncio
+async def test_update_status_schedules_deletes_for_non_scheduled_game(game_service, mock_db):
+    """Test _update_status_schedules deletes all schedules for non-SCHEDULED game."""
+    from shared.models import game_status_schedule as game_status_schedule_model
+
+    game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        expected_duration_minutes=60,
+        status="IN_PROGRESS",
+    )
+
+    schedule1 = game_status_schedule_model.GameStatusSchedule(
+        id=str(uuid.uuid4()),
+        game_id=game.id,
+        target_status=game_model.GameStatus.IN_PROGRESS.value,
+        transition_time=datetime.datetime.now(datetime.UTC),
+        executed=False,
+    )
+    schedule2 = game_status_schedule_model.GameStatusSchedule(
+        id=str(uuid.uuid4()),
+        game_id=game.id,
+        target_status=game_model.GameStatus.COMPLETED.value,
+        transition_time=datetime.datetime.now(datetime.UTC),
+        executed=False,
+    )
+
+    schedules_result = MagicMock()
+    schedules_result.scalars.return_value.all.return_value = [schedule1, schedule2]
+    mock_db.execute = AsyncMock(return_value=schedules_result)
+    mock_db.delete = AsyncMock()
+
+    await game_service._update_status_schedules(game)
+
+    # Should delete both schedules
+    assert mock_db.delete.call_count == 2
+    deleted_schedules = [call[0][0] for call in mock_db.delete.call_args_list]
+    assert schedule1 in deleted_schedules
+    assert schedule2 in deleted_schedules
+
+
+@pytest.mark.asyncio
+async def test_update_status_schedules_updates_existing_schedules(game_service, mock_db):
+    """Test _update_status_schedules updates existing schedules for SCHEDULED game."""
+    from shared.models import game_status_schedule as game_status_schedule_model
+
+    old_time = datetime.datetime.now(datetime.UTC)
+    new_time = old_time + datetime.timedelta(days=1)
+
+    game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        scheduled_at=new_time,
+        expected_duration_minutes=120,
+        status="SCHEDULED",
+    )
+
+    in_progress_schedule = game_status_schedule_model.GameStatusSchedule(
+        id=str(uuid.uuid4()),
+        game_id=game.id,
+        target_status=game_model.GameStatus.IN_PROGRESS.value,
+        transition_time=old_time,
+        executed=True,
+    )
+    completed_schedule = game_status_schedule_model.GameStatusSchedule(
+        id=str(uuid.uuid4()),
+        game_id=game.id,
+        target_status=game_model.GameStatus.COMPLETED.value,
+        transition_time=old_time + datetime.timedelta(minutes=60),
+        executed=True,
+    )
+
+    schedules_result = MagicMock()
+    schedules_result.scalars.return_value.all.return_value = [
+        in_progress_schedule,
+        completed_schedule,
+    ]
+    mock_db.execute = AsyncMock(return_value=schedules_result)
+    mock_db.add = MagicMock()
+
+    await game_service._update_status_schedules(game)
+
+    # Should not add new schedules
+    mock_db.add.assert_not_called()
+
+    # Should update existing schedules
+    assert in_progress_schedule.transition_time == new_time
+    assert in_progress_schedule.executed is False
+    assert completed_schedule.transition_time == new_time + datetime.timedelta(minutes=120)
+    assert completed_schedule.executed is False
+
+
+@pytest.mark.asyncio
+async def test_create_game_creates_status_schedules(
+    game_service,
+    mock_db,
+    mock_event_publisher,
+    mock_participant_resolver,
+    mock_role_service,
+    sample_template,
+    sample_guild,
+    sample_channel,
+    sample_user,
+):
+    """Test create_game creates both IN_PROGRESS and COMPLETED status schedules."""
+    from shared.models import game_status_schedule as game_status_schedule_model
+
+    scheduled_time = datetime.datetime.now(datetime.UTC)
+    game_data = game_schemas.GameCreateRequest(
+        template_id=sample_template.id,
+        title="Test Game",
+        description="Test description",
+        scheduled_at=scheduled_time,
+        max_players=4,
+        expected_duration_minutes=90,
+        reminder_minutes=[60],
+    )
+
+    created_game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        description="Test description",
+        scheduled_at=scheduled_time,
+        expected_duration_minutes=90,
+        guild_id=sample_guild.id,
+        channel_id=sample_channel.id,
+        host_id=sample_user.id,
+        status="SCHEDULED",
+    )
+    created_game.host = sample_user
+    created_game.participants = []
+
+    template_result = MagicMock()
+    template_result.scalar_one_or_none.return_value = sample_template
+    guild_result = MagicMock()
+    guild_result.scalar_one_or_none.return_value = sample_guild
+    channel_result = MagicMock()
+    channel_result.scalar_one_or_none.return_value = sample_channel
+    host_result = MagicMock()
+    host_result.scalar_one_or_none.return_value = sample_user
+    reload_result = MagicMock()
+    reload_result.scalar_one_or_none.return_value = created_game
+
+    mock_db.execute = AsyncMock(
+        side_effect=[template_result, guild_result, host_result, channel_result, reload_result]
+    )
+    mock_db.flush = AsyncMock()
+    mock_db.commit = AsyncMock()
+    mock_db.add = MagicMock()
+    mock_participant_resolver.ensure_user_exists = AsyncMock(return_value=sample_user)
+
+    added_objects = []
+
+    def mock_add_side_effect(obj):
+        added_objects.append(obj)
+        if isinstance(obj, game_model.GameSession):
+            obj.id = created_game.id
+            obj.channel_id = created_game.channel_id
+
+    mock_db.add.side_effect = mock_add_side_effect
+
+    with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
+        await game_service.create_game(
+            game_data=game_data,
+            host_user_id=sample_user.id,
+            access_token="mock_token",
+        )
+
+    # Verify status schedules were created
+    status_schedules = [
+        obj
+        for obj in added_objects
+        if isinstance(obj, game_status_schedule_model.GameStatusSchedule)
+    ]
+    assert len(status_schedules) == 2
+
+    in_progress_schedule = next(
+        s for s in status_schedules if s.target_status == game_model.GameStatus.IN_PROGRESS.value
+    )
+    completed_schedule = next(
+        s for s in status_schedules if s.target_status == game_model.GameStatus.COMPLETED.value
+    )
+
+    assert in_progress_schedule.game_id == created_game.id
+    # Compare times without timezone (SQLAlchemy may strip timezone)
+    assert in_progress_schedule.transition_time.replace(tzinfo=None) == scheduled_time.replace(
+        tzinfo=None
+    )
+    assert in_progress_schedule.executed is False
+
+    assert completed_schedule.game_id == created_game.id
+    expected_completion = scheduled_time + datetime.timedelta(minutes=90)
+    assert completed_schedule.transition_time.replace(tzinfo=None) == expected_completion.replace(
+        tzinfo=None
+    )
+    assert completed_schedule.executed is False

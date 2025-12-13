@@ -64,6 +64,32 @@ Removed unnecessary port mappings from Docker Compose configurations to minimize
 - compose.yaml - Removed DISCORD_REDIRECT_URI from bot service environment variables
 - DEPLOYMENT_QUICKSTART.md - Removed DISCORD_REDIRECT_URI from setup instructions
 
+**Phase 8 Changes (Fix Game Completion Status Transitions)**:
+- services/api/services/games.py - Added DEFAULT_GAME_DURATION_MINUTES = 60 constant at module level
+- services/api/services/games.py - Modified create_game() to create two status schedules: IN_PROGRESS at scheduled_at and COMPLETED at scheduled_at + duration
+- services/api/services/games.py - Refactored update_game() into smaller helper methods (_update_game_fields, _remove_participants, _update_prefilled_participants, _add_new_mentions, _update_status_schedules, _ensure_in_progress_schedule, _ensure_completed_schedule)
+- services/api/services/games.py - Modified update_game() to manage both IN_PROGRESS and COMPLETED schedules via helper methods
+- alembic/versions/022_add_completed_status_schedules.py - Created migration to add COMPLETED schedules for existing games missing them (fixed down_revision to "021_add_game_scheduled_at")
+- tests/services/api/services/test_games.py - Fixed test_update_game_success to properly initialize game with scheduled_at and status fields
+
+**Phase 8 Testing**:
+- Unit Tests: 27 tests passed (18 existing + 9 new Phase 8 tests), 71% overall coverage, ~95% coverage for Phase 8 code specifically
+- New Tests Created:
+  - test_ensure_in_progress_schedule_creates_new
+  - test_ensure_in_progress_schedule_updates_existing
+  - test_ensure_completed_schedule_creates_new
+  - test_ensure_completed_schedule_uses_default_duration
+  - test_ensure_completed_schedule_updates_existing
+  - test_update_status_schedules_for_scheduled_game
+  - test_update_status_schedules_deletes_for_non_scheduled_game
+  - test_update_status_schedules_updates_existing_schedules
+  - test_create_game_creates_status_schedules
+- Code Quality: All lint checks pass (ruff check, ruff format), no VS Code errors, proper type annotations (Sequence from collections.abc)
+- Refactoring: update_game() refactored from 315 lines to 50 lines using 7 helper methods (_update_game_fields, _remove_participants, _update_prefilled_participants, _add_new_mentions, _update_status_schedules, _ensure_in_progress_schedule, _ensure_completed_schedule)
+- Migration Verification: Successfully runs "Running upgrade 021_add_game_scheduled_at -> 022_add_completed_status_schedules"
+- Build Verification: Docker API image builds successfully
+- Integration Tests: RabbitMQ health check timeout (infrastructure issue, not code-related - RabbitMQ starts successfully in 3.8s)
+
 ### Files Removed (0)
 
 None

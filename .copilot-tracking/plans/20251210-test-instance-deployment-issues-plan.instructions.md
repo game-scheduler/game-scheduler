@@ -106,18 +106,18 @@ Remove unnecessary port mappings from Docker Compose configurations to minimize 
 - [x] Task 7.3: Remove DISCORD_REDIRECT_URI from documentation
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 292-307)
 
-### [ ] Phase 8: Fix Game Completion Status Transitions
+### [x] Phase 8: Fix Game Completion Status Transitions
 
-- [ ] Task 8.1: Add DEFAULT_GAME_DURATION_MINUTES constant
+- [x] Task 8.1: Add DEFAULT_GAME_DURATION_MINUTES constant
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 309-324)
 
-- [ ] Task 8.2: Create COMPLETED schedule entry in create_game method
+- [x] Task 8.2: Create COMPLETED schedule entry in create_game method
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 326-341)
 
-- [ ] Task 8.3: Handle both IN_PROGRESS and COMPLETED schedules in update_game method
+- [x] Task 8.3: Handle both IN_PROGRESS and COMPLETED schedules in update_game method
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 343-358)
 
-- [ ] Task 8.4: Create database migration for existing games
+- [x] Task 8.4: Create database migration for existing games
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 360-375)
 
 ### [ ] Phase 9: Add Observability to Init Service
