@@ -2,9 +2,10 @@
 // 
 // Architecture:
 // 1. Application telemetry (traces/metrics/logs) → OTLP Gateway → Tempo/Mimir/Loki
-// 2. Infrastructure metrics (PostgreSQL/Redis/RabbitMQ) → Prometheus Remote Write → Mimir
+// 2. Infrastructure metrics (PostgreSQL/Redis/RabbitMQ) → OTEL processors → OTLP Gateway → Mimir
+// 3. All metrics have service.name resource attribute for consistent filtering
 //
-// Key Learning: OTLP Gateway instance ID differs from Prometheus instance ID
+// Key Learning: All metrics routed through OTLP for unified resource attributes
 
 // ========================================
 // Logging Configuration
@@ -23,6 +24,41 @@ loki.write "grafana_cloud_loki" {
     basic_auth {
       username = env("GRAFANA_CLOUD_LOKI_INSTANCE_ID")
       password = env("GRAFANA_CLOUD_API_KEY")
+    }
+  }
+}
+
+// ========================================
+// Docker Log Collection
+// ========================================
+// Collect logs from all Docker containers with 'service' label
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+  
+  filter {
+    name   = "label"
+    values = ["service"]
+  }
+}
+
+loki.source.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  targets          = discovery.docker.containers.targets
+  forward_to       = [loki.process.add_static_labels.receiver]
+  refresh_interval = "5s"
+}
+
+loki.process "add_static_labels" {
+  forward_to = [loki.write.grafana_cloud_loki.receiver]
+  
+  stage.docker {}
+  
+  stage.labels {
+    values = {
+      service     = "",
+      environment = "",
+      container   = "",
     }
   }
 }
@@ -114,9 +150,27 @@ discovery.relabel "integrations_postgres_exporter" {
 
 prometheus.scrape "integrations_postgres_exporter" {
   targets         = discovery.relabel.integrations_postgres_exporter.output
-  forward_to      = [prometheus.remote_write.grafana_cloud_mimir.receiver]
+  forward_to      = [otelcol.receiver.prometheus.postgres_metrics.receiver]
   job_name        = "integrations/postgres_exporter"
   scrape_interval = "60s"
+}
+
+otelcol.receiver.prometheus "postgres_metrics" {
+  output {
+    metrics = [otelcol.processor.resource.add_service_name_postgres.input]
+  }
+}
+
+otelcol.processor.resource "add_service_name_postgres" {
+  attributes {
+    insert {
+      key   = "service.name"
+      value = "postgres"
+    }
+  }
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
 }
 
 // ========================================
@@ -131,9 +185,27 @@ prometheus.exporter.redis "integrations_redis_exporter" {
 
 prometheus.scrape "integrations_redis_exporter" {
   targets         = prometheus.exporter.redis.integrations_redis_exporter.targets
-  forward_to      = [prometheus.remote_write.grafana_cloud_mimir.receiver]
+  forward_to      = [otelcol.receiver.prometheus.redis_metrics.receiver]
   job_name        = "integrations/redis_exporter"
   scrape_interval = "60s"
+}
+
+otelcol.receiver.prometheus "redis_metrics" {
+  output {
+    metrics = [otelcol.processor.resource.add_service_name_redis.input]
+  }
+}
+
+otelcol.processor.resource "add_service_name_redis" {
+  attributes {
+    insert {
+      key   = "service.name"
+      value = "redis"
+    }
+  }
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
 }
 
 // ========================================
@@ -148,8 +220,26 @@ prometheus.scrape "integrations_rabbitmq" {
     job         = "integrations/rabbitmq",
     instance    = "rabbitmq",
   }]
-  forward_to      = [prometheus.remote_write.grafana_cloud_mimir.receiver]
+  forward_to      = [otelcol.receiver.prometheus.rabbitmq_metrics.receiver]
   scrape_interval = "60s"
+}
+
+otelcol.receiver.prometheus "rabbitmq_metrics" {
+  output {
+    metrics = [otelcol.processor.resource.add_service_name_rabbitmq.input]
+  }
+}
+
+otelcol.processor.resource "add_service_name_rabbitmq" {
+  attributes {
+    insert {
+      key   = "service.name"
+      value = "rabbitmq"
+    }
+  }
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
 }
 
 // ========================================
@@ -183,17 +273,7 @@ tracing {
 }
 
 // ========================================
-// Prometheus Remote Write - Infrastructure Metrics Only
+// Infrastructure Metrics Processing
 // ========================================
-// Sends PostgreSQL, Redis, and RabbitMQ metrics to Mimir
-// Uses separate Prometheus instance ID (different from OTLP Gateway)
-
-prometheus.remote_write "grafana_cloud_mimir" {
-  endpoint {
-    url = env("GRAFANA_CLOUD_PROMETHEUS_ENDPOINT")
-    basic_auth {
-      username = env("GRAFANA_CLOUD_PROMETHEUS_INSTANCE_ID")
-      password = env("GRAFANA_CLOUD_API_KEY")
-    }
-  }
-}
+// All metrics (application + infrastructure) now route through OTLP
+// with service.name resource attributes for consistent filtering

@@ -15,6 +15,14 @@
 # - No port mappings (reverse proxy handles external access)
 # - restart: always policy
 
+x-logging-default: &logging-default
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+    compress: "true"
+    labels: "service,environment"
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -37,6 +45,10 @@ services:
     restart: always
     networks:
       - app-network
+    logging: *logging-default
+    labels:
+      service: "postgres"
+      environment: "${ENVIRONMENT:-production}"
 
   rabbitmq:
     image: rabbitmq:4.2-management-alpine
@@ -57,6 +69,10 @@ services:
       start_period: 60s
     networks:
       - app-network
+    logging: *logging-default
+    labels:
+      service: "rabbitmq"
+      environment: "${ENVIRONMENT:-production}"
 
   redis:
     image: redis:7.4-alpine
@@ -72,6 +88,10 @@ services:
     restart: always
     networks:
       - app-network
+    logging: *logging-default
+    labels:
+      service: "redis"
+      environment: "${ENVIRONMENT:-production}"
 
   init:
     build:
@@ -100,6 +120,10 @@ services:
     networks:
       - app-network
     restart: "no"
+    logging: *logging-default
+    labels:
+      service: "init"
+      environment: "${ENVIRONMENT:-production}"
 
   bot:
     build:
@@ -133,6 +157,10 @@ services:
         condition: service_completed_successfully
     networks:
       - app-network
+    logging: *logging-default
+    labels:
+      service: "bot"
+      environment: "${ENVIRONMENT:-production}"
 
   api:
     build:
@@ -175,6 +203,10 @@ services:
       retries: 3
     networks:
       - app-network
+    logging: *logging-default
+    labels:
+      service: "api"
+      environment: "${ENVIRONMENT:-production}"
 
   notification-daemon:
     build:
@@ -215,6 +247,10 @@ services:
       retries: 3
     networks:
       - app-network
+    logging: *logging-default
+    labels:
+      service: "notification-daemon"
+      environment: "${ENVIRONMENT:-production}"
 
   status-transition-daemon:
     build:
@@ -255,6 +291,10 @@ services:
       retries: 3
     networks:
       - app-network
+    logging: *logging-default
+    labels:
+      service: "status-transition-daemon"
+      environment: "${ENVIRONMENT:-production}"
 
   retry-daemon:
     build:
@@ -295,6 +335,10 @@ services:
       retries: 3
     networks:
       - app-network
+    logging: *logging-default
+    labels:
+      service: "retry-daemon"
+      environment: "${ENVIRONMENT:-production}"
 
   frontend:
     build:
@@ -325,6 +369,10 @@ services:
       retries: 3
     networks:
       - app-network
+    logging: *logging-default
+    labels:
+      service: "frontend"
+      environment: "${ENVIRONMENT:-production}"
 
   grafana-alloy:
     image: grafana/alloy:latest
@@ -332,6 +380,7 @@ services:
     restart: always
     volumes:
       - ./grafana-alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       ALLOY_LOG_LEVEL: ${ALLOY_LOG_LEVEL:-info}
       GRAFANA_CLOUD_OTLP_INSTANCE_ID: ${GRAFANA_CLOUD_OTLP_INSTANCE_ID:-}
@@ -349,6 +398,10 @@ services:
       --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     networks:
       - app-network
+    logging: *logging-default
+    labels:
+      service: "grafana-alloy"
+      environment: "${ENVIRONMENT:-production}"
 
 volumes:
   postgres_data:

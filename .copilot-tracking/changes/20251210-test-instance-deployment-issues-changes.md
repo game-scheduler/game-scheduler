@@ -95,6 +95,17 @@ Removed unnecessary port mappings from Docker Compose configurations to minimize
 - docker/init-entrypoint.sh - Wrapped alembic upgrade command with Python telemetry wrapper, added init.database_migration span with error recording
 - alembic/versions/022_add_completed_schedules.py - Shortened revision ID from "022_add_completed_status_schedules" (37 chars) to "022_add_completed_schedules" (27 chars) to fit alembic_version.version_num VARCHAR(32) constraint
 
+**Phase 10 Changes (Add service.name to Infrastructure Metrics)**:
+- grafana-alloy/config.alloy - Modified postgres metrics to route through otelcol.receiver.prometheus and otelcol.processor.resource to add service.name=postgres
+- grafana-alloy/config.alloy - Modified redis metrics to route through otelcol.receiver.prometheus and otelcol.processor.resource to add service.name=redis
+- grafana-alloy/config.alloy - Modified rabbitmq metrics to route through otelcol.receiver.prometheus and otelcol.processor.resource to add service.name=rabbitmq
+- grafana-alloy/config.alloy - Removed prometheus.remote_write.grafana_cloud_mimir block (all metrics now route through OTLP)
+- grafana-alloy/config.alloy - Updated architecture comment to reflect unified OTLP routing for all metrics
+- compose.yaml - Added x-logging-default anchor with json-file driver, max-size=10m, max-file=3, compress=true
+- compose.yaml - Added logging configuration and labels (service, environment) to all 11 services (postgres, rabbitmq, redis, init, bot, api, notification-daemon, status-transition-daemon, retry-daemon, frontend, grafana-alloy)
+- grafana-alloy/config.alloy - Added Docker log collection with discovery.docker, loki.source.docker, and loki.process components
+- compose.yaml - Mounted Docker socket (/var/run/docker.sock) in grafana-alloy service for log collection
+
 ### Files Removed (0)
 
 None
@@ -134,4 +145,91 @@ None
 - RabbitMQ management UI now only available in development environment (http://localhost:15672)
 
 ### Removed
+
+None
+
+## Release Summary
+
+**Total Files Affected**: 19
+
+### Files Created (2)
+
+- DOCKER_PORTS.md - Complete documentation of port exposure strategy and docker exec debugging guide
+- alembic/versions/022_add_completed_schedules.py - Database migration to add COMPLETED status schedules for existing games
+
+### Files Modified (17)
+
+**Port Security and Docker Configuration**:
+- docker-compose.base.yml - Removed all port mappings (infrastructure and application services)
+- compose.override.yaml - Added development-specific port mappings (frontend:3000, api:8000, rabbitmq:15672)
+- docker-compose.test.yml - Added test-specific port mappings (frontend:3000, api:8000)
+- compose.production.yaml - Verified zero port exposure
+- .env.example - Added port configuration documentation and docker exec examples
+- compose.yaml - Added logging configuration (x-logging-default anchor) to all 11 services
+- compose.yaml - Mounted Docker socket for Grafana Alloy log collection
+
+**Observability Infrastructure**:
+- grafana-alloy/config.alloy - Routed infrastructure metrics through OTEL processors with service.name attributes
+- grafana-alloy/config.alloy - Added Docker log collection (discovery.docker, loki.source.docker, loki.process)
+- grafana-alloy/config.alloy - Removed prometheus.remote_write (unified OTLP routing)
+
+**Application Code**:
+- services/bot/events/handlers.py - Added game host notification logic with is_host parameter
+- services/api/services/games.py - Fixed game completion status transitions (creates both IN_PROGRESS and COMPLETED schedules)
+- services/api/services/games.py - Refactored update_game() with 7 helper methods
+- scripts/init_rabbitmq.py - Added OpenTelemetry instrumentation
+- docker/init-entrypoint.sh - Added telemetry wrapper for database migrations
+
+**Testing**:
+- tests/services/api/services/test_games.py - Fixed test initialization and added 9 new tests for status schedules
+
+**Configuration Cleanup**:
+- env/env.dev - Removed DISCORD_REDIRECT_URI
+- env/env.prod - Removed DISCORD_REDIRECT_URI
+- env/env.staging - Removed DISCORD_REDIRECT_URI
+- env/env.e2e - Removed TEST_DISCORD_REDIRECT_URI
+- DEPLOYMENT_QUICKSTART.md - Removed DISCORD_REDIRECT_URI from setup instructions
+
+### Files Removed (0)
+
+None
+
+### Dependencies & Infrastructure
+
+- **New Dependencies**: None
+- **Updated Dependencies**: None
+- **Infrastructure Changes**:
+  - All services use internal Docker network (app-network) exclusively
+  - Zero infrastructure port exposure in any environment
+  - Unified OTLP routing for all metrics with service.name attributes
+  - Docker log rotation (10MB max, 3 files, compressed)
+  - Centralized log collection via Grafana Alloy
+- **Configuration Updates**:
+  - Environment-specific port mappings: dev (frontend, API, RabbitMQ UI), test (frontend, API), prod (none)
+  - Docker socket mounted for Grafana Alloy log collection
+  - All services tagged with service and environment labels
+
+### Deployment Notes
+
+**Security Enhancements**:
+- Minimized attack surface by eliminating unnecessary port exposure
+- Infrastructure services only accessible via internal Docker network
+- Production has zero exposed ports (reverse proxy handles external access)
+- Docker logs bounded to prevent disk exhaustion
+
+**Observability Improvements**:
+- All metrics have service.name resource attribute for unified filtering
+- Infrastructure logs centralized in Grafana Cloud Loki
+- Init service telemetry visible (database migrations, RabbitMQ initialization)
+- Complete observability coverage across all services
+
+**Game Session Management**:
+- Games now automatically transition to COMPLETED status
+- Game hosts receive notification reminders
+- Notify roles trigger Discord pings correctly
+
+**Breaking Changes**:
+- Direct localhost access to infrastructure services no longer available
+- Use `docker exec` for debugging (documented in .env.example and DOCKER_PORTS.md)
+- RabbitMQ management UI only exposed in development environment
 

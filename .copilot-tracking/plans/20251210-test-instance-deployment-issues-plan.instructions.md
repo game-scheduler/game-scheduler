@@ -128,15 +128,15 @@ Remove unnecessary port mappings from Docker Compose configurations to minimize 
 - [x] Task 9.2: Add telemetry wrapper to database migrations
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 394-409)
 
-### [ ] Phase 10: Add service.name to Infrastructure Metrics
+### [x] Phase 10: Add service.name to Infrastructure Metrics
 
-- [ ] Task 10.1: Route infrastructure metrics through OTEL processors
+- [x] Task 10.1: Route infrastructure metrics through OTEL processors
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 411-426)
 
-- [ ] Task 10.2: Add Docker log rotation to all services
+- [x] Task 10.2: Add Docker log rotation to all services
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 428-443)
 
-- [ ] Task 10.3: Configure Grafana Alloy to collect Docker logs
+- [x] Task 10.3: Configure Grafana Alloy to collect Docker logs
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 445-460)
 
 ## Dependencies
