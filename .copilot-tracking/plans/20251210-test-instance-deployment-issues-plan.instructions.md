@@ -95,15 +95,15 @@ Remove unnecessary port mappings from Docker Compose configurations to minimize 
 - [x] Task 6.2: Test role mentions in Discord announcements
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 241-256)
 
-### [ ] Phase 7: Remove Unused Environment Variables
+### [x] Phase 7: Remove Unused Environment Variables
 
-- [ ] Task 7.1: Remove DISCORD_REDIRECT_URI from all environment files
+- [x] Task 7.1: Remove DISCORD_REDIRECT_URI from all environment files
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 258-273)
 
-- [ ] Task 7.2: Remove DISCORD_REDIRECT_URI from compose.yaml
+- [x] Task 7.2: Remove DISCORD_REDIRECT_URI from compose.yaml
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 275-290)
 
-- [ ] Task 7.3: Remove DISCORD_REDIRECT_URI from documentation
+- [x] Task 7.3: Remove DISCORD_REDIRECT_URI from documentation
   - Details: .copilot-tracking/details/20251210-test-instance-deployment-issues-details.md (Lines 292-307)
 
 ### [ ] Phase 8: Fix Game Completion Status Transitions

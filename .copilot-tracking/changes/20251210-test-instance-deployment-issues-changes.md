@@ -55,6 +55,15 @@ Removed unnecessary port mappings from Docker Compose configurations to minimize
 - Tested that users with mentioned roles receive Discord notifications
 - No code changes required - feature working as designed
 
+**Phase 7 Changes (Remove Unused Environment Variables)**:
+- .env.example - Removed DISCORD_REDIRECT_URI variable (OAuth redirect URI constructed from API_URL instead)
+- env/env.dev - Removed DISCORD_REDIRECT_URI variable
+- env/env.prod - Removed DISCORD_REDIRECT_URI variable
+- env/env.staging - Removed DISCORD_REDIRECT_URI variable
+- env/env.e2e - Removed TEST_DISCORD_REDIRECT_URI variable
+- compose.yaml - Removed DISCORD_REDIRECT_URI from bot service environment variables
+- DEPLOYMENT_QUICKSTART.md - Removed DISCORD_REDIRECT_URI from setup instructions
+
 ### Files Removed (0)
 
 None

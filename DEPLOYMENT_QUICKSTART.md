@@ -20,9 +20,6 @@ API_URL=
 # Set to your actual frontend URL
 FRONTEND_URL=http://your-server-ip:3000
 
-# Configure Discord OAuth callback
-DISCORD_REDIRECT_URI=http://your-server-ip:8000/api/v1/auth/callback
-
 # Set your Discord credentials
 DISCORD_BOT_TOKEN=your_bot_token
 DISCORD_CLIENT_ID=your_client_id
