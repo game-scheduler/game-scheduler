@@ -43,11 +43,8 @@ Consolidating Docker Compose files to use modern naming conventions and standard
 - env/env.e2e - Added COMPOSE_FILE=compose.yaml:compose.e2e.yaml for end-to-end test environment
 - env/env.int - Added COMPOSE_FILE=compose.yaml:compose.int.yaml for integration test environment
 
-### Phase 4 Changes - COMPOSE_FILE Configuration
+### Phase 5 Changes - Script Updates
 
-- env/env.staging - Added COMPOSE_FILE=compose.yaml:compose.staging.yaml and CONTAINER_PREFIX=gamebot-staging for staging environment isolation
-- env/env.dev - Added COMPOSE_FILE=compose.yaml:compose.override.yaml to explicitly specify development compose files
-- env/env.prod - Added COMPOSE_FILE=compose.yaml to specify production base configuration only
-- env/env.e2e - Added COMPOSE_FILE=compose.yaml:compose.e2e.yaml for end-to-end test environment
-- env/env.int - Added COMPOSE_FILE=compose.yaml:compose.int.yaml for integration test environment
-
+- scripts/run-integration-tests.sh - Updated to use --env-file env/env.int and removed explicit -f flags (COMPOSE_FILE variable handles compose file selection)
+- scripts/run-e2e-tests.sh - Updated to use --env-file env/env.e2e and removed explicit -f flags, updated file existence checks and source commands to reference env/env.e2e
+- scripts/migrate_postgres_15_to_17.sh - Updated documentation reference from docker-compose.base.yml to compose.yaml in rollback instructions
