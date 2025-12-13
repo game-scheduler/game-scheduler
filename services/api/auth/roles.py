@@ -134,6 +134,29 @@ class RoleVerificationService:
             logger.error(f"Error checking permissions: {e}")
             return False
 
+    async def has_any_role(
+        self,
+        user_id: str,
+        guild_id: str,
+        role_ids: list[str],
+    ) -> bool:
+        """
+        Check if user has any of the specified roles in a guild.
+
+        Args:
+            user_id: Discord user ID
+            guild_id: Discord guild ID
+            role_ids: List of role IDs to check for
+
+        Returns:
+            True if user has at least one of the specified roles
+        """
+        if not role_ids:
+            return False
+
+        user_role_ids = await self.get_user_role_ids(user_id, guild_id)
+        return any(role_id in role_ids for role_id in user_role_ids)
+
     async def check_game_host_permission(
         self,
         user_id: str,

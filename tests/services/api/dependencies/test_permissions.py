@@ -184,7 +184,6 @@ async def test_require_game_host_success(mock_current_user, mock_role_service, m
         "user123",
         "guild456",
         mock_db,
-        channel_id="channel789",
         access_token="test_token",
     )
 
@@ -229,7 +228,6 @@ async def test_require_game_host_no_channel(mock_current_user, mock_role_service
         "user123",
         "guild456",
         mock_db,
-        channel_id=None,
         access_token="test_token",
     )
 
@@ -538,7 +536,7 @@ async def test_verify_game_access_role_check_success():
 
     assert result == mock_game
     mock_role_service.has_any_role.assert_called_once_with(
-        "user123", "guild123", "test_token", ["role1", "role2"]
+        "user123", "guild123", ["role1", "role2"]
     )
 
 

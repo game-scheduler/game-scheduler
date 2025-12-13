@@ -190,6 +190,50 @@ async def test_invalidate_user_roles(role_service, mock_cache):
     mock_cache.delete.assert_called_once()
 
 
+@pytest.mark.asyncio
+async def test_has_any_role_user_has_role(role_service):
+    """Test has_any_role returns True when user has at least one required role."""
+    with patch.object(role_service, "get_user_role_ids", return_value=["role1", "role2", "role3"]):
+        has_role = await role_service.has_any_role("user123", "guild456", ["role2", "role4"])
+
+    assert has_role is True
+
+
+@pytest.mark.asyncio
+async def test_has_any_role_user_missing_roles(role_service):
+    """Test has_any_role returns False when user has none of the required roles."""
+    with patch.object(role_service, "get_user_role_ids", return_value=["role1", "role2"]):
+        has_role = await role_service.has_any_role("user123", "guild456", ["role3", "role4"])
+
+    assert has_role is False
+
+
+@pytest.mark.asyncio
+async def test_has_any_role_empty_role_list(role_service):
+    """Test has_any_role returns False when given empty role list."""
+    has_role = await role_service.has_any_role("user123", "guild456", [])
+
+    assert has_role is False
+
+
+@pytest.mark.asyncio
+async def test_has_any_role_with_everyone_role(role_service):
+    """Test has_any_role matches @everyone role (guild_id)."""
+    with patch.object(role_service, "get_user_role_ids", return_value=["guild456", "role1"]):
+        has_role = await role_service.has_any_role("user123", "guild456", ["guild456"])
+
+    assert has_role is True
+
+
+@pytest.mark.asyncio
+async def test_has_any_role_multiple_matches(role_service):
+    """Test has_any_role returns True when user has multiple matching roles."""
+    with patch.object(role_service, "get_user_role_ids", return_value=["role1", "role2", "role3"]):
+        has_role = await role_service.has_any_role("user123", "guild456", ["role1", "role2"])
+
+    assert has_role is True
+
+
 def test_get_role_service_singleton():
     """Test role service singleton pattern."""
     service1 = roles.get_role_service()

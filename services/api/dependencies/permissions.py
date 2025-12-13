@@ -192,7 +192,6 @@ async def verify_game_access(
         has_role = await role_service.has_any_role(
             user_discord_id,
             guild_config.guild_id,
-            access_token,
             game.allowed_player_role_ids,
         )
 
@@ -464,7 +463,6 @@ async def require_game_host(
         current_user.user.discord_id,
         guild_id,
         db,
-        channel_id=channel_id,
         access_token=access_token,
     )
 

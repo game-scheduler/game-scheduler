@@ -166,7 +166,6 @@ async def create_guild_config(
 
     return guild_schemas.GuildConfigResponse(
         id=guild_config.id,
-        guild_id=guild_config.guild_id,
         guild_name=guild_name,
         bot_manager_role_ids=guild_config.bot_manager_role_ids,
         require_host_role=guild_config.require_host_role,

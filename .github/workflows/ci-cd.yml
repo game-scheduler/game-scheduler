@@ -170,7 +170,6 @@ jobs:
 
       - name: Run mypy type checker
         run: uv run mypy shared/ services/
-        continue-on-error: true
 
   build-and-publish:
     name: Build and Publish Containers

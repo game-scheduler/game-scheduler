@@ -23,7 +23,7 @@ Centralizes queue and exchange definitions to ensure consistency
 across init scripts, consumers, and publishers.
 """
 
-from typing import TypedDict
+from typing import Any, TypedDict
 
 
 class QueueArguments(TypedDict, total=False):
@@ -48,7 +48,7 @@ QUEUE_NOTIFICATION_DLQ = "notification_queue.dlq"
 # Queue configuration
 PRIMARY_QUEUE_TTL_MS = 3600000  # 1 hour in milliseconds
 
-PRIMARY_QUEUE_ARGUMENTS: dict[str, str | int] = {
+PRIMARY_QUEUE_ARGUMENTS: dict[str, Any] = {
     "x-dead-letter-exchange": DLX_EXCHANGE,
     "x-message-ttl": PRIMARY_QUEUE_TTL_MS,
 }
