@@ -53,8 +53,8 @@ def db_engine(db_url):
 @pytest.fixture
 def db_session(db_engine):
     """Create database session for testing."""
-    Session = sessionmaker(bind=db_engine)
-    session = Session()
+    session_factory = sessionmaker(bind=db_engine)
+    session = session_factory()
     yield session
     session.close()
 
@@ -90,8 +90,8 @@ def test_all_expected_tables_exist(db_session):
     result = db_session.execute(
         text(
             """
-            SELECT tablename 
-            FROM pg_tables 
+            SELECT tablename
+            FROM pg_tables
             WHERE schemaname = 'public'
             ORDER BY tablename
             """
@@ -133,8 +133,8 @@ def test_critical_indexes_exist(db_session):
         result = db_session.execute(
             text(
                 """
-                SELECT indexname 
-                FROM pg_indexes 
+                SELECT indexname
+                FROM pg_indexes
                 WHERE tablename = :table_name
                 ORDER BY indexname
                 """
@@ -155,8 +155,8 @@ def test_notification_trigger_exists(db_session):
     result = db_session.execute(
         text(
             """
-            SELECT trigger_name 
-            FROM information_schema.triggers 
+            SELECT trigger_name
+            FROM information_schema.triggers
             WHERE event_object_table = 'notification_schedule'
             AND trigger_name = 'notification_schedule_trigger'
             """
@@ -172,8 +172,8 @@ def test_status_schedule_trigger_exists(db_session):
     result = db_session.execute(
         text(
             """
-            SELECT trigger_name 
-            FROM information_schema.triggers 
+            SELECT trigger_name
+            FROM information_schema.triggers
             WHERE event_object_table = 'game_status_schedule'
             AND trigger_name = 'game_status_schedule_trigger'
             """
@@ -205,7 +205,6 @@ def test_foreign_key_constraints_exist(db_session):
     assert len(constraints) > 0, "No foreign key constraints found on critical tables"
 
     # Verify specific important foreign keys exist
-    constraint_names = [row[0] for row in constraints]
     table_names = [row[1] for row in constraints]
 
     assert "game_sessions" in table_names, "No foreign keys on game_sessions table"
@@ -224,8 +223,8 @@ def test_primary_keys_exist(db_session):
     result = db_session.execute(
         text(
             """
-            SELECT tablename 
-            FROM pg_tables 
+            SELECT tablename
+            FROM pg_tables
             WHERE schemaname = 'public'
             AND tablename != 'alembic_version'
             ORDER BY tablename
