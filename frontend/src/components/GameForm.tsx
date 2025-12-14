@@ -439,7 +439,7 @@ export const GameForm: FC<GameFormProps> = ({
           />
 
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Max Players"

@@ -22,11 +22,11 @@
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
-    "@mui/icons-material": "^7.3.6",
-    "@mui/material": "^7.3.6",
-    "@mui/x-date-pickers": "^7.24.0",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.15.0",
+    "@mui/material": "^5.15.0",
+    "@mui/x-date-pickers": "^6.20.2",
     "axios": "^1.6.2",
     "date-fns": "^2.30.0",
     "react": "^19.0.0",

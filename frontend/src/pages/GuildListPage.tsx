@@ -165,7 +165,7 @@ export const GuildListPage: FC = () => {
 
       <Grid container spacing={3}>
         {guilds.map((guild) => (
-          <Grid item xs={12} sm={6} md={4} key={guild.id}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={guild.id}>
             <Card>
               <CardActionArea onClick={() => navigate(`/guilds/${guild.id}`)}>
                 <CardContent>
