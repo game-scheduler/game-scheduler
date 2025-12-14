@@ -132,14 +132,7 @@ describe('ServerSelectionDialog', () => {
     const onClose = vi.fn();
     const onSelect = vi.fn();
 
-    render(
-      <ServerSelectionDialog
-        open={true}
-        onClose={onClose}
-        guilds={[]}
-        onSelect={onSelect}
-      />
-    );
+    render(<ServerSelectionDialog open={true} onClose={onClose} guilds={[]} onSelect={onSelect} />);
 
     expect(screen.getByText('Select Server')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Test Server/ })).not.toBeInTheDocument();

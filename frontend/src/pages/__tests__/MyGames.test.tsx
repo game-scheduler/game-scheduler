@@ -36,6 +36,10 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../../api/client');
 
+vi.mock('../../utils/permissions', () => ({
+  canUserCreateGames: vi.fn().mockResolvedValue(true),
+}));
+
 describe('MyGames - Server Selection Logic', () => {
   const mockUser: CurrentUser = {
     id: 'id-123',
@@ -132,18 +136,16 @@ describe('MyGames - Server Selection Logic', () => {
     const user = userEvent.setup();
     renderWithAuth();
 
-    await waitFor(() => {
-      expect(screen.getByText('Create New Game')).toBeInTheDocument();
-    });
+    const createButton = await screen.findByText('Create New Game', {}, { timeout: 3000 });
+    expect(createButton).toBeInTheDocument();
 
-    await user.click(screen.getByText('Create New Game'));
+    await user.click(createButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('Select Server')).toBeInTheDocument();
-    });
+    const dialogTitle = await screen.findByText('Select Server', {}, { timeout: 3000 });
+    expect(dialogTitle).toBeInTheDocument();
   });
 
-  it('shows error when user has no servers', async () => {
+  it('hides create button when user has no servers', async () => {
     vi.mocked(apiClient.get).mockImplementation((url: string) => {
       if (url === '/api/v1/games') {
         return Promise.resolve({ data: mockGamesResponse });
@@ -154,20 +156,14 @@ describe('MyGames - Server Selection Logic', () => {
       return Promise.resolve({ data: { guilds: [] } });
     });
 
-    const user = userEvent.setup();
     renderWithAuth();
 
-    await waitFor(() => {
-      expect(screen.getByText('Create New Game')).toBeInTheDocument();
-    });
+    // Wait for loading to complete
+    await screen.findByText('My Games');
 
-    await user.click(screen.getByText('Create New Game'));
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(/No servers available/)
-      ).toBeInTheDocument();
-    });
+    // Button should not be in the document when there are no guilds
+    const createButton = screen.queryByText('Create New Game');
+    expect(createButton).not.toBeInTheDocument();
   });
 
   it('navigates when server is selected from dialog', async () => {
@@ -194,17 +190,16 @@ describe('MyGames - Server Selection Logic', () => {
     const user = userEvent.setup();
     renderWithAuth();
 
-    await waitFor(() => {
-      expect(screen.getByText('Create New Game')).toBeInTheDocument();
-    });
+    const createButton = await screen.findByText('Create New Game', {}, { timeout: 3000 });
+    expect(createButton).toBeInTheDocument();
 
-    await user.click(screen.getByText('Create New Game'));
+    await user.click(createButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('Select Server')).toBeInTheDocument();
-    });
+    const dialogTitle = await screen.findByText('Select Server', {}, { timeout: 3000 });
+    expect(dialogTitle).toBeInTheDocument();
 
-    await user.click(screen.getByText('Test Server 1'));
+    const serverOption = await screen.findByText('Test Server 1', {}, { timeout: 3000 });
+    await user.click(serverOption);
 
     expect(mockNavigate).toHaveBeenCalledWith('/guilds/1/games/new');
   });

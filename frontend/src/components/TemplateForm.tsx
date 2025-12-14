@@ -64,10 +64,6 @@ export const TemplateForm: FC<TemplateFormProps> = ({
   onClose,
   onSubmit,
 }) => {
-  console.log('TemplateForm received:', {
-    channelsCount: channels.length,
-    rolesCount: roles.length,
-  });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [channelId, setChannelId] = useState('');
@@ -179,7 +175,6 @@ export const TemplateForm: FC<TemplateFormProps> = ({
             updateData[key] = value;
           }
         }
-        console.log('Sending template update:', updateData);
         await onSubmit(updateData as TemplateUpdateRequest);
       } else {
         await onSubmit({ ...data, guild_id: guildId } as TemplateCreateRequest);
@@ -187,8 +182,7 @@ export const TemplateForm: FC<TemplateFormProps> = ({
 
       onClose();
     } catch (error: any) {
-      console.error('Failed to save template:', error);
-      setErrors({ submit: error.response?.data?.detail || 'Failed to save template' });
+      setErrors(error.response?.data?.detail || 'Failed to save template');
     } finally {
       setSubmitting(false);
     }

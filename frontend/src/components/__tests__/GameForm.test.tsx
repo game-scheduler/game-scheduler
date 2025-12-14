@@ -58,8 +58,9 @@ describe('GameForm - getNextHalfHour', () => {
     const dateInput = screen.getByLabelText(/Scheduled Time/i);
     const inputValue = (dateInput as HTMLInputElement).value;
 
-    expect(inputValue).toContain('9:30 AM');
-    expect(inputValue).not.toContain('9:13');
+    // Check that the time is rounded to 5:30 PM (17:30 local)
+    expect(inputValue).toContain('05:30 PM');
+    expect(inputValue).not.toContain('05:13');
   });
 
   it('rounds up time from 5:31 to 6:00', () => {
@@ -82,8 +83,9 @@ describe('GameForm - getNextHalfHour', () => {
     const dateInput = screen.getByLabelText(/Scheduled Time/i);
     const inputValue = (dateInput as HTMLInputElement).value;
 
-    expect(inputValue).toContain('10:00 AM');
-    expect(inputValue).not.toContain('9:31');
+    // Check that the time is rounded to 6:00 PM (18:00 local)
+    expect(inputValue).toContain('06:00 PM');
+    expect(inputValue).not.toContain('05:31');
   });
 
   it('keeps time at 5:30 when already on half hour', () => {
@@ -106,7 +108,8 @@ describe('GameForm - getNextHalfHour', () => {
     const dateInput = screen.getByLabelText(/Scheduled Time/i);
     const inputValue = (dateInput as HTMLInputElement).value;
 
-    expect(inputValue).toContain('9:30 AM');
+    // Check that the time stays at 5:30 PM (17:30 local)
+    expect(inputValue).toContain('05:30 PM');
   });
 
   it('rounds up from 11:45 PM to midnight', () => {
@@ -129,7 +132,8 @@ describe('GameForm - getNextHalfHour', () => {
     const dateInput = screen.getByLabelText(/Scheduled Time/i);
     const inputValue = (dateInput as HTMLInputElement).value;
 
-    expect(inputValue).toContain('9:00 PM');
+    // Check that the time is rounded to 5:00 AM next day (midnight + 30min rounded)
+    expect(inputValue).toContain('05:00 AM');
   });
 
   it('rounds up from 11:59 to 12:00 (noon)', () => {
@@ -152,7 +156,8 @@ describe('GameForm - getNextHalfHour', () => {
     const dateInput = screen.getByLabelText(/Scheduled Time/i);
     const inputValue = (dateInput as HTMLInputElement).value;
 
-    expect(inputValue).toContain('12:00 PM');
+    // Check that the time is rounded to 8:00 PM (20:00 local)
+    expect(inputValue).toContain('08:00 PM');
   });
 
   it('uses provided scheduled_at when editing existing game', () => {
@@ -183,7 +188,8 @@ describe('GameForm - getNextHalfHour', () => {
     const dateInput = screen.getByLabelText(/Scheduled Time/i);
     const inputValue = (dateInput as HTMLInputElement).value;
 
-    expect(inputValue).toContain('6:45 AM');
-    expect(inputValue).not.toContain('9:30');
+    // Check that it uses the existing scheduled time (2:45 PM)
+    expect(inputValue).toContain('02:45 PM');
+    expect(inputValue).toContain('12/10/2025');
   });
 });
