@@ -29,8 +29,9 @@ RUN pip install --no-cache-dir uv
 # Copy dependency files
 COPY pyproject.toml ./
 
-# Install Python dependencies (including dev dependencies if they exist)
-RUN uv pip install --system .
+# Install Python dependencies including dev dependencies
+RUN uv pip install --system . && \
+    uv pip install --system --group dev
 
 # Create non-root user with sudo access for development
 RUN groupadd --gid 1000 vscode && \

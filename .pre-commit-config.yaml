@@ -1,0 +1,130 @@
+# Pre-commit hook configuration
+# See https://pre-commit.com for more information
+
+default_language_version:
+  python: python3.13
+  node: "20"
+
+default_stages: [pre-commit]
+
+repos:
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      # File cleanup
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--unsafe]  # Allow custom YAML tags
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  # Python linting and formatting
+  - repo: local
+    hooks:
+      # Ruff linter (fast Python linter)
+      - id: ruff-check
+        name: ruff lint
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+        require_serial: true
+
+      # Ruff formatter (fast Python formatter)
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+        require_serial: true
+
+      # MyPy type checking
+      - id: mypy
+        name: mypy type check
+        entry: uv run mypy
+        language: system
+        types: [python]
+        pass_filenames: false
+        args: [shared/, services/]
+
+  # Frontend linting and formatting
+  - repo: local
+    hooks:
+      # ESLint
+      - id: eslint
+        name: ESLint
+        entry: bash -c 'cd frontend && npm run lint:fix'
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+      # Prettier
+      - id: prettier
+        name: Prettier format
+        entry: bash -c 'cd frontend && npm run format'
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx|json|css|scss|md)$
+        pass_filenames: false
+
+      # TypeScript type check
+      - id: typescript
+        name: TypeScript check
+        entry: bash -c 'cd frontend && npm run type-check'
+        language: system
+        files: ^frontend/.*\.(ts|tsx)$
+        pass_filenames: false
+
+  # Automatic testing for new/modified files
+  - repo: local
+    hooks:
+      # Unit tests for new/modified Python files (RUNS ON EVERY COMMIT)
+      - id: pytest-changed
+        name: pytest on new/modified files
+        entry: bash -c 'files=$(git diff --cached --name-only --diff-filter=ACM | grep "\.py$"); if [ -n "$files" ]; then uv run pytest $files --tb=short -x -v; else echo "No Python files to test"; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+      # Frontend tests for new/modified files (RUNS ON EVERY COMMIT)
+      - id: vitest-changed
+        name: Frontend tests on changed files
+        entry: bash -c 'files=$(git diff --cached --name-only --diff-filter=ACM | grep -E "^frontend/.*\.(ts|tsx|js|jsx)$"); if [ -n "$files" ]; then cd frontend && npm run test -- --run; else echo "No frontend files to test"; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+  # Optional/Manual hooks - run with: pre-commit run <hook-id> --hook-stage manual
+  - repo: local
+    hooks:
+      # All unit tests (for comprehensive validation)
+      - id: pytest-all
+        name: pytest all unit tests
+        entry: uv run pytest tests/services/ tests/shared/ --tb=short
+        language: system
+        pass_filenames: false
+        stages: [manual]
+        verbose: true
+
+      # All frontend tests
+      - id: vitest-all
+        name: All frontend unit tests
+        entry: bash -c 'cd frontend && npm run test'
+        language: system
+        pass_filenames: false
+        stages: [manual]
+        verbose: true
+
+      # Run CI/CD workflow locally (requires Docker)
+      - id: ci-cd-workflow
+        name: Run CI/CD workflow locally
+        entry: act -j unit-tests --rm
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [manual]
+        verbose: true

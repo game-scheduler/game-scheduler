@@ -139,6 +139,67 @@ docker compose build api
 docker compose build
 ```
 
+### Pre-commit Hooks
+
+The project uses pre-commit hooks to automatically validate code quality before commits. Hooks run automatically to catch issues early:
+
+**What runs automatically on every commit:**
+- File cleanup (trailing whitespace, end-of-file fixer, etc.)
+- Python linting and formatting (`ruff check --fix`, `ruff format`)
+- Python type checking (`mypy`)
+- Frontend linting and formatting (ESLint, Prettier, TypeScript)
+- **Unit tests for new/modified files** (pytest, vitest)
+
+**Setup (one-time):**
+```bash
+# The pre-commit tool is already installed via uv
+# Install git hooks to activate automatic execution
+uv tool run pre-commit install
+```
+
+**Normal usage:**
+```bash
+# Just commit normally - hooks run automatically
+git add modified_file.py
+git commit -m "Your commit message"
+# Pre-commit runs all checks + tests for modified files automatically
+# Commit succeeds if all checks pass, fails otherwise
+
+# Note: After container rebuild, you can omit 'uv tool run' prefix:
+pre-commit run --all-files
+```
+
+**Manual test execution:**
+```bash
+# Run ALL unit tests (comprehensive validation)
+pre-commit run pytest-all --hook-stage manual
+
+# Run ALL frontend tests
+pre-commit run vitest-all --hook-stage manual
+
+# Run CI/CD workflow locally (same as GitHub Actions)
+pre-commit run ci-cd-workflow --hook-stage manual
+
+# Run all hooks on all files
+pre-commit run --all-files
+```
+
+**Emergency skip (use sparingly):**
+```bash
+# Skip ALL hooks for urgent commits
+git commit -m "WIP: urgent hotfix" --no-verify
+
+# Skip specific hooks
+SKIP=pytest-changed git commit -m "Skip tests temporarily"
+```
+
+**Performance expectations:**
+- Most commits: 15-45 seconds (depending on files changed)
+- Tests run ONLY on new/modified files for efficiency
+- Full test suite still runs in CI/CD for comprehensive validation
+
+**Note:** If you encounter issues, you can always skip hooks with `--no-verify`, but the CI pipeline will still run all checks.
+
 ### Access Services
 
 - **Frontend**: http://localhost:3000
