@@ -16,8 +16,19 @@
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { GameForm } from '../GameForm';
+
+// Helper to get the hidden input for the date picker (MUI v8 accessible DOM structure)
+function getDatePickerHiddenInput(container: HTMLElement): HTMLInputElement {
+  const input = container.querySelector(
+    '.MuiPickersInputBase-input[aria-hidden="true"]'
+  ) as HTMLInputElement;
+  if (!input) {
+    throw new Error('Could not find MUI Date Picker hidden input');
+  }
+  return input;
+}
 
 describe('GameForm - getNextHalfHour', () => {
   beforeEach(() => {
@@ -45,7 +56,7 @@ describe('GameForm - getNextHalfHour', () => {
     const mockOnSubmit = vi.fn();
     const mockOnCancel = vi.fn();
 
-    render(
+    const { container } = render(
       <GameForm
         mode="create"
         guildId="test-guild"
@@ -55,8 +66,8 @@ describe('GameForm - getNextHalfHour', () => {
       />
     );
 
-    const dateInput = screen.getByLabelText(/Scheduled Time/i);
-    const inputValue = (dateInput as HTMLInputElement).value;
+    const dateInput = getDatePickerHiddenInput(container);
+    const inputValue = dateInput.value;
 
     // Check that the time is rounded to 5:30 PM (17:30 local)
     expect(inputValue).toContain('05:30 PM');
@@ -70,7 +81,7 @@ describe('GameForm - getNextHalfHour', () => {
     const mockOnSubmit = vi.fn();
     const mockOnCancel = vi.fn();
 
-    render(
+    const { container } = render(
       <GameForm
         mode="create"
         guildId="test-guild"
@@ -80,8 +91,8 @@ describe('GameForm - getNextHalfHour', () => {
       />
     );
 
-    const dateInput = screen.getByLabelText(/Scheduled Time/i);
-    const inputValue = (dateInput as HTMLInputElement).value;
+    const dateInput = getDatePickerHiddenInput(container);
+    const inputValue = dateInput.value;
 
     // Check that the time is rounded to 6:00 PM (18:00 local)
     expect(inputValue).toContain('06:00 PM');
@@ -95,7 +106,7 @@ describe('GameForm - getNextHalfHour', () => {
     const mockOnSubmit = vi.fn();
     const mockOnCancel = vi.fn();
 
-    render(
+    const { container } = render(
       <GameForm
         mode="create"
         guildId="test-guild"
@@ -105,8 +116,8 @@ describe('GameForm - getNextHalfHour', () => {
       />
     );
 
-    const dateInput = screen.getByLabelText(/Scheduled Time/i);
-    const inputValue = (dateInput as HTMLInputElement).value;
+    const dateInput = getDatePickerHiddenInput(container);
+    const inputValue = dateInput.value;
 
     // Check that the time stays at 5:30 PM (17:30 local)
     expect(inputValue).toContain('05:30 PM');
@@ -119,7 +130,7 @@ describe('GameForm - getNextHalfHour', () => {
     const mockOnSubmit = vi.fn();
     const mockOnCancel = vi.fn();
 
-    render(
+    const { container } = render(
       <GameForm
         mode="create"
         guildId="test-guild"
@@ -129,8 +140,8 @@ describe('GameForm - getNextHalfHour', () => {
       />
     );
 
-    const dateInput = screen.getByLabelText(/Scheduled Time/i);
-    const inputValue = (dateInput as HTMLInputElement).value;
+    const dateInput = getDatePickerHiddenInput(container);
+    const inputValue = dateInput.value;
 
     // Check that the time is rounded to 5:00 AM next day (midnight + 30min rounded)
     expect(inputValue).toContain('05:00 AM');
@@ -143,7 +154,7 @@ describe('GameForm - getNextHalfHour', () => {
     const mockOnSubmit = vi.fn();
     const mockOnCancel = vi.fn();
 
-    render(
+    const { container } = render(
       <GameForm
         mode="create"
         guildId="test-guild"
@@ -153,8 +164,8 @@ describe('GameForm - getNextHalfHour', () => {
       />
     );
 
-    const dateInput = screen.getByLabelText(/Scheduled Time/i);
-    const inputValue = (dateInput as HTMLInputElement).value;
+    const dateInput = getDatePickerHiddenInput(container);
+    const inputValue = dateInput.value;
 
     // Check that the time is rounded to 8:00 PM (20:00 local)
     expect(inputValue).toContain('08:00 PM');
@@ -168,7 +179,7 @@ describe('GameForm - getNextHalfHour', () => {
     const mockOnSubmit = vi.fn();
     const mockOnCancel = vi.fn();
 
-    render(
+    const { container } = render(
       <GameForm
         mode="edit"
         guildId="test-guild"
@@ -185,8 +196,8 @@ describe('GameForm - getNextHalfHour', () => {
       />
     );
 
-    const dateInput = screen.getByLabelText(/Scheduled Time/i);
-    const inputValue = (dateInput as HTMLInputElement).value;
+    const dateInput = getDatePickerHiddenInput(container);
+    const inputValue = dateInput.value;
 
     // Check that it uses the existing scheduled time (2:45 PM)
     expect(inputValue).toContain('02:45 PM');

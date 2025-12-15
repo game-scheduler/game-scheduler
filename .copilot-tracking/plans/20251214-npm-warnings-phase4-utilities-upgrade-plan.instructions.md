@@ -50,30 +50,53 @@ Evaluate and implement React Router v7 and date-fns v4 upgrades to benefit from 
 - [x] Task 1.3: Decide on React Router upgrade
   - Details: .copilot-tracking/details/20251214-npm-warnings-phase4-utilities-upgrade-details.md (Lines 41-52)
 
-### [ ] Phase 2: date-fns Assessment
+### [x] Phase 2: date-fns Assessment
 
-- [ ] Task 2.1: Audit date-fns usage
+- [x] Task 2.1: Audit date-fns usage
   - Details: .copilot-tracking/details/20251214-npm-warnings-phase4-utilities-upgrade-details.md (Lines 56-67)
 
-- [ ] Task 2.2: Review date-fns v4 breaking changes
+- [x] Task 2.2: Review date-fns v4 breaking changes
   - Details: .copilot-tracking/details/20251214-npm-warnings-phase4-utilities-upgrade-details.md (Lines 69-80)
 
-- [ ] Task 2.3: Decide on date-fns upgrade
+- [x] Task 2.3: Decide on date-fns upgrade
   - Details: .copilot-tracking/details/20251214-npm-warnings-phase4-utilities-upgrade-details.md (Lines 82-93)
+  - **Result**: Approved for Phase 3 implementation
 
 ### [x] Phase 3: Implementation (React Router)
 
 - [x] Task 3.1: Update React Router package version
-  - Details: .copilot-tracking/details/20251214-npm-warnings-phase4-utilities-upgrade-details.md (Lines 110-121)
+  - **Completed**: react-router@7.1.1 installed
+  - Simple package swap, no peer dependency conflicts
 
 - [x] Task 3.2: Migrate React Router code
-  - Details: .copilot-tracking/details/20251214-npm-warnings-phase4-utilities-upgrade-details.md (Lines 123-135)
+  - **Completed**: Updated 18 source files with import changes
+  - All imports changed from 'react-router-dom' → 'react-router'
+  - All 51 tests passing
 
-- [ ] Task 3.3: Migrate date-fns code (SKIPPED - date-fns assessment not completed)
-  - Details: .copilot-tracking/details/20251214-npm-warnings-phase4-utilities-upgrade-details.md (Lines 137-149)
+### [x] Phase 4: MUI X Date Pickers Assessment & Upgrade
 
-- [ ] Task 3.4: Run tests and verify functionality
-  - Details: .copilot-tracking/details/20251214-npm-warnings-phase4-utilities-upgrade-details.md (Lines 136-147)
+- [x] Task 4.1: Assess MUI X Date Pickers v7→v8 upgrade
+  - **Completed**: Simple upgrade, minimal breaking changes for our usage
+
+- [x] Task 4.2: Upgrade decision
+  - **Decision**: PROCEED - enables date-fns v4 upgrade
+
+### [x] Phase 5: MUI X Date Pickers v8 + date-fns v4 Implementation
+
+- [x] Task 5.1: Upgrade MUI X Date Pickers to v8.22.0
+  - **Completed**: @mui/x-date-pickers@8.22.0 installed
+
+- [x] Task 5.2: Run MUI codemod
+  - **Completed**: 1 file modified (GameForm.tsx adapter import)
+
+- [x] Task 5.3: Upgrade date-fns to v4.1.0
+  - **Completed**: date-fns@4.1.0 installed, adapter updated
+
+- [x] Task 5.4: Fix test suite for MUI v8 DOM structure
+  - **Completed**: All 6 GameForm tests updated with helper function
+
+- [x] Task 5.5: Run tests and verify functionality
+  - **Completed**: All 51 tests passing (10 test suites)
 
 ## Dependencies
 
