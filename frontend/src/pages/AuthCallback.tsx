@@ -16,7 +16,7 @@
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
 import { FC, useEffect, useState, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Box, CircularProgress, Typography, Container } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 

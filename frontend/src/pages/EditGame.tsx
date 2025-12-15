@@ -17,7 +17,7 @@
 
 import { FC, useState, useEffect } from 'react';
 import { Container, CircularProgress, Alert } from '@mui/material';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { apiClient } from '../api/client';
 import { Channel, DiscordRole, GameSession, Participant } from '../types';
 import { GameForm, GameFormData, parseDurationString } from '../components/GameForm';

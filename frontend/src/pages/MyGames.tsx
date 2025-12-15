@@ -26,7 +26,7 @@ import {
   Alert,
   Button,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { apiClient } from '../api/client';
 import { GameSession, GameListResponse, Guild } from '../types';
 import { GameCard } from '../components/GameCard';

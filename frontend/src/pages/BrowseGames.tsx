@@ -28,7 +28,7 @@ import {
   Alert,
   SelectChangeEvent,
 } from '@mui/material';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { apiClient } from '../api/client';
 import { GameSession, Channel, GameListResponse } from '../types';
 import { GameCard } from '../components/GameCard';

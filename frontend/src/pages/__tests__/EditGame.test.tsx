@@ -18,7 +18,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import { EditGame } from '../EditGame';
 import { apiClient } from '../../api/client';
 import { GameSession, Channel } from '../../types';
@@ -26,8 +26,8 @@ import { GameSession, Channel } from '../../types';
 const mockNavigate = vi.fn();
 const mockParams = { gameId: 'game123' };
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router');
   return {
     ...actual,
     useNavigate: () => mockNavigate,

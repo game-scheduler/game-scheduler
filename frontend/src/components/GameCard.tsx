@@ -17,7 +17,7 @@
 
 import { FC } from 'react';
 import { Card, CardContent, CardActions, Typography, Button, Chip, Box } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { GameSession } from '../types';
 
 interface GameCardProps {

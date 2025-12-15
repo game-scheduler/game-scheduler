@@ -16,10 +16,10 @@
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
 import { FC } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router';
 import { Box, AppBar, Toolbar, Typography, Button, Container } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 export const Layout: FC = () => {
   const { user, logout } = useAuth();

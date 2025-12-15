@@ -27,7 +27,7 @@ import {
   Box,
   Typography,
 } from '@mui/material';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { apiClient } from '../api/client';
 import { getTemplates } from '../api/templates';
 import { GameTemplate } from '../types';
