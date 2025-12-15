@@ -60,7 +60,7 @@ services:
       RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit log_levels [{connection,${RABBITMQ_LOG_LEVEL:-info}}]
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     healthcheck:
       test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
       interval: 10s
@@ -397,7 +397,7 @@ services:
     container_name: ${CONTAINER_PREFIX:-gamebot}-grafana-alloy
     restart: always
     volumes:
-      - ./grafana-alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/grafana-alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       ALLOY_LOG_LEVEL: ${ALLOY_LOG_LEVEL:-info}

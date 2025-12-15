@@ -18,8 +18,8 @@ services:
     build:
       target: development
     volumes:
-      - ./shared:/app/shared:ro
-      - ./services/api:/app/services/api:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/shared:/app/shared:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/services/api:/app/services/api:ro
     command: uvicorn services.api.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "${API_HOST_PORT:-8000}:8000"
@@ -31,8 +31,8 @@ services:
     build:
       target: development
     volumes:
-      - ./shared:/app/shared:ro
-      - ./services/bot:/app/services/bot:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/shared:/app/shared:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/services/bot:/app/services/bot:ro
     environment:
       LOG_LEVEL: DEBUG
       PYTHONUNBUFFERED: "1"
@@ -41,8 +41,8 @@ services:
     build:
       target: development
     volumes:
-      - ./shared:/app/shared:ro
-      - ./services/scheduler:/app/services/scheduler:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/shared:/app/shared:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/services/scheduler:/app/services/scheduler:ro
     environment:
       LOG_LEVEL: DEBUG
       PYTHONUNBUFFERED: "1"
@@ -51,8 +51,8 @@ services:
     build:
       target: development
     volumes:
-      - ./shared:/app/shared:ro
-      - ./services/scheduler:/app/services/scheduler:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/shared:/app/shared:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/services/scheduler:/app/services/scheduler:ro
     environment:
       LOG_LEVEL: DEBUG
       PYTHONUNBUFFERED: "1"
@@ -64,11 +64,11 @@ services:
         VITE_DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
         VITE_API_URL: ${API_URL:-http://localhost:8000}
     volumes:
-      - ./frontend/src:/app/src:ro
-      - ./frontend/index.html:/app/index.html:ro
-      - ./frontend/vite.config.ts:/app/vite.config.ts:ro
-      - ./frontend/tsconfig.json:/app/tsconfig.json:ro
-      - ./frontend/tsconfig.node.json:/app/tsconfig.node.json:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/frontend/src:/app/src:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/frontend/index.html:/app/index.html:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/frontend/vite.config.ts:/app/vite.config.ts:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/frontend/tsconfig.json:/app/tsconfig.json:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/frontend/tsconfig.node.json:/app/tsconfig.node.json:ro
     command: npm run dev -- --host 0.0.0.0 --port 80
     ports:
       - "${FRONTEND_HOST_PORT:-3000}:80"
@@ -102,11 +102,11 @@ services:
 
   init:
     volumes:
-      - ./shared:/app/shared:ro
-      - ./services/init:/app/services/init:ro
-      - ./scripts:/app/scripts:ro
-      - ./alembic:/app/alembic:ro
-      - ./alembic.ini:/app/alembic.ini:ro
-      - ./docker/init-entrypoint.sh:/app/init-entrypoint.sh:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/shared:/app/shared:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/services/init:/app/services/init:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/scripts:/app/scripts:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/alembic:/app/alembic:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/alembic.ini:/app/alembic.ini:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/docker/init-entrypoint.sh:/app/init-entrypoint.sh:ro
     environment:
       PYTHONUNBUFFERED: "1"
