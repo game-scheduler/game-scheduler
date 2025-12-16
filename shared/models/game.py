@@ -22,7 +22,7 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, ForeignKey, Integer, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
@@ -69,9 +69,18 @@ class GameSession(Base):
     notify_role_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     allowed_player_role_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     expected_duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    status: Mapped[str] = mapped_column(String(20), default=GameStatus.SCHEDULED.value, index=True)
-    created_at: Mapped[datetime] = mapped_column(default=utc_now, index=True)
-    updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default=GameStatus.SCHEDULED.value,
+        server_default=text(f"'{GameStatus.SCHEDULED.value}'"),
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        default=utc_now, server_default=func.now(), index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        default=utc_now, onupdate=utc_now, server_default=func.now()
+    )
 
     # Relationships
     template: Mapped["GameTemplate"] = relationship("GameTemplate", back_populates="games")

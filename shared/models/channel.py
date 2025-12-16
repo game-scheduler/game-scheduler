@@ -21,7 +21,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
@@ -43,9 +43,11 @@ class ChannelConfiguration(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     guild_id: Mapped[str] = mapped_column(ForeignKey("guild_configurations.id"))
     channel_id: Mapped[str] = mapped_column(String(20), unique=True, index=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
+    created_at: Mapped[datetime] = mapped_column(default=utc_now, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        default=utc_now, onupdate=utc_now, server_default=func.now()
+    )
 
     # Relationships
     guild: Mapped["GuildConfiguration"] = relationship(

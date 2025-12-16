@@ -21,7 +21,18 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, Boolean, CheckConstraint, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
@@ -48,10 +59,12 @@ class GameTemplate(Base):
     guild_id: Mapped[str] = mapped_column(ForeignKey("guild_configurations.id"), index=True)
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    order: Mapped[int] = mapped_column(Integer, default=0)
-    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)
+    order: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
+    created_at: Mapped[datetime] = mapped_column(default=utc_now, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        default=utc_now, onupdate=utc_now, server_default=func.now()
+    )
 
     # Locked Fields (manager-only, host cannot edit)
     channel_id: Mapped[str] = mapped_column(ForeignKey("channel_configurations.id"))

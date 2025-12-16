@@ -21,7 +21,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, String
+from sqlalchemy import JSON, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
@@ -43,9 +43,13 @@ class User(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     discord_id: Mapped[str] = mapped_column(String(20), unique=True, index=True)
-    notification_preferences: Mapped[dict] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(default=utc_now, onupdate=utc_now)
+    notification_preferences: Mapped[dict] = mapped_column(
+        JSON, default=dict, server_default=text("'{}'")
+    )
+    created_at: Mapped[datetime] = mapped_column(default=utc_now, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        default=utc_now, onupdate=utc_now, server_default=func.now()
+    )
 
     # Relationships
     hosted_games: Mapped[list["GameSession"]] = relationship(

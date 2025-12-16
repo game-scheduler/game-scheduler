@@ -21,7 +21,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
@@ -45,8 +45,10 @@ class GameStatusSchedule(Base):
     game_id: Mapped[str] = mapped_column(ForeignKey("game_sessions.id", ondelete="CASCADE"))
     target_status: Mapped[str] = mapped_column(String(20), nullable=False)
     transition_time: Mapped[datetime] = mapped_column(nullable=False)
-    executed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(default=utc_now)
+    executed: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default=text("false")
+    )
+    created_at: Mapped[datetime] = mapped_column(default=utc_now, server_default=func.now())
 
     game: Mapped["GameSession"] = relationship("GameSession")
 

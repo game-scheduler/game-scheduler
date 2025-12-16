@@ -21,7 +21,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
@@ -49,7 +49,7 @@ class GameParticipant(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
     )
     display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    joined_at: Mapped[datetime] = mapped_column(default=utc_now)
+    joined_at: Mapped[datetime] = mapped_column(default=utc_now, server_default=func.now())
     pre_filled_position: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Relationships

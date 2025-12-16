@@ -21,7 +21,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
@@ -48,8 +48,10 @@ class NotificationSchedule(Base):
     reminder_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     notification_time: Mapped[datetime] = mapped_column(nullable=False, index=True)
     game_scheduled_at: Mapped[datetime] = mapped_column(nullable=False)
-    sent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(default=utc_now)
+    sent: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default=text("false")
+    )
+    created_at: Mapped[datetime] = mapped_column(default=utc_now, server_default=func.now())
 
     game: Mapped["GameSession"] = relationship("GameSession")
 
