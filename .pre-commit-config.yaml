@@ -80,10 +80,10 @@ repos:
   # Automatic testing for new/modified files
   - repo: local
     hooks:
-      # Unit tests for new/modified Python files (RUNS ON EVERY COMMIT)
+      # Unit tests for new/modified test files (RUNS ON EVERY COMMIT)
       - id: pytest-changed
-        name: pytest on new/modified files
-        entry: bash -c 'files=$(git diff --cached --name-only --diff-filter=ACM | grep "\.py$"); if [ -n "$files" ]; then uv run pytest $files --tb=short -x -v; else echo "No Python files to test"; fi'
+        name: pytest on new/modified test files
+        entry: bash -c 'test_files=$(git diff --cached --name-only --diff-filter=ACM | grep "^tests/.*\.py$" | grep -v "tests/integration/" | grep -v "tests/e2e/"); if [ -n "$test_files" ]; then uv run pytest $test_files --tb=short -x -v; else echo "No unit test files changed"; fi'
         language: system
         pass_filenames: false
         always_run: true
