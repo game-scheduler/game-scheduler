@@ -147,8 +147,28 @@ Project-level configuration is stored in `.actrc`:
 
 - **Docker image**: Uses `catthehacker/ubuntu:act-latest` (medium size)
 - **Offline mode**: Caches actions and images for faster iteration
-- **Container reuse**: Reuses containers between runs for speed
+- **Container reuse**: Reuses containers between runs for speed (note: may conflict with matrix jobs)
+- **Bind mount**: Mounts workspace directly for immediate file access
 - **Artifacts**: Stores artifacts in `.artifacts/` directory
+
+### Path Consistency Approach
+
+This project uses a **path consistency approach** for Docker-in-Docker scenarios (act running inside a dev container):
+
+1. **Dev Container Configuration**: The dev container workspace path matches the host path exactly using `${localWorkspaceFolder}` in `.devcontainer/devcontainer.json`
+2. **Act Configuration**: Act uses the default current directory (no `--directory` flag needed)
+3. **Nested Bind Mounts**: Workflows can create their own bind mounts (e.g., for integration test services) and the host Docker daemon correctly resolves the paths
+
+This approach eliminates the need for special workarounds like:
+- Environment variables for path translation (`HOST_WORKSPACE_FOLDER`)
+- Symlinks to map container paths to host paths
+- Custom `--directory` flags in act configuration
+
+**Benefits**:
+- Simpler configuration with fewer special cases
+- Nested containers can bind mount workspace paths correctly
+- Integration tests with service containers work seamlessly
+- No path translation needed between layers
 
 ## Troubleshooting
 
@@ -214,11 +234,46 @@ cat .env.act
 
 Or remove `--env-file=.env.act` from `.actrc` if not needed.
 
+### "chdir to cwd failed" Errors
+
+If you see errors like "chdir to cwd: failed: no such file or directory", this is typically caused by:
+
+1. **Root-owned files in workspace**: Previous act runs may have created root-owned files that interfere with Docker exec operations
+   - **Solution**: Clean up and restart: `docker system prune -a`, then rebuild dev container
+
+2. **Matrix jobs with container reuse**: The `--reuse` flag can cause issues with matrix strategies creating multiple containers
+   - **Solution**: Remove matrix strategies from workflows or don't use `--reuse` with matrix jobs
+
+### Port Conflicts with Service Containers
+
+Integration tests may fail if service containers can't bind to required ports:
+
+```bash
+docker ps -a | grep -E 'postgres|redis|rabbitmq'
+```
+
+Stop and remove conflicting containers:
+
+```bash
+docker stop <container_id>
+docker rm <container_id>
+```
+
+Or clean up all stopped containers:
+
+```bash
+docker container prune -f
+```
+
 ## Performance Tips
 
 ### Container Reuse
 
-The `--reuse` flag (enabled in `.actrc`) keeps containers running between executions. This significantly speeds up subsequent runs.
+The `--reuse` flag (enabled in `.actrc`) keeps containers running between executions, significantly speeding up subsequent runs.
+
+**Note**: Container reuse can cause issues with matrix strategy jobs (jobs that run multiple times with different parameters). If you experience container naming conflicts or reuse problems, either:
+- Remove the `--reuse` flag from `.actrc` temporarily
+- Simplify workflows to avoid matrix strategies during local testing
 
 ### Offline Mode
 

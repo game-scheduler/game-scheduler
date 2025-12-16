@@ -4,8 +4,8 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-  "workspaceFolder": "/app",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
+  "workspaceFolder": "${localWorkspaceFolder}",
+  "workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind,consistency=cached",
   "mounts": [
     "source=${localWorkspaceFolderBasename}-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume",
     "source=/etc/timezone,target=/etc/timezone,type=bind,readonly",
@@ -49,10 +49,7 @@
   "initializeCommand": "docker network create gamebot-network 2>/dev/null || true",
   "runArgs": ["--network=gamebot-network"],
   "postCreateCommand": "python --version && uv --version && node --version && npm --version && cd frontend && npm install && cd .. && pre-commit install && echo 'Dev container ready! Pre-commit hooks installed. Start infrastructure with: docker compose up postgres redis rabbitmq -d'",
-  "postStartCommand": "sudo chown -R vscode:vscode /home/vscode/.vscode-server 2>/dev/null || true && sudo mkdir -p \"$(dirname \"${HOST_WORKSPACE_FOLDER}\")\" 2>/dev/null || true && sudo ln -sfn /app \"${HOST_WORKSPACE_FOLDER}\" 2>/dev/null || true",
+  "postStartCommand": "sudo chown -R vscode:vscode /home/vscode/.vscode-server 2>/dev/null || true",
   "remoteUser": "vscode",
-  "updateRemoteUserUID": true,
-  "remoteEnv": {
-    "HOST_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
-  }
+  "updateRemoteUserUID": true
 }

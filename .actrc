@@ -17,11 +17,7 @@
 --bind
 
 # Reuse containers between runs for faster execution
-# Note: --bind ensures we always see current working directory state
 --reuse
 
 # Enable artifact server with local path
 --artifact-server-path=.artifacts
-
-# Use host workspace folder for proper path mapping (fixes nested container issues)
---directory=${HOST_WORKSPACE_FOLDER}
