@@ -6,12 +6,12 @@
 
 ## Phase Status
 
-- [x] **Phase 1: PostgreSQL 18 Upgrade + Alembic Reset** - In Progress
+- [x] **Phase 1: PostgreSQL 18 Upgrade + Alembic Reset** - ✅ Complete
   - [x] Task 1.1: Fix SQLAlchemy models server_default - ✅ Complete
   - [x] Task 1.2: Install alembic-utils - ✅ Complete
-  - [ ] Task 1.3: Update PostgreSQL to 18-alpine
-  - [ ] Task 1.4: Reset Alembic migrations
-  - [ ] Task 1.5: Verify database schema and services
+  - [x] Task 1.3: Update PostgreSQL to 18-alpine - ✅ Complete
+  - [x] Task 1.4: Reset Alembic migrations - ✅ Complete
+  - [x] Task 1.5: Verify database schema and services - ✅ Complete
 - [ ] **Phase 2: Node.js 24 LTS Upgrade**
 - [ ] **Phase 3: Python Dependency Modernization**
 - [ ] **Phase 4: NPM Package Updates**
@@ -124,12 +124,59 @@
 - PostgreSQL 18 provides latest stable features and will be supported until 2029
 - Historical references in documentation and migration scripts intentionally preserved
 
-#### Task 1.4: Reset Alembic migrations (Next)
+#### Task 1.4: Reset Alembic migrations ✅
 
-**Purpose**: Update all Docker Compose files to use PostgreSQL 18-alpine image.
+**Purpose**: Consolidate 27 historical migration files into a single initial migration with clean history.
 
-**Status**: Not started
+**Files Modified**:
+- [alembic/versions/c2135ff3d5cd_initial_schema.py](../../../alembic/versions/c2135ff3d5cd_initial_schema.py) - New consolidated migration
+- [alembic/versions/__init__.py](../../../alembic/versions/__init__.py) - New file
+- [shared/models/game.py](../../../shared/models/game.py) - Fixed template_id nullability
+- [shared/database_objects.py](../../../shared/database_objects.py) - Uncommented triggers
+- [tests/integration/test_database_infrastructure.py](../../../tests/integration/test_database_infrastructure.py) - Accept hash revision IDs
+- 27 old migration files moved to history/alembic_backup_20251216/ (later removed)
+
+**Changes Made**:
+1. **Created consolidated migration**: Single c2135ff3d5cd_initial_schema.py containing:
+   - All 8 tables (guilds, channels, games, templates, participants, users, notification_schedule, game_status_schedule)
+   - All indexes and constraints
+   - 2 PGFunctions with split SQL strings to meet line length requirements
+   - 2 triggers created via op.execute()
+   - Complete upgrade() and downgrade() functions
+2. **Fixed template_id nullability**: Changed from `Mapped[str]` to `Mapped[str | None]` with `nullable=True, index=True`
+3. **Uncommented triggers**: Enabled notification_schedule_trigger and game_status_schedule_trigger in database_objects.py
+4. **Updated integration tests**: Removed underscore requirement for revision IDs to accept hash format
+5. **Archived old migrations**: Moved 27 files to history/alembic_backup_20251216/ then removed from repository
+
+**Verification**:
+- ✅ Single migration file with hash-format revision ID
+- ✅ All database tables created correctly
+- ✅ All indexes and constraints present
+- ✅ Functions and triggers working
+- ✅ All 679 Python unit tests PASSED
+- ✅ All 51 Frontend tests PASSED
+- ✅ All 37 Integration tests PASSED
+
+**Key Design Decisions**:
+- Used hash-based revision ID (Alembic default for new migrations)
+- Split long SQL strings across multiple lines to meet 100-char line limit
+- Kept server_default declarations from Task 1.1 to preserve database defaults
+- Used alembic-utils for function/trigger management from Task 1.2
+
+#### Task 1.5: Verify database schema and services ✅
+
+**Purpose**: Ensure all services start correctly and database schema matches models.
+
+**Verification Results**:
+- ✅ PostgreSQL 18-alpine container starts successfully
+- ✅ Alembic migration applies cleanly (single c2135ff3d5cd revision)
+- ✅ All 8 tables created with correct schemas
+- ✅ All foreign keys and indexes present
+- ✅ Functions and triggers operational
+- ✅ All services connect to database successfully
+- ✅ Integration tests verify complete database infrastructure
+- ✅ No errors in service logs
 
 ---
 
-**Last Updated**: 2025-12-16 08:45 UTC
+**Phase 1 Complete**: 2025-12-16 09:30 UTC
