@@ -106,6 +106,12 @@ dependencies = [
 
 ## Key Discoveries
 
+### Database Migration Consolidation Lessons (Dec 2025)
+- Alembic autogenerate dropped PostgreSQL server defaults because the SQLAlchemy models only used `default=` (Python-side) and did not declare `server_default=` (database-side). Example defects: `guild_configurations.require_host_role` lost default false; `channel_configurations.is_active` lost default true.
+- Alembic autogenerate also cannot detect PostgreSQL functions/triggers; missing `notify_schedule_changed`, `notify_game_status_schedule_changed`, and their triggers were the root cause of daemon/test failures. The missing `ix_game_sessions_template_id` index was not in models and was also omitted.
+- Alembic-utils would have prevented the function/trigger loss but would not fix missing server defaults; the real fix is to add `server_default` to the ORM models before regenerating migrations.
+- Actionable fix path if redoing the migration: (1) add `server_default` to models for required defaults, (2) register functions/triggers via alembic-utils, (3) autogenerate the consolidated migration, (4) re-run integration tests to validate defaults and triggers.
+
 ### Infrastructure Service Upgrade Priorities
 
 **HIGH PRIORITY - Node.js 22 → 24 LTS**:
