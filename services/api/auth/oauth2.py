@@ -193,4 +193,4 @@ def calculate_token_expiry(expires_in: int) -> datetime:
     Returns:
         UTC datetime when token will expire
     """
-    return datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=expires_in)
+    return datetime.now(UTC) + timedelta(seconds=expires_in)

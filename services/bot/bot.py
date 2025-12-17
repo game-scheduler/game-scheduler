@@ -138,17 +138,19 @@ class GameSchedulerBot(commands.Bot):
             attributes={
                 "discord.interaction_type": interaction.type.name,
                 "discord.user_id": str(interaction.user.id),
-                "discord.channel_id": str(interaction.channel_id)
-                if interaction.channel_id
-                else None,
-                "discord.guild_id": str(interaction.guild_id) if interaction.guild_id else None,
+                "discord.channel_id": (
+                    str(interaction.channel_id) if interaction.channel_id else None
+                ),
+                "discord.guild_id": (
+                    str(interaction.guild_id) if interaction.guild_id else None
+                ),
             },
         ):
             if interaction.type == discord.InteractionType.component:
                 if self.button_handler:
                     await self.button_handler.handle_interaction(interaction)
 
-    async def on_error(self, event_method: str, *args, **kwargs) -> None:
+    async def on_error(self, event_method: str, /, *args, **kwargs) -> None:
         """
         Handle errors during event processing.
 

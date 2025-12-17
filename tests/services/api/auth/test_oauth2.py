@@ -18,7 +18,7 @@
 
 """Unit tests for OAuth2 flow implementation."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -144,7 +144,7 @@ class TestOAuth2Flow:
 
     def test_calculate_token_expiry(self):
         """Test token expiry calculation."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         expires_in = 3600
 
         expiry = calculate_token_expiry(expires_in)

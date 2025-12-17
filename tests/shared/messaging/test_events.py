@@ -18,7 +18,7 @@
 
 """Unit tests for RabbitMQ event schemas."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from shared.messaging.events import (
@@ -76,7 +76,7 @@ class TestEvent:
         )
 
         assert isinstance(event.timestamp, datetime)
-        assert event.timestamp <= datetime.utcnow()
+        assert event.timestamp <= datetime.now(UTC)
 
     def test_event_serialization(self):
         """Test event can be serialized to JSON."""
@@ -97,7 +97,7 @@ class TestGameCreatedEvent:
     def test_game_created_event(self):
         """Test creating game created event payload."""
         game_id = uuid4()
-        scheduled_at = datetime.utcnow()
+        scheduled_at = datetime.now(UTC)
 
         event_data = GameCreatedEvent(
             game_id=game_id,
@@ -116,7 +116,7 @@ class TestGameCreatedEvent:
 
     def test_game_created_event_optional_max_players(self):
         """Test game created event without max players."""
-        scheduled_at = datetime.utcnow()
+        scheduled_at = datetime.now(UTC)
 
         event_data = GameCreatedEvent(
             game_id=uuid4(),

@@ -23,7 +23,7 @@ Defines event types and structures for publishing and consuming
 events across the microservices architecture.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 from uuid import UUID
@@ -75,7 +75,7 @@ class Event(BaseModel):
     """
 
     event_type: EventType
-    timestamp: datetime = Field(default_factory=lambda: datetime.utcnow())
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     data: dict[str, Any]
     trace_id: str | None = None
 

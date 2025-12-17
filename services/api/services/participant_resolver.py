@@ -25,6 +25,7 @@ pre-populating game participant lists.
 
 import logging
 import re
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -85,7 +86,7 @@ class ParticipantResolver:
             validation_errors: List of dicts with input, reason, suggestions
         """
         valid_participants = []
-        validation_errors = []
+        validation_errors: list[dict[str, Any]] = []
 
         # Pattern to match Discord mention format: <@123456789012345678>
         discord_mention_pattern = re.compile(r"^<@(\d{17,20})>$")
@@ -154,7 +155,7 @@ class ParticipantResolver:
                             {
                                 "input": input_text,
                                 "reason": "Multiple matches found",
-                                "suggestions": suggestions,  # type: ignore[dict-item]
+                                "suggestions": suggestions,
                             }
                         )
 
@@ -236,7 +237,9 @@ class ParticipantResolver:
                         f"Discord API error searching guild {guild_discord_id}: "
                         f"{response.status} - {error_msg}"
                     )
-                    raise discord_client_module.DiscordAPIError(response.status, error_msg)
+                    raise discord_client_module.DiscordAPIError(
+                        response.status, error_msg
+                    )
 
                 response_data = await response.json()
                 return response_data
@@ -248,7 +251,9 @@ class ParticipantResolver:
                 f"Network error searching guild members in {guild_discord_id}: {e}",
                 exc_info=True,
             )
-            raise discord_client_module.DiscordAPIError(500, f"Network error: {str(e)}") from e
+            raise discord_client_module.DiscordAPIError(
+                500, f"Network error: {str(e)}"
+            ) from e
 
     async def ensure_user_exists(
         self,

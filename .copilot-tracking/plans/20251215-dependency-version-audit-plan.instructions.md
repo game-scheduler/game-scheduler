@@ -80,12 +80,12 @@ Systematically audit and upgrade infrastructure services (PostgreSQL, Node.js) a
 - [x] Task 2.2: Test frontend builds and CI/CD
   - Details: .copilot-tracking/details/20251215-dependency-version-audit-details.md (Lines 161-175)
 
-### [ ] Phase 3: Python Dependency Modernization
+### [x] Phase 3: Python Dependency Modernization
 
-- [ ] Task 3.1: Update pyproject.toml with compatible release constraints
+- [x] Task 3.1: Update pyproject.toml with compatible release constraints
   - Details: .copilot-tracking/details/20251215-dependency-version-audit-details.md (Lines 179-197)
 
-- [ ] Task 3.2: Upgrade packages and validate
+- [x] Task 3.2: Upgrade packages and validate
   - Details: .copilot-tracking/details/20251215-dependency-version-audit-details.md (Lines 199-217)
 
 ### [ ] Phase 4: NPM Package Updates
