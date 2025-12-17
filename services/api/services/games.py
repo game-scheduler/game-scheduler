@@ -786,14 +786,14 @@ class GameService:
                 "Only the host, Bot Managers, or guild admins can cancel games."
             )
 
-        # Delete status schedule if it exists (CASCADE will handle game deletion)
+        # Delete status schedules (CASCADE will handle game deletion)
         status_schedule_result = await self.db.execute(
             select(game_status_schedule_model.GameStatusSchedule).where(
                 game_status_schedule_model.GameStatusSchedule.game_id == game.id
             )
         )
-        status_schedule = status_schedule_result.scalar_one_or_none()
-        if status_schedule:
+        status_schedules = status_schedule_result.scalars().all()
+        for status_schedule in status_schedules:
             await self.db.delete(status_schedule)
 
         game.status = game_model.GameStatus.CANCELLED.value
