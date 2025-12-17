@@ -88,12 +88,12 @@ Systematically audit and upgrade infrastructure services (PostgreSQL, Node.js) a
 - [x] Task 3.2: Upgrade packages and validate
   - Details: .copilot-tracking/details/20251215-dependency-version-audit-details.md (Lines 199-217)
 
-### [ ] Phase 4: NPM Package Updates
+### [x] Phase 4: NPM Package Updates
 
-- [ ] Task 4.1: Update axios and TypeScript
+- [x] Task 4.1: Update axios and TypeScript
   - Details: .copilot-tracking/details/20251215-dependency-version-audit-details.md (Lines 221-238)
 
-- [ ] Task 4.2: Evaluate and optionally upgrade Vite 7
+- [x] Task 4.2: Evaluate and optionally upgrade Vite 7
   - Details: .copilot-tracking/details/20251215-dependency-version-audit-details.md (Lines 240-259)
 
 ## Dependencies
