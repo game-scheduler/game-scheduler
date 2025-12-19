@@ -64,10 +64,11 @@ Enable Discord users to download game calendars via clickable embed title that o
   - Details: [.copilot-tracking/details/20251218-discord-calendar-download-details.md](../.copilot-tracking/details/20251218-discord-calendar-download-details.md) (Lines 77-94)
   - Implementation: [services/bot/formatters/game_message.py](../../services/bot/formatters/game_message.py)
 
-### [ ] Phase 3: API Improvements
+### [x] Phase 3: API Improvements
 
-- [ ] Task 3.1: Add descriptive filename generation to export endpoint
+- [x] Task 3.1: Add descriptive filename generation to export endpoint
   - Details: [.copilot-tracking/details/20251218-discord-calendar-download-details.md](../.copilot-tracking/details/20251218-discord-calendar-download-details.md) (Lines 96-121)
+  - Implementation: [services/api/routes/export.py](../../services/api/routes/export.py) (Lines 46-78, 131-133)
 
 ### [ ] Phase 4: Testing and Validation
 

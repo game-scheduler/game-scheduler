@@ -23,6 +23,8 @@ Provides iCal export functionality for individual game sessions.
 """
 
 import logging
+import re
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
@@ -42,6 +44,39 @@ from shared.schemas import auth as auth_schemas
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/export", tags=["export"])
+
+
+def generate_calendar_filename(game_title: str, scheduled_at: datetime) -> str:
+    """
+    Generate descriptive filename for calendar download.
+
+    Args:
+        game_title: Game title (may contain special characters)
+        scheduled_at: Game scheduled datetime
+
+    Returns:
+        Safe filename: "Game-Title_YYYY-MM-DD.ics"
+
+    Examples:
+        >>> generate_calendar_filename("D&D Campaign", datetime(2025, 11, 15))
+        'D-D-Campaign_2025-11-15.ics'
+        >>> generate_calendar_filename("Poker Night!", datetime(2025, 12, 25))
+        'Poker-Night_2025-12-25.ics'
+    """
+    # Replace special characters with spaces (preserves word boundaries)
+    safe_title = re.sub(r"[^\w\s-]", " ", game_title).strip()
+
+    # Replace multiple spaces/hyphens with single hyphen
+    safe_title = re.sub(r"[-\s]+", "-", safe_title)
+
+    # Truncate if too long (max 100 chars before date)
+    if len(safe_title) > 100:
+        safe_title = safe_title[:100].rstrip("-")
+
+    # Format date
+    date_str = scheduled_at.strftime("%Y-%m-%d")
+
+    return f"{safe_title}_{date_str}.ics"
 
 
 @router.get(
@@ -111,11 +146,14 @@ async def export_game(
             detail=str(e),
         ) from e
 
+    # Generate descriptive filename
+    filename = generate_calendar_filename(game.title, game.scheduled_at)
+
     return Response(
         content=ical_data,
         media_type="text/calendar",
         headers={
-            "Content-Disposition": f'attachment; filename="game-{game_id}.ics"',
+            "Content-Disposition": f'attachment; filename="{filename}"',
             "Cache-Control": "no-cache",
         },
     )
