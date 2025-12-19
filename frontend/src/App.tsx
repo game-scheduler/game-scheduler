@@ -31,6 +31,7 @@ import { GameDetails } from './pages/GameDetails';
 import { CreateGame } from './pages/CreateGame';
 import { EditGame } from './pages/EditGame';
 import { TemplateManagement } from './pages/TemplateManagement';
+import { DownloadCalendar } from './pages/DownloadCalendar';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -43,6 +44,10 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+
+            <Route element={<ProtectedRoute />}>
+              <Route path="/download-calendar/:gameId" element={<DownloadCalendar />} />
+            </Route>
 
             <Route element={<Layout />}>
               <Route element={<ProtectedRoute />}>
