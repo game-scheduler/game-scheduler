@@ -34,6 +34,7 @@ class BotConfig(BaseSettings):
         redis_url: Redis connection string
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         environment: Environment name (development, staging, production)
+        frontend_url: Frontend application URL for calendar download links
     """
 
     model_config = SettingsConfigDict(
@@ -69,6 +70,11 @@ class BotConfig(BaseSettings):
     environment: str = Field(
         default="development",
         description="Environment name",
+    )
+
+    frontend_url: str = Field(
+        default="http://localhost:5173",
+        description="Frontend application URL for calendar downloads",
     )
 
 

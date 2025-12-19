@@ -54,13 +54,15 @@ Enable Discord users to download game calendars via clickable embed title that o
   - Details: [.copilot-tracking/details/20251218-discord-calendar-download-details.md](../.copilot-tracking/details/20251218-discord-calendar-download-details.md) (Lines 47-61)
   - Implementation: [frontend/src/App.tsx](../../frontend/src/App.tsx) (Lines 34, 48-50)
 
-### [ ] Phase 2: Discord Bot Integration
+### [x] Phase 2: Discord Bot Integration ✅
 
-- [ ] Task 2.1: Add FRONTEND_URL configuration to bot
+- [x] Task 2.1: Add FRONTEND_URL configuration to bot
   - Details: [.copilot-tracking/details/20251218-discord-calendar-download-details.md](../.copilot-tracking/details/20251218-discord-calendar-download-details.md) (Lines 63-75)
+  - Implementation: [services/bot/config.py](../../services/bot/config.py)
 
-- [ ] Task 2.2: Update Discord embed with clickable title URL
+- [x] Task 2.2: Update Discord embed with clickable title URL
   - Details: [.copilot-tracking/details/20251218-discord-calendar-download-details.md](../.copilot-tracking/details/20251218-discord-calendar-download-details.md) (Lines 77-94)
+  - Implementation: [services/bot/formatters/game_message.py](../../services/bot/formatters/game_message.py)
 
 ### [ ] Phase 3: API Improvements
 

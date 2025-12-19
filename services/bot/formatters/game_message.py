@@ -26,6 +26,7 @@ from datetime import datetime
 
 import discord
 
+from services.bot.config import get_config
 from services.bot.utils.discord_format import (
     format_discord_mention,
     format_discord_timestamp,
@@ -57,6 +58,7 @@ class GameMessageFormatter:
         signup_instructions: str | None = None,
         expected_duration_minutes: int | None = None,
         where: str | None = None,
+        game_id: str | None = None,
     ) -> discord.Embed:
         """Create an embed for a game session.
 
@@ -74,6 +76,7 @@ class GameMessageFormatter:
             signup_instructions: Optional signup instructions
             expected_duration_minutes: Optional expected game duration in minutes
             where: Optional game location
+            game_id: Optional game UUID for calendar download link
 
         Returns:
             Configured Discord embed
@@ -83,8 +86,14 @@ class GameMessageFormatter:
         if description and len(description) > 100:
             truncated_description = description[:97] + "..."
 
+        calendar_url = None
+        if game_id:
+            config = get_config()
+            calendar_url = f"{config.frontend_url}/download-calendar/{game_id}"
+
         embed = discord.Embed(
             title=game_title,
+            url=calendar_url,
             description=truncated_description,
             color=GameMessageFormatter._get_status_color(status),
             timestamp=scheduled_at,
@@ -129,9 +138,11 @@ class GameMessageFormatter:
         if signup_instructions:
             embed.add_field(
                 name="Signup Instructions",
-                value=signup_instructions[:400]
-                if len(signup_instructions) > 400
-                else signup_instructions,
+                value=(
+                    signup_instructions[:400]
+                    if len(signup_instructions) > 400
+                    else signup_instructions
+                ),
                 inline=False,
             )
 
@@ -182,7 +193,9 @@ class GameMessageFormatter:
         )
 
         embed.add_field(
-            name="📅 Start Time", value=format_discord_timestamp(scheduled_at, "F"), inline=False
+            name="📅 Start Time",
+            value=format_discord_timestamp(scheduled_at, "F"),
+            inline=False,
         )
 
         embed.add_field(name="🎯 Host", value=format_discord_mention(host_id), inline=False)
@@ -246,6 +259,7 @@ def format_game_announcement(
         signup_instructions=signup_instructions,
         expected_duration_minutes=expected_duration_minutes,
         where=where,
+        game_id=game_id,
     )
 
     view = GameView.from_game_data(

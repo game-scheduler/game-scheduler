@@ -317,7 +317,10 @@ class TestGameMessageFormatter:
 
             formatter = GameMessageFormatter()
             formatter.create_notification_embed(
-                game_title="Game", scheduled_at=scheduled_at, host_id="123", time_until="soon"
+                game_title="Game",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                time_until="soon",
             )
 
             call_kwargs = mock_embed_class.call_args[1]
@@ -407,3 +410,63 @@ class TestFormatGameAnnouncement:
                 assert call_kwargs["description"] == "Fun times"
                 assert call_kwargs["host_id"] == "host123"
                 assert call_kwargs["channel_id"] == "voice123"
+
+    def test_embed_includes_url_when_game_id_provided(self):
+        """Test that embed includes calendar download URL when game_id is provided."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.get_config") as mock_get_config:
+            mock_config = MagicMock()
+            mock_config.frontend_url = "https://example.com"
+            mock_get_config.return_value = mock_config
+
+            with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+                mock_embed = MagicMock()
+                mock_embed_class.return_value = mock_embed
+
+                formatter = GameMessageFormatter()
+                result = formatter.create_game_embed(
+                    game_title="D&D Session",
+                    description="Epic adventure",
+                    scheduled_at=scheduled_at,
+                    host_id="123456789",
+                    participant_ids=["111111"],
+                    overflow_ids=[],
+                    current_count=1,
+                    max_players=5,
+                    status="SCHEDULED",
+                    game_id="test-game-id-123",
+                )
+
+                assert result == mock_embed
+                mock_embed_class.assert_called_once()
+                call_kwargs = mock_embed_class.call_args[1]
+                assert (
+                    call_kwargs["url"] == "https://example.com/download-calendar/test-game-id-123"
+                )
+
+    def test_embed_excludes_url_when_game_id_not_provided(self):
+        """Test that embed excludes URL when game_id is not provided."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            result = formatter.create_game_embed(
+                game_title="D&D Session",
+                description="Epic adventure",
+                scheduled_at=scheduled_at,
+                host_id="123456789",
+                participant_ids=["111111"],
+                overflow_ids=[],
+                current_count=1,
+                max_players=5,
+                status="SCHEDULED",
+            )
+
+            assert result == mock_embed
+            mock_embed_class.assert_called_once()
+            call_kwargs = mock_embed_class.call_args[1]
+            assert call_kwargs["url"] is None
