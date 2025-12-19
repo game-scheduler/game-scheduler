@@ -275,7 +275,7 @@ export const GameDetails: FC = () => {
         <Divider sx={{ my: 3 }} />
 
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          {(isHost || isParticipant) && <ExportButton gameId={gameId!} gameName={game.title} />}
+          {(isHost || isParticipant) && <ExportButton gameId={gameId!} />}
 
           {!isHost && !isParticipant && game.status === 'SCHEDULED' && (
             <Button variant="contained" onClick={handleJoinGame} disabled={actionLoading}>

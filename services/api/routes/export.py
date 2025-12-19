@@ -153,7 +153,7 @@ async def export_game(
         content=ical_data,
         media_type="text/calendar",
         headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Disposition": f"attachment; filename={filename}",
             "Cache-Control": "no-cache",
         },
     )

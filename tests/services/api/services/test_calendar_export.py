@@ -19,7 +19,7 @@
 """Tests for calendar export service."""
 
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from icalendar import Calendar
@@ -60,13 +60,14 @@ def mock_guild():
 
 
 @pytest.fixture
-def mock_channel():
+def mock_channel(mock_guild):
     """Create mock channel."""
     channel = ChannelConfiguration(
         id="channel-123",
         channel_id="111222333",
         guild_id="guild-123",
     )
+    channel.guild = mock_guild
     return channel
 
 
@@ -98,9 +99,17 @@ def mock_game(mock_user, mock_guild, mock_channel):
 
 
 @pytest.mark.asyncio
-async def test_export_game_as_host(mock_db, mock_game, mock_user):
+@patch("services.api.services.calendar_export.fetch_guild_name_safe")
+@patch("services.api.services.calendar_export.fetch_channel_name_safe")
+@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
+async def test_export_game_as_host(
+    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+):
     """Test exporting a game as the host."""
     mock_game.host_id = "user-123"
+    mock_fetch_user.return_value = "@TestUser"
+    mock_fetch_channel.return_value = "#game-channel"
+    mock_fetch_guild.return_value = "Test Server"
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_game
@@ -119,11 +128,24 @@ async def test_export_game_as_host(mock_db, mock_game, mock_user):
     event = events[0]
     assert event.get("summary") == "Test Game Night"
 
+    # Verify Discord API functions were called
+    mock_fetch_user.assert_called_once_with("123456789")
+    mock_fetch_channel.assert_called_once_with("111222333")
+    mock_fetch_guild.assert_called_once_with("987654321")
+
 
 @pytest.mark.asyncio
-async def test_export_game_as_participant(mock_db, mock_game, mock_user):
+@patch("services.api.services.calendar_export.fetch_guild_name_safe")
+@patch("services.api.services.calendar_export.fetch_channel_name_safe")
+@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
+async def test_export_game_as_participant(
+    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+):
     """Test exporting a game as a participant."""
     mock_game.host_id = "different-user"
+    mock_fetch_user.return_value = "@TestUser"
+    mock_fetch_channel.return_value = "#game-channel"
+    mock_fetch_guild.return_value = "Test Server"
 
     # Create a participant
     participant = GameParticipant(
@@ -147,10 +169,18 @@ async def test_export_game_as_participant(mock_db, mock_game, mock_user):
 
 
 @pytest.mark.asyncio
-async def test_export_game_as_bot_manager(mock_db, mock_game, mock_user):
+@patch("services.api.services.calendar_export.fetch_guild_name_safe")
+@patch("services.api.services.calendar_export.fetch_channel_name_safe")
+@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
+async def test_export_game_as_bot_manager(
+    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+):
     """Test exporting a game as a bot manager."""
     mock_game.host_id = "different-user"
     mock_game.participants = []
+    mock_fetch_user.return_value = "@TestUser"
+    mock_fetch_channel.return_value = "#game-channel"
+    mock_fetch_guild.return_value = "Test Server"
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_game
@@ -196,9 +226,17 @@ async def test_export_game_permission_denied(mock_db, mock_game):
 
 
 @pytest.mark.asyncio
-async def test_event_has_correct_duration(mock_db, mock_game, mock_user):
+@patch("services.api.services.calendar_export.fetch_guild_name_safe")
+@patch("services.api.services.calendar_export.fetch_channel_name_safe")
+@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
+async def test_event_has_correct_duration(
+    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+):
     """Test that event duration is calculated correctly."""
     mock_game.host_id = "user-123"
+    mock_fetch_user.return_value = "@TestUser"
+    mock_fetch_channel.return_value = "#game-channel"
+    mock_fetch_guild.return_value = "Test Server"
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_game
@@ -219,9 +257,17 @@ async def test_event_has_correct_duration(mock_db, mock_game, mock_user):
 
 
 @pytest.mark.asyncio
-async def test_event_has_alarms(mock_db, mock_game, mock_user):
+@patch("services.api.services.calendar_export.fetch_guild_name_safe")
+@patch("services.api.services.calendar_export.fetch_channel_name_safe")
+@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
+async def test_event_has_alarms(
+    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+):
     """Test that reminders are converted to alarms."""
     mock_game.host_id = "user-123"
+    mock_fetch_user.return_value = "@TestUser"
+    mock_fetch_channel.return_value = "#game-channel"
+    mock_fetch_guild.return_value = "Test Server"
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_game
@@ -239,9 +285,17 @@ async def test_event_has_alarms(mock_db, mock_game, mock_user):
 
 
 @pytest.mark.asyncio
-async def test_event_status_mapping(mock_db, mock_game, mock_user):
+@patch("services.api.services.calendar_export.fetch_guild_name_safe")
+@patch("services.api.services.calendar_export.fetch_channel_name_safe")
+@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
+async def test_event_status_mapping(
+    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+):
     """Test that game status is correctly mapped to calendar status."""
     mock_game.host_id = "user-123"
+    mock_fetch_user.return_value = "@TestUser"
+    mock_fetch_channel.return_value = "#game-channel"
+    mock_fetch_guild.return_value = "Test Server"
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_game
@@ -258,10 +312,18 @@ async def test_event_status_mapping(mock_db, mock_game, mock_user):
 
 
 @pytest.mark.asyncio
-async def test_cancelled_game_status(mock_db, mock_game, mock_user):
+@patch("services.api.services.calendar_export.fetch_guild_name_safe")
+@patch("services.api.services.calendar_export.fetch_channel_name_safe")
+@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
+async def test_cancelled_game_status(
+    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+):
     """Test that cancelled games are marked correctly."""
     mock_game.status = "CANCELLED"
     mock_game.host_id = "user-123"
+    mock_fetch_user.return_value = "@TestUser"
+    mock_fetch_channel.return_value = "#game-channel"
+    mock_fetch_guild.return_value = "Test Server"
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_game
@@ -285,7 +347,7 @@ async def test_export_empty_games_list(mock_db):
     mock_db.execute = AsyncMock(return_value=mock_result)
 
     service = CalendarExportService(mock_db)
-    ical_data = service._generate_calendar([])
+    ical_data = await service._generate_calendar([])
 
     assert ical_data is not None
     assert isinstance(ical_data, bytes)

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { Box, CircularProgress, Typography, Alert } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
@@ -26,6 +26,7 @@ export const DownloadCalendar: FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const hasDownloaded = useRef(false);
 
   const downloadCalendar = async () => {
     setDownloading(true);
@@ -69,7 +70,11 @@ export const DownloadCalendar: FC = () => {
   };
 
   useEffect(() => {
+    // Prevent duplicate downloads (React StrictMode runs effects twice)
+    if (hasDownloaded.current) return;
+
     if (!authLoading && user && gameId && !downloading) {
+      hasDownloaded.current = true;
       downloadCalendar();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

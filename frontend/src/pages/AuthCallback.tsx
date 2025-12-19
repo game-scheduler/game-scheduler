@@ -34,7 +34,9 @@ export const AuthCallback: FC = () => {
     const completeLogin = async () => {
       try {
         await login();
-        navigate('/');
+        const returnUrl = sessionStorage.getItem('returnUrl');
+        sessionStorage.removeItem('returnUrl');
+        navigate(returnUrl || '/my-games');
       } catch (err) {
         console.error('Failed to complete login:', err);
         setError('Failed to fetch user information');

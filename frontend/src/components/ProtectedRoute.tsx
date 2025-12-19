@@ -16,12 +16,13 @@
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
 import { FC } from 'react';
-import { Navigate, Outlet } from 'react-router';
+import { Navigate, Outlet, useLocation } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
 import { Box, CircularProgress } from '@mui/material';
 
 export const ProtectedRoute: FC = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -33,5 +34,10 @@ export const ProtectedRoute: FC = () => {
     );
   }
 
-  return user ? <Outlet /> : <Navigate to="/login" replace />;
+  if (!user) {
+    sessionStorage.setItem('returnUrl', location.pathname);
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Outlet />;
 };

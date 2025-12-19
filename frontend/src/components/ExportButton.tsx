@@ -22,10 +22,9 @@ import axios from 'axios';
 
 interface ExportButtonProps {
   gameId: string;
-  gameName?: string;
 }
 
-export const ExportButton: FC<ExportButtonProps> = ({ gameId, gameName }) => {
+export const ExportButton: FC<ExportButtonProps> = ({ gameId }) => {
   const [loading, setLoading] = useState(false);
 
   const downloadCalendar = async () => {
@@ -33,14 +32,21 @@ export const ExportButton: FC<ExportButtonProps> = ({ gameId, gameName }) => {
 
     try {
       const url = `/api/v1/export/game/${gameId}`;
-      const filename = gameName
-        ? `${gameName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.ics`
-        : `game-${gameId}.ics`;
 
       const response = await axios.get(url, {
         responseType: 'blob',
         withCredentials: true,
       });
+
+      // Extract filename from Content-Disposition header, fallback to generated name
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `game-${gameId}.ics`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename=([^;]+)/);
+        if (filenameMatch) {
+          filename = filenameMatch[1].trim();
+        }
+      }
 
       const blob = new Blob([response.data], { type: 'text/calendar' });
       const downloadUrl = window.URL.createObjectURL(blob);

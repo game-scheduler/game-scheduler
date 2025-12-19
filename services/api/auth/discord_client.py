@@ -435,7 +435,9 @@ class DiscordAPIClient:
 
                 # Cache successful result
                 await redis.set(
-                    cache_key, json.dumps(response_data), ttl=ttl.CacheTTL.DISCORD_CHANNEL
+                    cache_key,
+                    json.dumps(response_data),
+                    ttl=ttl.CacheTTL.DISCORD_CHANNEL,
                 )
                 logger.debug(f"Cached channel: {channel_id}")
                 return response_data
@@ -680,6 +682,45 @@ async def fetch_channel_name_safe(channel_id: str) -> str:
     except DiscordAPIError as e:
         logger.warning(f"Could not fetch channel name for {channel_id}: {e}")
         return "Unknown Channel"
+
+
+async def fetch_user_display_name_safe(discord_id: str) -> str:
+    """
+    Fetch user display name from Discord API with error handling.
+
+    Args:
+        discord_id: Discord user ID
+
+    Returns:
+        User display name in format "@username" or fallback to "@{id}"
+    """
+    client = get_discord_client()
+    try:
+        user_data = await client.fetch_user(discord_id)
+        username = user_data.get("username", discord_id)
+        return f"@{username}"
+    except DiscordAPIError as e:
+        logger.warning(f"Could not fetch user name for {discord_id}: {e}")
+        return f"@{discord_id}"
+
+
+async def fetch_guild_name_safe(guild_id: str) -> str:
+    """
+    Fetch guild/server name from Discord API with error handling.
+
+    Args:
+        guild_id: Discord guild ID
+
+    Returns:
+        Guild name or fallback to guild ID
+    """
+    client = get_discord_client()
+    try:
+        guild_data = await client.fetch_guild(guild_id)
+        return guild_data.get("name", guild_id)
+    except DiscordAPIError as e:
+        logger.warning(f"Could not fetch guild name for {guild_id}: {e}")
+        return guild_id
 
 
 _discord_client_instance: DiscordAPIClient | None = None

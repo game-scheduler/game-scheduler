@@ -18,6 +18,7 @@
 
 """Calendar export service for generating iCal files."""
 
+import logging
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
@@ -26,8 +27,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from services.api.auth.discord_client import (
+    fetch_channel_name_safe,
+    fetch_guild_name_safe,
+    fetch_user_display_name_safe,
+)
+from shared.models.channel import ChannelConfiguration
 from shared.models.game import GameSession
 from shared.models.participant import GameParticipant
+
+logger = logging.getLogger(__name__)
 
 
 class CalendarExportService:
@@ -67,7 +76,7 @@ class CalendarExportService:
             .where(GameSession.id == game_id)
             .options(
                 selectinload(GameSession.guild),
-                selectinload(GameSession.channel),
+                selectinload(GameSession.channel).selectinload(ChannelConfiguration.guild),
                 selectinload(GameSession.host),
                 selectinload(GameSession.participants).selectinload(GameParticipant.user),
             )
@@ -86,9 +95,9 @@ class CalendarExportService:
                 "to export this game"
             )
 
-        return self._generate_calendar([game])
+        return await self._generate_calendar([game])
 
-    def _generate_calendar(self, games: Sequence[GameSession]) -> bytes:
+    async def _generate_calendar(self, games: Sequence[GameSession]) -> bytes:
         """
         Generate iCal calendar from game sessions.
 
@@ -108,12 +117,12 @@ class CalendarExportService:
         cal.add("x-wr-caldesc", "Game sessions from Discord Game Scheduler")
 
         for game in games:
-            event = self._create_event(game)
+            event = await self._create_event(game)
             cal.add_component(event)
 
         return cal.to_ical()
 
-    def _create_event(self, game: GameSession) -> Event:
+    async def _create_event(self, game: GameSession) -> Event:
         """
         Create iCal event from game session.
 
@@ -143,30 +152,30 @@ class CalendarExportService:
 
         # Description with game details
         description_parts = []
-        if game.description:
-            description_parts.append(game.description)
-            description_parts.append("")
-
-        if game.signup_instructions:
-            description_parts.append("Signup Instructions:")
-            description_parts.append(game.signup_instructions)
-            description_parts.append("")
+        if game.host:
+            host_name = await fetch_user_display_name_safe(game.host.discord_id)
+            description_parts.append(f"Host: {host_name}")
 
         if game.where:
-            description_parts.append(f"Where: {game.where}")
+            description_parts.append(f"Location: {game.where}")
 
-        description_parts.append(f"Max Players: {game.max_players or 'Unlimited'}")
+        if game.host or game.where:
+            description_parts.append("")
 
-        if game.host:
-            description_parts.append(f"Host: {game.host.discord_id}")
+        if game.description:
+            description_parts.append(game.description)
+
+        if game.signup_instructions:
+            description_parts.append("----------")
+            description_parts.append(game.signup_instructions)
 
         event.add("description", "\n".join(description_parts))
 
-        # Location (Discord channel or where field)
-        if game.where:
-            event.add("location", game.where)
-        elif game.channel:
-            event.add("location", f"Discord Channel: {game.channel.channel_id}")
+        # Location - Discord server and channel
+        if game.channel:
+            guild_name = await fetch_guild_name_safe(game.channel.guild.guild_id)
+            channel_name = await fetch_channel_name_safe(game.channel.channel_id)
+            event.add("location", f"{guild_name} #{channel_name}")
 
         # Status mapping
         status_map = {

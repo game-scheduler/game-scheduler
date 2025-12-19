@@ -117,6 +117,13 @@ class GameMessageFormatter:
             duration_text = format_duration(expected_duration_minutes)
             embed.add_field(name="Duration", value=duration_text, inline=True)
 
+        if calendar_url:
+            embed.add_field(
+                name="📅 Calendar",
+                value=f"[Download Calendar]({calendar_url})",
+                inline=True,
+            )
+
         if channel_id:
             embed.add_field(name="Voice Channel", value=f"<#{channel_id}>", inline=True)
 
