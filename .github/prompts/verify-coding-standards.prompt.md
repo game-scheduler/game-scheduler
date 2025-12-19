@@ -115,12 +115,17 @@ before proceeding.
 
 - [ ] **Unit tests exist for new/modified code:**
 
-  - Business logic covered
-  - Input validation tested
-  - Edge cases handled (empty inputs, nulls, boundary conditions)
-  - State changes verified
-  - Return values validated
-  - Error conditions tested
+  **CRITICAL: For EACH modified file with code changes, verify:**
+
+  - [ ] If new functions/methods were added, corresponding test functions exist
+  - [ ] If existing functions were modified to add new logic, tests were updated/added
+  - [ ] If new external dependencies were added (API calls, database queries, etc.), they are mocked in tests
+  - [ ] Business logic covered
+  - [ ] Input validation tested
+  - [ ] Edge cases handled (empty inputs, nulls, boundary conditions)
+  - [ ] State changes verified
+  - [ ] Return values validated
+  - [ ] Error conditions tested
 
 - [ ] **Test quality checks:**
 
@@ -128,17 +133,31 @@ before proceeding.
   - Test names clearly describe what is being tested
   - No vacuous tests (tests that just call code without assertions)
   - Mocks used appropriately for external dependencies
+  - **New external API calls or service dependencies must have mocks added to existing tests**
 
 - [ ] **Coverage verification:**
 
-  - Run coverage tools for affected code
+  **MANDATORY: Run coverage on EACH modified file individually:**
 
-  - Aim for minimum 80% coverage on new code.
-
-  - To run coverage on individual functions, use dot notation not slashes (i.e.
+  - [ ] Identify all Python files with code changes (not just imports/formatting)
+  - [ ] Run `uv run pytest --cov=<module_path> --cov-report=term-missing tests/path/to/test_file.py` for each
+  - [ ] Verify coverage is >= 80% for the modified file
+  - [ ] **If coverage dropped or new lines are uncovered, ADD TESTS before proceeding**
+  - [ ] To run coverage on individual functions, use dot notation not slashes (i.e.
     services.scheduler.generic_scheduler_daemon not
     services/scheduler/generic_scheduler_daemon)
-  - **Document coverage numbers in changes file**
+  - [ ] **Document coverage numbers in changes file**
+
+  **Example:**
+  ```bash
+  # For modified file: services/api/services/calendar_export.py
+  uv run pytest --cov=services.api.services.calendar_export --cov-report=term-missing tests/services/api/services/test_calendar_export.py
+  ```
+
+- [ ] **Verify tests actually pass with new code:**
+  - [ ] Run tests for modified files specifically
+  - [ ] If tests fail due to missing mocks or outdated expectations, **update tests first**
+  - [ ] Do not proceed until all tests pass
 
 - [ ] **Type checking verification:**
   - Use mypy to verify type correctness in modified files
@@ -189,14 +208,27 @@ before proceeding.
 
 Before marking verification complete:
 
-- [x] All code convention checks passed
-- [x] Copyright notices added to all new files
-- [x] Unit tests exist and pass for new/modified code
-- [x] Test coverage meets 80% minimum (documented in changes file)
-- [x] All affected Docker containers build successfully
-- [x] Integration tests pass
-- [x] No compile or lint errors remain
-- [x] Changes file updated appropriately (if applicable)
+- [ ] All code convention checks passed
+- [ ] Copyright notices added to all new files
+- [ ] **Unit tests exist and pass for new/modified code**
+  - [ ] **VERIFIED: New functions have new tests**
+  - [ ] **VERIFIED: Modified functions have updated tests**
+  - [ ] **VERIFIED: New external dependencies are mocked**
+  - [ ] **VERIFIED: Coverage run on each modified file individually**
+- [ ] Test coverage meets 80% minimum (documented in changes file)
+- [ ] All affected Docker containers build successfully
+- [ ] Integration tests pass
+- [ ] No compile or lint errors remain
+- [ ] Changes file updated appropriately (if applicable)
+
+**STOP: Before marking complete, answer these questions:**
+
+1. Did I run coverage on EACH modified Python file individually?
+2. Did I verify that NEW code added has corresponding NEW tests?
+3. Did I check if any NEW external API calls need mocks in tests?
+4. Did existing tests pass without modification, or did I add mocks for new dependencies?
+
+If any answer is "No" or "I'm not sure", go back and verify tests properly.
 
 ## Quality Standards
 
