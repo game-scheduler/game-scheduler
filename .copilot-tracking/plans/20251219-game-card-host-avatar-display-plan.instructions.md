@@ -65,18 +65,18 @@ Add host Discord avatar display to both web frontend GameCard component and Disc
 - [x] Task 2A.3: Add frontend tests for avatar display
   - Details: .copilot-tracking/details/20251219-game-card-host-avatar-display-details.md (Lines 127-142)
 
-### [ ] Phase 2B: Discord Bot Embed Implementation
+### [x] Phase 2B: Discord Bot Embed Implementation
 
-- [ ] Task 2B.1: Update create_game_embed to accept avatar parameters
+- [x] Task 2B.1: Update create_game_embed to accept avatar parameters
   - Details: .copilot-tracking/details/20251219-game-card-host-avatar-display-details.md (Lines 144-165)
 
-- [ ] Task 2B.2: Use embed.set_author() for host display
+- [x] Task 2B.2: Use embed.set_author() for host display
   - Details: .copilot-tracking/details/20251219-game-card-host-avatar-display-details.md (Lines 167-185)
 
-- [ ] Task 2B.3: Update event handlers to pass avatar data
+- [x] Task 2B.3: Update event handlers to pass avatar data
   - Details: .copilot-tracking/details/20251219-game-card-host-avatar-display-details.md (Lines 187-205)
 
-- [ ] Task 2B.4: Add Discord bot tests for embed author field
+- [x] Task 2B.4: Add Discord bot tests for embed author field
   - Details: .copilot-tracking/details/20251219-game-card-host-avatar-display-details.md (Lines 207-222)
 
 ### [ ] Phase 3: Integration and End-to-End Testing

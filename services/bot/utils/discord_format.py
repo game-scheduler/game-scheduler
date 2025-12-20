@@ -22,7 +22,63 @@ This module provides utilities for formatting Discord messages with mentions,
 timestamps, and participant lists following Discord's native formatting patterns.
 """
 
+import logging
 from datetime import datetime
+
+import discord
+
+logger = logging.getLogger(__name__)
+
+
+async def get_member_display_info(
+    bot: discord.Client, guild_id: str, user_id: str
+) -> tuple[str | None, str | None]:
+    """Get member display name and avatar URL from Discord.
+
+    Args:
+        bot: Discord bot client
+        guild_id: Discord guild ID
+        user_id: Discord user ID
+
+    Returns:
+        Tuple of (display_name, avatar_url) or (None, None) if member not found
+    """
+    try:
+        guild = bot.get_guild(int(guild_id))
+        if not guild:
+            guild = await bot.fetch_guild(int(guild_id))
+
+        if not guild:
+            logger.warning(f"Guild {guild_id} not found")
+            return None, None
+
+        member = guild.get_member(int(user_id))
+        if not member:
+            member = await guild.fetch_member(int(user_id))
+
+        if not member:
+            logger.warning(f"Member {user_id} not found in guild {guild_id}")
+            return None, None
+
+        display_name = member.display_name
+        avatar_url = None
+
+        if member.avatar:
+            avatar_url = member.avatar.url
+        elif member.default_avatar:
+            avatar_url = member.default_avatar.url
+
+        return display_name, avatar_url
+
+    except (ValueError, discord.NotFound) as e:
+        logger.warning(f"Failed to get member info for {user_id} in guild {guild_id}: {e}")
+        return None, None
+    except discord.Forbidden:
+        logger.error(f"Bot lacks permission to fetch member {user_id} in guild {guild_id}")
+        return None, None
+    except Exception as e:
+        logger.error(f"Unexpected error getting member info: {e}")
+        return None, None
 
 
 def format_discord_mention(user_id: str) -> str:

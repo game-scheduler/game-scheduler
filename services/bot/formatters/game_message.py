@@ -59,6 +59,8 @@ class GameMessageFormatter:
         expected_duration_minutes: int | None = None,
         where: str | None = None,
         game_id: str | None = None,
+        host_display_name: str | None = None,
+        host_avatar_url: str | None = None,
     ) -> discord.Embed:
         """Create an embed for a game session.
 
@@ -77,6 +79,8 @@ class GameMessageFormatter:
             expected_duration_minutes: Optional expected game duration in minutes
             where: Optional game location
             game_id: Optional game UUID for calendar download link
+            host_display_name: Optional host display name for embed author
+            host_avatar_url: Optional host Discord CDN avatar URL for embed author icon
 
         Returns:
             Configured Discord embed
@@ -98,6 +102,13 @@ class GameMessageFormatter:
             color=GameMessageFormatter._get_status_color(status),
             timestamp=scheduled_at,
         )
+
+        # Set host as author with avatar if display name provided
+        if host_display_name:
+            if host_avatar_url:
+                embed.set_author(name=f"Host: {host_display_name}", icon_url=host_avatar_url)
+            else:
+                embed.set_author(name=f"Host: {host_display_name}")
 
         embed.add_field(
             name="When",
@@ -226,6 +237,8 @@ def format_game_announcement(
     expected_duration_minutes: int | None = None,
     notify_role_ids: list[str] | None = None,
     where: str | None = None,
+    host_display_name: str | None = None,
+    host_avatar_url: str | None = None,
 ) -> tuple[str | None, discord.Embed, GameView]:
     """Format a complete game announcement with embed and buttons.
 
@@ -245,6 +258,8 @@ def format_game_announcement(
         expected_duration_minutes: Optional expected game duration in minutes
         notify_role_ids: Optional list of Discord role IDs to mention
         where: Optional game location
+        host_display_name: Optional host display name for embed author
+        host_avatar_url: Optional host Discord CDN avatar URL for embed author icon
 
     Returns:
         Tuple of (content, embed, view) where content contains role mentions if any
@@ -267,6 +282,8 @@ def format_game_announcement(
         expected_duration_minutes=expected_duration_minutes,
         where=where,
         game_id=game_id,
+        host_display_name=host_display_name,
+        host_avatar_url=host_avatar_url,
     )
 
     view = GameView.from_game_data(

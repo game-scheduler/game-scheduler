@@ -28,12 +28,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.bot.formatters.game_message import format_game_announcement
+from services.bot.utils.discord_format import get_member_display_info
 from shared.cache.client import get_redis_client
 from shared.cache.keys import CacheKeys
 from shared.cache.ttl import CacheTTL
 from shared.database import get_db_session
 from shared.messaging.consumer import EventConsumer
-from shared.messaging.events import Event, EventType, GameReminderDueEvent, NotificationSendDMEvent
+from shared.messaging.events import (
+    Event,
+    EventType,
+    GameReminderDueEvent,
+    NotificationSendDMEvent,
+)
 from shared.models.base import utc_now
 from shared.models.game import GameSession
 from shared.models.participant import GameParticipant
@@ -168,7 +174,7 @@ class EventHandlers:
                     logger.error(f"Game not found: {game_id}")
                     return
 
-                content, embed, view = self._create_game_announcement(game)
+                content, embed, view = await self._create_game_announcement(game)
 
                 message = await channel.send(content=content, embed=embed, view=view)
 
@@ -272,7 +278,7 @@ class EventHandlers:
                     logger.warning(f"Message not found: {game.message_id}")
                     return
 
-                content, embed, view = self._create_game_announcement(game)
+                content, embed, view = await self._create_game_announcement(game)
 
                 await message.edit(content=content, embed=embed, view=view)
 
@@ -547,7 +553,7 @@ class EventHandlers:
                 try:
                     message = await channel.fetch_message(int(message_id))
 
-                    content, embed, view = self._create_game_announcement(game)
+                    content, embed, view = await self._create_game_announcement(game)
 
                     await message.edit(content=content, embed=embed, view=view)
                     logger.info(f"Updated game message after participant removal: {message_id}")
@@ -665,7 +671,7 @@ class EventHandlers:
 
         return confirmed_ids, overflow_ids
 
-    def _create_game_announcement(
+    async def _create_game_announcement(
         self, game: GameSession
     ) -> tuple[str | None, discord.Embed, discord.ui.View]:
         """
@@ -678,6 +684,14 @@ class EventHandlers:
             Tuple of (content, embed, view) for Discord message
         """
         confirmed_ids, overflow_ids = self._format_participants_for_display(game)
+
+        # Get host display name and avatar URL from Discord
+        host_display_name = None
+        host_avatar_url = None
+        if game.host and game.guild_id:
+            host_display_name, host_avatar_url = await get_member_display_info(
+                self.bot, game.guild_id, game.host.discord_id
+            )
 
         return format_game_announcement(
             game_id=str(game.id),
@@ -694,6 +708,8 @@ class EventHandlers:
             expected_duration_minutes=game.expected_duration_minutes,
             notify_role_ids=game.notify_role_ids or [],
             where=game.where,
+            host_display_name=host_display_name,
+            host_avatar_url=host_avatar_url,
         )
 
     async def _get_game_with_participants(

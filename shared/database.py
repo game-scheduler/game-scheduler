@@ -32,9 +32,9 @@ _raw_database_url = os.getenv(
 )
 
 # Strip any driver specification to get base URL
-BASE_DATABASE_URL = _raw_database_url.replace(
-    "postgresql+asyncpg://", "postgresql://"
-).replace("postgresql+psycopg2://", "postgresql://")
+BASE_DATABASE_URL = _raw_database_url.replace("postgresql+asyncpg://", "postgresql://").replace(
+    "postgresql+psycopg2://", "postgresql://"
+)
 
 # Build driver-specific URLs by adding driver to base URL
 ASYNC_DATABASE_URL = BASE_DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")

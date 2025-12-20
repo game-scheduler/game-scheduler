@@ -470,3 +470,137 @@ class TestFormatGameAnnouncement:
             mock_embed_class.assert_called_once()
             call_kwargs = mock_embed_class.call_args[1]
             assert call_kwargs["url"] is None
+
+    def test_embed_sets_author_with_avatar_url(self):
+        """Test that embed.set_author() is called with host display name and avatar URL."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123456",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                host_display_name="PlayerOne",
+                host_avatar_url="https://cdn.discordapp.com/avatars/123456/abc123.png?size=64",
+            )
+
+            mock_embed.set_author.assert_called_once_with(
+                name="Host: PlayerOne",
+                icon_url="https://cdn.discordapp.com/avatars/123456/abc123.png?size=64",
+            )
+
+    def test_embed_sets_author_without_avatar_url(self):
+        """Test that embed.set_author() is called with host display name only when no avatar URL."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123456",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                host_display_name="PlayerOne",
+                host_avatar_url=None,
+            )
+
+            mock_embed.set_author.assert_called_once_with(name="Host: PlayerOne")
+
+    def test_embed_does_not_set_author_when_no_display_name(self):
+        """Test that embed.set_author() is not called when host_display_name is None."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123456",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                host_display_name=None,
+                host_avatar_url="https://cdn.discordapp.com/avatars/123456/abc123.png?size=64",
+            )
+
+            mock_embed.set_author.assert_not_called()
+
+    def test_embed_handles_animated_avatar_url(self):
+        """Test that embed handles animated avatars (a_ prefix) correctly."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123456",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                host_display_name="AnimatedUser",
+                host_avatar_url="https://cdn.discordapp.com/avatars/123456/a_animated123.gif?size=64",
+            )
+
+            mock_embed.set_author.assert_called_once_with(
+                name="Host: AnimatedUser",
+                icon_url="https://cdn.discordapp.com/avatars/123456/a_animated123.gif?size=64",
+            )
+
+    def test_embed_keeps_host_field_as_backup(self):
+        """Test that embed still includes Host field for backward compatibility."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123456",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                host_display_name="PlayerOne",
+                host_avatar_url="https://cdn.discordapp.com/avatars/123456/abc123.png?size=64",
+            )
+
+            # Verify both author and Host field are set
+            mock_embed.set_author.assert_called_once()
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
