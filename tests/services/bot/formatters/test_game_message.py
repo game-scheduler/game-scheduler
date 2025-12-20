@@ -55,7 +55,7 @@ class TestGameMessageFormatter:
             mock_embed.add_field.assert_called()
 
     def test_embed_includes_when_field(self):
-        """Test that embed includes when field with timestamps."""
+        """Test that embed includes timestamp field with formatted times."""
         scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
 
         with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
@@ -76,10 +76,11 @@ class TestGameMessageFormatter:
             )
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
-            assert any("When" in str(call) for call in calls)
+            # Timestamp field now has zero-width space as name, check for timestamp format
+            assert any("<t:" in str(call) for call in calls)
 
     def test_embed_includes_players_field(self):
-        """Test that embed includes players count field."""
+        """Test that embed includes participant count in Participants field heading."""
         scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
 
         with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
@@ -100,7 +101,7 @@ class TestGameMessageFormatter:
             )
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
-            assert any("Players" in str(call) and "2/5" in str(call) for call in calls)
+            assert any("Participants" in str(call) and "2/5" in str(call) for call in calls)
 
     def test_embed_includes_host_field(self):
         """Test that embed includes host mention field when no display name provided."""

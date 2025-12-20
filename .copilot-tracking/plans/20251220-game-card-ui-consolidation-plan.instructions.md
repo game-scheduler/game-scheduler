@@ -70,29 +70,29 @@ Consolidate the UI layout between the web game details page and Discord bot game
 - [x] Task 2.2: Verify responsive design across screen sizes
   - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 182-195)
 
-### [ ] Phase 3: Discord Bot Card - Field Reorganization
+### [x] Phase 3: Discord Bot Card - Field Reorganization
 
-- [ ] Task 3.1: Verify and document host author field with avatar
+- [x] Task 3.1: Verify and document host author field with avatar
   - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 197-220)
 
-- [ ] Task 3.2: Reorganize embed fields to match web layout order
+- [x] Task 3.2: Reorganize embed fields to match web layout order
   - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 222-250)
 
-- [ ] Task 3.3: Update location/channel field display
+- [x] Task 3.3: Update location/channel field display
   - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 252-275)
 
-- [ ] Task 3.4: Consolidate participant count format
+- [x] Task 3.4: Consolidate participant count format
   - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 277-295)
 
-- [ ] Task 3.5: Remove or adjust waitlist display
+- [x] Task 3.5: Remove or adjust waitlist display
   - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 297-315)
 
-### [ ] Phase 4: Discord Bot Card - Testing and Validation
+### [x] Phase 4: Discord Bot Card - Testing and Validation
 
-- [ ] Task 4.1: Test game message formatting
+- [x] Task 4.1: Test game message formatting
   - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 317-340)
 
-- [ ] Task 4.2: Verify Discord embed rendering
+- [x] Task 4.2: Verify Discord embed rendering
   - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 342-360)
 
 ## Dependencies

@@ -100,7 +100,6 @@ class GameMessageFormatter:
             url=calendar_url,
             description=truncated_description,
             color=GameMessageFormatter._get_status_color(status),
-            timestamp=scheduled_at,
         )
 
         # Set host as author with avatar if display name provided
@@ -110,41 +109,40 @@ class GameMessageFormatter:
             else:
                 embed.set_author(name=f"Host: {host_display_name}")
 
-        embed.add_field(
-            name="When",
-            value=f"{format_discord_timestamp(scheduled_at, 'F')}\n"
-            f"({format_discord_timestamp(scheduled_at, 'R')})",
-            inline=False,
+        # Field order matches web layout: When, Duration+Where, Channel, Participants
+        when_value = (
+            f"{format_discord_timestamp(scheduled_at, 'F')}\n"
+            f"({format_discord_timestamp(scheduled_at, 'R')})"
         )
+        if calendar_url:
+            when_value += f" 📅 [Download]({calendar_url})"
 
+        if expected_duration_minutes:
+            duration_text = format_duration(expected_duration_minutes)
+            when_value += f"\nDuration {duration_text}"
         if where:
-            embed.add_field(name="Where", value=where, inline=False)
+            when_value += f"\nWhere: {where}"
 
-        embed.add_field(name="Players", value=f"{current_count}/{max_players}", inline=True)
+        embed.add_field(name="\u200b", value=when_value, inline=False)
+
+        if channel_id:
+            embed.add_field(name="Voice Channel", value=f"<#{channel_id}>", inline=False)
 
         # Host is displayed in author field if host_display_name provided
         # Otherwise show as field for backward compatibility
         if not host_display_name:
-            embed.add_field(name="Host", value=format_discord_mention(host_id), inline=True)
-
-        if expected_duration_minutes:
-            duration_text = format_duration(expected_duration_minutes)
-            embed.add_field(name="Duration", value=duration_text, inline=True)
-
-        if calendar_url:
-            embed.add_field(
-                name="📅 Calendar",
-                value=f"[Download Calendar]({calendar_url})",
-                inline=True,
-            )
-
-        if channel_id:
-            embed.add_field(name="Voice Channel", value=f"<#{channel_id}>", inline=True)
+            embed.add_field(name="Host", value=format_discord_mention(host_id), inline=False)
 
         if participant_ids:
             embed.add_field(
-                name="Participants",
+                name=f"Participants ({current_count}/{max_players})",
                 value=format_participant_list(participant_ids, max_display=15),
+                inline=False,
+            )
+        else:
+            embed.add_field(
+                name=f"Participants ({current_count}/{max_players})",
+                value="No participants yet",
                 inline=False,
             )
 
@@ -153,17 +151,6 @@ class GameMessageFormatter:
             embed.add_field(
                 name=f"Waitlist ({len(overflow_ids)})",
                 value=overflow_text,
-                inline=False,
-            )
-
-        if signup_instructions:
-            embed.add_field(
-                name="Signup Instructions",
-                value=(
-                    signup_instructions[:400]
-                    if len(signup_instructions) > 400
-                    else signup_instructions
-                ),
                 inline=False,
             )
 
