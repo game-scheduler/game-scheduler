@@ -16,7 +16,16 @@
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
 import { FC } from 'react';
-import { Card, CardContent, CardActions, Typography, Button, Chip, Box } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  CardActions,
+  Typography,
+  Button,
+  Chip,
+  Box,
+  Avatar,
+} from '@mui/material';
 import { useNavigate } from 'react-router';
 import { GameSession } from '../types';
 
@@ -78,6 +87,21 @@ export const GameCard: FC<GameCardProps> = ({ game, showActions = true }) => {
   return (
     <Card sx={{ mb: 2 }}>
       <CardContent>
+        {game.host && game.host.display_name && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Avatar
+              src={game.host.avatar_url || undefined}
+              alt={game.host.display_name}
+              sx={{ width: 32, height: 32 }}
+            >
+              {!game.host.avatar_url && game.host.display_name[0]}
+            </Avatar>
+            <Typography variant="subtitle2" color="text.secondary">
+              Host: <strong>{game.host.display_name}</strong>
+            </Typography>
+          </Box>
+        )}
+
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
           <Typography variant="h6" component="div">
             {game.title}
@@ -107,17 +131,6 @@ export const GameCard: FC<GameCardProps> = ({ game, showActions = true }) => {
             </Typography>
           )}
         </Box>
-
-        {game.host && game.host.display_name && (
-          <Box sx={{ mb: 1 }}>
-            <Chip
-              label={`Host: ${game.host.display_name}`}
-              color="secondary"
-              size="small"
-              variant="outlined"
-            />
-          </Box>
-        )}
       </CardContent>
 
       {showActions && (

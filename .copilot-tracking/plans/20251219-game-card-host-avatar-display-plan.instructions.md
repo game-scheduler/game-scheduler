@@ -54,15 +54,15 @@ Add host Discord avatar display to both web frontend GameCard component and Disc
 - [x] Task 1.4: Update caching to include avatar data
   - Details: .copilot-tracking/details/20251219-game-card-host-avatar-display-details.md (Lines 71-86)
 
-### [ ] Phase 2A: Web Frontend Implementation
+### [x] Phase 2A: Web Frontend Implementation
 
-- [ ] Task 2A.1: Add avatar_url to Participant TypeScript interface
+- [x] Task 2A.1: Add avatar_url to Participant TypeScript interface
   - Details: .copilot-tracking/details/20251219-game-card-host-avatar-display-details.md (Lines 88-102)
 
-- [ ] Task 2A.2: Update GameCard component to display host avatar
+- [x] Task 2A.2: Update GameCard component to display host avatar
   - Details: .copilot-tracking/details/20251219-game-card-host-avatar-display-details.md (Lines 104-125)
 
-- [ ] Task 2A.3: Add frontend tests for avatar display
+- [x] Task 2A.3: Add frontend tests for avatar display
   - Details: .copilot-tracking/details/20251219-game-card-host-avatar-display-details.md (Lines 127-142)
 
 ### [ ] Phase 2B: Discord Bot Embed Implementation

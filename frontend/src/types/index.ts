@@ -72,6 +72,7 @@ export interface Participant {
   user_id: string | null;
   discord_id: string | null;
   display_name: string | null;
+  avatar_url?: string | null;
   joined_at: string;
   pre_filled_position: number | null;
 }

@@ -17,8 +17,12 @@ Add host Discord avatar display to both web frontend GameCard component and Disc
 - services/api/services/display_names.py - Added `_build_avatar_url()` static method to construct Discord CDN URLs with proper priority (guild > user > None)
 - shared/cache/keys.py - Added `display_name_avatar()` cache key method for caching display names and avatar URLs together
 - tests/services/api/services/test_display_names.py - Added 8 new unit tests for avatar resolution functionality including cache, API, priority, and error handling
+- frontend/src/components/__tests__/GameCard.test.tsx - Added 12 comprehensive tests for GameCard avatar display covering avatar URLs, fallback initials, layout, and accessibility
 
 ### Modified
+
+- frontend/src/types/index.ts - Added optional `avatar_url?: string | null` field to Participant interface for Discord CDN avatar URLs
+- frontend/src/components/GameCard.tsx - Reorganized layout to display host with Avatar component at top, removed Chip from bottom, added MUI Avatar with fallback to initials
 
 - services/api/services/display_names.py - Updated module docstring to mention avatar URL resolution
 - services/api/services/display_names.py - Added json import for caching avatar data
