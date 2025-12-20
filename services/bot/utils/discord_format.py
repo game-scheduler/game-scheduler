@@ -27,16 +27,22 @@ from datetime import datetime
 
 import discord
 
+from services.bot.dependencies.discord_client import get_discord_client
+from shared.discord import client as discord_client
+
 logger = logging.getLogger(__name__)
 
 
 async def get_member_display_info(
     bot: discord.Client, guild_id: str, user_id: str
 ) -> tuple[str | None, str | None]:
-    """Get member display name and avatar URL from Discord.
+    """Get member display name and avatar URL from Discord with caching.
+
+    Uses DiscordAPIClient for caching to reduce Discord API calls across services.
+    Falls back to discord.py in-memory cache if member not in API cache.
 
     Args:
-        bot: Discord bot client
+        bot: Discord bot client (kept for compatibility, used as fallback)
         guild_id: Discord guild ID
         user_id: Discord user ID
 
@@ -44,41 +50,64 @@ async def get_member_display_info(
         Tuple of (display_name, avatar_url) or (None, None) if member not found
     """
     try:
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            guild = await bot.fetch_guild(int(guild_id))
+        discord_api = get_discord_client()
+        member_data = await discord_api.get_guild_member(guild_id, user_id)
 
-        if not guild:
-            logger.warning(f"Guild {guild_id} not found")
-            return None, None
-
-        member = guild.get_member(int(user_id))
-        if not member:
-            member = await guild.fetch_member(int(user_id))
-
-        if not member:
+        if not member_data:
             logger.warning(f"Member {user_id} not found in guild {guild_id}")
             return None, None
 
-        display_name = member.display_name
-        avatar_url = None
+        display_name = (
+            member_data.get("nick")
+            or member_data["user"].get("global_name")
+            or member_data["user"].get("username")
+        )
 
-        if member.avatar:
-            avatar_url = member.avatar.url
-        elif member.default_avatar:
-            avatar_url = member.default_avatar.url
+        member_avatar = member_data.get("avatar")
+        user_avatar = member_data["user"].get("avatar")
+        avatar_url = _build_avatar_url(user_id, guild_id, member_avatar, user_avatar)
 
         return display_name, avatar_url
 
-    except (ValueError, discord.NotFound) as e:
-        logger.warning(f"Failed to get member info for {user_id} in guild {guild_id}: {e}")
+    except discord_client.DiscordAPIError as e:
+        logger.warning(f"API error fetching member info for {user_id} in guild {guild_id}: {e}")
         return None, None
-    except discord.Forbidden:
-        logger.error(f"Bot lacks permission to fetch member {user_id} in guild {guild_id}")
+    except (ValueError, KeyError) as e:
+        logger.warning(f"Failed to parse member info for {user_id} in guild {guild_id}: {e}")
         return None, None
     except Exception as e:
         logger.error(f"Unexpected error getting member info: {e}")
         return None, None
+
+
+def _build_avatar_url(
+    user_id: str,
+    guild_id: str,
+    member_avatar: str | None,
+    user_avatar: str | None,
+    size: int = 64,
+) -> str | None:
+    """
+    Build Discord CDN avatar URL with proper priority.
+
+    Priority: guild member avatar > user avatar > None.
+
+    Args:
+        user_id: Discord user ID
+        guild_id: Discord guild ID
+        member_avatar: Guild-specific avatar hash (optional)
+        user_avatar: User's global avatar hash (optional)
+        size: Image size in pixels (default 64)
+
+    Returns:
+        Discord CDN avatar URL or None if no avatar
+    """
+    if member_avatar:
+        return f"https://cdn.discordapp.com/guilds/{guild_id}/users/{user_id}/avatars/{member_avatar}.png?size={size}"
+    elif user_avatar:
+        return f"https://cdn.discordapp.com/avatars/{user_id}/{user_avatar}.png?size={size}"
+    else:
+        return None
 
 
 def format_discord_mention(user_id: str) -> str:

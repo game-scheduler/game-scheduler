@@ -27,6 +27,7 @@ import discord
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from services.bot.dependencies.discord_client import get_discord_client
 from services.bot.formatters.game_message import format_game_announcement
 from services.bot.utils.discord_format import get_member_display_info
 from shared.cache.client import get_redis_client
@@ -162,9 +163,10 @@ class EventHandlers:
             return
 
         try:
-            channel = await self.bot.fetch_channel(int(channel_id))
+            discord_api = get_discord_client()
+            channel_data = await discord_api.fetch_channel(channel_id)
 
-            if not channel or not isinstance(channel, discord.TextChannel):
+            if not channel_data:
                 logger.error(f"Invalid or inaccessible channel: {channel_id}")
                 return
 
@@ -175,6 +177,14 @@ class EventHandlers:
                     return
 
                 content, embed, view = await self._create_game_announcement(game)
+
+                channel = self.bot.get_channel(int(channel_id))
+                if not channel:
+                    channel = await self.bot.fetch_channel(int(channel_id))
+
+                if not channel or not isinstance(channel, discord.TextChannel):
+                    logger.error(f"Invalid channel: {channel_id}")
+                    return
 
                 message = await channel.send(content=content, embed=embed, view=view)
 
@@ -266,7 +276,16 @@ class EventHandlers:
                     logger.warning(f"Game or message not found: {game_id}")
                     return
 
-                channel = await self.bot.fetch_channel(int(game.channel.channel_id))
+                discord_api = get_discord_client()
+                channel_data = await discord_api.fetch_channel(str(game.channel.channel_id))
+
+                if not channel_data:
+                    logger.error(f"Invalid channel: {game.channel.channel_id}")
+                    return
+
+                channel = self.bot.get_channel(int(game.channel.channel_id))
+                if not channel:
+                    channel = await self.bot.fetch_channel(int(game.channel.channel_id))
 
                 if not channel or not isinstance(channel, discord.TextChannel):
                     logger.error(f"Invalid channel: {game.channel.channel_id}")
@@ -439,10 +458,16 @@ class EventHandlers:
             True if message sent successfully, False otherwise
         """
         try:
-            user = await self.bot.fetch_user(int(user_discord_id))
+            discord_api = get_discord_client()
+            user_data = await discord_api.fetch_user(user_discord_id)
 
-            if not user:
+            if not user_data:
                 logger.error(f"User not found in Discord: {user_discord_id}")
+                return False
+
+            user = await self.bot.fetch_user(int(user_discord_id))
+            if not user:
+                logger.error(f"Could not get user object: {user_discord_id}")
                 return False
 
             await user.send(message)
@@ -545,7 +570,16 @@ class EventHandlers:
                     logger.error(f"Game not found: {game_id}")
                     return
 
-                channel = await self.bot.fetch_channel(int(channel_id))
+                discord_api = get_discord_client()
+                channel_data = await discord_api.fetch_channel(channel_id)
+                if not channel_data:
+                    logger.error(f"Invalid or inaccessible channel: {channel_id}")
+                    return
+
+                channel = self.bot.get_channel(int(channel_id))
+                if not channel:
+                    channel = await self.bot.fetch_channel(int(channel_id))
+
                 if not channel or not isinstance(channel, discord.TextChannel):
                     logger.error(f"Invalid or inaccessible channel: {channel_id}")
                     return

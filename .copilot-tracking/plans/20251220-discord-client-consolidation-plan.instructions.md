@@ -65,25 +65,24 @@ Move DiscordAPIClient from API service to shared layer and integrate it into bot
 - [x] Task 2.4: Verify API unit tests pass
   - Details: [.copilot-tracking/details/20251220-discord-client-consolidation-details.md](.copilot-tracking/details/20251220-discord-client-consolidation-details.md) (Lines 114-124)
 
-### [ ] Phase 3: Integrate DiscordAPIClient in Bot Service
+### [x] Phase 3: Integrate DiscordAPIClient in Bot Service
 
-- [ ] Task 3.1: Create bot service singleton for DiscordAPIClient
+- [x] Task 3.1: Create bot service singleton for DiscordAPIClient
   - Details: [.copilot-tracking/details/20251220-discord-client-consolidation-details.md](.copilot-tracking/details/20251220-discord-client-consolidation-details.md) (Lines 126-145)
 
-- [ ] Task 3.2: Update get_member_display_info() to use cached client
+- [x] Task 3.2: Update get_member_display_info() to use cached client
   - Details: [.copilot-tracking/details/20251220-discord-client-consolidation-details.md](.copilot-tracking/details/20251220-discord-client-consolidation-details.md) (Lines 147-169)
 
-- [ ] Task 3.3: Replace uncached fetch calls in role_checker.py
+- [x] Task 3.3: Replace uncached fetch calls in role_checker.py
   - Details: [.copilot-tracking/details/20251220-discord-client-consolidation-details.md](.copilot-tracking/details/20251220-discord-client-consolidation-details.md) (Lines 171-193)
 
-- [ ] Task 3.4: Replace uncached fetch calls in handlers.py
+- [x] Task 3.4: Replace uncached fetch calls in handlers.py
   - Details: [.copilot-tracking/details/20251220-discord-client-consolidation-details.md](.copilot-tracking/details/20251220-discord-client-consolidation-details.md) (Lines 195-215)
 
-- [ ] Task 3.5: Verify bot unit tests pass
+- [x] Task 3.5: Verify bot unit tests pass
   - Details: [.copilot-tracking/details/20251220-discord-client-consolidation-details.md](.copilot-tracking/details/20251220-discord-client-consolidation-details.md) (Lines 217-227)
 
 ### [ ] Phase 4: Consolidate Cache Keys
-
 - [ ] Task 4.1: Audit and document all cache key patterns
   - Details: [.copilot-tracking/details/20251220-discord-client-consolidation-details.md](.copilot-tracking/details/20251220-discord-client-consolidation-details.md) (Lines 229-246)
 

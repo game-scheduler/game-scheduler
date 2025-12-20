@@ -72,11 +72,7 @@ class RoleChecker:
                 return cached_roles
 
         try:
-            if self.api_cache:
-                guild = await self.api_cache.fetch_guild(int(guild_id))
-            else:
-                guild = await self.bot.fetch_guild(int(guild_id))
-
+            guild = await self.bot.fetch_guild(int(guild_id))
             if guild is None:
                 logger.warning(f"Guild {guild_id} not found")
                 return []
@@ -137,7 +133,6 @@ class RoleChecker:
         """
         try:
             guild = await self.bot.fetch_guild(int(guild_id))
-
             if guild is None:
                 return False
 
@@ -164,7 +159,6 @@ class RoleChecker:
         """
         try:
             guild = await self.bot.fetch_guild(int(guild_id))
-
             if guild is None:
                 return False
 
@@ -191,7 +185,6 @@ class RoleChecker:
         """
         try:
             guild = await self.bot.fetch_guild(int(guild_id))
-
             if guild is None:
                 return False
 
