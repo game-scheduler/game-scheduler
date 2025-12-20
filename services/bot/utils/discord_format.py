@@ -103,10 +103,20 @@ def _build_avatar_url(
         Discord CDN avatar URL or None if no avatar
     """
     if member_avatar:
-        return f"https://cdn.discordapp.com/guilds/{guild_id}/users/{user_id}/avatars/{member_avatar}.png?size={size}"
-    elif user_avatar:
-        return f"https://cdn.discordapp.com/avatars/{user_id}/{user_avatar}.png?size={size}"
-    else:
+        ext = "gif" if member_avatar.startswith("a_") else "png"
+        return (
+            f"https://cdn.discordapp.com/guilds/{guild_id}/users/{user_id}/avatars/"
+            f"{member_avatar}.{ext}?size={size}"
+        )
+    if user_avatar:
+        ext = "gif" if user_avatar.startswith("a_") else "png"
+        return f"https://cdn.discordapp.com/avatars/{user_id}/{user_avatar}.{ext}?size={size}"
+
+    # Fallback to default embed avatar when no custom avatar
+    try:
+        default_index = int(user_id) % 6
+        return f"https://cdn.discordapp.com/embed/avatars/{default_index}.png?size={size}"
+    except ValueError:
         return None
 
 

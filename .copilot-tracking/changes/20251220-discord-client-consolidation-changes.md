@@ -98,3 +98,51 @@ Documented all cache key patterns in use:
 - services/api/services/display_names.py - Verified already using CacheKeys.display_name() and CacheKeys.display_name_avatar() consistently
 - All 17 DisplayNameResolver tests pass
 - No changes required - already following best practices
+
+## Phase 5: Testing and Validation
+
+### Task 5.1 Complete: Full Unit Test Suite
+
+- Ran: uv run pytest tests/services/ -v --tb=short
+- Result: 569 passed, 34 warnings, 0 failed
+- Scope: API, bot, scheduler, retry daemons — all unit tests green
+
+### Task 5.2 In Progress: Integration Tests
+
+- Ran: ./scripts/run-integration-tests.sh
+- Result: 41 passed, 1 failed, 6 errors, 2 warnings
+- Notable failures/errors:
+	- RabbitMQ connectivity flake: StreamLostError during queue_declare in retry daemon end-to-end test
+	- Name resolution errors for postgres and rabbitmq in status transition tests (Temporary failure in name resolution)
+- Observation: Earlier integration tests in the same run succeeded against postgres/rabbitmq, suggesting transient DNS/network conditions on the test network
+- Next: Re-run to confirm flakiness; if persistent, add retry/backoff to test fixtures or ensure tests wait for service stability
+
+### Task 5.3 In Progress: Manual Testing
+
+- Observation: Bot embeds missing author avatar after consolidation
+- Root cause: `get_member_display_info()` returned `None` when user/member had no custom avatar; previous discord.py path provided a default avatar automatically
+- Fix: Updated `services/bot/utils/discord_format.py` `_build_avatar_url()` to:
+	- Use `.gif` for animated hashes (prefix `a_`)
+	- Fallback to default avatar `https://cdn.discordapp.com/embed/avatars/{int(user_id) % 6}.png?size=64` when no custom avatar
+- Expected result: Bot messages always include an author icon (custom or default); animated avatars render correctly
+
+## Phase 4: Consolidate Cache Keys
+
+### Task 4.1 Complete: Cache Key Patterns Audited
+
+Documented all cache key patterns in use:
+- DiscordAPIClient uses 5 inline f-strings: `user_guilds:`, `discord:channel:`, `discord:guild:`, `discord:guild_roles:`, `discord:user:`
+- DisplayNameResolver correctly uses CacheKeys.display_name() and CacheKeys.display_name_avatar()
+- Identified inconsistency: DiscordAPIClient should use CacheKeys constants for consistency
+
+### Task 4.2 Complete: DiscordAPIClient Updated to Use CacheKeys Constants
+
+- shared/cache/keys.py - Added 5 new cache key methods: user_guilds(), discord_channel(), discord_guild(), discord_guild_roles(), discord_user()
+- shared/discord/client.py - Replaced all 5 inline f-string cache keys with CacheKeys.method() calls for consistency; added cache_keys import
+- All 39 DiscordAPIClient tests pass with new cache key patterns
+
+### Task 4.3 Complete: DisplayNameResolver Cache Keys Verified
+
+- services/api/services/display_names.py - Verified already using CacheKeys.display_name() and CacheKeys.display_name_avatar() consistently
+- All 17 DisplayNameResolver tests pass
+- No changes required - already following best practices
