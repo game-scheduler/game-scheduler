@@ -122,7 +122,10 @@ class GameMessageFormatter:
 
         embed.add_field(name="Players", value=f"{current_count}/{max_players}", inline=True)
 
-        embed.add_field(name="Host", value=format_discord_mention(host_id), inline=True)
+        # Host is displayed in author field if host_display_name provided
+        # Otherwise show as field for backward compatibility
+        if not host_display_name:
+            embed.add_field(name="Host", value=format_discord_mention(host_id), inline=True)
 
         if expected_duration_minutes:
             duration_text = format_duration(expected_duration_minutes)

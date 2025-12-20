@@ -688,9 +688,9 @@ class EventHandlers:
         # Get host display name and avatar URL from Discord
         host_display_name = None
         host_avatar_url = None
-        if game.host and game.guild_id:
+        if game.host and game.guild:
             host_display_name, host_avatar_url = await get_member_display_info(
-                self.bot, game.guild_id, game.host.discord_id
+                self.bot, game.guild.guild_id, game.host.discord_id
             )
 
         return format_game_announcement(
@@ -734,6 +734,7 @@ class EventHandlers:
             .options(selectinload(GameSession.participants).selectinload(GameParticipant.user))
             .options(selectinload(GameSession.host))
             .options(selectinload(GameSession.channel))
+            .options(selectinload(GameSession.guild))
             .where(GameSession.id == str(UUID(game_id)))
         )
         game = result.scalar_one_or_none()

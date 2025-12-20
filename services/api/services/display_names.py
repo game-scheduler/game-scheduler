@@ -163,14 +163,15 @@ class DisplayNameResolver:
 
         for user_id in user_ids:
             cache_key = cache_keys.CacheKeys.display_name_avatar(user_id, guild_id)
-            cached = await self.cache.get(cache_key)
-            if cached:
-                try:
-                    result[user_id] = json.loads(cached)
-                except (json.JSONDecodeError, TypeError):
-                    uncached_ids.append(user_id)
-            else:
-                uncached_ids.append(user_id)
+            if self.cache:
+                cached = await self.cache.get(cache_key)
+                if cached:
+                    try:
+                        result[user_id] = json.loads(cached)
+                        continue
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+            uncached_ids.append(user_id)
 
         if uncached_ids:
             try:
@@ -193,12 +194,13 @@ class DisplayNameResolver:
                     user_data = {"display_name": display_name, "avatar_url": avatar_url}
                     result[user_id] = user_data
 
-                    cache_key = cache_keys.CacheKeys.display_name_avatar(user_id, guild_id)
-                    await self.cache.set(
-                        cache_key,
-                        json.dumps(user_data),
-                        ttl=cache_ttl.CacheTTL.DISPLAY_NAME,
-                    )
+                    if self.cache:
+                        cache_key = cache_keys.CacheKeys.display_name_avatar(user_id, guild_id)
+                        await self.cache.set(
+                            cache_key,
+                            json.dumps(user_data),
+                            ttl=cache_ttl.CacheTTL.DISPLAY_NAME,
+                        )
 
                 found_ids = {m["user"]["id"] for m in members}
                 for user_id in uncached_ids:

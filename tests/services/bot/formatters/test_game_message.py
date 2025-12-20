@@ -103,7 +103,7 @@ class TestGameMessageFormatter:
             assert any("Players" in str(call) and "2/5" in str(call) for call in calls)
 
     def test_embed_includes_host_field(self):
-        """Test that embed includes host mention field."""
+        """Test that embed includes host mention field when no display name provided."""
         scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
 
         with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
@@ -121,10 +121,46 @@ class TestGameMessageFormatter:
                 current_count=0,
                 max_players=5,
                 status="SCHEDULED",
+                host_display_name=None,  # No display name, should show as field
             )
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
+
+    def test_embed_host_in_author_field_when_display_name_provided(self):
+        """Test that host is shown in author field when display name provided."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123456",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                host_display_name="TestHost",
+                host_avatar_url="https://cdn.discordapp.com/avatars/123456/abc123.png",
+            )
+
+            # Should NOT have Host field when display name provided
+            add_field_calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert not any(
+                "Host" in str(call) and "<@123456>" in str(call) for call in add_field_calls
+            )
+
+            # Should have set_author called with host info
+            mock_embed.set_author.assert_called_once_with(
+                name="Host: TestHost",
+                icon_url="https://cdn.discordapp.com/avatars/123456/abc123.png",
+            )
 
     def test_embed_includes_channel_when_provided(self):
         """Test that embed includes voice channel when provided."""
@@ -577,8 +613,8 @@ class TestFormatGameAnnouncement:
                 icon_url="https://cdn.discordapp.com/avatars/123456/a_animated123.gif?size=64",
             )
 
-    def test_embed_keeps_host_field_as_backup(self):
-        """Test that embed still includes Host field for backward compatibility."""
+    def test_embed_no_host_field_when_display_name_provided(self):
+        """Test embed does NOT include Host field when display name provided."""
         scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
 
         with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
@@ -600,7 +636,7 @@ class TestFormatGameAnnouncement:
                 host_avatar_url="https://cdn.discordapp.com/avatars/123456/abc123.png?size=64",
             )
 
-            # Verify both author and Host field are set
+            # Verify author is set and Host field is NOT added
             mock_embed.set_author.assert_called_once()
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
-            assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
+            assert not any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
