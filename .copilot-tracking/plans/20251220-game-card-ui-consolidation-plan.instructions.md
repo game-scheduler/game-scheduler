@@ -4,114 +4,101 @@ applyTo: ".copilot-tracking/changes/20251220-game-card-ui-consolidation-changes.
 
 <!-- markdownlint-disable-file -->
 
-# Task Checklist: Game Card UI Consolidation - Web and Discord
+# Task Checklist: Game Card UI Consolidation
 
 ## Overview
 
-Consolidate the UI layout between the web game details page and Discord bot game card to present a unified, consistent user experience with standardized field order and layout structure.
+Consolidate the UI layout between web GameDetails page and Discord bot game card to present a unified, consistent user experience with standardized field order and layout structure.
 
 ## Objectives
 
-- Move host information with avatar to the top of both web and Discord card displays
-- Consolidate "When" timestamp with calendar link on the same line
-- Add location context showing server name and channel together
+- Create visual consistency between web and Discord card layouts
+- Improve information hierarchy by moving host to top of both displays
 - Remove redundant UI elements (export button, separate max players display)
-- Update participant count display to unified format (X/N)
-- Ensure visual consistency across web and Discord interfaces
+- Consolidate related information on single lines (When + Calendar, Location context)
+- Ensure both interfaces follow identical field order
 
 ## Research Summary
 
 ### Project Files
 
 - [frontend/src/pages/GameDetails.tsx](frontend/src/pages/GameDetails.tsx) - Web game details page with current layout structure
-- [frontend/src/components/GameCard.tsx](frontend/src/components/GameCard.tsx) - Web game card component with existing consolidation example
-- [frontend/src/components/ExportButton.tsx](frontend/src/components/ExportButton.tsx) - Calendar export button to be replaced
-- [services/bot/formatters/game_message.py](services/bot/formatters/game_message.py) - Discord embed formatter for game announcements
-- [frontend/src/types/index.ts](frontend/src/types/index.ts) - TypeScript GameSession and Participant interfaces
+- [frontend/src/components/GameCard.tsx](frontend/src/components/GameCard.tsx) - Summary card component with host avatar already displayed
+- [services/bot/formatters/game_message.py](services/bot/formatters/game_message.py) - Discord embed formatter with author field and calendar link
+- [frontend/src/components/ExportButton.tsx](frontend/src/components/ExportButton.tsx) - Calendar export button to be replaced with link
 
 ### External References
 
-- #file:../research/20251220-game-card-ui-consolidation-research.md - Complete UI consolidation research with current state analysis and target layout specifications
+- #file:../research/20251220-game-card-ui-consolidation-research.md - Comprehensive analysis of current layouts and target structure
+- [frontend/src/types/index.ts](frontend/src/types/index.ts) - GameSession and Participant interfaces with avatar_url field
 
 ### Standards References
 
-- #file:../../.github/instructions/reactjs.instructions.md - React component development guidelines
-- #file:../../.github/instructions/python.instructions.md - Python code conventions for Discord formatter
-- #file:../../.github/instructions/self-explanatory-code-commenting.instructions.md - Self-documenting code practices
-- #file:../../.github/instructions/coding-best-practices.instructions.md - Correctness, modularity, and testing standards
+- #file:../../.github/instructions/reactjs.instructions.md - React/TypeScript development conventions
+- #file:../../.github/instructions/python.instructions.md - Python coding standards for bot formatter
 
 ## Implementation Checklist
 
-### [x] Phase 1: Web GameDetails Page - Layout Restructuring
+### [ ] Phase 1: Web GameDetails Page Restructuring
 
-- [x] Task 1.1: Move host section to top of game details
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 23-45)
+- [ ] Task 1.1: Move host section to top with avatar display
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 15-32)
 
-- [x] Task 1.2: Consolidate When + Calendar link on same line
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 47-70)
+- [ ] Task 1.2: Consolidate When field with calendar link
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 34-50)
 
-- [x] Task 1.3: Add location context with server and channel display
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 72-95)
+- [ ] Task 1.3: Add location context display (server + channel)
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 52-67)
 
-- [x] Task 1.4: Consolidate participant count and remove max players line
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 97-120)
+- [ ] Task 1.4: Remove separate max players display
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 69-82)
 
-- [x] Task 1.5: Remove ExportButton and replace with calendar link
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 122-140)
+- [ ] Task 1.5: Update Participants component to show count format
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 84-100)
 
-- [x] Task 1.6: Update signup instructions display for host-only visibility
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 142-160)
+- [ ] Task 1.6: Remove ExportButton component usage
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 102-115)
 
-### [x] Phase 2: Web GameDetails Page - Testing and Validation
+### [ ] Phase 2: Discord Bot Card Field Reorganization
 
-- [x] Task 2.1: Test GameDetails page layout changes
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 162-180)
+- [ ] Task 2.1: Verify and maintain author field with host avatar
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 119-135)
 
-- [x] Task 2.2: Verify responsive design across screen sizes
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 182-195)
+- [ ] Task 2.2: Reorganize embed fields to match web layout order
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 137-163)
 
-### [x] Phase 3: Discord Bot Card - Field Reorganization
+- [ ] Task 2.3: Consolidate location display with guild context
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 165-180)
 
-- [x] Task 3.1: Verify and document host author field with avatar
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 197-220)
+- [ ] Task 2.4: Update participants field format to match web display
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 182-196)
 
-- [x] Task 3.2: Reorganize embed fields to match web layout order
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 222-250)
+### [ ] Phase 3: Validation and Testing
 
-- [x] Task 3.3: Update location/channel field display
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 252-275)
+- [ ] Task 3.1: Visual consistency verification
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 200-215)
 
-- [x] Task 3.4: Consolidate participant count format
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 277-295)
+- [ ] Task 3.2: Update frontend tests
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 217-230)
 
-- [x] Task 3.5: Remove or adjust waitlist display
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 297-315)
-
-### [x] Phase 4: Discord Bot Card - Testing and Validation
-
-- [x] Task 4.1: Test game message formatting
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 317-340)
-
-- [x] Task 4.2: Verify Discord embed rendering
-  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 342-360)
+- [ ] Task 3.3: Update bot formatter tests
+  - Details: .copilot-tracking/details/20251220-game-card-ui-consolidation-details.md (Lines 232-245)
 
 ## Dependencies
 
-- React/TypeScript for web frontend changes
-- MUI (Material-UI) components library
-- Python discord.py library for Discord bot changes
-- Existing calendar link generation functionality
-- Participant data structure with avatar_url field already present
+- Material-UI components (Avatar, Chip, Typography, Box) already in use
+- React Router for navigation
+- ExportButton API endpoint `/api/v1/export/game/{gameId}` already functional
+- Discord.py embed formatting
+- ParticipantList component
 
 ## Success Criteria
 
-- Web GameDetails page displays fields in unified order matching Discord card
-- Host avatar displays at top of both web and Discord card layouts
-- Calendar link appears next to When timestamp (web) or in header (Discord)
-- Max players consolidated into participant count display as "X/N"
-- Export button removed from web interface
-- Location displays server name and channel name together
-- Signup instructions only shown to host
-- All changes maintain visual consistency and responsive design
-- Unit tests updated and passing
-- No breaking changes to existing API contracts
+- Web and Discord displays follow identical field order
+- Host with avatar displays at top in both interfaces
+- Calendar link appears inline with When timestamp on web page
+- Max players consolidated into participant count display (X/N format)
+- ExportButton component removed from GameDetails page
+- Location shows server_name and channel_name together in both interfaces
+- All existing functionality preserved (join, leave, edit, cancel, export calendar)
+- Tests pass for both web and bot components
