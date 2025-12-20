@@ -116,6 +116,10 @@ async def test_participant_count_includes_discord_users_only(
             "services.api.routes.games.fetch_channel_name_safe",
             return_value="test-channel",
         ),
+        patch(
+            "services.api.routes.games.fetch_guild_name_safe",
+            return_value="test-guild",
+        ),
     ):
         response = await games_routes._build_game_response(game)
 
@@ -196,6 +200,10 @@ async def test_participant_count_includes_placeholder_participants(
         patch(
             "services.api.routes.games.fetch_channel_name_safe",
             return_value="test-channel",
+        ),
+        patch(
+            "services.api.routes.games.fetch_guild_name_safe",
+            return_value="test-guild",
         ),
     ):
         response = await games_routes._build_game_response(game)
@@ -289,6 +297,10 @@ async def test_participant_count_includes_mixed_participants(
             "services.api.routes.games.fetch_channel_name_safe",
             return_value="test-channel",
         ),
+        patch(
+            "services.api.routes.games.fetch_guild_name_safe",
+            return_value="test-guild",
+        ),
     ):
         response = await games_routes._build_game_response(game)
 
@@ -348,6 +360,10 @@ async def test_participant_count_with_empty_participants(
         patch(
             "services.api.routes.games.fetch_channel_name_safe",
             return_value="test-channel",
+        ),
+        patch(
+            "services.api.routes.games.fetch_guild_name_safe",
+            return_value="test-guild",
         ),
     ):
         response = await games_routes._build_game_response(game)

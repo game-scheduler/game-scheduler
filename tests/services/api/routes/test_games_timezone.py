@@ -30,11 +30,12 @@ from shared.models.user import User
 
 
 @pytest.mark.asyncio
+@patch("services.api.routes.games.fetch_guild_name_safe")
 @patch("services.api.routes.games.fetch_channel_name_safe")
 @patch("services.api.routes.games.get_discord_client")
 @patch("services.api.services.display_names.get_display_name_resolver")
 async def test_scheduled_at_has_utc_marker(
-    mock_get_resolver, mock_get_discord_client, mock_fetch_channel
+    mock_get_resolver, mock_get_discord_client, mock_fetch_channel, mock_fetch_guild
 ):
     """Test that scheduled_at includes 'Z' suffix for UTC."""
     # Mock display name resolver to avoid Discord API calls
@@ -49,6 +50,9 @@ async def test_scheduled_at_has_utc_marker(
 
     # Mock channel name fetch
     mock_fetch_channel.return_value = "test-channel"
+
+    # Mock guild name fetch
+    mock_fetch_guild.return_value = "test-guild"
 
     # Create mock game objects
     guild = GuildConfiguration(guild_id="test-guild")
@@ -95,11 +99,12 @@ async def test_scheduled_at_has_utc_marker(
 
 
 @pytest.mark.asyncio
+@patch("services.api.routes.games.fetch_guild_name_safe")
 @patch("services.api.routes.games.fetch_channel_name_safe")
 @patch("services.api.routes.games.get_discord_client")
 @patch("services.api.services.display_names.get_display_name_resolver")
 async def test_created_updated_have_utc_marker(
-    mock_get_resolver, mock_get_discord_client, mock_fetch_channel
+    mock_get_resolver, mock_get_discord_client, mock_fetch_channel, mock_fetch_guild
 ):
     """
     Test that created_at and updated_at include 'Z' suffix.
@@ -116,6 +121,9 @@ async def test_created_updated_have_utc_marker(
 
     # Mock channel name fetch
     mock_fetch_channel.return_value = "test-channel"
+
+    # Mock guild name fetch
+    mock_fetch_guild.return_value = "test-guild"
 
     guild = GuildConfiguration(guild_id="test-guild")
     guild.id = "1"
@@ -153,11 +161,12 @@ async def test_created_updated_have_utc_marker(
 
 
 @pytest.mark.asyncio
+@patch("services.api.routes.games.fetch_guild_name_safe")
 @patch("services.api.routes.games.fetch_channel_name_safe")
 @patch("services.api.routes.games.get_discord_client")
 @patch("services.api.services.display_names.get_display_name_resolver")
 async def test_midnight_utc_not_offset(
-    mock_get_resolver, mock_get_discord_client, mock_fetch_channel
+    mock_get_resolver, mock_get_discord_client, mock_fetch_channel, mock_fetch_guild
 ):
     """
 
@@ -179,6 +188,9 @@ async def test_midnight_utc_not_offset(
 
     # Mock channel name fetch
     mock_fetch_channel.return_value = "test-channel"
+
+    # Mock guild name fetch
+    mock_fetch_guild.return_value = "test-guild"
 
     guild = GuildConfiguration(guild_id="test-guild")
     guild.id = "1"
@@ -227,11 +239,12 @@ async def test_midnight_utc_not_offset(
 
 
 @pytest.mark.asyncio
+@patch("services.api.routes.games.fetch_guild_name_safe")
 @patch("services.api.routes.games.fetch_channel_name_safe")
 @patch("services.api.routes.games.get_discord_client")
 @patch("services.api.services.display_names.get_display_name_resolver")
 async def test_various_times_consistent(
-    mock_get_resolver, mock_get_discord_client, mock_fetch_channel
+    mock_get_resolver, mock_get_discord_client, mock_fetch_channel, mock_fetch_guild
 ):
     """
     Test that various times are serialized consistently.
@@ -248,6 +261,9 @@ async def test_various_times_consistent(
 
     # Mock channel name fetch
     mock_fetch_channel.return_value = "test-channel"
+
+    # Mock guild name fetch
+    mock_fetch_guild.return_value = "test-guild"
 
     guild = GuildConfiguration(guild_id="test-guild")
     guild.id = "1"
