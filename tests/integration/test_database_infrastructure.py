@@ -147,6 +147,124 @@ def test_critical_indexes_exist(db_session):
             )
 
 
+def test_notification_schedule_schema(db_session):
+    """Verify notification_schedule table has required columns with correct types."""
+    result = db_session.execute(
+        text(
+            """
+            SELECT column_name, data_type, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'notification_schedule'
+            ORDER BY column_name
+            """
+        )
+    )
+
+    columns = {
+        row[0]: {"type": row[1], "nullable": row[2], "default": row[3]} for row in result.fetchall()
+    }
+
+    # Verify core columns exist
+    required_columns = {
+        "id": "character varying",
+        "game_id": "character varying",
+        "reminder_minutes": "integer",
+        "notification_time": "timestamp without time zone",
+        "game_scheduled_at": "timestamp without time zone",
+        "sent": "boolean",
+        "created_at": "timestamp without time zone",
+        "notification_type": "character varying",
+        "participant_id": "character varying",
+    }
+
+    for col_name, expected_type in required_columns.items():
+        assert col_name in columns, f"Missing column: {col_name}"
+        assert columns[col_name]["type"] == expected_type, (
+            f"Column {col_name} has type {columns[col_name]['type']}, expected {expected_type}"
+        )
+
+    # Verify notification_type has default value
+    assert "reminder" in columns["notification_type"]["default"], (
+        "notification_type should default to 'reminder'"
+    )
+
+    # Verify participant_id is nullable (for game-wide reminders)
+    assert columns["participant_id"]["nullable"] == "YES", "participant_id should be nullable"
+
+    # Verify notification_type is not nullable
+    assert columns["notification_type"]["nullable"] == "NO", (
+        "notification_type should not be nullable"
+    )
+
+
+def test_notification_schedule_indexes(db_session):
+    """Verify notification_schedule has required indexes."""
+    result = db_session.execute(
+        text(
+            """
+            SELECT indexname
+            FROM pg_indexes
+            WHERE tablename = 'notification_schedule'
+            ORDER BY indexname
+            """
+        )
+    )
+
+    indexes = [row[0] for row in result.fetchall()]
+
+    expected_indexes = [
+        "ix_notification_schedule_game_id",
+        "ix_notification_schedule_notification_time",
+        "ix_notification_schedule_participant_id",
+        "ix_notification_schedule_type_time",
+    ]
+
+    for expected_index in expected_indexes:
+        assert expected_index in indexes, f"Missing index: {expected_index}"
+
+
+def test_notification_schedule_foreign_keys(db_session):
+    """Verify notification_schedule foreign key constraints."""
+    result = db_session.execute(
+        text(
+            """
+            SELECT
+                kcu.column_name,
+                ccu.table_name AS foreign_table_name,
+                ccu.column_name AS foreign_column_name,
+                rc.update_rule,
+                rc.delete_rule
+            FROM information_schema.table_constraints AS tc
+            JOIN information_schema.key_column_usage AS kcu
+                ON tc.constraint_name = kcu.constraint_name
+                AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage AS ccu
+                ON ccu.constraint_name = tc.constraint_name
+                AND ccu.table_schema = tc.table_schema
+            JOIN information_schema.referential_constraints AS rc
+                ON tc.constraint_name = rc.constraint_name
+            WHERE tc.constraint_type = 'FOREIGN KEY'
+            AND tc.table_name = 'notification_schedule'
+            ORDER BY kcu.column_name
+            """
+        )
+    )
+
+    fks = {
+        row[0]: {"table": row[1], "column": row[2], "delete": row[4]} for row in result.fetchall()
+    }
+
+    # Verify game_id foreign key with CASCADE delete
+    assert "game_id" in fks, "Missing foreign key on game_id"
+    assert fks["game_id"]["table"] == "game_sessions"
+    assert fks["game_id"]["delete"] == "CASCADE"
+
+    # Verify participant_id foreign key with CASCADE delete
+    assert "participant_id" in fks, "Missing foreign key on participant_id"
+    assert fks["participant_id"]["table"] == "game_participants"
+    assert fks["participant_id"]["delete"] == "CASCADE"
+
+
 def test_notification_trigger_exists(db_session):
     """Verify NOTIFY trigger exists on notification_schedule table."""
     result = db_session.execute(

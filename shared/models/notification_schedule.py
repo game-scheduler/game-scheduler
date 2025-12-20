@@ -21,13 +21,22 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint, func, text
+from sqlalchemy import (
+    Boolean,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
 
 if TYPE_CHECKING:
     from .game import GameSession
+    from .participant import GameParticipant
 
 
 class NotificationSchedule(Base):
@@ -37,6 +46,10 @@ class NotificationSchedule(Base):
     Each record represents one notification to be sent at a specific time.
     The scheduler daemon queries MIN(notification_time) to determine when
     to wake up next.
+
+    Supports two notification types:
+    - reminder: Game-wide reminders (participant_id is NULL)
+    - join_notification: Participant-specific join confirmations (participant_id set)
     """
 
     __tablename__ = "notification_schedule"
@@ -52,8 +65,20 @@ class NotificationSchedule(Base):
         Boolean, default=False, nullable=False, server_default=text("false")
     )
     created_at: Mapped[datetime] = mapped_column(default=utc_now, server_default=func.now())
+    notification_type: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="reminder",
+        server_default=text("'reminder'"),
+    )
+    participant_id: Mapped[str | None] = mapped_column(
+        ForeignKey("game_participants.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True,
+    )
 
     game: Mapped["GameSession"] = relationship("GameSession")
+    participant: Mapped["GameParticipant | None"] = relationship("GameParticipant")
 
     __table_args__ = (
         UniqueConstraint(

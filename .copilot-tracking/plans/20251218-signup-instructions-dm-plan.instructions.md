@@ -37,12 +37,12 @@ Replace immediate join confirmation DM with single 60-second delayed notificatio
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Database Schema Extension
+### [x] Phase 1: Database Schema Extension
 
-- [ ] Task 1.1: Create Alembic migration for notification_schedule table
+- [x] Task 1.1: Create Alembic migration for notification_schedule table
   - Details: .copilot-tracking/details/20251218-signup-instructions-dm-details.md (Lines 15-45)
 
-- [ ] Task 1.2: Update NotificationSchedule model with new columns
+- [x] Task 1.2: Update NotificationSchedule model with new columns
   - Details: .copilot-tracking/details/20251218-signup-instructions-dm-details.md (Lines 47-70)
 
 ### [ ] Phase 2: Event System Updates

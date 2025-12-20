@@ -112,9 +112,7 @@ async def list_games(
     offset: int = Query(0, ge=0, description="Results offset"),
     current_user: auth_schemas.CurrentUser = Depends(auth_deps.get_current_user),
     game_service: games_service.GameService = Depends(_get_game_service),
-    role_service: roles_module.RoleVerificationService = Depends(
-        permissions_deps.get_role_service
-    ),
+    role_service: roles_module.RoleVerificationService = Depends(permissions_deps.get_role_service),
 ) -> game_schemas.GameListResponse:
     """
     List games with optional filters.
@@ -160,9 +158,7 @@ async def get_game(
     game_id: str,
     current_user: auth_schemas.CurrentUser = Depends(auth_deps.get_current_user),
     game_service: games_service.GameService = Depends(_get_game_service),
-    role_service: roles_module.RoleVerificationService = Depends(
-        permissions_deps.get_role_service
-    ),
+    role_service: roles_module.RoleVerificationService = Depends(permissions_deps.get_role_service),
 ) -> game_schemas.GameResponse:
     """Get game session by ID with guild membership and role verification."""
     game = await game_service.get_game(game_id)
@@ -188,9 +184,7 @@ async def update_game(
     update_data: game_schemas.GameUpdateRequest,
     current_user: auth_schemas.CurrentUser = Depends(auth_deps.get_current_user),
     game_service: games_service.GameService = Depends(_get_game_service),
-    role_service: roles_module.RoleVerificationService = Depends(
-        permissions_deps.get_role_service
-    ),
+    role_service: roles_module.RoleVerificationService = Depends(permissions_deps.get_role_service),
 ) -> game_schemas.GameResponse:
     """
     Update game session.
@@ -235,9 +229,7 @@ async def delete_game(
     game_id: str,
     current_user: auth_schemas.CurrentUser = Depends(auth_deps.get_current_user),
     game_service: games_service.GameService = Depends(_get_game_service),
-    role_service: roles_module.RoleVerificationService = Depends(
-        permissions_deps.get_role_service
-    ),
+    role_service: roles_module.RoleVerificationService = Depends(permissions_deps.get_role_service),
 ) -> None:
     """
     Cancel game session.
@@ -266,9 +258,7 @@ async def join_game(
     game_id: str,
     current_user: auth_schemas.CurrentUser = Depends(auth_deps.get_current_user),
     game_service: games_service.GameService = Depends(_get_game_service),
-    role_service: roles_module.RoleVerificationService = Depends(
-        permissions_deps.get_role_service
-    ),
+    role_service: roles_module.RoleVerificationService = Depends(permissions_deps.get_role_service),
 ) -> participant_schemas.ParticipantResponse:
     """
     Join game as participant.
@@ -299,14 +289,10 @@ async def join_game(
         # Resolve display name and avatar for the participant
         display_data_map = {}
         if participant.user and participant.user.discord_id and game.guild_id:
-            display_name_resolver = (
-                await display_names_module.get_display_name_resolver()
-            )
+            display_name_resolver = await display_names_module.get_display_name_resolver()
             guild_discord_id = game.guild.guild_id
-            display_data_map = (
-                await display_name_resolver.resolve_display_names_and_avatars(
-                    guild_discord_id, [participant.user.discord_id]
-                )
+            display_data_map = await display_name_resolver.resolve_display_names_and_avatars(
+                guild_discord_id, [participant.user.discord_id]
             )
 
         display_name = participant.display_name
@@ -322,9 +308,7 @@ async def join_game(
             discord_id=participant.user.discord_id if participant.user else None,
             display_name=display_name,
             avatar_url=avatar_url,
-            joined_at=participant.joined_at.replace(tzinfo=UTC)
-            .isoformat()
-            .replace("+00:00", "Z"),
+            joined_at=participant.joined_at.replace(tzinfo=UTC).isoformat().replace("+00:00", "Z"),
             pre_filled_position=participant.pre_filled_position,
         )
 
@@ -353,9 +337,7 @@ async def leave_game(
             game_id=game_id,
             user_discord_id=current_user.user.discord_id,
         )
-        logger.info(
-            f"User {current_user.user.discord_id} successfully left game {game_id}"
-        )
+        logger.info(f"User {current_user.user.discord_id} successfully left game {game_id}")
     except ValueError as e:
         logger.error(f"Leave game error: {e}")
         if "not found" in str(e).lower():
@@ -379,9 +361,7 @@ async def _build_game_response(
 
     sorted_participants = participant_sorting.sort_participants(game.participants)
 
-    discord_user_ids = [
-        p.user.discord_id for p in sorted_participants if p.user is not None
-    ]
+    discord_user_ids = [p.user.discord_id for p in sorted_participants if p.user is not None]
 
     # Add host to the list of users to resolve
     host_discord_id = game.host.discord_id if game.host else None
@@ -394,10 +374,8 @@ async def _build_game_response(
     if discord_user_ids:
         if game.guild_id:
             guild_discord_id = game.guild.guild_id
-            display_data_map = (
-                await display_name_resolver.resolve_display_names_and_avatars(
-                    guild_discord_id, discord_user_ids
-                )
+            display_data_map = await display_name_resolver.resolve_display_names_and_avatars(
+                guild_discord_id, discord_user_ids
             )
 
     # Fetch channel name from Discord API with caching
