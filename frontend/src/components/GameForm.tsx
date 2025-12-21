@@ -80,6 +80,10 @@ export interface GameFormData {
   reminderMinutes: string;
   expectedDurationMinutes: string;
   participants: EditableParticipantInput[];
+  thumbnailFile: File | null;
+  imageFile: File | null;
+  removeThumbnail: boolean;
+  removeImage: boolean;
 }
 
 interface GameFormProps {
@@ -198,6 +202,10 @@ export const GameForm: FC<GameFormProps> = ({
             validationStatus: 'valid' as const, // From server, so validated
           }))
       : [],
+    thumbnailFile: null,
+    imageFile: null,
+    removeThumbnail: false,
+    removeImage: false,
   });
 
   // Update form when initialData changes (e.g., after async fetch in edit mode)
@@ -234,6 +242,10 @@ export const GameForm: FC<GameFormProps> = ({
                 validationStatus: 'valid' as const,
               }))
           : [],
+        thumbnailFile: null,
+        imageFile: null,
+        removeThumbnail: false,
+        removeImage: false,
       });
     }
   }, [initialData]);
@@ -283,6 +295,72 @@ export const GameForm: FC<GameFormProps> = ({
 
   const handleParticipantsChange = (participants: EditableParticipantInput[]) => {
     setFormData((prev) => ({ ...prev, participants }));
+  };
+
+  const handleThumbnailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+
+    if (file) {
+      // Validate file size (<5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Thumbnail must be less than 5MB');
+        return;
+      }
+
+      // Validate file type
+      const validTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        alert('Thumbnail must be PNG, JPEG, GIF, or WebP');
+        return;
+      }
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      thumbnailFile: file,
+      removeThumbnail: false,
+    }));
+  };
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+
+    if (file) {
+      // Validate file size (<5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Banner image must be less than 5MB');
+        return;
+      }
+
+      // Validate file type
+      const validTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        alert('Banner must be PNG, JPEG, GIF, or WebP');
+        return;
+      }
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      imageFile: file,
+      removeImage: false,
+    }));
+  };
+
+  const handleRemoveThumbnail = () => {
+    setFormData((prev) => ({
+      ...prev,
+      thumbnailFile: null,
+      removeThumbnail: true,
+    }));
+  };
+
+  const handleRemoveImage = () => {
+    setFormData((prev) => ({
+      ...prev,
+      imageFile: null,
+      removeImage: true,
+    }));
   };
 
   const handleSuggestionClick = (originalInput: string, newUsername: string) => {
@@ -489,6 +567,77 @@ export const GameForm: FC<GameFormProps> = ({
               />
             </Grid>
           </Grid>
+
+          <Box sx={{ mt: 3, mb: 2 }}>
+            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
+              Images (optional)
+            </Typography>
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Thumbnail Image
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Button variant="outlined" component="label" disabled={loading}>
+                  Choose Thumbnail
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    onChange={handleThumbnailChange}
+                  />
+                </Button>
+                {formData.thumbnailFile && (
+                  <Typography variant="body2">{formData.thumbnailFile.name}</Typography>
+                )}
+                {mode === 'edit' &&
+                  initialData?.has_thumbnail &&
+                  !formData.thumbnailFile &&
+                  !formData.removeThumbnail && (
+                    <Button
+                      size="small"
+                      color="error"
+                      onClick={handleRemoveThumbnail}
+                      disabled={loading}
+                    >
+                      Remove Thumbnail
+                    </Button>
+                  )}
+              </Box>
+            </Box>
+
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Banner Image
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Button variant="outlined" component="label" disabled={loading}>
+                  Choose Banner
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    onChange={handleImageChange}
+                  />
+                </Button>
+                {formData.imageFile && (
+                  <Typography variant="body2">{formData.imageFile.name}</Typography>
+                )}
+                {mode === 'edit' &&
+                  initialData?.has_image &&
+                  !formData.imageFile &&
+                  !formData.removeImage && (
+                    <Button
+                      size="small"
+                      color="error"
+                      onClick={handleRemoveImage}
+                      disabled={loading}
+                    >
+                      Remove Banner
+                    </Button>
+                  )}
+              </Box>
+            </Box>
+          </Box>
 
           <EditableParticipantList
             participants={formData.participants}

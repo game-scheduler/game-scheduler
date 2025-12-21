@@ -27,6 +27,7 @@ from datetime import UTC
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api.auth import roles as roles_module
@@ -155,17 +156,31 @@ async def create_game(
         thumbnail_data = None
         thumbnail_mime = None
         if thumbnail:
+            logger.info(
+                f"Received thumbnail upload: filename={thumbnail.filename}, "
+                f"content_type={thumbnail.content_type}, size={thumbnail.size}"
+            )
             await _validate_image_upload(thumbnail, "thumbnail")
             thumbnail_data = await thumbnail.read()
             thumbnail_mime = thumbnail.content_type
+            logger.info(f"Thumbnail read: {len(thumbnail_data)} bytes")
+        else:
+            logger.debug("No thumbnail file provided")
 
         # Validate and read image
         image_data = None
         image_mime = None
         if image:
+            logger.info(
+                f"Received image upload: filename={image.filename}, "
+                f"content_type={image.content_type}, size={image.size}"
+            )
             await _validate_image_upload(image, "image")
             image_data = await image.read()
             image_mime = image.content_type
+            logger.info(f"Banner image read: {len(image_data)} bytes")
+        else:
+            logger.debug("No banner image file provided")
 
         game = await game_service.create_game(
             game_data=game_data,
@@ -346,23 +361,37 @@ async def update_game(
         thumbnail_data = None
         thumbnail_mime = None
         if remove_thumbnail:
+            logger.info(f"Removing thumbnail for game {game_id}")
             thumbnail_data = b""
             thumbnail_mime = ""
         elif thumbnail:
+            logger.info(
+                f"Received thumbnail upload for game {game_id}: "
+                f"filename={thumbnail.filename}, content_type={thumbnail.content_type}, "
+                f"size={thumbnail.size}"
+            )
             await _validate_image_upload(thumbnail, "thumbnail")
             thumbnail_data = await thumbnail.read()
             thumbnail_mime = thumbnail.content_type
+            logger.info(f"Thumbnail read: {len(thumbnail_data)} bytes")
 
         # Handle image
         image_data = None
         image_mime = None
         if remove_image:
+            logger.info(f"Removing banner image for game {game_id}")
             image_data = b""
             image_mime = ""
         elif image:
+            logger.info(
+                f"Received image upload for game {game_id}: "
+                f"filename={image.filename}, content_type={image.content_type}, "
+                f"size={image.size}"
+            )
             await _validate_image_upload(image, "image")
             image_data = await image.read()
             image_mime = image.content_type
+            logger.info(f"Banner image read: {len(image_data)} bytes")
 
         game = await game_service.update_game(
             game_id=game_id,
@@ -624,4 +653,48 @@ async def _build_game_response(
         participants=participant_responses,
         created_at=datetime_utils.format_datetime_as_utc(game.created_at),
         updated_at=datetime_utils.format_datetime_as_utc(game.updated_at),
+    )
+
+
+@router.get("/{game_id}/thumbnail")
+async def get_game_thumbnail(
+    game_id: str,
+    game_service: games_service.GameService = Depends(_get_game_service),
+) -> Response:
+    """Serve game thumbnail image."""
+    game = await game_service.get_game(game_id)
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    if not game.thumbnail_data:
+        raise HTTPException(status_code=404, detail="No thumbnail for this game")
+
+    return Response(
+        content=game.thumbnail_data,
+        media_type=game.thumbnail_mime_type or "image/png",
+        headers={
+            "Cache-Control": "public, max-age=3600",
+        },
+    )
+
+
+@router.get("/{game_id}/image")
+async def get_game_image(
+    game_id: str,
+    game_service: games_service.GameService = Depends(_get_game_service),
+) -> Response:
+    """Serve game banner image."""
+    game = await game_service.get_game(game_id)
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    if not game.image_data:
+        raise HTTPException(status_code=404, detail="No banner image for this game")
+
+    return Response(
+        content=game.image_data,
+        media_type=game.image_mime_type or "image/png",
+        headers={
+            "Cache-Control": "public, max-age=3600",
+        },
     )

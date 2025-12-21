@@ -175,13 +175,11 @@ describe('EditGame', () => {
     await waitFor(() => {
       expect(apiClient.put).toHaveBeenCalledWith(
         '/api/v1/games/game123',
+        expect.any(FormData),
         expect.objectContaining({
-          title: 'Test Game',
-          description: 'Test Description',
-          signup_instructions: 'Test signup instructions',
-          channel_id: 'channel123',
-          max_players: 8,
-          reminder_minutes: [60, 15],
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         })
       );
       expect(mockNavigate).toHaveBeenCalledWith('/games/game123');

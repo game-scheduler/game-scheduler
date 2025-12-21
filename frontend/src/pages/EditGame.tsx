@@ -117,39 +117,84 @@ export const EditGame: FC = () => {
     try {
       setValidationErrors(null);
 
-      const payload = {
-        title: formData.title,
-        description: formData.description,
-        signup_instructions: formData.signupInstructions || null,
-        scheduled_at: formData.scheduledAt!.toISOString(),
-        where: formData.where || null,
-        channel_id: formData.channelId,
-        max_players: maxPlayers,
-        reminder_minutes: formData.reminderMinutes
-          ? formData.reminderMinutes.split(',').map((m) => parseInt(m.trim()))
-          : null,
-        expected_duration_minutes: parseDurationString(formData.expectedDurationMinutes),
-        participants: formData.participants
-          .filter((p) => p.mention.trim() && p.isExplicitlyPositioned)
-          .map((p) => {
-            // If participant has a real ID (not temp-), they're already validated
-            // Send their existing data structure rather than re-validating the mention
-            if (!p.id.startsWith('temp-')) {
-              return {
-                participant_id: p.id,
-                pre_filled_position: p.preFillPosition,
-              };
-            }
-            // New participants need to be validated
+      const payload = new FormData();
+
+      // Add all required fields
+      payload.append('title', formData.title);
+      payload.append('description', formData.description);
+      payload.append('scheduled_at', formData.scheduledAt!.toISOString());
+      payload.append('channel_id', formData.channelId);
+
+      // Add optional text fields
+      if (formData.signupInstructions) {
+        payload.append('signup_instructions', formData.signupInstructions);
+      }
+      if (formData.where) {
+        payload.append('where', formData.where);
+      }
+      if (maxPlayers !== null) {
+        payload.append('max_players', maxPlayers.toString());
+      }
+
+      // Add reminder minutes as JSON array
+      if (formData.reminderMinutes) {
+        const reminderMinutesArray = formData.reminderMinutes
+          .split(',')
+          .map((m) => parseInt(m.trim()));
+        payload.append('reminder_minutes', JSON.stringify(reminderMinutesArray));
+      }
+
+      // Add expected duration
+      const expectedDuration = parseDurationString(formData.expectedDurationMinutes);
+      if (expectedDuration !== null) {
+        payload.append('expected_duration_minutes', expectedDuration.toString());
+      }
+
+      // Add participants as JSON array
+      const participantsList = formData.participants
+        .filter((p) => p.mention.trim() && p.isExplicitlyPositioned)
+        .map((p) => {
+          if (!p.id.startsWith('temp-')) {
             return {
-              mention: p.mention.trim(),
+              participant_id: p.id,
               pre_filled_position: p.preFillPosition,
             };
-          }),
-        removed_participant_ids: removedParticipantIds,
-      };
+          }
+          return {
+            mention: p.mention.trim(),
+            pre_filled_position: p.preFillPosition,
+          };
+        });
+      if (participantsList.length > 0) {
+        payload.append('participants', JSON.stringify(participantsList));
+      }
 
-      await apiClient.put(`/api/v1/games/${gameId}`, payload);
+      // Add removed participant IDs as JSON array
+      if (removedParticipantIds.length > 0) {
+        payload.append('removed_participant_ids', JSON.stringify(removedParticipantIds));
+      }
+
+      // Add image files
+      if (formData.thumbnailFile) {
+        payload.append('thumbnail', formData.thumbnailFile);
+      }
+      if (formData.imageFile) {
+        payload.append('image', formData.imageFile);
+      }
+
+      // Add removal flags
+      if (formData.removeThumbnail) {
+        payload.append('remove_thumbnail', 'true');
+      }
+      if (formData.removeImage) {
+        payload.append('remove_image', 'true');
+      }
+
+      await apiClient.put(`/api/v1/games/${gameId}`, payload, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       navigate(`/games/${gameId}`);
     } catch (err: unknown) {
       console.error('Failed to update game:', err);

@@ -65,6 +65,8 @@ export interface GameSession {
   participants?: Participant[];
   created_at: string;
   updated_at: string;
+  has_thumbnail?: boolean;
+  has_image?: boolean;
 }
 
 export interface Participant {

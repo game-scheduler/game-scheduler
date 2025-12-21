@@ -26,5 +26,15 @@ Adding support for uploading and displaying thumbnail and banner images for game
 - services/api/services/games.py - Updated GameService.update_game to handle image uploads, replacements, and removals
 - tests/services/api/routes/test_games_image_validation.py - Added comprehensive unit tests for image validation (9 tests)
 - tests/services/api/services/test_games_image_upload.py - Added comprehensive unit tests for service layer image handling (5 tests)
+- services/api/routes/games.py - Added Response import from fastapi.responses for serving binary data
+- services/api/routes/games.py - Added GET /games/{game_id}/thumbnail endpoint to serve thumbnail images with caching
+- services/api/routes/games.py - Added GET /games/{game_id}/image endpoint to serve banner images with caching
+- tests/services/api/routes/test_games_image_serving.py - Added comprehensive unit tests for image serving endpoints (8 tests)
+- frontend/src/types/index.ts - Added has_thumbnail and has_image optional boolean fields to GameSession interface
+- frontend/src/components/GameForm.tsx - Added thumbnailFile, imageFile, removeThumbnail, removeImage fields to GameFormData interface
+- frontend/src/components/GameForm.tsx - Added handleThumbnailChange, handleImageChange, handleRemoveThumbnail, handleRemoveImage handlers with file validation
+- frontend/src/components/GameForm.tsx - Added file input UI sections for thumbnail and banner with Material-UI Button components and validation
+- frontend/src/pages/CreateGame.tsx - Updated handleSubmit to use FormData with multipart/form-data for image uploads
+- frontend/src/pages/EditGame.tsx - Updated handleSubmit to use FormData with file uploads and removal flags
 
 ### Removed

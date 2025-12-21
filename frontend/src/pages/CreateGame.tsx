@@ -147,24 +147,60 @@ export const CreateGame: FC = () => {
       setValidationErrors(null);
       setError(null);
 
-      const payload = {
-        template_id: selectedTemplate.id,
-        title: formData.title,
-        description: formData.description,
-        signup_instructions: formData.signupInstructions || null,
-        scheduled_at: formData.scheduledAt!.toISOString(),
-        where: formData.where || null,
-        max_players: maxPlayers,
-        reminder_minutes: formData.reminderMinutes
-          ? formData.reminderMinutes.split(',').map((m) => parseInt(m.trim()))
-          : null,
-        expected_duration_minutes: parseDurationString(formData.expectedDurationMinutes),
-        initial_participants: formData.participants
-          .filter((p) => p.mention.trim())
-          .map((p) => p.mention.trim()),
-      };
+      const payload = new FormData();
 
-      const response = await apiClient.post('/api/v1/games', payload);
+      // Add required fields
+      payload.append('template_id', selectedTemplate.id);
+      payload.append('title', formData.title);
+      payload.append('description', formData.description);
+      payload.append('scheduled_at', formData.scheduledAt!.toISOString());
+
+      // Add optional text fields
+      if (formData.signupInstructions) {
+        payload.append('signup_instructions', formData.signupInstructions);
+      }
+      if (formData.where) {
+        payload.append('where', formData.where);
+      }
+      if (maxPlayers !== null) {
+        payload.append('max_players', maxPlayers.toString());
+      }
+
+      // Add reminder minutes as JSON array
+      if (formData.reminderMinutes) {
+        const reminderMinutesArray = formData.reminderMinutes
+          .split(',')
+          .map((m) => parseInt(m.trim()));
+        payload.append('reminder_minutes', JSON.stringify(reminderMinutesArray));
+      }
+
+      // Add expected duration
+      const expectedDuration = parseDurationString(formData.expectedDurationMinutes);
+      if (expectedDuration !== null) {
+        payload.append('expected_duration_minutes', expectedDuration.toString());
+      }
+
+      // Add initial participants as JSON array
+      const participantsList = formData.participants
+        .filter((p) => p.mention.trim())
+        .map((p) => p.mention.trim());
+      if (participantsList.length > 0) {
+        payload.append('initial_participants', JSON.stringify(participantsList));
+      }
+
+      // Add image files
+      if (formData.thumbnailFile) {
+        payload.append('thumbnail', formData.thumbnailFile);
+      }
+      if (formData.imageFile) {
+        payload.append('image', formData.imageFile);
+      }
+
+      const response = await apiClient.post('/api/v1/games', payload, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       navigate(`/games/${response.data.id}`);
     } catch (err: unknown) {
       console.error('Failed to create game:', err);

@@ -61,23 +61,23 @@ Add support for uploading and displaying thumbnail and banner images for game se
 - [x] Task 2.3: Add file validation helper function
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 135-161)
 
-### [ ] Phase 3: Image Serving Endpoints
+### [x] Phase 3: Image Serving Endpoints
 
-- [ ] Task 3.1: Add GET /games/{game_id}/thumbnail endpoint
+- [x] Task 3.1: Add GET /games/{game_id}/thumbnail endpoint
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 163-191)
 
-- [ ] Task 3.2: Add GET /games/{game_id}/image endpoint
+- [x] Task 3.2: Add GET /games/{game_id}/image endpoint
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 193-220)
 
-### [ ] Phase 4: Frontend File Upload UI
+### [x] Phase 4: Frontend File Upload UI
 
-- [ ] Task 4.1: Update TypeScript interfaces for images
+- [x] Task 4.1: Update TypeScript interfaces for images
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 287-312)
 
-- [ ] Task 4.2: Add file input components to GameForm
+- [x] Task 4.2: Add file input components to GameForm
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 314-379)
 
-- [ ] Task 4.3: Update form submission to use FormData
+- [x] Task 4.3: Update form submission to use FormData
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 381-423)
 
 ### [ ] Phase 5: Frontend Image Display
