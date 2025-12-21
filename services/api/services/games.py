@@ -85,6 +85,10 @@ class GameService:
         game_data: game_schemas.GameCreateRequest,
         host_user_id: str,
         access_token: str,
+        thumbnail_data: bytes | None = None,
+        thumbnail_mime_type: str | None = None,
+        image_data: bytes | None = None,
+        image_mime_type: str | None = None,
     ) -> game_model.GameSession:
         """
         Create new game session from template with optional pre-populated participants.
@@ -93,6 +97,10 @@ class GameService:
             game_data: Game creation data with template_id
             host_user_id: Host's database user ID (UUID)
             access_token: User's access token for Discord API
+            thumbnail_data: Optional thumbnail image binary data
+            thumbnail_mime_type: Optional thumbnail MIME type
+            image_data: Optional banner image binary data
+            image_mime_type: Optional banner MIME type
 
         Returns:
             Created game session
@@ -211,6 +219,10 @@ class GameService:
             notify_role_ids=notify_role_ids,
             allowed_player_role_ids=allowed_player_role_ids,
             status=game_model.GameStatus.SCHEDULED.value,
+            thumbnail_data=thumbnail_data,
+            thumbnail_mime_type=thumbnail_mime_type,
+            image_data=image_data,
+            image_mime_type=image_mime_type,
         )
 
         self.db.add(game)
@@ -676,6 +688,10 @@ class GameService:
         update_data: game_schemas.GameUpdateRequest,
         current_user,
         role_service,
+        thumbnail_data: bytes | None = None,
+        thumbnail_mime_type: str | None = None,
+        image_data: bytes | None = None,
+        image_mime_type: str | None = None,
     ) -> game_model.GameSession:
         """
         Update game session with Bot Manager authorization.
@@ -685,6 +701,10 @@ class GameService:
             update_data: Update data
             current_user: Current authenticated user (CurrentUser schema)
             role_service: Role verification service
+            thumbnail_data: Optional thumbnail image binary data (empty bytes to remove)
+            thumbnail_mime_type: Optional thumbnail MIME type (empty string to remove)
+            image_data: Optional banner image binary data (empty bytes to remove)
+            image_mime_type: Optional banner MIME type (empty string to remove)
 
         Returns:
             Updated game session
@@ -728,6 +748,23 @@ class GameService:
         schedule_needs_update, status_schedule_needs_update = self._update_game_fields(
             game, update_data
         )
+
+        # Update images if provided
+        if thumbnail_data is not None:
+            if thumbnail_data == b"":
+                game.thumbnail_data = None
+                game.thumbnail_mime_type = None
+            else:
+                game.thumbnail_data = thumbnail_data
+                game.thumbnail_mime_type = thumbnail_mime_type
+
+        if image_data is not None:
+            if image_data == b"":
+                game.image_data = None
+                game.image_mime_type = None
+            else:
+                game.image_data = image_data
+                game.image_mime_type = image_mime_type
 
         # Handle participant removals
         if update_data.removed_participant_ids:

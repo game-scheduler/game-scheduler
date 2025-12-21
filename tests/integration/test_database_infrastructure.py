@@ -364,3 +364,37 @@ def test_primary_keys_exist(db_session):
 
         pk = pk_result.fetchone()
         assert pk is not None, f"Table {table_name} is missing a primary key"
+
+
+def test_game_sessions_image_storage_schema(db_session):
+    """Verify game_sessions table has image storage columns with correct types."""
+    result = db_session.execute(
+        text(
+            """
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns
+            WHERE table_name = 'game_sessions'
+            AND column_name IN (
+                'thumbnail_data', 'thumbnail_mime_type',
+                'image_data', 'image_mime_type'
+            )
+            ORDER BY column_name
+            """
+        )
+    )
+
+    columns = {row[0]: {"type": row[1], "nullable": row[2]} for row in result.fetchall()}
+
+    required_columns = {
+        "thumbnail_data": "bytea",
+        "thumbnail_mime_type": "character varying",
+        "image_data": "bytea",
+        "image_mime_type": "character varying",
+    }
+
+    for col_name, expected_type in required_columns.items():
+        assert col_name in columns, f"Missing column: {col_name}"
+        assert columns[col_name]["type"] == expected_type, (
+            f"Column {col_name} has type {columns[col_name]['type']}, expected {expected_type}"
+        )
+        assert columns[col_name]["nullable"] == "YES", f"Column {col_name} should be nullable"

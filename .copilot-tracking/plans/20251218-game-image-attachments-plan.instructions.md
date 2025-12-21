@@ -42,23 +42,23 @@ Add support for uploading and displaying thumbnail and banner images for game se
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Database Schema Migration
+### [x] Phase 1: Database Schema Migration
 
-- [ ] Task 1.1: Create Alembic migration for image storage columns
+- [x] Task 1.1: Create Alembic migration for image storage columns
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 13-40)
 
-- [ ] Task 1.2: Update GameSession model with image fields
+- [x] Task 1.2: Update GameSession model with image fields
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 42-58)
 
-### [ ] Phase 2: API File Upload Endpoints
+### [x] Phase 2: API File Upload Endpoints
 
-- [ ] Task 2.1: Update create_game endpoint for multipart/form-data
-  - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 60-102)
+- [x] Task 2.1: Update create_game endpoint for multipart/form-data
+  - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 13-40)
 
-- [ ] Task 2.2: Update update_game endpoint for file uploads
-  - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 104-133)
+- [x] Task 2.2: Update update_game endpoint for file uploads
+  - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 42-58)
 
-- [ ] Task 2.3: Add file validation helper function
+- [x] Task 2.3: Add file validation helper function
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 135-161)
 
 ### [ ] Phase 3: Image Serving Endpoints

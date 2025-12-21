@@ -24,8 +24,9 @@ Provides CRUD operations for game sessions with validation and authorization.
 
 import logging
 from datetime import UTC
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api.auth import roles as roles_module
@@ -51,6 +52,36 @@ router = APIRouter(prefix="/api/v1/games", tags=["games"])
 # ruff: noqa: B008
 
 
+async def _validate_image_upload(file: UploadFile, field_name: str) -> None:
+    """
+    Validate uploaded image file for type and size.
+
+    Args:
+        file: Uploaded file to validate
+        field_name: Name of the field for error messages
+
+    Raises:
+        HTTPException: 400 if validation fails with descriptive message
+    """
+    allowed_types = {"image/png", "image/jpeg", "image/gif", "image/webp"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{field_name} must be PNG, JPEG, GIF, or WebP",
+        )
+
+    file.file.seek(0, 2)
+    size = file.file.tell()
+    file.file.seek(0)
+
+    max_size = 5 * 1024 * 1024
+    if size > max_size:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{field_name} must be less than 5MB",
+        )
+
+
 def _get_game_service(
     db: AsyncSession = Depends(database.get_db),
 ) -> games_service.GameService:
@@ -69,7 +100,18 @@ def _get_game_service(
 
 @router.post("", response_model=game_schemas.GameResponse, status_code=201)
 async def create_game(
-    game_data: game_schemas.GameCreateRequest,
+    template_id: Annotated[str, Form()],
+    title: Annotated[str, Form()],
+    scheduled_at: Annotated[str, Form()],
+    description: Annotated[str | None, Form()] = None,
+    max_players: Annotated[int | None, Form()] = None,
+    expected_duration_minutes: Annotated[int | None, Form()] = None,
+    reminder_minutes: Annotated[str | None, Form()] = None,
+    where: Annotated[str | None, Form()] = None,
+    signup_instructions: Annotated[str | None, Form()] = None,
+    initial_participants: Annotated[str | None, Form()] = None,
+    thumbnail: Annotated[UploadFile | None, File()] = None,
+    image: Annotated[UploadFile | None, File()] = None,
     current_user: auth_schemas.CurrentUser = Depends(auth_deps.get_current_user),
     game_service: games_service.GameService = Depends(_get_game_service),
 ) -> game_schemas.GameResponse:
@@ -78,12 +120,61 @@ async def create_game(
 
     Validates @mentions in initial_participants and creates GameParticipant records.
     Returns 422 if any @mentions cannot be resolved with disambiguation suggestions.
+    Accepts multipart/form-data for file uploads.
     """
     try:
+        # Parse JSON fields from form data
+        import json
+        from datetime import datetime
+
+        reminder_minutes_list = None
+        if reminder_minutes:
+            reminder_minutes_list = json.loads(reminder_minutes)
+
+        initial_participants_list = []
+        if initial_participants:
+            initial_participants_list = json.loads(initial_participants)
+
+        scheduled_at_datetime = datetime.fromisoformat(scheduled_at.replace("Z", "+00:00"))
+
+        # Build request object
+        game_data = game_schemas.GameCreateRequest(
+            template_id=template_id,
+            title=title,
+            scheduled_at=scheduled_at_datetime,
+            description=description,
+            max_players=max_players,
+            expected_duration_minutes=expected_duration_minutes,
+            reminder_minutes=reminder_minutes_list,
+            where=where,
+            signup_instructions=signup_instructions,
+            initial_participants=initial_participants_list,
+        )
+
+        # Validate and read thumbnail
+        thumbnail_data = None
+        thumbnail_mime = None
+        if thumbnail:
+            await _validate_image_upload(thumbnail, "thumbnail")
+            thumbnail_data = await thumbnail.read()
+            thumbnail_mime = thumbnail.content_type
+
+        # Validate and read image
+        image_data = None
+        image_mime = None
+        if image:
+            await _validate_image_upload(image, "image")
+            image_data = await image.read()
+            image_mime = image.content_type
+
         game = await game_service.create_game(
             game_data=game_data,
             host_user_id=current_user.user.id,
             access_token=current_user.access_token,
+            thumbnail_data=thumbnail_data,
+            thumbnail_mime_type=thumbnail_mime,
+            image_data=image_data,
+            image_mime_type=image_mime,
         )
 
         return await _build_game_response(game)
@@ -181,7 +272,22 @@ async def get_game(
 @router.put("/{game_id}", response_model=game_schemas.GameResponse)
 async def update_game(
     game_id: str,
-    update_data: game_schemas.GameUpdateRequest,
+    title: Annotated[str | None, Form()] = None,
+    description: Annotated[str | None, Form()] = None,
+    signup_instructions: Annotated[str | None, Form()] = None,
+    scheduled_at: Annotated[str | None, Form()] = None,
+    where: Annotated[str | None, Form()] = None,
+    max_players: Annotated[int | None, Form()] = None,
+    reminder_minutes: Annotated[str | None, Form()] = None,
+    expected_duration_minutes: Annotated[int | None, Form()] = None,
+    status: Annotated[str | None, Form()] = None,
+    notify_role_ids: Annotated[str | None, Form()] = None,
+    participants: Annotated[str | None, Form()] = None,
+    removed_participant_ids: Annotated[str | None, Form()] = None,
+    thumbnail: Annotated[UploadFile | None, File()] = None,
+    image: Annotated[UploadFile | None, File()] = None,
+    remove_thumbnail: Annotated[bool, Form()] = False,
+    remove_image: Annotated[bool, Form()] = False,
     current_user: auth_schemas.CurrentUser = Depends(auth_deps.get_current_user),
     game_service: games_service.GameService = Depends(_get_game_service),
     role_service: roles_module.RoleVerificationService = Depends(permissions_deps.get_role_service),
@@ -193,13 +299,80 @@ async def update_game(
     - Game host can update their own game
     - Bot Managers can update any game in the guild
     - Guild admins (MANAGE_GUILD) can update any game in the guild
+    Accepts multipart/form-data for file uploads.
     """
     try:
+        # Parse JSON fields from form data
+        import json
+        from datetime import datetime
+
+        scheduled_at_datetime = None
+        if scheduled_at:
+            scheduled_at_datetime = datetime.fromisoformat(scheduled_at.replace("Z", "+00:00"))
+
+        reminder_minutes_list = None
+        if reminder_minutes:
+            reminder_minutes_list = json.loads(reminder_minutes)
+
+        notify_role_ids_list = None
+        if notify_role_ids:
+            notify_role_ids_list = json.loads(notify_role_ids)
+
+        participants_list = None
+        if participants:
+            participants_list = json.loads(participants)
+
+        removed_participant_ids_list = None
+        if removed_participant_ids:
+            removed_participant_ids_list = json.loads(removed_participant_ids)
+
+        # Build update request object
+        update_data = game_schemas.GameUpdateRequest(
+            title=title,
+            description=description,
+            signup_instructions=signup_instructions,
+            scheduled_at=scheduled_at_datetime,
+            where=where,
+            max_players=max_players,
+            reminder_minutes=reminder_minutes_list,
+            expected_duration_minutes=expected_duration_minutes,
+            status=status,
+            notify_role_ids=notify_role_ids_list,
+            participants=participants_list,
+            removed_participant_ids=removed_participant_ids_list,
+        )
+
+        # Handle thumbnail
+        thumbnail_data = None
+        thumbnail_mime = None
+        if remove_thumbnail:
+            thumbnail_data = b""
+            thumbnail_mime = ""
+        elif thumbnail:
+            await _validate_image_upload(thumbnail, "thumbnail")
+            thumbnail_data = await thumbnail.read()
+            thumbnail_mime = thumbnail.content_type
+
+        # Handle image
+        image_data = None
+        image_mime = None
+        if remove_image:
+            image_data = b""
+            image_mime = ""
+        elif image:
+            await _validate_image_upload(image, "image")
+            image_data = await image.read()
+            image_mime = image.content_type
+
         game = await game_service.update_game(
             game_id=game_id,
             update_data=update_data,
             current_user=current_user,
             role_service=role_service,
+            thumbnail_data=thumbnail_data,
+            thumbnail_mime_type=thumbnail_mime,
+            image_data=image_data,
+            image_mime_type=image_mime,
         )
 
         return await _build_game_response(game)
