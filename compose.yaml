@@ -154,6 +154,7 @@ services:
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      API_BASE_URL: ${API_BASE_URL:-http://api:8000}
       LOG_LEVEL: ${BOT_LOG_LEVEL:-INFO}
       OTEL_SERVICE_NAME: bot-service
       OTEL_EXPORTER_OTLP_ENDPOINT: http://grafana-alloy:4318
@@ -421,6 +422,24 @@ services:
     labels:
       service: "grafana-alloy"
       environment: "${ENVIRONMENT:-production}"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: ${CONTAINER_PREFIX:-gamebot}-cloudflared
+    restart: always
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - api
+    networks:
+      - app-network
+    logging: *logging-default
+    labels:
+      service: "cloudflared"
+      environment: "${ENVIRONMENT:-production}"
+    profiles:
+      - cloudflare
 
 volumes:
   postgres_data:

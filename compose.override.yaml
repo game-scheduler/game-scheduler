@@ -9,6 +9,7 @@
 # - Source code mounted as volumes for hot-reload
 # - Development build targets
 # - Init container includes volume mounts for migrations and scripts
+# - Cloudflare tunnel enabled by default (set COMPOSE_PROFILES="" in .env to disable)
 #
 # IMPORTANT: Source files must be world-readable (chmod o+r) for the container
 # user (UID 1000) to access volume-mounted code
