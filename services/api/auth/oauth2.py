@@ -177,7 +177,7 @@ async def get_user_guilds(access_token: str, user_id: str | None = None) -> list
         DiscordAPIError: If fetching guilds fails
     """
     discord = get_discord_client()
-    guilds_data = await discord.get_user_guilds(access_token, user_id)
+    guilds_data = await discord.get_guilds(token=access_token, user_id=user_id)
 
     logger.info(f"Fetched {len(guilds_data)} guilds for user")
     return guilds_data

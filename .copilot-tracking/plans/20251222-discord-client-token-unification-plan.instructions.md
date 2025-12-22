@@ -38,50 +38,51 @@ Unify Discord API client to accept both bot and OAuth tokens through a single co
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Token Detection Infrastructure
+### [x] Phase 1: Token Detection Infrastructure
 
-- [ ] Task 1.1: Implement `_get_auth_header()` method
+- [x] Task 1.1: Implement `_get_auth_header()` method
   - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 11-30)
 
-- [ ] Task 1.2: Add token detection unit tests
+- [x] Task 1.2: Add token detection unit tests
+  - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 32-49)
   - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 32-49)
 
-### [ ] Phase 2: Add Optional Token Parameters
+### [x] Phase 2: Add Optional Token Parameters
 
-- [ ] Task 2.1: Add token parameter to `fetch_guild()`
+- [x] Task 2.1: Add token parameter to `fetch_guild()`
   - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 51-67)
 
-- [ ] Task 2.2: Add token parameter to `fetch_channel()`
+- [x] Task 2.2: Add token parameter to `fetch_channel()`
   - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 69-84)
 
-- [ ] Task 2.3: Add token parameter to `fetch_user()`
+- [x] Task 2.3: Add token parameter to `fetch_user()`
   - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 86-101)
 
-### [ ] Phase 3: Consolidate Guild Methods
+### [x] Phase 3: Consolidate Guild Methods
 
-- [ ] Task 3.1: Create unified `get_guilds()` method
+- [x] Task 3.1: Create unified `get_guilds()` method
   - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 103-125)
 
-- [ ] Task 3.2: Update callers to use `get_guilds()`
+- [x] Task 3.2: Update callers to use `get_guilds()`
   - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 127-145)
 
-- [ ] Task 3.3: Deprecate `get_bot_guilds()` and `get_user_guilds()`
+- [x] Task 3.3: Deprecate `get_bot_guilds()` and `get_user_guilds()`
   - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 147-164)
 
-### [ ] Phase 4: Integration Testing
+### [x] Phase 4: Integration Testing
 
-- [ ] Task 4.1: Verify bot token functionality
+- [x] Task 4.1: Verify bot token functionality
   - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 166-181)
 
-- [ ] Task 4.2: Verify OAuth token functionality
+- [x] Task 4.2: Verify OAuth token functionality
   - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 183-198)
 
-### [ ] Phase 5: Cleanup
+### [x] Phase 5: Cleanup
 
-- [ ] Task 5.1: Remove deprecated methods
+- [x] Task 5.1: Remove deprecated methods
   - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 200-215)
 
-- [ ] Task 5.2: Update documentation
+- [x] Task 5.2: Update documentation
   - Details: [.copilot-tracking/details/20251222-discord-client-token-unification-details.md](../.copilot-tracking/details/20251222-discord-client-token-unification-details.md) (Lines 217-230)
 
 ## Dependencies

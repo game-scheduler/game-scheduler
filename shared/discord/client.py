@@ -78,6 +78,30 @@ class DiscordAPIClient:
         self._guild_locks: dict[str, asyncio.Lock] = {}
         self._locks_lock = asyncio.Lock()
 
+    def _get_auth_header(self, token: str | None = None) -> str:
+        """
+        Detect token type and return appropriate Authorization header.
+
+        Bot tokens have 3 dot-separated parts: BASE64.TIMESTAMP.SIGNATURE (2 dots)
+        OAuth access tokens have 2 dot-separated parts (1 dot)
+
+        Args:
+            token: Discord bot token or OAuth access token (defaults to self.bot_token)
+
+        Returns:
+            Authorization header value ("Bot {token}" or "Bearer {token}")
+
+        Raises:
+            ValueError: If token format is invalid (not 1 or 2 dots)
+        """
+        token = token or self.bot_token
+        dot_count = token.count(".")
+        if dot_count == 2:
+            return f"Bot {token}"
+        if dot_count == 1:
+            return f"Bearer {token}"
+        raise ValueError(f"Invalid Discord token format: expected 1 or 2 dots, got {dot_count}")
+
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""
         if self._session is None or self._session.closed:
@@ -228,18 +252,20 @@ class DiscordAPIClient:
             logger.error(f"Network error fetching user info: {e}")
             raise DiscordAPIError(500, f"Network error: {str(e)}") from e
 
-    async def get_user_guilds(
-        self, access_token: str, user_id: str | None = None
+    async def get_guilds(
+        self, token: str | None = None, user_id: str | None = None
     ) -> list[dict[str, Any]]:
         """
-        Fetch guilds the user is a member of with Redis caching.
+        Fetch guilds accessible with the given token (bot or OAuth).
 
-        Uses double-checked locking to prevent duplicate API calls for concurrent requests.
-        Caches results for 300 seconds to avoid Discord rate limits.
+        Automatically detects token type and applies appropriate caching strategy:
+        - Bot tokens: No caching (bots typically in stable guild set)
+        - OAuth tokens with user_id: Cached with double-checked locking
+        - OAuth tokens without user_id: No caching
 
         Args:
-            access_token: User's OAuth2 access token
-            user_id: Discord user ID for cache key (optional, improves cache efficiency)
+            token: Discord bot token or OAuth access token (defaults to self.bot_token)
+            user_id: Discord user ID for cache key (optional, improves cache efficiency for OAuth)
 
         Returns:
             List of guild objects with id, name, icon, permissions, etc.
@@ -247,7 +273,7 @@ class DiscordAPIClient:
         Raises:
             DiscordAPIError: If fetching guilds fails
         """
-        # Fast path: check cache without lock if user_id provided
+        # Fast path: check cache for OAuth tokens with user_id
         if user_id:
             cache_key = cache_keys.CacheKeys.user_guilds(user_id)
             redis = await cache_client.get_redis_client()
@@ -270,20 +296,20 @@ class DiscordAPIClient:
                     return json.loads(cached)
 
                 # Fetch from Discord and cache
-                guilds_data = await self._fetch_user_guilds_uncached(access_token)
+                guilds_data = await self._fetch_guilds_uncached(token)
                 await redis.set(cache_key, json.dumps(guilds_data), ttl=ttl.CacheTTL.USER_GUILDS)
                 logger.debug(f"Cached {len(guilds_data)} guilds for user: {user_id}")
                 return guilds_data
-        else:
-            # No user_id provided, skip caching
-            return await self._fetch_user_guilds_uncached(access_token)
 
-    async def _fetch_user_guilds_uncached(self, access_token: str) -> list[dict[str, Any]]:
+        # No caching for bot tokens or OAuth tokens without user_id
+        return await self._fetch_guilds_uncached(token)
+
+    async def _fetch_guilds_uncached(self, token: str) -> list[dict[str, Any]]:
         """
         Internal method to fetch guilds from Discord API without caching.
 
         Args:
-            access_token: User's OAuth2 access token
+            token: Discord bot token or OAuth access token
 
         Returns:
             List of guild objects from Discord API
@@ -292,12 +318,13 @@ class DiscordAPIClient:
             DiscordAPIError: If fetching guilds fails
         """
         session = await self._get_session()
+        url = f"{DISCORD_API_BASE}/users/@me/guilds"
 
-        self._log_request("GET", DISCORD_GUILDS_URL, "get_user_guilds")
+        self._log_request("GET", url, "get_guilds")
         try:
             async with session.get(
-                DISCORD_GUILDS_URL,
-                headers={"Authorization": f"Bearer {access_token}"},
+                url,
+                headers={"Authorization": self._get_auth_header(token)},
             ) as response:
                 response_data = await response.json()
                 guild_count = len(response_data) if isinstance(response_data, list) else "N/A"
@@ -314,42 +341,6 @@ class DiscordAPIClient:
                 return response_data
         except aiohttp.ClientError as e:
             logger.error(f"Network error fetching guilds: {e}")
-            raise DiscordAPIError(500, f"Network error: {str(e)}") from e
-
-    async def get_bot_guilds(self) -> list[dict[str, Any]]:
-        """
-        Fetch guilds the bot is a member of using bot token.
-
-        Returns:
-            List of guild objects with id, name, icon, etc.
-
-        Raises:
-            DiscordAPIError: If fetching bot guilds fails
-        """
-        session = await self._get_session()
-        url = f"{DISCORD_API_BASE}/users/@me/guilds"
-
-        self._log_request("GET", url, "get_bot_guilds")
-        try:
-            async with session.get(
-                url,
-                headers={"Authorization": f"Bot {self.bot_token}"},
-            ) as response:
-                response_data = await response.json()
-                guild_count = len(response_data) if isinstance(response_data, list) else "N/A"
-                self._log_response(response, f"Returned {guild_count} bot guilds")
-
-                if response.status != 200:
-                    error_msg = (
-                        response_data.get("message", "Unknown error")
-                        if isinstance(response_data, dict)
-                        else "Unknown error"
-                    )
-                    raise DiscordAPIError(response.status, error_msg, dict(response.headers))
-
-                return response_data
-        except aiohttp.ClientError as e:
-            logger.error(f"Network error fetching bot guilds: {e}")
             raise DiscordAPIError(500, f"Network error: {str(e)}") from e
 
     async def get_guild_channels(self, guild_id: str) -> list[dict[str, Any]]:
@@ -391,12 +382,13 @@ class DiscordAPIClient:
             logger.error(f"Network error fetching guild channels: {e}")
             raise DiscordAPIError(500, f"Network error: {str(e)}") from e
 
-    async def fetch_channel(self, channel_id: str) -> dict[str, Any]:
+    async def fetch_channel(self, channel_id: str, token: str | None = None) -> dict[str, Any]:
         """
-        Fetch channel information using bot token with Redis caching.
+        Fetch channel information with Redis caching.
 
         Args:
             channel_id: Discord channel ID
+            token: Discord bot token or OAuth access token (defaults to self.bot_token)
 
         Returns:
             Channel object with id, name, type, guild_id, etc.
@@ -421,7 +413,7 @@ class DiscordAPIClient:
         try:
             async with session.get(
                 url,
-                headers={"Authorization": f"Bot {self.bot_token}"},
+                headers={"Authorization": self._get_auth_header(token)},
             ) as response:
                 response_data = await response.json()
                 self._log_response(response)
@@ -445,12 +437,13 @@ class DiscordAPIClient:
             logger.error(f"Network error fetching channel: {e}")
             raise DiscordAPIError(500, f"Network error: {str(e)}") from e
 
-    async def fetch_guild(self, guild_id: str) -> dict[str, Any]:
+    async def fetch_guild(self, guild_id: str, token: str | None = None) -> dict[str, Any]:
         """
-        Fetch guild information using bot token with Redis caching.
+        Fetch guild information with Redis caching.
 
         Args:
             guild_id: Discord guild (server) ID
+            token: Discord bot token or OAuth access token (defaults to self.bot_token)
 
         Returns:
             Guild object with id, name, icon, features, etc.
@@ -475,7 +468,7 @@ class DiscordAPIClient:
         try:
             async with session.get(
                 url,
-                headers={"Authorization": f"Bot {self.bot_token}"},
+                headers={"Authorization": self._get_auth_header(token)},
             ) as response:
                 response_data = await response.json()
                 self._log_response(response)
@@ -544,12 +537,13 @@ class DiscordAPIClient:
             logger.error(f"Network error fetching guild roles: {e}")
             raise DiscordAPIError(500, f"Network error: {str(e)}") from e
 
-    async def fetch_user(self, user_id: str) -> dict[str, Any]:
+    async def fetch_user(self, user_id: str, token: str | None = None) -> dict[str, Any]:
         """
-        Fetch user information using bot token with Redis caching.
+        Fetch user information with Redis caching.
 
         Args:
             user_id: Discord user ID
+            token: Discord bot token or OAuth access token (defaults to self.bot_token)
 
         Returns:
             User object with id, username, avatar, discriminator, etc.
@@ -574,7 +568,7 @@ class DiscordAPIClient:
         try:
             async with session.get(
                 url,
-                headers={"Authorization": f"Bot {self.bot_token}"},
+                headers={"Authorization": self._get_auth_header(token)},
             ) as response:
                 response_data = await response.json()
                 self._log_response(response)

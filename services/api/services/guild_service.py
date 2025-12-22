@@ -93,14 +93,14 @@ async def sync_user_guilds(db: AsyncSession, access_token: str, user_id: str) ->
     discord_client = get_discord_client()
 
     # Fetch user's guilds with MANAGE_GUILD permission
-    user_guilds = await discord_client.get_user_guilds(access_token, user_id)
+    user_guilds = await discord_client.get_guilds(access_token, user_id)
     manage_guild = 0x00000020  # Permission bit for MANAGE_GUILD
     admin_guild_ids = {
         guild["id"] for guild in user_guilds if int(guild.get("permissions", 0)) & manage_guild
     }
 
     # Fetch bot's current guilds
-    bot_guilds = await discord_client.get_bot_guilds()
+    bot_guilds = await discord_client.get_guilds()
     bot_guild_ids = {guild["id"] for guild in bot_guilds}
 
     # Compute new guilds: (bot guilds ∩ user admin guilds) - existing guilds

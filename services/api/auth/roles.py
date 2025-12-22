@@ -112,7 +112,7 @@ class RoleVerificationService:
             True if user has ADMINISTRATOR or any of the specified permissions
         """
         try:
-            guilds = await self.discord_client.get_user_guilds(access_token, user_id)
+            guilds = await self.discord_client.get_guilds(token=access_token, user_id=user_id)
 
             for guild_data in guilds:
                 if guild_data["id"] == guild_id:

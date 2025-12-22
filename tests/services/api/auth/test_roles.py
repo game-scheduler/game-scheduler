@@ -47,7 +47,7 @@ def mock_discord_client():
     """Mock Discord API client."""
     client = AsyncMock()
     client.get_guild_member = AsyncMock()
-    client.get_user_guilds = AsyncMock()
+    client.get_guilds = AsyncMock()
     return client
 
 

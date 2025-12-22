@@ -132,7 +132,7 @@ class TestOAuth2Flow:
         with patch("services.api.auth.oauth2.get_discord_client") as mock_client:
             mock_discord = AsyncMock()
             mock_client.return_value = mock_discord
-            mock_discord.get_user_guilds.return_value = [
+            mock_discord.get_guilds.return_value = [
                 {"id": "guild1", "name": "Test Guild 1"},
                 {"id": "guild2", "name": "Test Guild 2"},
             ]

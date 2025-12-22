@@ -34,7 +34,7 @@ def discord_client():
     return DiscordAPIClient(
         client_id="test_client_id",
         client_secret="test_client_secret",
-        bot_token="test_bot_token",
+        bot_token="test.bot.token123456789",
     )
 
 
@@ -140,6 +140,68 @@ class TestDiscordAPIClientInitialization:
         await discord_client.close()
 
         mock_session.close.assert_not_called()
+
+
+class TestTokenDetection:
+    """Test token type detection and authorization header generation."""
+
+    def test_bot_token_detection(self, discord_client):
+        """Test bot token is correctly identified (2 dots)."""
+        bot_token = "test.bot.token123456789"
+
+        header = discord_client._get_auth_header(bot_token)
+
+        assert header == f"Bot {bot_token}"
+
+    def test_oauth_token_detection(self, discord_client):
+        """Test OAuth token (1 dot) is detected and uses Bearer auth."""
+        oauth_token = "oauth.token"
+
+        header = discord_client._get_auth_header(oauth_token)
+
+        assert header == f"Bearer {oauth_token}"
+
+    def test_invalid_token_with_zero_dots(self, discord_client):
+        """Test token with 0 dots raises ValueError."""
+        token_with_zero_dots = "6qrZcUqja7812RVdnEKjpzOL4CvHBFG"
+
+        with pytest.raises(
+            ValueError,
+            match="Invalid Discord token format.*expected 1 or 2 dots, got 0",
+        ):
+            discord_client._get_auth_header(token_with_zero_dots)
+
+    def test_invalid_token_with_three_dots(self, discord_client):
+        """Test token with 3 dots raises ValueError."""
+        token_with_three_dots = "part1.part2.part3.part4"
+
+        with pytest.raises(
+            ValueError,
+            match="Invalid Discord token format.*expected 1 or 2 dots, got 3",
+        ):
+            discord_client._get_auth_header(token_with_three_dots)
+
+    def test_invalid_token_with_many_dots(self, discord_client):
+        """Test token with many dots raises ValueError."""
+        token_with_many_dots = "part1.part2.part3.part4.part5"
+
+        with pytest.raises(
+            ValueError,
+            match="Invalid Discord token format.*expected 1 or 2 dots, got 4",
+        ):
+            discord_client._get_auth_header(token_with_many_dots)
+
+    def test_default_to_bot_token_when_none(self, discord_client):
+        """Test that None token defaults to self.bot_token."""
+        header = discord_client._get_auth_header(None)
+
+        assert header == f"Bot {discord_client.bot_token}"
+
+    def test_default_to_bot_token_when_omitted(self, discord_client):
+        """Test that omitted token defaults to self.bot_token."""
+        header = discord_client._get_auth_header()
+
+        assert header == f"Bot {discord_client.bot_token}"
 
 
 class TestOAuth2Methods:
@@ -345,8 +407,8 @@ class TestGuildMethods:
     """Test guild-related methods."""
 
     @pytest.mark.asyncio
-    async def test_get_user_guilds_without_cache(self, discord_client):
-        """Test fetching user guilds without caching (no user_id provided)."""
+    async def test_get_guilds_without_user_id(self, discord_client):
+        """Test fetching guilds without user_id (no caching by user)."""
         mock_response = AsyncMock()
         mock_response.status = 200
         mock_response.headers = MagicMock()
@@ -366,15 +428,15 @@ class TestGuildMethods:
         mock_session.get = MagicMock(return_value=mock_context_manager)
         discord_client._session = mock_session
 
-        result = await discord_client.get_user_guilds(access_token="test_token")
+        result = await discord_client.get_guilds(token="test.token")
 
         assert len(result) == 2
         assert result[0]["name"] == "Test Guild 1"
         assert result[1]["name"] == "Test Guild 2"
 
     @pytest.mark.asyncio
-    async def test_get_user_guilds_with_cache_miss(self, discord_client, mock_redis):
-        """Test fetching user guilds with cache miss."""
+    async def test_get_guilds_with_cache_miss(self, discord_client, mock_redis):
+        """Test fetching guilds with cache miss."""
         mock_response = AsyncMock()
         mock_response.status = 200
         mock_response.headers = MagicMock()
@@ -396,9 +458,7 @@ class TestGuildMethods:
         with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
             mock_get_redis.return_value = mock_redis
 
-            result = await discord_client.get_user_guilds(
-                access_token="test_token", user_id="user123"
-            )
+            result = await discord_client.get_guilds(token="test.token", user_id="user123")
 
             assert len(result) == 2
             assert result[0]["name"] == "Test Guild 1"
@@ -407,17 +467,15 @@ class TestGuildMethods:
             mock_redis.set.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_user_guilds_with_cache_hit(self, discord_client, mock_redis):
-        """Test fetching user guilds with cache hit."""
+    async def test_get_guilds_with_cache_hit(self, discord_client, mock_redis):
+        """Test fetching guilds with cache hit."""
         cached_guilds = [{"id": "guild1", "name": "Cached Guild"}]
         mock_redis.get = AsyncMock(return_value=json.dumps(cached_guilds))
 
         with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
             mock_get_redis.return_value = mock_redis
 
-            result = await discord_client.get_user_guilds(
-                access_token="test_token", user_id="user123"
-            )
+            result = await discord_client.get_guilds(token="test_token", user_id="user123")
 
             assert len(result) == 1
             assert result[0]["name"] == "Cached Guild"
@@ -425,8 +483,8 @@ class TestGuildMethods:
             mock_redis.set.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_get_bot_guilds_success(self, discord_client):
-        """Test fetching bot guilds."""
+    async def test_get_guilds_with_bot_token(self, discord_client):
+        """Test fetching guilds with bot token (default)."""
         mock_response = AsyncMock()
         mock_response.status = 200
         mock_response.headers = MagicMock()
@@ -446,7 +504,7 @@ class TestGuildMethods:
         mock_session.get = MagicMock(return_value=mock_context_manager)
         discord_client._session = mock_session
 
-        result = await discord_client.get_bot_guilds()
+        result = await discord_client.get_guilds()
 
         assert len(result) == 2
         assert result[0]["name"] == "Bot Guild 1"
@@ -477,6 +535,190 @@ class TestGuildMethods:
 
         assert len(result) == 2
         assert result[0]["name"] == "general"
+
+
+class TestUnifiedTokenFunctionality:
+    """Test that unified methods work with both bot and OAuth tokens."""
+
+    @pytest.mark.asyncio
+    async def test_get_guilds_with_bot_token_default(self, discord_client, mock_redis):
+        """Test get_guilds() uses bot token by default."""
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.headers = MagicMock()
+        mock_response.headers.get = MagicMock(return_value="N/A")
+        mock_response.json = AsyncMock(
+            return_value=[
+                {"id": "guild1", "name": "Bot Guild 1"},
+            ]
+        )
+
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context_manager)
+        discord_client._session = mock_session
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            result = await discord_client.get_guilds()
+
+            # Verify bot token was used (Bot prefix)
+            call_args = mock_session.get.call_args
+            assert "Authorization" in call_args[1]["headers"]
+            assert call_args[1]["headers"]["Authorization"].startswith("Bot ")
+            assert len(result) == 1
+
+    @pytest.mark.asyncio
+    async def test_get_guilds_with_explicit_oauth_token(self, discord_client, mock_redis):
+        """Test get_guilds() accepts OAuth token."""
+        oauth_token = "6qrZcUqja7812RVdnEKjpzOL.4CvHBFG"
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.headers = MagicMock()
+        mock_response.headers.get = MagicMock(return_value="N/A")
+        mock_response.json = AsyncMock(
+            return_value=[
+                {"id": "guild1", "name": "OAuth Guild 1"},
+            ]
+        )
+
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context_manager)
+        discord_client._session = mock_session
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            result = await discord_client.get_guilds(token=oauth_token)
+
+            # Verify OAuth token was used (Bearer prefix)
+            call_args = mock_session.get.call_args
+            assert "Authorization" in call_args[1]["headers"]
+            assert call_args[1]["headers"]["Authorization"] == f"Bearer {oauth_token}"
+            assert len(result) == 1
+
+    @pytest.mark.asyncio
+    async def test_fetch_guild_with_bot_token(self, discord_client, mock_redis):
+        """Test fetch_guild() works with bot token."""
+        guild_data = {"id": "guild123", "name": "Test Guild"}
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.headers = MagicMock()
+        mock_response.headers.get = MagicMock(return_value="N/A")
+        mock_response.json = AsyncMock(return_value=guild_data)
+
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context_manager)
+        discord_client._session = mock_session
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            result = await discord_client.fetch_guild("guild123")
+
+            # Verify bot token was used by default
+            call_args = mock_session.get.call_args
+            assert call_args[1]["headers"]["Authorization"].startswith("Bot ")
+            assert result["id"] == "guild123"
+
+    @pytest.mark.asyncio
+    async def test_fetch_guild_with_oauth_token(self, discord_client, mock_redis):
+        """Test fetch_guild() accepts OAuth token parameter."""
+        oauth_token = "6qrZcUqja7812RVdnEKjpzOL.4CvHBFG"
+        guild_data = {"id": "guild123", "name": "Test Guild"}
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.headers = MagicMock()
+        mock_response.headers.get = MagicMock(return_value="N/A")
+        mock_response.json = AsyncMock(return_value=guild_data)
+
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context_manager)
+        discord_client._session = mock_session
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            result = await discord_client.fetch_guild("guild123", token=oauth_token)
+
+            # Verify OAuth token was used
+            call_args = mock_session.get.call_args
+            assert call_args[1]["headers"]["Authorization"] == f"Bearer {oauth_token}"
+            assert result["id"] == "guild123"
+
+    @pytest.mark.asyncio
+    async def test_fetch_channel_with_oauth_token(self, discord_client, mock_redis):
+        """Test fetch_channel() accepts OAuth token parameter."""
+        oauth_token = "6qrZcUqja7812RVdnEKjpzOL.4CvHBFG"
+        channel_data = {"id": "channel123", "name": "general", "type": 0}
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.headers = MagicMock()
+        mock_response.headers.get = MagicMock(return_value="N/A")
+        mock_response.json = AsyncMock(return_value=channel_data)
+
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context_manager)
+        discord_client._session = mock_session
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            result = await discord_client.fetch_channel("channel123", token=oauth_token)
+
+            # Verify OAuth token was used
+            call_args = mock_session.get.call_args
+            assert call_args[1]["headers"]["Authorization"] == f"Bearer {oauth_token}"
+            assert result["id"] == "channel123"
+
+    @pytest.mark.asyncio
+    async def test_fetch_user_with_oauth_token(self, discord_client, mock_redis):
+        """Test fetch_user() accepts OAuth token parameter."""
+        oauth_token = "6qrZcUqja7812RVdnEKjpzOL.4CvHBFG"
+        user_data = {"id": "user123", "username": "testuser", "discriminator": "1234"}
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.headers = MagicMock()
+        mock_response.headers.get = MagicMock(return_value="N/A")
+        mock_response.json = AsyncMock(return_value=user_data)
+
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_context_manager = MagicMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context_manager)
+        discord_client._session = mock_session
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            result = await discord_client.fetch_user("user123", token=oauth_token)
+
+            # Verify OAuth token was used
+            call_args = mock_session.get.call_args
+            assert call_args[1]["headers"]["Authorization"] == f"Bearer {oauth_token}"
+            assert result["id"] == "user123"
 
 
 class TestCachedResourceMethods:
@@ -822,9 +1064,7 @@ class TestConcurrencyAndLocking:
             mock_get_redis.return_value = mock_redis
 
             async def concurrent_fetch():
-                return await discord_client.get_user_guilds(
-                    access_token="test_token", user_id="user123"
-                )
+                return await discord_client.get_guilds(token="test_token", user_id="user123")
 
             results = await asyncio.gather(concurrent_fetch(), concurrent_fetch())
 
@@ -838,7 +1078,7 @@ class TestConcurrencyAndLocking:
     async def test_guild_locks_created_per_user(self, discord_client):
         """Test that separate locks are created for different users."""
         with patch.object(
-            discord_client, "_fetch_user_guilds_uncached", new_callable=AsyncMock
+            discord_client, "_fetch_guilds_uncached", new_callable=AsyncMock
         ) as mock_fetch:
             mock_fetch.return_value = [{"id": "guild1", "name": "Test Guild"}]
 
@@ -848,8 +1088,8 @@ class TestConcurrencyAndLocking:
                 mock_redis.set = AsyncMock()
                 mock_get_redis.return_value = mock_redis
 
-                await discord_client.get_user_guilds(access_token="token1", user_id="user1")
-                await discord_client.get_user_guilds(access_token="token2", user_id="user2")
+                await discord_client.get_guilds(token="token1", user_id="user1")
+                await discord_client.get_guilds(token="token2", user_id="user2")
 
                 assert "user1" in discord_client._guild_locks
                 assert "user2" in discord_client._guild_locks
