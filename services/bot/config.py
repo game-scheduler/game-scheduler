@@ -77,6 +77,11 @@ class BotConfig(BaseSettings):
         description="Frontend application URL for calendar downloads",
     )
 
+    api_base_url: str = Field(
+        default="http://localhost:8000",
+        description="API base URL for image URLs in Discord embeds",
+    )
+
 
 _config: BotConfig | None = None
 

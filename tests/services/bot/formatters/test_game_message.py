@@ -641,3 +641,180 @@ class TestFormatGameAnnouncement:
             mock_embed.set_author.assert_called_once()
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert not any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
+
+
+class TestGameEmbedImages:
+    """Tests for game embed image functionality."""
+
+    def test_embed_with_thumbnail_url(self):
+        """Test that embed sets thumbnail when thumbnail_url is provided."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                thumbnail_url="http://api:8000/api/v1/games/123/thumbnail",
+            )
+
+            mock_embed.set_thumbnail.assert_called_once_with(
+                url="http://api:8000/api/v1/games/123/thumbnail"
+            )
+
+    def test_embed_with_image_url(self):
+        """Test that embed sets image when image_url is provided."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                image_url="http://api:8000/api/v1/games/123/image",
+            )
+
+            mock_embed.set_image.assert_called_once_with(
+                url="http://api:8000/api/v1/games/123/image"
+            )
+
+    def test_embed_with_both_images(self):
+        """Test that embed sets both thumbnail and image when provided."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                thumbnail_url="http://api:8000/api/v1/games/123/thumbnail",
+                image_url="http://api:8000/api/v1/games/123/image",
+            )
+
+            mock_embed.set_thumbnail.assert_called_once_with(
+                url="http://api:8000/api/v1/games/123/thumbnail"
+            )
+            mock_embed.set_image.assert_called_once_with(
+                url="http://api:8000/api/v1/games/123/image"
+            )
+
+    def test_embed_without_images(self):
+        """Test that embed does not set images when URLs are None."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                thumbnail_url=None,
+                image_url=None,
+            )
+
+            mock_embed.set_thumbnail.assert_not_called()
+            mock_embed.set_image.assert_not_called()
+
+    def test_format_game_announcement_with_images(self):
+        """Test format_game_announcement passes image URLs to create_game_embed."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with (
+            patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class,
+            patch("services.bot.formatters.game_message.GameView") as mock_view_class,
+            patch.dict("os.environ", {"API_BASE_URL": "http://test.example.com"}, clear=False),
+        ):
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+            mock_view = MagicMock()
+            mock_view_class.from_game_data.return_value = mock_view
+
+            content, embed, view = format_game_announcement(
+                game_id="game-123",
+                game_title="Test Game",
+                description="Test description",
+                scheduled_at=scheduled_at,
+                host_id="host-456",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                has_thumbnail=True,
+                has_image=True,
+            )
+
+            assert embed == mock_embed
+            assert view == mock_view
+
+    def test_format_game_announcement_without_images(self):
+        """Test format_game_announcement with has_thumbnail=False and has_image=False."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with (
+            patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class,
+            patch("services.bot.formatters.game_message.GameView") as mock_view_class,
+        ):
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+            mock_view = MagicMock()
+            mock_view_class.from_game_data.return_value = mock_view
+
+            content, embed, view = format_game_announcement(
+                game_id="game-123",
+                game_title="Test Game",
+                description="Test description",
+                scheduled_at=scheduled_at,
+                host_id="host-456",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                has_thumbnail=False,
+                has_image=False,
+            )
+
+            assert embed == mock_embed
+            assert view == mock_view
+            mock_embed.set_thumbnail.assert_not_called()
+            mock_embed.set_image.assert_not_called()

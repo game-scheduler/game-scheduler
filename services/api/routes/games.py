@@ -653,6 +653,8 @@ async def _build_game_response(
         participants=participant_responses,
         created_at=datetime_utils.format_datetime_as_utc(game.created_at),
         updated_at=datetime_utils.format_datetime_as_utc(game.updated_at),
+        has_thumbnail=game.thumbnail_data is not None,
+        has_image=game.image_data is not None,
     )
 
 

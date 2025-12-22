@@ -845,6 +845,8 @@ class EventHandlers:
             where=game.where,
             host_display_name=host_display_name,
             host_avatar_url=host_avatar_url,
+            has_thumbnail=game.thumbnail_data is not None,
+            has_image=game.image_data is not None,
         )
 
     async def _get_game_with_participants(

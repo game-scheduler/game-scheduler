@@ -61,6 +61,8 @@ class GameMessageFormatter:
         game_id: str | None = None,
         host_display_name: str | None = None,
         host_avatar_url: str | None = None,
+        thumbnail_url: str | None = None,
+        image_url: str | None = None,
     ) -> discord.Embed:
         """Create an embed for a game session.
 
@@ -81,6 +83,8 @@ class GameMessageFormatter:
             game_id: Optional game UUID for calendar download link
             host_display_name: Optional host display name for embed author
             host_avatar_url: Optional host Discord CDN avatar URL for embed author icon
+            thumbnail_url: Optional thumbnail image URL
+            image_url: Optional banner image URL
 
         Returns:
             Configured Discord embed
@@ -156,6 +160,12 @@ class GameMessageFormatter:
 
         embed.set_footer(text=f"Status: {status}")
 
+        if thumbnail_url:
+            embed.set_thumbnail(url=thumbnail_url)
+
+        if image_url:
+            embed.set_image(url=image_url)
+
         return embed
 
     @staticmethod
@@ -229,6 +239,8 @@ def format_game_announcement(
     where: str | None = None,
     host_display_name: str | None = None,
     host_avatar_url: str | None = None,
+    has_thumbnail: bool = False,
+    has_image: bool = False,
 ) -> tuple[str | None, discord.Embed, GameView]:
     """Format a complete game announcement with embed and buttons.
 
@@ -250,12 +262,24 @@ def format_game_announcement(
         where: Optional game location
         host_display_name: Optional host display name for embed author
         host_avatar_url: Optional host Discord CDN avatar URL for embed author icon
+        has_thumbnail: Whether game has a thumbnail image
+        has_image: Whether game has a banner image
 
     Returns:
         Tuple of (content, embed, view) where content contains role mentions if any
         Tuple of (embed, view) ready to send to Discord
     """
     formatter = GameMessageFormatter()
+
+    config = get_config()
+    thumbnail_url = None
+    image_url = None
+
+    if has_thumbnail:
+        thumbnail_url = f"{config.api_base_url}/api/v1/games/{game_id}/thumbnail"
+
+    if has_image:
+        image_url = f"{config.api_base_url}/api/v1/games/{game_id}/image"
 
     embed = formatter.create_game_embed(
         game_title=game_title,
@@ -274,6 +298,8 @@ def format_game_announcement(
         game_id=game_id,
         host_display_name=host_display_name,
         host_avatar_url=host_avatar_url,
+        thumbnail_url=thumbnail_url,
+        image_url=image_url,
     )
 
     view = GameView.from_game_data(

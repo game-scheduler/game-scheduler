@@ -80,33 +80,33 @@ Add support for uploading and displaying thumbnail and banner images for game se
 - [x] Task 4.3: Update form submission to use FormData
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 381-423)
 
-### [ ] Phase 5: Frontend Image Display
+### [x] Phase 5: Frontend Image Display
 
-- [ ] Task 5.1: Add image display to GameDetails page
+- [x] Task 5.1: Add image display to GameDetails page
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 425-468)
 
-### [ ] Phase 6: Discord Bot Integration
+### [x] Phase 6: Discord Bot Integration
 
-- [ ] Task 6.1: Update game message formatter to accept image flags
+- [x] Task 6.1: Update game message formatter to accept image flags
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 222-261)
 
-- [ ] Task 6.2: Update bot event handlers to pass image flags
+- [x] Task 6.2: Update bot event handlers to pass image flags
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 263-285)
 
-### [ ] Phase 7: Environment and Schema Updates
+### [x] Phase 7: Environment and Schema Updates
 
-- [ ] Task 7.1: Add API_BASE_URL environment variable
+- [x] Task 7.1: Add API_BASE_URL environment variable
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 470-491)
 
-- [ ] Task 7.2: Update GameResponse schema with image flags
+- [x] Task 7.2: Update GameResponse schema with image flags
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 493-518)
 
-### [ ] Phase 8: Testing
+### [x] Phase 8: Testing
 
-- [ ] Task 8.1: Add unit tests for model and validation
+- [x] Task 8.1: Add unit tests for model and validation
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 520-582)
 
-- [ ] Task 8.2: Add integration tests for upload flow
+- [x] Task 8.2: Add integration tests for upload flow
   - Details: .copilot-tracking/details/20251218-game-image-attachments-details.md (Lines 584-624)
 
 ## Dependencies

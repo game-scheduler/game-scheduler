@@ -335,6 +335,51 @@ export const GameDetails: FC = () => {
 
         <Divider sx={{ my: 3 }} />
 
+        {(game.has_thumbnail || game.has_image) && (
+          <Box sx={{ mb: 3 }}>
+            {game.has_thumbnail && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  Thumbnail
+                </Typography>
+                <Box
+                  component="img"
+                  src={`/api/v1/games/${game.id}/thumbnail`}
+                  alt="Game thumbnail"
+                  sx={{
+                    maxWidth: '200px',
+                    maxHeight: '200px',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                  }}
+                />
+              </Box>
+            )}
+            {game.has_image && (
+              <Box>
+                <Typography variant="h6" gutterBottom>
+                  Banner
+                </Typography>
+                <Box
+                  component="img"
+                  src={`/api/v1/games/${game.id}/image`}
+                  alt="Game banner"
+                  sx={{
+                    maxWidth: '100%',
+                    height: 'auto',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                  }}
+                />
+              </Box>
+            )}
+          </Box>
+        )}
+
+        <Divider sx={{ my: 3 }} />
+
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           {!isHost && !isParticipant && game.status === 'SCHEDULED' && (
             <Button variant="contained" onClick={handleJoinGame} disabled={actionLoading}>
