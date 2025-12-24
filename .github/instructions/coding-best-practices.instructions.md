@@ -1,5 +1,5 @@
 ---
-applyTo: "**/*"
+applyTo: "**/*.{py,js,jsx,ts,tsx,go}"
 description: "Coding best practices."
 ---
 
@@ -48,6 +48,7 @@ Code should be easy to read and understand. Use clear naming conventions, consis
 - Follow language-specific style guides
 - Comment the "why", not the "what"
 - Structure code for human comprehension first
+- Avoid magic numbers: replace unexplained numeric literals with named constants that convey meaning; use standard library constants for common values (e.g., HTTP status codes, file permissions)
 
 ### **5. Always Viable**
 
