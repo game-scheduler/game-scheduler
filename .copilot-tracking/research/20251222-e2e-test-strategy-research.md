@@ -205,16 +205,23 @@ The existing tests don't address the core gap (Discord message validation). Star
    - Create game with reminder_minutes=[5]
    - Wait for notification daemon to process
    - Verify test user receives DM with game details
-5. **Game Deletion → Message Removed**
+5. **Game Status Transition → Message Updated**
+   - Create game scheduled 1 minute in future
+   - Wait for status transition daemon to process SCHEDULED→IN_PROGRESS transition
+   - Verify Discord message updated with IN_PROGRESS status
+   - Wait for IN_PROGRESS→COMPLETED transition (after duration)
+   - Verify Discord message updated with COMPLETED status
+   - **Why critical**: Validates status_transition_daemon → RabbitMQ → Bot path (missing coverage)
+6. **Game Deletion → Message Removed**
    - Create game, delete via API
    - Verify Discord message deleted from channel
 
 **Advanced Scenarios** (Later):
-6. **Role Mentions in Announcement** - Verify role mention in message.content triggers notifications
-7. **Waitlist Promotion** - User moves from overflow to participant, receives DM
-8. **Game Status Transitions** - Message updates when game moves scheduled → in_progress → completed
+7. **Role Mentions in Announcement** - Verify role mention in message.content triggers notifications
+8. **Waitlist Promotion** - User moves from overflow to participant, receives DM
 9. **Multiple Games in Channel** - Verify correct message updated when multiple games exist
 10. **Permission Boundaries** - Non-host cannot edit game, button reflects disabled state
+11. **Status Transition Edge Cases** - Invalid transitions rejected, idempotent handling of duplicate events
 
 ### Recommended First Test: Game Creation → Announcement Posted
 
@@ -518,6 +525,14 @@ class DiscordTestHelper:
 - Tests should use asyncio.sleep() with generous timeouts
 - Consider exponential backoff for message polling
 
+**Status Transition Test Timing**:
+- Create game scheduled 1 minute in future (short enough for E2E test)
+- Status daemon polls every 60 seconds, may process immediately or wait up to 60s
+- IN_PROGRESS transition: scheduled_at time
+- COMPLETED transition: scheduled_at + expected_duration_minutes
+- Use expected_duration_minutes=2 to keep test duration reasonable (~3-4 minutes total)
+- Alternative: Query game_status_schedule table to verify schedule entries without waiting
+
 **Isolation**:
 - Each test should create unique game titles (include test name + timestamp)
 - Clean up Discord messages after test (delete announcement)
@@ -554,6 +569,307 @@ class DiscordTestHelper:
 - Pattern established for future E2E test development
 - Documentation updated with test execution instructions
 - Clear path forward for implementing remaining test scenarios
+- **Status transition test validates status_transition_daemon → RabbitMQ → Bot message update path**
+
+### Status Transition Test Implementation Details
+
+**System Flow to Test**:
+1. **Game Creation** - API creates game with scheduled_at and expected_duration_minutes
+2. **Schedule Population** - Two game_status_schedule entries created:
+   - Entry 1: target_status=IN_PROGRESS, transition_time=scheduled_at
+   - Entry 2: target_status=COMPLETED, transition_time=scheduled_at + duration
+3. **Status Transition Daemon** - Polls game_status_schedule for due transitions
+4. **Event Publishing** - Daemon publishes game.status_transition_due to RabbitMQ
+5. **Bot Handler** - _handle_status_transition_due() updates game status and refreshes Discord message
+
+**Test Implementation**:
+```python
+async def test_game_status_transitions(
+    authenticated_admin_client,
+    db_session,
+    discord_helper,
+    test_guild_id,
+    test_channel_id,
+    test_host_id,
+    test_template_id,
+    discord_channel_id,
+    clean_test_data,
+):
+    """
+    E2E: Game status transitions trigger Discord message updates.
+
+    Verifies:
+    - Status transition daemon processes schedule entries
+    - game.status_transition_due events published to RabbitMQ
+    - Bot updates game status in database
+    - Bot refreshes Discord message with new status
+    - Both SCHEDULED→IN_PROGRESS and IN_PROGRESS→COMPLETED transitions work
+    """
+    # Create game scheduled 1 minute in future with 2 minute duration
+    game_title = f"E2E Status Transition Test {datetime.now(UTC).isoformat()}"
+    scheduled_at = datetime.now(UTC) + timedelta(minutes=1)
+
+    game_data = {
+        "template_id": test_template_id,
+        "title": game_title,
+        "description": "Testing status transitions",
+        "scheduled_at": scheduled_at.isoformat(),
+        "max_players": 4,
+        "expected_duration_minutes": 2,  # Short duration for E2E test
+    }
+
+    response = await authenticated_admin_client.post("/api/v1/games", json=game_data)
+    assert response.status_code == 201
+    game_id = response.json()["id"]
+
+    # Verify schedule entries created
+    result = await db_session.execute(
+        text("SELECT id, target_status, transition_time FROM game_status_schedule WHERE game_id = :game_id ORDER BY transition_time"),
+        {"game_id": game_id}
+    )
+    schedules = result.fetchall()
+    assert len(schedules) == 2, "Should have IN_PROGRESS and COMPLETED schedules"
+    assert schedules[0].target_status == "IN_PROGRESS"
+    assert schedules[1].target_status == "COMPLETED"
+
+    # Get initial message_id from database
+    result = await db_session.execute(
+        text("SELECT message_id FROM game_sessions WHERE id = :id"),
+        {"id": game_id}
+    )
+    message_id = result.scalar_one()
+
+    # Wait for scheduled time + daemon processing (up to 90 seconds)
+    wait_time = 90  # 60s for scheduled_at + 30s daemon polling margin
+    await asyncio.sleep(wait_time)
+
+    # Verify game transitioned to IN_PROGRESS
+    result = await db_session.execute(
+        text("SELECT status FROM game_sessions WHERE id = :id"),
+        {"id": game_id}
+    )
+    status = result.scalar_one()
+    assert status == "IN_PROGRESS", f"Expected IN_PROGRESS but got {status}"
+
+    # Fetch Discord message and verify status displayed
+    message = await discord_helper.get_message(discord_channel_id, message_id)
+    assert message is not None, "Discord message should still exist"
+    # Message embed or content should reflect IN_PROGRESS status
+    # (Implementation depends on how status is displayed in embed)
+
+    # Wait for COMPLETED transition (2 more minutes + margin)
+    wait_time = 150  # 120s duration + 30s daemon polling margin
+    await asyncio.sleep(wait_time)
+
+    # Verify game transitioned to COMPLETED
+    result = await db_session.execute(
+        text("SELECT status FROM game_sessions WHERE id = :id"),
+        {"id": game_id}
+    )
+    status = result.scalar_one()
+    assert status == "COMPLETED", f"Expected COMPLETED but got {status}"
+
+    # Fetch Discord message and verify status displayed
+    message = await discord_helper.get_message(discord_channel_id, message_id)
+    assert message is not None, "Discord message should still exist"
+    # Message embed or content should reflect COMPLETED status
+```
+
+**Alternative: Fast Test without Waiting**
+```python
+async def test_game_status_schedule_population(
+    authenticated_admin_client,
+    db_session,
+    test_template_id,
+    clean_test_data,
+):
+    """
+    E2E: Verify status schedule entries created correctly.
+
+    Tests schedule population without waiting for transitions.
+    Much faster than full transition test (~1s vs ~5 minutes).
+    """
+    game_title = f"E2E Schedule Test {datetime.now(UTC).isoformat()}"
+    scheduled_at = datetime.now(UTC) + timedelta(hours=1)
+
+    game_data = {
+        "template_id": test_template_id,
+        "title": game_title,
+        "scheduled_at": scheduled_at.isoformat(),
+        "expected_duration_minutes": 120,
+    }
+
+    response = await authenticated_admin_client.post("/api/v1/games", json=game_data)
+    assert response.status_code == 201
+    game_id = response.json()["id"]
+
+    # Verify both schedule entries exist
+    result = await db_session.execute(
+        text("""
+            SELECT target_status, transition_time
+            FROM game_status_schedule
+            WHERE game_id = :game_id
+            ORDER BY transition_time
+        """),
+        {"game_id": game_id}
+    )
+    schedules = result.fetchall()
+
+    assert len(schedules) == 2, "Should have 2 schedule entries"
+
+    # Verify IN_PROGRESS schedule
+    assert schedules[0].target_status == "IN_PROGRESS"
+    assert schedules[0].transition_time == scheduled_at.replace(tzinfo=None)
+
+    # Verify COMPLETED schedule
+    assert schedules[1].target_status == "COMPLETED"
+    expected_completion = scheduled_at + timedelta(minutes=120)
+    assert schedules[1].transition_time == expected_completion.replace(tzinfo=None)
+```
+
+**Recommendation**: Implement **both tests**:
+- Fast test validates schedule population (runs in <5s, catches most bugs)
+- Full transition test validates entire daemon→bot path (runs in ~5 minutes, comprehensive)
+
+## Microservice Communication Path Analysis (December 24, 2025)
+
+### Complete Service Architecture
+
+**Services Identified**:
+1. **API Service** (FastAPI) - REST endpoints, publishes events
+2. **Bot Service** (discord.py) - Discord Gateway, consumes events, sends messages
+3. **Notification Daemon** - Polls notification_schedule table, publishes events
+4. **Status Transition Daemon** - Polls game_status_schedule table, publishes events
+5. **Init Service** - One-time setup (migrations, seeding)
+6. **PostgreSQL** - Database
+7. **RabbitMQ** - Event messaging broker
+8. **Valkey/Redis** - Caching, rate limiting
+9. **Frontend** (React) - User interface (tested separately)
+10. **Grafana Alloy** - Observability collector
+
+### Event Types and Publishers
+
+**API Service Publishes**:
+- `GAME_CREATED` → Bot posts announcement to Discord
+- `GAME_UPDATED` → Bot refreshes Discord message
+- `GAME_CANCELLED` → Bot updates/deletes Discord message
+- `PLAYER_REMOVED` → Bot sends DM to removed user
+- `NOTIFICATION_SEND_DM` → Bot sends promotional DM (waitlist promotion)
+
+**Notification Daemon Publishes**:
+- `NOTIFICATION_DUE` → Bot sends reminder DMs to participants
+
+**Status Transition Daemon Publishes**:
+- `GAME_STATUS_TRANSITION_DUE` → Bot updates game status and refreshes Discord message
+
+**Unused Event Types** (defined but not actively published):
+- `GAME_STARTED` - Deprecated (replaced by status transitions)
+- `GAME_COMPLETED` - Deprecated (replaced by status transitions)
+- `PLAYER_JOINED` - Not published (joins trigger GAME_UPDATED instead)
+- `PLAYER_LEFT` - Not published (leaves trigger GAME_UPDATED instead)
+- `WAITLIST_ADDED` - Defined but never published
+- `WAITLIST_REMOVED` - Defined but never published
+- `NOTIFICATION_SENT` - Defined but never published
+- `NOTIFICATION_FAILED` - Defined but never published
+- `GUILD_CONFIG_UPDATED` - Defined but never published
+- `CHANNEL_CONFIG_UPDATED` - Defined but never published
+
+### Communication Paths and Current E2E Test Coverage
+
+| Path | Event Type | E2E Test Status |
+|------|------------|----------------|
+| **API → RabbitMQ → Bot** | | |
+| Game creation | `GAME_CREATED` | ✅ test_game_announcement.py |
+| Game update | `GAME_UPDATED` | ✅ test_game_update.py |
+| Game cancellation | `GAME_CANCELLED` | ❌ **MISSING** |
+| Player removed | `PLAYER_REMOVED` | ❌ **MISSING** |
+| Waitlist promotion DM | `NOTIFICATION_SEND_DM` | ❌ **MISSING** |
+| **Notification Daemon → RabbitMQ → Bot** | | |
+| Game reminders | `NOTIFICATION_DUE` (type=reminder) | ✅ test_game_reminder.py |
+| Join notifications | `NOTIFICATION_DUE` (type=join_notification) | ❌ **MISSING** |
+| **Status Transition Daemon → RabbitMQ → Bot** | | |
+| Status transitions | `GAME_STATUS_TRANSITION_DUE` | ❌ **MISSING** (identified earlier) |
+| **API → Database → Notification Daemon** | | |
+| Notification schedule population | (database trigger) | ⚠️ Partial (verified in reminder test) |
+| **API → Database → Status Daemon** | | |
+| Status schedule population | (database trigger) | ⚠️ Partial (no explicit test) |
+| **Discord User Action → Bot → API** | | |
+| User join via button | (slash command/button) | ✅ test_user_join.py (simulated via API) |
+| User leave via button | (slash command/button) | ❌ **MISSING** |
+
+### Identified Test Coverage Gaps
+
+**Critical Gaps** (Should implement):
+
+1. **Game Cancellation → Message Update**
+   - Path: API publishes `GAME_CANCELLED` → Bot updates/deletes message
+   - Why critical: Common user action, different from update (may delete message)
+   - Validates: API → RabbitMQ → Bot cancellation path
+
+2. **Player Removal → DM Notification**
+   - Path: API publishes `PLAYER_REMOVED` → Bot sends DM to removed user
+   - Why critical: User notification requirement, different from reminder DMs
+   - Validates: API → RabbitMQ → Bot removal notification path
+
+3. **Waitlist Promotion → DM Notification**
+   - Path: API publishes `NOTIFICATION_SEND_DM` → Bot sends promotion DM
+   - Why critical: Important user experience (getting off waitlist)
+   - Validates: API → RabbitMQ → Bot promotional DM path (different from PLAYER_REMOVED)
+   - Note: Uses different event type (NOTIFICATION_SEND_DM vs PLAYER_REMOVED)
+
+4. **Join Notification → Delayed DM**
+   - Path: API creates notification_schedule entry (type=join_notification) → Notification daemon publishes `NOTIFICATION_DUE` → Bot sends join instructions DM
+   - Why critical: Validates second notification_type path (only reminder tested)
+   - Validates: API → Database → Notification Daemon → RabbitMQ → Bot join notification path
+
+5. **Status Transition → Message Update** (Already identified)
+   - Path: Status daemon publishes `GAME_STATUS_TRANSITION_DUE` → Bot updates status and refreshes message
+   - Why critical: Validates third daemon path (notification daemon tested, status daemon not)
+   - Validates: Status Transition Daemon → RabbitMQ → Bot path
+
+**Lower Priority Gaps**:
+
+6. **User Leave via Button → Message Update**
+   - Would require Discord interaction testing (button click simulation)
+   - Currently not easily testable in E2E (requires Discord API interaction)
+   - Alternative: Test via API endpoint that simulates leave
+
+7. **Schedule Population Verification**
+   - Fast tests to verify notification_schedule and game_status_schedule entries created correctly
+   - Already partially covered in existing tests (checked implicitly)
+   - Could add explicit tests for edge cases
+
+### Recommendation: Prioritized Implementation Order
+
+**Phase 1 - Core Missing Paths** (Highest ROI):
+1. **test_game_cancellation.py** - Validates GAME_CANCELLED event handling
+2. **test_player_removal.py** - Validates PLAYER_REMOVED event and DM
+3. **test_game_status_transitions.py** - Validates status daemon path (already detailed earlier)
+
+**Phase 2 - Notification System Completeness**:
+4. **test_waitlist_promotion.py** - Validates NOTIFICATION_SEND_DM event
+5. **test_join_notification.py** - Validates second notification daemon path
+
+**Phase 3 - Edge Cases and Schedule Validation**:
+6. **test_schedule_population.py** - Fast tests for both notification and status schedules
+7. **test_user_leave.py** - If Discord button simulation becomes feasible
+
+### Architecture Insights
+
+**Three Event Publishing Patterns**:
+1. **Immediate API Events** - Published synchronously during API requests
+   - GAME_CREATED, GAME_UPDATED, GAME_CANCELLED, PLAYER_REMOVED, NOTIFICATION_SEND_DM
+2. **Scheduled Notification Events** - Published by notification daemon polling database
+   - NOTIFICATION_DUE (both reminder and join_notification types)
+3. **Scheduled Status Events** - Published by status transition daemon polling database
+   - GAME_STATUS_TRANSITION_DUE
+
+**Current E2E Coverage**:
+- ✅ Pattern 1: 2/5 event types tested (GAME_CREATED, GAME_UPDATED)
+- ✅ Pattern 2: 1/2 notification types tested (reminder only)
+- ❌ Pattern 3: 0/1 tested (status transitions not tested)
+
+**Complete Coverage Requires**: 8 additional E2E tests (3 missing Pattern 1 events, 1 missing Pattern 2 type, 1 Pattern 3 test, 3 edge case tests)
 
 ## Progress Update (December 22, 2025)
 

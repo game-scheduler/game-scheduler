@@ -196,82 +196,127 @@ Trigger reminder and confirm DM received by the test user.
 - **Dependencies**:
   - Notification daemon running; reminder scheduled
 
-### Task 4.4: Game deletion → message removed test
+### Task 4.4: Game status transitions → message update test
 
-Delete the game and verify the corresponding Discord message is removed.
+Validate status_transition_daemon → RabbitMQ → Bot path by testing automatic game status changes.
 
 - **Files**:
-  - tests/e2e/test_game_deletion.py
+  - tests/e2e/test_game_status_transitions.py
 - **Success**:
-  - Message no longer retrievable; API returns 404 or helper detects absence
+  - Create game scheduled 1 minute in future with 2 minute duration
+  - Status daemon processes SCHEDULED→IN_PROGRESS transition at scheduled_at time
+  - Verify Discord message updated with IN_PROGRESS status
+  - Status daemon processes IN_PROGRESS→COMPLETED transition after duration
+  - Verify Discord message updated with COMPLETED status
+  - Both game_status_schedule entries processed correctly
 - **Research References**:
-  - #file:../research/20251222-e2e-test-strategy-research.md (Lines 1166-1173) - Scenario outlines
+  - #file:../research/20251222-e2e-test-strategy-research.md (Lines 1199-1275) - Status transition test implementation details
+  - #file:../research/20251224-microservice-communication-architecture.md (Lines 1-100) - Status transition daemon architecture
 - **Dependencies**:
-  - Prior creation of game and message
+  - Status transition daemon running and polling database
+  - Game status schedule populated on game creation
 
-## Phase 5: Documentation and CI/CD
+## Phase 5: Additional Communication Path Tests
 
-### Task 5.1: Update TESTING_E2E.md
+### Task 5.1: Game cancellation → message update test
+
+Validate API → RabbitMQ → Bot path for game cancellation event.
+
+- **Files**:
+  - tests/e2e/test_game_cancellation.py
+- **Success**:
+  - Create game via API
+  - Cancel game via DELETE /games/{id}
+  - Verify GAME_CANCELLED event published to RabbitMQ
+  - Verify Discord message updated or deleted
+  - Game status changed to CANCELLED in database
+- **Research References**:
+  - #file:../research/20251222-e2e-test-strategy-research.md (Lines 1278-1320) - Microservice communication path analysis
+  - #file:../research/20251224-microservice-communication-architecture.md (Lines 50-85) - Event sequence diagram showing GAME_CANCELLED flow
+- **Dependencies**:
+  - Game creation test passing
+  - Bot event handler for GAME_CANCELLED functional
+
+### Task 5.2: Player removal → DM notification test
+
+Validate API → RabbitMQ → Bot path for player removal events and DM delivery.
+
+- **Files**:
+  - tests/e2e/test_player_removal.py
+- **Success**:
+  - Create game with multiple participants
+  - Remove participant via API DELETE /games/{id}/participants/{user_id}
+  - Verify PLAYER_REMOVED event published to RabbitMQ
+  - Verify removed user receives DM notification
+  - Verify Discord message updated with new participant count
+- **Research References**:
+  - #file:../research/20251222-e2e-test-strategy-research.md (Lines 1278-1320) - Communication path analysis
+  - #file:../research/20251224-microservice-communication-architecture.md (Lines 50-85) - Event sequence diagram
+- **Dependencies**:
+  - User join test passing
+  - Bot event handler for PLAYER_REMOVED functional
+
+### Task 5.3: Waitlist promotion → DM notification test
+
+Validate API → RabbitMQ → Bot path for waitlist promotion DM delivery.
+
+- **Files**:
+  - tests/e2e/test_waitlist_promotion.py
+- **Success**:
+  - Create game at max capacity with waitlist
+  - Remove active participant to trigger automatic promotion
+  - Verify NOTIFICATION_SEND_DM event published to RabbitMQ
+  - Verify promoted user receives DM notification
+  - Verify Discord message updated with new participant list
+- **Research References**:
+  - #file:../research/20251222-e2e-test-strategy-research.md (Lines 1278-1320) - Communication path analysis
+  - #file:../research/20251224-microservice-communication-architecture.md (Lines 50-85) - Event sequence diagram
+- **Dependencies**:
+  - Game creation with waitlist functional
+  - Bot event handler for NOTIFICATION_SEND_DM functional
+
+### Task 5.4: Join notification → delayed DM test
+
+Validate API → Database → Notification Daemon → RabbitMQ → Bot path for join notifications.
+
+- **Files**:
+  - tests/e2e/test_join_notification.py
+- **Success**:
+  - Create game with signup instructions configured
+  - Join game as participant via API
+  - Verify notification_schedule entry created with type=join_notification
+  - Wait for notification daemon to process scheduled notification
+  - Verify NOTIFICATION_DUE event published with type=join_notification
+  - Verify participant receives signup instructions DM
+- **Research References**:
+  - #file:../research/20251222-e2e-test-strategy-research.md (Lines 1278-1320) - Communication path analysis
+  - #file:../research/20251224-microservice-communication-architecture.md (Lines 50-85) - Event sequence diagram showing join notification flow
+- **Dependencies**:
+  - Notification daemon running and polling database
+  - Game template with signup instructions configured
+  - Bot event handler for NOTIFICATION_DUE (join_notification type) functional
+
+## Phase 6: Documentation and CI/CD Integration
+
+### Task 6.1: Update TESTING_E2E.md
 
 Document helper usage, fixture setup, and execution steps.
 
 - **Files**:
   - TESTING_E2E.md
 - **Success**:
-  - Clear run instructions; environment requirements; troubleshooting section
-- **Research References**:
-  - #file:../research/20251222-e2e-test-strategy-research.md (Lines 20-45) - Project docs references
-- **Dependencies**:
-  - Helper and fixtures implemented
-
-### Task 5.2: Document Discord test environment requirements
-
-Summarize bot token, guild/channel setup, and test user provisioning.
-
-- **Files**:
-  - TESTING_E2E.md
-- **Success**:
-  - Environment checklist complete and accurate
-- **Research References**:
-  - #file:../research/20251222-e2e-test-strategy-research.md (Lines 560-600) - Env validation and compose setup
-- **Dependencies**:
-  - Verified environment
-
-### Task 5.3: Configure CI/CD for E2E test execution
-
-Add conditional execution or manual documentation for running E2E in CI.
-
-- **Files**:
-  - .github/workflows/e2e.yml (if applicable)
-  - scripts/run-e2e-tests.sh
-- **Success**:
-  - CI can optionally run E2E or provide manual steps
-- **Research References**:
-  - #file:../research/20251222-e2e-test-strategy-research.md (Lines 26-45) - Compose and scripts overview
-- **Dependencies**:
-  - Stable test environment and scripts
-
-## Dependencies
-
-- discord.py and pytest-asyncio
-- Docker Compose e2e profile
-- Seeded test data via init service
-
-## Success Criteria
-
-- Helper and fixtures implemented and validated
-- First end-to-end test passes with Discord message validation
-- Remaining scenarios implemented with passing tests
-Documentation updated; CI/CD notes added
+  - Documents E2E test execution pattern with DiscordTestHelper
+  - Includes authentication fixture usage examples
+  - Documents guild sync requirement
   - Documents expected test execution time and timing considerations
   - Includes troubleshooting section for common issues
 - **Research References**:
   - #file:../research/20251222-e2e-test-strategy-research.md (Lines 552-573) - Test execution environment requirements
   - #file:../research/20251222-e2e-test-strategy-research.md (Lines 575-596) - Timing and isolation considerations
 - **Dependencies**:
-  - Phase 3 completion (all E2E tests implemented)
+  - Phase 5 completion (all E2E tests implemented)
 
-### Task 4.2: Document Discord test environment requirements
+### Task 6.2: Document Discord test environment requirements
 
 Create comprehensive guide for setting up Discord test environment.
 
@@ -289,7 +334,7 @@ Create comprehensive guide for setting up Discord test environment.
 - **Dependencies**:
   - Phase 3 completion (test requirements validated)
 
-### Task 4.3: Configure CI/CD for E2E test execution
+### Task 6.3: Configure CI/CD for E2E test execution
 
 Determine strategy for running E2E tests in CI/CD pipeline.
 

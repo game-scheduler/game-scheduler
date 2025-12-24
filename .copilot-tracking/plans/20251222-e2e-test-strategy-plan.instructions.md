@@ -40,7 +40,8 @@ Implement true end-to-end testing that validates Discord bot behavior and messag
 
 ### External References
 
-- #file:../research/20251222-e2e-test-strategy-research.md - Comprehensive E2E strategy analysis (updated with refactor completion)
+- #file:../research/20251222-e2e-test-strategy-research.md - Comprehensive E2E strategy analysis (updated with microservice communication path analysis)
+- #file:../research/20251224-microservice-communication-architecture.md - Mermaid diagrams showing all service communication paths and test coverage gaps
 - #file:../research/20251222-discord-client-token-unification-research.md - Token unification refactor details
 - #fetch:https://discord.com/developers/docs/resources/message - Discord Message API documentation
 - discord.py library - Message reading capabilities (fetch_message, embeds, content)
@@ -153,32 +154,73 @@ Implement true end-to-end testing that validates Discord bot behavior and messag
   - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 184-198)
   - Status: ✅ COMPLETE - test_game_reminder_dm_delivery implemented with 1 minute timeout and 2 minute schedule
 
-- [ ] Task 4.4: Game deletion → message removed test
+- [ ] Task 4.4: Game status transitions → message update test
+  - Create game scheduled 1 minute in future with 2 minute duration
+  - Wait for status transition daemon to process SCHEDULED→IN_PROGRESS
+  - Verify Discord message updated and game status changed to IN_PROGRESS
+  - Wait for IN_PROGRESS→COMPLETED transition
+  - Verify Discord message updated and game status changed to COMPLETED
+  - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 199-220)
+  - Status: ❌ NOT STARTED - Critical gap: validates status_transition_daemon → RabbitMQ → Bot path
+
+### [ ] Phase 5: Additional Communication Path Tests
+
+- [ ] Task 5.1: Game cancellation → message update test
   - Create game, retrieve message_id
-  - Delete game via API
-  - Verify Discord message deleted from channel
-  - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 199-213)
+  - Cancel game via API (DELETE /games/{id})
+  - Verify GAME_CANCELLED event published
+  - Verify Discord message updated or deleted
+  - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 221-239)
+  - Status: ❌ NOT STARTED - Critical gap identified in microservice analysis
 
-### [ ] Phase 5: Documentation and CI/CD Integration
+- [ ] Task 5.2: Player removal → DM notification test
+  - Create game with multiple participants
+  - Remove participant via API
+  - Verify PLAYER_REMOVED event published
+  - Verify removed user receives DM notification
+  - Verify Discord message updated with new participant count
+  - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 240-258)
+  - Status: ❌ NOT STARTED - Critical gap identified in microservice analysis
 
-- [ ] Task 5.1: Update TESTING_E2E.md
+- [ ] Task 5.3: Waitlist promotion → DM notification test
+  - Create game at max capacity with waitlist
+  - Remove active participant to trigger promotion
+  - Verify NOTIFICATION_SEND_DM event published
+  - Verify promoted user receives DM
+  - Verify Discord message updated
+  - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 259-277)
+  - Status: ❌ NOT STARTED - Critical gap identified in microservice analysis
+
+- [ ] Task 5.4: Join notification → delayed DM test
+  - Create game with signup instructions
+  - Join game as participant
+  - Verify notification_schedule entry created (type=join_notification)
+  - Wait for notification daemon to process
+  - Verify NOTIFICATION_DUE event published with type=join_notification
+  - Verify participant receives signup instructions DM
+  - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 278-300)
+  - Status: ❌ NOT STARTED - Critical gap: validates second notification_type path
+
+### [ ] Phase 6: Documentation and CI/CD Integration
+
+- [ ] Task 6.1: Update TESTING_E2E.md
   - Document new E2E test execution pattern
   - Include DiscordTestHelper usage examples
   - Include authentication fixture usage examples
   - Document guild sync requirement
-  - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 214-226)
+  - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 301-318)
 
-- [ ] Task 5.2: Document Discord test environment requirements
+- [ ] Task 6.2: Document Discord test environment requirements
   - Admin bot token requirement
   - Test guild and channel setup
   - Test user creation steps
   - DiscordTestHelper configuration
-  - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 227-239)
+  - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 319-336)
 
-- [ ] Task 5.3: Configure CI/CD for E2E test execution
+- [ ] Task 6.3: Configure CI/CD for E2E test execution
   - Document E2E test execution (likely manual-only)
   - Add conditional execution logic based on environment
-  - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 240-254)
+  - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 337-355)
 
 ## Dependencies
 
@@ -199,3 +241,8 @@ Implement true end-to-end testing that validates Discord bot behavior and messag
 - Documentation updated with test execution instructions
 - Pattern established for future E2E test development
 - Clear path forward for implementing advanced test scenarios
+- **Comprehensive microservice communication path coverage achieved**:
+  - Pattern 1 (Immediate API Events): 5/5 tested (100%)
+  - Pattern 2 (Scheduled Notification Events): 2/2 tested (100%)
+  - Pattern 3 (Scheduled Status Events): 1/1 tested (100%)
+  - Overall: 8/8 critical paths tested (100%)
