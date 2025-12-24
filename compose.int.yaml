@@ -14,6 +14,35 @@
 # Note: Container ENTRYPOINT is 'pytest', so pass pytest args directly (not 'pytest' itself)
 
 services:
+  init:
+    environment:
+      PYTEST_RUNNING: "1"
+
+  api:
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTEST_RUNNING: "1"
+
+  bot:
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTEST_RUNNING: "1"
+
+  notification-daemon:
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTEST_RUNNING: "1"
+
+  status-transition-daemon:
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTEST_RUNNING: "1"
+
+  retry-daemon:
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTEST_RUNNING: "1"
+
   postgres:
     command: [
       "postgres",
@@ -26,6 +55,30 @@ services:
 
   redis:
     command: valkey-server --appendonly yes --loglevel debug
+
+  system-ready:
+    image: alpine:latest
+    container_name: ${CONTAINER_PREFIX:-gamebot-integration}-system-ready
+    command: sh -c "echo 'System ready for testing' && sleep infinity"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      retry-daemon:
+        condition: service_started
+      notification-daemon:
+        condition: service_started
+      status-transition-daemon:
+        condition: service_started
+    networks:
+      - app-network
+    restart: "no"
+
   integration-tests:
     build:
       context: .
@@ -44,15 +97,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     depends_on:
-      init:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      retry-daemon:
+      system-ready:
         condition: service_started
     networks:
       - app-network

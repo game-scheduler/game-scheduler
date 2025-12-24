@@ -29,3 +29,12 @@ services:
   frontend:
     build:
       target: production
+    depends_on:
+      api:
+        condition: service_healthy
+      notification-daemon:
+        condition: service_healthy
+      status-transition-daemon:
+        condition: service_healthy
+      retry-daemon:
+        condition: service_healthy

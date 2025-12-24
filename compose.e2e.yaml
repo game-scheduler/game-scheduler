@@ -71,6 +71,34 @@ services:
 
   redis:
     command: valkey-server --appendonly yes --loglevel debug
+
+  system-ready:
+    image: alpine:latest
+    container_name: ${CONTAINER_PREFIX:-gamebot-e2e}-system-ready
+    command: sh -c "echo 'System ready for testing' && sleep infinity"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+      bot:
+        condition: service_started
+      notification-daemon:
+        condition: service_started
+      status-transition-daemon:
+        condition: service_started
+      retry-daemon:
+        condition: service_started
+    networks:
+      - app-network
+    restart: "no"
+
   e2e-tests:
     build:
       context: .
@@ -94,19 +122,7 @@ services:
       POSTGRES_PORT: ${POSTGRES_PORT}
       TEST_ENVIRONMENT: ${TEST_ENVIRONMENT}
     depends_on:
-      init:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      api:
-        condition: service_started
-      bot:
-        condition: service_started
-      notification-daemon:
+      system-ready:
         condition: service_started
     networks:
       - app-network
