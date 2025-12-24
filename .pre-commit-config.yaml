@@ -50,6 +50,17 @@ repos:
         pass_filenames: false
         args: [shared/, services/]
 
+  # Copyright headers
+  - repo: local
+    hooks:
+      - id: add-copyright
+        name: Add copyright headers
+        entry: bash scripts/add-copyright
+        language: system
+        files: \.(py|ts|tsx)$
+        pass_filenames: false
+        require_serial: true
+
   # Frontend linting and formatting
   - repo: local
     hooks:
@@ -75,6 +86,26 @@ repos:
         entry: bash -c 'cd frontend && npm run type-check'
         language: system
         files: ^frontend/.*\.(ts|tsx)$
+        pass_filenames: false
+
+  # Compilation checks
+  - repo: local
+    hooks:
+      # Python compilation check
+      - id: python-compile
+        name: Python compilation check
+        entry: uv run python -m compileall -q
+        language: system
+        types: [python]
+        args: [services, shared, tests]
+        pass_filenames: false
+
+      # Frontend build check
+      - id: frontend-build
+        name: Frontend build check
+        entry: bash -c 'cd frontend && npm run build'
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx|json|css|scss|html)$
         pass_filenames: false
 
   # Automatic testing for new/modified files
