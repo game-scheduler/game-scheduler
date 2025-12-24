@@ -13,8 +13,9 @@ You are preparing to commit outstanding changes to the repository. Before commit
 
 Before running automated checks, review the changed files to ensure they comply with project coding standards:
 
-1. Check which files have been modified:
+1. Ensure you're in the repository root and check which files have been modified:
    ```bash
+   cd /home/mckee/src/github.com/game-scheduler
    git diff --name-only
    ```
 
@@ -31,7 +32,27 @@ Review the changed code against the relevant instruction files and confirm that:
 - Best practices are applied
 - Documentation standards are met
 
-## Step 2: Run Linters
+**Important**: All code must adhere to the guidelines in `.github/instructions/coding-best-practices.instructions.md`.
+
+## Step 2: Verify Compilation
+
+### Python Compilation Check
+Verify all Python files compile without syntax errors:
+```bash
+cd /home/mckee/src/github.com/game-scheduler
+uv run python -m compileall -q services shared tests
+```
+
+### Frontend Build Check
+Verify the frontend builds successfully:
+```bash
+cd /home/mckee/src/github.com/game-scheduler/frontend
+npm run build
+```
+
+**Important**: All code must adhere to the guidelines in `.github/instructions/coding-best-practices.instructions.md`.
+
+## Step 3: Run Linters
 
 ### Python Linting
 Run ruff to check and format Python code:
@@ -62,8 +83,7 @@ Run Prettier to format markdown files:
 cd /home/mckee/src/github.com/game-scheduler/frontend
 npm run format:check
 ```
-
-## Step 3: Run Tests
+## Step 4: Run Tests
 
 ### Python Unit Tests
 Run the Python unit tests (excluding e2e and integration tests):
@@ -79,21 +99,26 @@ cd /home/mckee/src/github.com/game-scheduler/frontend
 npm run test:ci
 ```
 
-## Step 4: Commit Changes
+## Step 5: Commit Changes
 
-After all linters and tests pass successfully:
+After all linters and tests pass successfully, return to the root directory and commit:
 
-1. Check the status of changed files:
+1. Return to repository root:
+   ```bash
+   cd /home/mckee/src/github.com/game-scheduler
+   ```
+
+2. Check the status of changed files:
    ```bash
    git status
    ```
 
-2. Review the changes:
+3. Review the changes:
    ```bash
    git diff
    ```
 
-3. Stage all changes:
+4. Stage all changes:
    ```bash
    git add -A
    ```
