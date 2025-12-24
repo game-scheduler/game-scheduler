@@ -165,13 +165,13 @@ Implement true end-to-end testing that validates Discord bot behavior and messag
 
 ### [ ] Phase 5: Additional Communication Path Tests
 
-- [ ] Task 5.1: Game cancellation → message update test
+- [x] Task 5.1: Game cancellation → message update test
   - Create game, retrieve message_id
   - Cancel game via API (DELETE /games/{id})
   - Verify GAME_CANCELLED event published
   - Verify Discord message updated or deleted
   - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 221-239)
-  - Status: ❌ NOT STARTED - Critical gap identified in microservice analysis
+  - Status: ✅ COMPLETE - E2E test passing, bot handler implemented
 
 - [ ] Task 5.2: Player removal → DM notification test
   - Create game with multiple participants

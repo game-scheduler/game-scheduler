@@ -597,17 +597,24 @@ async def test_update_game_success(game_service, mock_db, sample_user, sample_gu
     from shared.schemas.auth import CurrentUser
 
     game_id = str(uuid.uuid4())
+    channel_id = str(uuid.uuid4())
+    mock_channel = channel_model.ChannelConfiguration(
+        id=channel_id,
+        channel_id="987654321",
+        guild_id=sample_guild.id,
+    )
     mock_game = game_model.GameSession(
         id=game_id,
         title="Old Title",
         host_id=sample_user.id,
         guild_id=sample_guild.id,
-        channel_id=str(uuid.uuid4()),
+        channel_id=channel_id,
         scheduled_at=datetime.now(UTC).replace(tzinfo=None),
         status="SCHEDULED",
     )
     mock_game.host = sample_user
     mock_game.guild = sample_guild
+    mock_game.channel = mock_channel
     mock_game.participants = []
 
     game_result = MagicMock()
@@ -645,16 +652,23 @@ async def test_update_game_where_field(game_service, mock_db, sample_user, sampl
     from shared.schemas.auth import CurrentUser
 
     game_id = str(uuid.uuid4())
+    channel_id = str(uuid.uuid4())
+    mock_channel = channel_model.ChannelConfiguration(
+        id=channel_id,
+        channel_id="987654321",
+        guild_id=sample_guild.id,
+    )
     mock_game = game_model.GameSession(
         id=game_id,
         title="Test Game",
         where="Old Location",
         host_id=sample_user.id,
         guild_id=sample_guild.id,
-        channel_id=str(uuid.uuid4()),
+        channel_id=channel_id,
     )
     mock_game.host = sample_user
     mock_game.guild = sample_guild
+    mock_game.channel = mock_channel
 
     game_result = MagicMock()
     game_result.scalar_one_or_none.return_value = mock_game
@@ -727,16 +741,23 @@ async def test_delete_game_success(game_service, mock_db, sample_user, sample_gu
     from shared.schemas.auth import CurrentUser
 
     game_id = str(uuid.uuid4())
+    channel_id = str(uuid.uuid4())
+    mock_channel = channel_model.ChannelConfiguration(
+        id=channel_id,
+        channel_id="987654321",
+        guild_id=sample_guild.id,
+    )
     mock_game = game_model.GameSession(
         id=game_id,
         title="Title",
         host_id=sample_user.id,
         status="SCHEDULED",
         guild_id=sample_guild.id,
-        channel_id=str(uuid.uuid4()),
+        channel_id=channel_id,
     )
     mock_game.host = sample_user
     mock_game.guild = sample_guild
+    mock_game.channel = mock_channel
 
     game_result = MagicMock()
     game_result.scalar_one_or_none.return_value = mock_game
@@ -775,6 +796,7 @@ async def test_join_game_success(
         channel_id=sample_channel.id,
         max_players=5,
     )
+    mock_game.channel = sample_channel
     mock_game.participants = []
 
     game_result = MagicMock()
@@ -907,9 +929,16 @@ async def test_join_game_full(
 async def test_leave_game_success(game_service, mock_db, sample_user):
     """Test user leaving game successfully."""
     game_id = str(uuid.uuid4())
-    mock_game = game_model.GameSession(
-        id=game_id, title="Title", guild_id=uuid.uuid4(), channel_id=uuid.uuid4()
+    channel_id = str(uuid.uuid4())
+    mock_channel = channel_model.ChannelConfiguration(
+        id=channel_id,
+        channel_id="987654321",
+        guild_id=str(uuid.uuid4()),
     )
+    mock_game = game_model.GameSession(
+        id=game_id, title="Title", guild_id=uuid.uuid4(), channel_id=channel_id
+    )
+    mock_game.channel = mock_channel
     mock_participant = participant_model.GameParticipant(id=uuid.uuid4(), user_id=sample_user.id)
     mock_game.participants = [mock_participant]
 

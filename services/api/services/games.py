@@ -924,6 +924,11 @@ class GameService:
         game.status = game_model.GameStatus.CANCELLED.value
         await self.db.commit()
 
+        # Reload game with relationships for event publishing
+        game = await self.get_game(game.id)
+        if game is None:
+            raise ValueError("Failed to reload cancelled game")
+
         # Publish game.cancelled event
         await self._publish_game_cancelled(game)
 
@@ -1012,6 +1017,11 @@ class GameService:
         )
         await self.db.commit()
 
+        # Reload game with relationships for event publishing
+        game = await self.get_game(game_id)
+        if game is None:
+            raise ValueError("Failed to reload game after join")
+
         # Publish game.updated event
         await self._publish_game_updated(game)
 
@@ -1072,6 +1082,11 @@ class GameService:
         await self.db.commit()
         logger.info("Participant deleted and committed")
 
+        # Reload game with relationships for event publishing
+        game = await self.get_game(game_id)
+        if game is None:
+            raise ValueError("Failed to reload game after leave")
+
         # Publish game.updated event
         await self._publish_game_updated(game)
 
@@ -1108,7 +1123,7 @@ class GameService:
             data={
                 "game_id": game.id,
                 "message_id": game.message_id or "",
-                "channel_id": game.channel_id,
+                "channel_id": game.channel.channel_id,
             },
         )
 
@@ -1123,7 +1138,7 @@ class GameService:
             data={
                 "game_id": game.id,
                 "message_id": game.message_id or "",
-                "channel_id": game.channel_id,
+                "channel_id": game.channel.channel_id,
             },
         )
 

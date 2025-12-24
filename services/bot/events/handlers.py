@@ -75,6 +75,7 @@ class EventHandlers:
             EventType.NOTIFICATION_SEND_DM: self._handle_send_notification,
             EventType.GAME_CREATED: self._handle_game_created,
             EventType.PLAYER_REMOVED: self._handle_player_removed,
+            EventType.GAME_CANCELLED: self._handle_game_cancelled,
         }
         # Track pending refreshes to ensure final state is always applied
         self._pending_refreshes: set[str] = set()
@@ -114,6 +115,9 @@ class EventHandlers:
         self.consumer.register_handler(
             EventType.GAME_STATUS_TRANSITION_DUE,
             lambda e: self._handle_status_transition_due(e.data),
+        )
+        self.consumer.register_handler(
+            EventType.GAME_CANCELLED, lambda e: self._handle_game_cancelled(e.data)
         )
 
         logger.info(f"Started consuming events from queue: {queue_name}")
@@ -710,6 +714,58 @@ class EventHandlers:
 
         except Exception as e:
             logger.error(f"Failed to handle participant removal: {e}", exc_info=True)
+
+    async def _handle_game_cancelled(self, data: dict[str, Any]) -> None:
+        """
+        Handle game.cancelled event by updating Discord message to show cancellation.
+
+        Args:
+            data: Event payload with game_id, message_id, and channel_id
+        """
+        game_id = data.get("game_id")
+        message_id = data.get("message_id")
+        channel_id = data.get("channel_id")
+
+        if not game_id or not message_id or not channel_id:
+            logger.error(f"Missing required fields in game.cancelled event: {data}")
+            return
+
+        try:
+            async with get_db_session() as db:
+                game = await self._get_game_with_participants(db, game_id)
+                if not game:
+                    logger.error(f"Game not found: {game_id}")
+                    return
+
+                discord_api = get_discord_client()
+                channel_data = await discord_api.fetch_channel(channel_id)
+                if not channel_data:
+                    logger.error(f"Invalid or inaccessible channel: {channel_id}")
+                    return
+
+                channel = self.bot.get_channel(int(channel_id))
+                if not channel:
+                    channel = await self.bot.fetch_channel(int(channel_id))
+
+                if not channel or not isinstance(channel, discord.TextChannel):
+                    logger.error(f"Invalid or inaccessible channel: {channel_id}")
+                    return
+
+                try:
+                    message = await channel.fetch_message(int(message_id))
+
+                    content, embed, view = await self._create_game_announcement(game)
+
+                    await message.edit(content=content, embed=embed, view=view)
+                    logger.info(f"Updated cancelled game message: {message_id}")
+
+                except discord.NotFound:
+                    logger.warning(f"Game message not found: {message_id}")
+                except Exception as e:
+                    logger.error(f"Failed to update cancelled game message: {e}", exc_info=True)
+
+        except Exception as e:
+            logger.error(f"Failed to handle game.cancelled event: {e}", exc_info=True)
 
     async def _handle_status_transition_due(self, data: dict[str, Any]) -> None:
         """

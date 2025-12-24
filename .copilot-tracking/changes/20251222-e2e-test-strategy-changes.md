@@ -13,6 +13,7 @@ Implementation of true end-to-end testing that validates Discord bot behavior an
 **Phase 2 Status: ✅ COMPLETE** - Bot authentication fixtures with manual session creation fully working (4/4 tests passing).
 **Phase 3 Status: ✅ COMPLETE** - First E2E test fully implemented and passing (1/1 test) with Discord message validation working.
 **Phase 4 Status: ✅ COMPLETE** - Message validation tests completed (Tasks 4.1, 4.2, 4.3, and 4.4 all implemented). Task 4.5 intentionally skipped - see Phase 5.
+**Phase 5 Status: 🔄 IN PROGRESS** - Additional communication path tests (Task 5.1 complete, 4 remaining tasks).
 
 ## Changes
 
@@ -32,6 +33,7 @@ Implementation of true end-to-end testing that validates Discord bot behavior an
 - tests/e2e/test_user_join.py - E2E test for user join participant count update (Task 4.2)
 - tests/e2e/test_game_reminder.py - E2E test for game reminder DM delivery verification (Task 4.3, 1 minute timeout, 2 minute game schedule)
 - tests/e2e/test_game_status_transitions.py - E2E test for game status transition validation with Discord message updates (Task 4.4)
+- tests/e2e/test_game_cancellation.py - E2E test for game cancellation message update validation (Task 5.1)
 
 ### Modified
 
@@ -57,6 +59,7 @@ Implementation of true end-to-end testing that validates Discord bot behavior an
 - services/init/seed_e2e.py - Updated to seed admin bot user in database using DISCORD_ADMIN_BOT_TOKEN
 - compose.e2e.yaml - Added DISCORD_ADMIN_BOT_TOKEN to both init and e2e-tests service environments
 - tests/e2e/test_game_announcement.py - Updated to use authenticated_admin_client instead of http_client (Phase 3)
+- services/bot/events/handlers.py - Added _handle_game_cancelled method to update Discord messages when games are cancelled (Task 5.1)
 - tests/e2e/test_game_announcement.py - Added test_template_id fixture to get default template from synced guild (Phase 3)
 - tests/e2e/test_game_announcement.py - Added template_id field to game creation request (Phase 3)
 - tests/e2e/test_game_announcement.py - Updated API call to use await with AsyncClient (Phase 3)

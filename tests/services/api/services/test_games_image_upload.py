@@ -277,12 +277,18 @@ async def test_update_game_with_new_thumbnail(game_service, mock_db, mock_role_s
     """Test updating game with new thumbnail."""
     # Create existing game
     game_id = str(uuid.uuid4())
+    channel_id = str(uuid.uuid4())
+    mock_channel = channel_model.ChannelConfiguration(
+        id=channel_id,
+        channel_id="987654321",
+        guild_id=str(uuid.uuid4()),
+    )
     existing_game = game_model.GameSession(
         id=game_id,
         title="Existing Game",
         scheduled_at=datetime.datetime.now(datetime.UTC),
         guild_id=str(uuid.uuid4()),
-        channel_id=str(uuid.uuid4()),
+        channel_id=channel_id,
         host_id=str(uuid.uuid4()),
         status=game_model.GameStatus.SCHEDULED.value,
         thumbnail_data=None,
@@ -292,6 +298,7 @@ async def test_update_game_with_new_thumbnail(game_service, mock_db, mock_role_s
     existing_game.guild = guild_model.GuildConfiguration(
         id=existing_game.guild_id, guild_id="123456"
     )
+    existing_game.channel = mock_channel
     existing_game.participants = []
 
     # Mock database queries
@@ -345,12 +352,18 @@ async def test_update_game_remove_thumbnail(game_service, mock_db, mock_role_ser
     """Test removing thumbnail from game."""
     # Create existing game with thumbnail
     game_id = str(uuid.uuid4())
+    channel_id = str(uuid.uuid4())
+    mock_channel = channel_model.ChannelConfiguration(
+        id=channel_id,
+        channel_id="987654321",
+        guild_id=str(uuid.uuid4()),
+    )
     existing_game = game_model.GameSession(
         id=game_id,
         title="Existing Game",
         scheduled_at=datetime.datetime.now(datetime.UTC),
         guild_id=str(uuid.uuid4()),
-        channel_id=str(uuid.uuid4()),
+        channel_id=channel_id,
         host_id=str(uuid.uuid4()),
         status=game_model.GameStatus.SCHEDULED.value,
         thumbnail_data=b"existing_data",
@@ -360,6 +373,7 @@ async def test_update_game_remove_thumbnail(game_service, mock_db, mock_role_ser
     existing_game.guild = guild_model.GuildConfiguration(
         id=existing_game.guild_id, guild_id="123456"
     )
+    existing_game.channel = mock_channel
     existing_game.participants = []
 
     # Mock database queries
@@ -411,15 +425,21 @@ async def test_update_game_preserve_existing_thumbnail(game_service, mock_db, mo
     """Test that thumbnail is preserved when not provided in update."""
     # Create existing game with thumbnail
     game_id = str(uuid.uuid4())
+    channel_id = str(uuid.uuid4())
     existing_thumbnail = b"existing_data"
     existing_mime = "image/png"
 
+    mock_channel = channel_model.ChannelConfiguration(
+        id=channel_id,
+        channel_id="987654321",
+        guild_id=str(uuid.uuid4()),
+    )
     existing_game = game_model.GameSession(
         id=game_id,
         title="Existing Game",
         scheduled_at=datetime.datetime.now(datetime.UTC),
         guild_id=str(uuid.uuid4()),
-        channel_id=str(uuid.uuid4()),
+        channel_id=channel_id,
         host_id=str(uuid.uuid4()),
         status=game_model.GameStatus.SCHEDULED.value,
         thumbnail_data=existing_thumbnail,
@@ -429,6 +449,7 @@ async def test_update_game_preserve_existing_thumbnail(game_service, mock_db, mo
     existing_game.guild = guild_model.GuildConfiguration(
         id=existing_game.guild_id, guild_id="123456"
     )
+    existing_game.channel = mock_channel
     existing_game.participants = []
 
     # Mock database queries
