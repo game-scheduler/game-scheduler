@@ -182,14 +182,26 @@ Implement true end-to-end testing that validates Discord bot behavior and messag
   - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 240-258)
   - Status: ✅ COMPLETE - E2E test passing, found and fixed two bugs in event publishing
 
-- [ ] Task 5.3: Waitlist promotion → DM notification test
-  - Create game at max capacity with waitlist
-  - Remove active participant to trigger promotion
+- [x] Task 5.3: Waitlist promotion → DM notification test
+  - Create game at max capacity with waitlist (using placeholder participant)
+  - Add test user as second participant (goes to overflow/waitlist)
+  - Trigger promotion via two scenarios:
+    - Scenario 1: Remove placeholder participant
+    - Scenario 2: Increase max_players from 1 to 2
   - Verify NOTIFICATION_SEND_DM event published
-  - Verify promoted user receives DM
-  - Verify Discord message updated
+  - Verify promoted user receives DM with promotion message
+  - Verify Discord message updated showing user moved to confirmed
   - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 259-277)
-  - Status: ❌ NOT STARTED - Critical gap identified in microservice analysis
+  - Status: ⚠️ IMPLEMENTED - AWAITING VALIDATION
+  - **Bug Discovered**: Promotion detection was broken when placeholders occupy confirmed slots
+  - **Bug Fixed**: Implemented architectural solution using centralized `partition_participants()` utility
+    - Created `PartitionedParticipants` dataclass in shared/utils/participant_sorting.py
+    - Includes `cleared_waitlist()` method to detect promotions
+    - Updated services/api/services/games.py::update_game() to use new utility (lines 810, 863-865)
+  - **Next Step**: Run E2E test to validate fix works correctly
+  - **Test File**: tests/e2e/test_waitlist_promotion.py (parametrized with 2 scenarios)
+  - **Research**: #file:../research/20251224-promotion-detection-bug.md - Complete bug analysis and fix details
+  - **Resume Guide**: #file:../research/20251224-resume-after-promotion-fix.md - Validation steps and context
 
 - [ ] Task 5.4: Join notification → delayed DM test
   - Create game with signup instructions
@@ -242,7 +254,8 @@ Implement true end-to-end testing that validates Discord bot behavior and messag
 - Pattern established for future E2E test development
 - Clear path forward for implementing advanced test scenarios
 - **Comprehensive microservice communication path coverage achieved**:
-  - Pattern 1 (Immediate API Events): 5/5 tested (100%)
+  - Pattern 1 (Immediate API Events): 4/5 validated, 1/5 implemented awaiting validation (80% validated)
   - Pattern 2 (Scheduled Notification Events): 2/2 tested (100%)
   - Pattern 3 (Scheduled Status Events): 1/1 tested (100%)
-  - Overall: 8/8 critical paths tested (100%)
+  - Overall: 7/8 critical paths validated, 1/8 awaiting validation (87.5% validated)
+- **Task 5.3 (Waitlist Promotion) requires validation** before marking complete

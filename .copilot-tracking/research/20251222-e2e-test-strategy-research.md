@@ -783,7 +783,7 @@ async def test_game_status_schedule_population(
 | Game update | `GAME_UPDATED` | ✅ test_game_update.py |
 | Game cancellation | `GAME_CANCELLED` | ❌ **MISSING** |
 | Player removed | `PLAYER_REMOVED` | ❌ **MISSING** |
-| Waitlist promotion DM | `NOTIFICATION_SEND_DM` | ❌ **MISSING** |
+| Waitlist promotion DM | `NOTIFICATION_SEND_DM` | ⚠️ test_waitlist_promotion.py **(NOT VALIDATED)** |
 | **Notification Daemon → RabbitMQ → Bot** | | |
 | Game reminders | `NOTIFICATION_DUE` (type=reminder) | ✅ test_game_reminder.py |
 | Join notifications | `NOTIFICATION_DUE` (type=join_notification) | ❌ **MISSING** |
@@ -811,11 +811,16 @@ async def test_game_status_schedule_population(
    - Why critical: User notification requirement, different from reminder DMs
    - Validates: API → RabbitMQ → Bot removal notification path
 
-3. **Waitlist Promotion → DM Notification**
+3. **Waitlist Promotion → DM Notification** ⚠️ **IMPLEMENTED BUT NOT VALIDATED**
    - Path: API publishes `NOTIFICATION_SEND_DM` → Bot sends promotion DM
    - Why critical: Important user experience (getting off waitlist)
    - Validates: API → RabbitMQ → Bot promotional DM path (different from PLAYER_REMOVED)
    - Note: Uses different event type (NOTIFICATION_SEND_DM vs PLAYER_REMOVED)
+   - **Status**: Implemented in `test_waitlist_promotion.py` with 2 scenarios
+     - Scenario 1: Promotion via placeholder removal
+     - Scenario 2: Promotion via max_players increase
+   - **Bug Fixed**: Promotion detection now correctly handles placeholder participants using `partition_participants()` utility
+   - **⚠️ VALIDATION PENDING**: Test has not been run since bug fix - needs verification
 
 4. **Join Notification → Delayed DM**
    - Path: API creates notification_schedule entry (type=join_notification) → Notification daemon publishes `NOTIFICATION_DUE` → Bot sends join instructions DM
@@ -847,7 +852,7 @@ async def test_game_status_schedule_population(
 3. **test_game_status_transitions.py** - Validates status daemon path (already detailed earlier)
 
 **Phase 2 - Notification System Completeness**:
-4. **test_waitlist_promotion.py** - Validates NOTIFICATION_SEND_DM event
+4. ⚠️ **test_waitlist_promotion.py** - Validates NOTIFICATION_SEND_DM event **[IMPLEMENTED - NEEDS VALIDATION]**
 5. **test_join_notification.py** - Validates second notification daemon path
 
 **Phase 3 - Edge Cases and Schedule Validation**:
@@ -865,11 +870,12 @@ async def test_game_status_schedule_population(
    - GAME_STATUS_TRANSITION_DUE
 
 **Current E2E Coverage**:
-- ✅ Pattern 1: 2/5 event types tested (GAME_CREATED, GAME_UPDATED)
+- ✅ Pattern 1: 2/5 event types tested and validated (GAME_CREATED, GAME_UPDATED)
+- ⚠️ Pattern 1: 1/5 implemented but not validated (NOTIFICATION_SEND_DM)
 - ✅ Pattern 2: 1/2 notification types tested (reminder only)
 - ❌ Pattern 3: 0/1 tested (status transitions not tested)
 
-**Complete Coverage Requires**: 8 additional E2E tests (3 missing Pattern 1 events, 1 missing Pattern 2 type, 1 Pattern 3 test, 3 edge case tests)
+**Complete Coverage Requires**: Validate 1 test + implement 6 additional E2E tests
 
 ## Progress Update (December 22, 2025)
 
@@ -1483,6 +1489,148 @@ This unlocks the E2E testing pattern:
 
 **E2E Testing Phase: READY TO BEGIN 🚀**
 - Infrastructure in place (fixtures, helpers, Docker setup)
+
+## Waitlist Promotion Test Implementation (December 24, 2025)
+⚠️ Test Implemented: test_waitlist_promotion.py - AWAITING VALIDATION
+
+**Status**: Implementation complete, bug fix applied, **validation pending**
+**Status**: Implementation complete, awaiting validation
+
+**Test File**: `tests/e2e/test_waitlist_promotion.py`
+
+**Test Structure**:
+- Parametrized test with 2 promotion scenarios:
+  1. **via_removal**: User promoted when placeholder participant removed
+  2. **via_max_players_increase**: User promoted when max_players increased
+
+**Test Flow**:
+1. Create game with placeholder participant in confirmed slot
+2. Add test user as second participant (goes to overflow)
+3. Verify initial Discord message shows user in overflow
+4. Trigger promotion:
+   - Scenario 1: Remove placeholder participant
+   - Scenario 2: Increase max_players from 1 to 2
+5. Verify updated Discord message shows user promoted to confirmed
+6. **Verify test user receives promotion DM** with expected content:
+   - "A spot opened up"
+   - "moved from the waitlist"
+   - Game title, scheduled time, host
+
+**Key Implementation Details**:
+
+**Fixtures Used**:
+- `main_bot_helper` - Uses main bot token (sends notification DMs, not admin bot)
+- `authenticated_admin_client` - Admin bot authentication for API calls
+- `synced_guild` - Guild sync creates configs and default template
+- `test_guild_id`, `test_template_id` - Database IDs from synced resources
+- `clean_test_data` - Removes game data before/after test
+
+**Helper Functions**:
+```python
+async def trigger_promotion_via_removal(client, db, game_id, placeholder_id) -> str:
+    """Remove placeholder to trigger promotion."""
+
+async def trigger_promotion_via_max_players_increase(client, game_id) -> str:
+    """Increase max_players to trigger promotion."""
+
+async def verify_promotion_dm_received(helper, user_id, game_title) -> bool:
+    """Check DM history for promotion message."""
+```
+
+**Promotion Detection Bug Discovered**:
+While implementing this test, discovered that promotion detection was broken when placeholder participants occupied confirmed slots.
+
+**Bug**: Original code filtered placeholders BEFORE determining overflow position, but `max_players` applies to ALL participants. This caused real users to appear "confirmed" even when placeholders occupied those slots.
+
+**Fix Applied**: Implemented architectural solution with centralized `partition_participants()` utility in `shared/utils/participant_sorting.py`:
+- Includes ALL participants (placeholders + real users) when sorting
+- Partitions into confirmed/overflow by position in sorted list
+- Filters to real user IDs AFTER partitioning
+- Provides `cleared_waitlist()` method to detect promotions
+
+**Implementation**:
+```python
+# services/api/services/games.py::update_game()
+old_partitioned = partition_participants(game.participants, old_max_players)
+# ... updates happen ...
+new_partitioned = partition_participants(game.participants, new_max_players)
+promoted_discord_ids = new_partitioned.cleared_waitlist(old_partitioned)
+```
+
+### Validation Status
+
+**Test Status**: ⚠️ NOT YET VALIDATED
+- Test implementation: ✅ Complete
+- Bug fix implementation: ✅ Complete
+- Test execution: ❌ Not run since bug fix
+- **MUST RUN** to verify promotion detection works correctly
+
+**Critical Validation Step Required**:
+The test was created to expose the promotion detection bug. The bug has been fixed with the `partition_participants()` utility, but we must validate that:
+1. The test now passes (promotion DMs are sent)
+2. Both scenarios work correctly (via_removal and via_max_players_increase)
+3. No regressions were introduced by the fix
+
+**Run Command**:
+```bash
+./scripts/run-e2e-tests.sh tests/e2e/test_waitlist_promotion.py -v
+```
+
+**Expected Output** (if fix is correct):
+- ✅ Both parametrized tests pass (via_removal, via_max_players_increase)
+- ✅ Debug output shows promotion DM received
+- ✅ Message contains: "A spot opened up", "moved from the waitlist"
+
+**Possible Failure Scenarios** (if issues remain):
+- ❌ No promotion DM received (promotion detection still broken)
+- ❌ Wrong user promoted (logic error in `cleared_waitlist()`)
+- ❌ DM sent but missing expected content (formatter issue)
+- ❌ Timeout waiting for DM (timing/daemon issue)
+
+### Next Steps
+
+**IMMEDIATE ACTION REQUIRED**:
+1. Run the E2E test to validate the fix
+2. If test passes → mark as ✅ COMPLETE and proceed to next test
+3. If test fails → debug the remaining issue, update fix, re-test
+
+### Related Documentation
+
+**Bug Analysis**: `.copilot-tracking/research/20251224-promotion-detection-bug.md`
+- Complete root cause analysis
+- Before/after code comparison
+- Architectural solution details
+- Migration status for remaining code locations
+
+**Resume Instructions**: `.copilot-tracking/research/20251224-resume-after-promotion-fix.md`
+- Context restore after git history rewrite
+- Verification steps
+- Next steps for test completion
+
+### Next Test Priority
+
+**AFTER validation of waitlist promotion test**, next priority is:
+
+**Test 5.4: Join Notification → Delayed DM** (from original plan)
+- Create game with signup instructions
+- User joins game
+- Verify delayed DM sent after 60 seconds with signup instructions
+- Validates: API → Database → Notification Daemon → Bot (join_notification path)
+- File: `tests/e2e/test_join_notification.py`
+
+This completes testing of the second notification_type (join_notification vs reminder).
+
+### Coverage Update
+
+**Phase 2 - Notification System Completeness**:
+- ⚠️ **Test 4: Waitlist Promotion** (IMPLEMENTED - AWAITING VALIDATION)
+- ❌ **Test 5: Join Notification** (BLOCKED until Test 4 validated)
+
+**Updated Stats** (pending validation):
+- Pattern 1 (Immediate API Events): 2/5 validated, 1/5 implemented (40% validated, 60% in progress)
+- Pattern 2 (Notification Daemon): 1/2 tested (50%)
+- Pattern 3 (Status Daemon): 0/1 tested (0%)
+- **Overall Progress**: 3/8 core paths validated, 1/8 awaiting validation (37.5% validated)
 - Blocking issues resolved (authentication pattern established)
 - Clear implementation path forward
 - All supporting systems operational
