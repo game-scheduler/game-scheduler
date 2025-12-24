@@ -38,6 +38,12 @@ def discord_token():
 
 
 @pytest.fixture(scope="session")
+def discord_main_bot_token():
+    """Provide Discord main bot token (sends notifications)."""
+    return os.environ["DISCORD_TOKEN"]
+
+
+@pytest.fixture(scope="session")
 def discord_guild_id():
     """Provide test Discord guild ID from environment."""
     return os.environ["DISCORD_GUILD_ID"]

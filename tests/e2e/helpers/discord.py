@@ -153,9 +153,9 @@ class DiscordTestHelper:
         """
         dms = await self.get_user_recent_dms(user_id, limit=10)
         for dm in dms:
-            if dm.embeds and "Game Reminder" in dm.embeds[0].title:
-                if game_title in dm.embeds[0].description:
-                    return dm
+            # Check content for game title (reminders are plain text, not embeds)
+            if dm.content and game_title in dm.content and "starts <t:" in dm.content:
+                return dm
         return None
 
     def extract_embed_field_value(self, embed: discord.Embed, field_name: str) -> str | None:
