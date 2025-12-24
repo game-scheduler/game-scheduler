@@ -158,7 +158,16 @@ class GameMessageFormatter:
                 inline=False,
             )
 
-        embed.set_footer(text=f"Status: {status}")
+        from shared.models.game import GameStatus as GameStatusEnum
+
+        # Get display name from enum if possible, fallback to raw status
+        status_display = status
+        try:
+            status_display = GameStatusEnum(status).display_name
+        except (ValueError, AttributeError):
+            pass
+
+        embed.set_footer(text=f"Status: {status_display}")
 
         if thumbnail_url:
             embed.set_thumbnail(url=thumbnail_url)
