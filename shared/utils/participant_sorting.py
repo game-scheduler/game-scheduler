@@ -24,8 +24,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from shared.models.participant import GameParticipant
 
-DEFAULT_MAX_PLAYERS = 10
-"""Default maximum number of players when max_players is not specified."""
+from shared.utils.games import DEFAULT_MAX_PLAYERS
 
 
 @dataclass
@@ -51,6 +50,25 @@ class PartitionedParticipants:
 
     overflow_real_user_ids: set[str]
     """Discord IDs of overflow participants with user accounts"""
+
+    def cleared_waitlist(self, previous: "PartitionedParticipants") -> set[str]:
+        """
+        Identify users who cleared the waitlist (promoted from overflow to confirmed).
+
+        Compares this state with a previous state to find users who were in overflow
+        before but are now in confirmed participants.
+
+        Args:
+            previous: Previous PartitionedParticipants state
+
+        Returns:
+            Set of Discord IDs of users promoted from overflow to confirmed
+        """
+        return {
+            discord_id
+            for discord_id in previous.overflow_real_user_ids
+            if discord_id in self.confirmed_real_user_ids
+        }
 
 
 def sort_participants(participants: list["GameParticipant"]) -> list["GameParticipant"]:

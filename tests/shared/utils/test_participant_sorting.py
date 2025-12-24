@@ -23,8 +23,8 @@ from unittest.mock import Mock
 
 import pytest
 
+from shared.utils.games import DEFAULT_MAX_PLAYERS
 from shared.utils.participant_sorting import (
-    DEFAULT_MAX_PLAYERS,
     PartitionedParticipants,
     partition_participants,
     sort_participants,
@@ -418,3 +418,139 @@ class TestPartitionParticipants:
         assert hasattr(result, "overflow")
         assert hasattr(result, "confirmed_real_user_ids")
         assert hasattr(result, "overflow_real_user_ids")
+
+    def test_cleared_waitlist_basic_promotion(self, mock_participant):
+        """Test cleared_waitlist() detects basic overflow to confirmed promotion."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
+
+        user1 = mock_participant("user1", joined_at=base_time)
+        user1.user = Mock()
+        user1.user.discord_id = "discord_1"
+
+        user2 = mock_participant("user2", joined_at=base_time.replace(minute=1))
+        user2.user = Mock()
+        user2.user.discord_id = "discord_2"
+
+        # Old state: user1 confirmed, user2 overflow
+        old_partitioned = partition_participants([user1, user2], max_players=1)
+        assert old_partitioned.confirmed_real_user_ids == {"discord_1"}
+        assert old_partitioned.overflow_real_user_ids == {"discord_2"}
+
+        # New state: both confirmed
+        new_partitioned = partition_participants([user1, user2], max_players=2)
+        assert new_partitioned.confirmed_real_user_ids == {"discord_1", "discord_2"}
+        assert new_partitioned.overflow_real_user_ids == set()
+
+        # user2 should be detected as cleared
+        cleared = new_partitioned.cleared_waitlist(old_partitioned)
+        assert cleared == {"discord_2"}
+
+    def test_cleared_waitlist_with_placeholders_in_confirmed(self, mock_participant):
+        """Test cleared_waitlist() with placeholder occupying confirmed slot."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
+
+        placeholder = mock_participant("placeholder", joined_at=base_time, pre_filled_position=0)
+        placeholder.user = None
+
+        user1 = mock_participant("user1", joined_at=base_time.replace(minute=1))
+        user1.user = Mock()
+        user1.user.discord_id = "discord_1"
+
+        user2 = mock_participant("user2", joined_at=base_time.replace(minute=2))
+        user2.user = Mock()
+        user2.user.discord_id = "discord_2"
+
+        # Old state: placeholder + user1 confirmed, user2 overflow
+        old_partitioned = partition_participants([placeholder, user1, user2], max_players=2)
+        assert old_partitioned.confirmed_real_user_ids == {"discord_1"}
+        assert old_partitioned.overflow_real_user_ids == {"discord_2"}
+
+        # New state: placeholder removed, all confirmed (user1, user2)
+        new_partitioned = partition_participants([user1, user2], max_players=2)
+        assert new_partitioned.confirmed_real_user_ids == {"discord_1", "discord_2"}
+        assert new_partitioned.overflow_real_user_ids == set()
+
+        # user2 should be detected as cleared
+        cleared = new_partitioned.cleared_waitlist(old_partitioned)
+        assert cleared == {"discord_2"}
+
+    def test_cleared_waitlist_multiple_promotions(self, mock_participant):
+        """Test cleared_waitlist() with multiple users promoted."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
+
+        users = []
+        for i in range(4):
+            user = mock_participant(f"user{i}", joined_at=base_time.replace(minute=i))
+            user.user = Mock()
+            user.user.discord_id = f"discord_{i + 1}"
+            users.append(user)
+
+        # Old state: only first confirmed, rest overflow
+        old_partitioned = partition_participants(users, max_players=1)
+        assert old_partitioned.confirmed_real_user_ids == {"discord_1"}
+        assert old_partitioned.overflow_real_user_ids == {
+            "discord_2",
+            "discord_3",
+            "discord_4",
+        }
+
+        # New state: first three confirmed
+        new_partitioned = partition_participants(users, max_players=3)
+        assert new_partitioned.confirmed_real_user_ids == {
+            "discord_1",
+            "discord_2",
+            "discord_3",
+        }
+        assert new_partitioned.overflow_real_user_ids == {"discord_4"}
+
+        # discord_2 and discord_3 should be detected as cleared
+        cleared = new_partitioned.cleared_waitlist(old_partitioned)
+        assert cleared == {"discord_2", "discord_3"}
+
+    def test_cleared_waitlist_no_promotions(self, mock_participant):
+        """Test cleared_waitlist() returns empty set when no promotions occur."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
+
+        user1 = mock_participant("user1", joined_at=base_time)
+        user1.user = Mock()
+        user1.user.discord_id = "discord_1"
+
+        user2 = mock_participant("user2", joined_at=base_time.replace(minute=1))
+        user2.user = Mock()
+        user2.user.discord_id = "discord_2"
+
+        # Old state: user1 confirmed, user2 overflow
+        old_partitioned = partition_participants([user1, user2], max_players=1)
+
+        # New state: same as old (no changes)
+        new_partitioned = partition_participants([user1, user2], max_players=1)
+
+        # No promotions should be detected
+        cleared = new_partitioned.cleared_waitlist(old_partitioned)
+        assert cleared == set()
+
+    def test_cleared_waitlist_ignores_placeholders(self, mock_participant):
+        """Test cleared_waitlist() doesn't detect placeholders as cleared."""
+        base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
+
+        placeholder1 = mock_participant("placeholder1", joined_at=base_time, pre_filled_position=0)
+        placeholder1.user = None
+
+        user1 = mock_participant("user1", joined_at=base_time.replace(minute=1))
+        user1.user = Mock()
+        user1.user.discord_id = "discord_1"
+
+        user2 = mock_participant("user2", joined_at=base_time.replace(minute=2))
+        user2.user = Mock()
+        user2.user.discord_id = "discord_2"
+
+        # Old state: placeholder + user1 confirmed, user2 overflow
+        old_partitioned = partition_participants([placeholder1, user1, user2], max_players=2)
+        assert old_partitioned.overflow_real_user_ids == {"discord_2"}
+
+        # New state: removed first placeholder, user1 + user2 confirmed
+        new_partitioned = partition_participants([user1, user2], max_players=2)
+
+        # Only user2 should be detected (not placeholder1)
+        cleared = new_partitioned.cleared_waitlist(old_partitioned)
+        assert cleared == {"discord_2"}

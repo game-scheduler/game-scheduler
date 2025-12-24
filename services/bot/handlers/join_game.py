@@ -38,6 +38,7 @@ from shared.models.game import GameSession
 from shared.models.notification_schedule import NotificationSchedule
 from shared.models.participant import GameParticipant
 from shared.models.user import User
+from shared.utils.games import resolve_max_players
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +113,7 @@ async def handle_join_game(
 
     logger.info(
         f"User {user_discord_id} joined game {game_id} "
-        f"({participant_count + 1}/{game.max_players or 10})"
+        f"({participant_count + 1}/{resolve_max_players(game.max_players)})"
     )
 
 

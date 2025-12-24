@@ -282,28 +282,28 @@ async def test_promotion_when_participant_removed(
         return fresh_game
 
     # Mock get_game to return fresh game with updated participants
-    original_detect_promotions = game_service._detect_and_notify_promotions
-    detect_calls_list = []
+    original_notify_promotions = game_service._notify_promoted_users
+    notify_calls_list = []
 
-    async def track_detect_promotions(game, old_overflow_ids):
-        detect_calls_list.append(
+    async def track_notify_promotions(game, promoted_discord_ids):
+        notify_calls_list.append(
             {
                 "game_id": game.id,
-                "old_overflow_ids": old_overflow_ids,
+                "promoted_discord_ids": promoted_discord_ids,
                 "current_participants": [p.user.discord_id for p in game.participants if p.user],
             }
         )
-        print("\n_detect_and_notify_promotions called!")
-        print(f"  old_overflow_ids: {old_overflow_ids}")
+        print("\n_notify_promoted_users called!")
+        print(f"  promoted_discord_ids: {promoted_discord_ids}")
         print(f"  current participants: {[p.user.discord_id for p in game.participants if p.user]}")
-        result = await original_detect_promotions(game, old_overflow_ids)
-        print("  _detect_and_notify_promotions completed")
+        result = await original_notify_promotions(game, promoted_discord_ids)
+        print("  _notify_promoted_users completed")
         return result
 
     with patch.object(
         game_service,
-        "_detect_and_notify_promotions",
-        side_effect=track_detect_promotions,
+        "_notify_promoted_users",
+        side_effect=track_notify_promotions,
     ):
         with patch.object(game_service, "get_game", side_effect=get_game_side_effect):
             # Mock authorization check

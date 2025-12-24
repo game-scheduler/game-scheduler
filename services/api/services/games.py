@@ -48,6 +48,7 @@ from shared.models import participant as participant_model
 from shared.models import template as template_model
 from shared.models import user as user_model
 from shared.schemas import game as game_schemas
+from shared.utils.games import resolve_max_players
 from shared.utils.participant_sorting import partition_participants
 
 logger = logging.getLogger(__name__)
@@ -228,7 +229,7 @@ class GameService:
             raise ValueError(f"Channel configuration not found for ID: {template.channel_id}")
 
         # Use template defaults for optional fields
-        max_players = game_data.max_players or template.max_players or 10
+        max_players = resolve_max_players(game_data.max_players or template.max_players)
         reminder_minutes = game_data.reminder_minutes or template.reminder_minutes or [60, 15]
         expected_duration_minutes = (
             game_data.expected_duration_minutes or template.expected_duration_minutes
@@ -805,9 +806,8 @@ class GameService:
             )
 
         # Capture current participant state for promotion detection
-        old_max_players = game.max_players or 10
+        old_max_players = resolve_max_players(game.max_players)
         old_partitioned = partition_participants(game.participants, old_max_players)
-        old_overflow_ids = old_partitioned.overflow_real_user_ids
 
         # Update game fields
         schedule_needs_update, status_schedule_needs_update = self._update_game_fields(
@@ -859,10 +859,15 @@ class GameService:
             raise ValueError("Failed to reload updated game")
 
         # Detect promotions from overflow to confirmed participants
-        await self._detect_and_notify_promotions(
-            game=game,
-            old_overflow_ids=old_overflow_ids,
-        )
+        new_max_players = resolve_max_players(game.max_players)
+        new_partitioned = partition_participants(game.participants, new_max_players)
+        promoted_discord_ids = new_partitioned.cleared_waitlist(old_partitioned)
+
+        if promoted_discord_ids:
+            await self._notify_promoted_users(
+                game=game,
+                promoted_discord_ids=promoted_discord_ids,
+            )
 
         # Publish game.updated event
         await self._publish_game_updated(game)
@@ -985,8 +990,8 @@ class GameService:
         if channel_config is None:
             raise ValueError(f"Channel configuration not found for ID: {game.channel_id}")
 
-        # Use game's max_players or default to 10
-        max_players = game.max_players if game.max_players is not None else 10
+        # Use game's max_players or default to DEFAULT_MAX_PLAYERS
+        max_players = resolve_max_players(game.max_players)
 
         if max_players is not None and participant_count >= max_players:
             raise ValueError("Game is full")
@@ -1171,46 +1176,28 @@ class GameService:
             f"from game {game.id}"
         )
 
-    async def _detect_and_notify_promotions(
+    async def _notify_promoted_users(
         self,
         game: game_model.GameSession,
-        old_overflow_ids: set[str],
+        promoted_discord_ids: set[str],
     ) -> None:
         """
-        Detect and notify users promoted from overflow to confirmed participants.
-
-        Compares previous overflow list with current confirmed list to identify
-        users who were promoted. Sends DM notification to each promoted user.
+        Send promotion notifications to users who cleared the waitlist.
 
         Args:
             game: Game session after updates applied
-            old_overflow_ids: Set of Discord IDs that were in overflow before update
+            promoted_discord_ids: Set of Discord IDs of promoted users
         """
-        if not old_overflow_ids:
-            # No one was in overflow, no promotions possible
-            return
-
-        # Get current participant state
-        current_max_players = game.max_players or 10
-        current_partitioned = partition_participants(game.participants, current_max_players)
-
-        # Identify promoted users (were in overflow, now in confirmed)
-        promoted_user_ids = [
-            discord_id
-            for discord_id in old_overflow_ids
-            if discord_id in current_partitioned.confirmed_real_user_ids
-        ]
-
-        if not promoted_user_ids:
-            logger.debug(f"No promotions detected for game {game.id}")
+        if not promoted_discord_ids:
             return
 
         logger.info(
-            f"Detected {len(promoted_user_ids)} promotions for game {game.id}: {promoted_user_ids}"
+            f"Notifying {len(promoted_discord_ids)} promoted users for game {game.id}: "
+            f"{promoted_discord_ids}"
         )
 
         # Send notification to each promoted user
-        for discord_id in promoted_user_ids:
+        for discord_id in promoted_discord_ids:
             await self._publish_promotion_notification(
                 game=game,
                 discord_id=discord_id,

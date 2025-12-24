@@ -45,6 +45,7 @@ from shared.models.base import utc_now
 from shared.models.game import GameSession
 from shared.models.participant import GameParticipant
 from shared.schemas.events import GameStatusTransitionDueEvent
+from shared.utils.games import resolve_max_players
 from shared.utils.participant_sorting import partition_participants
 from shared.utils.status_transitions import is_valid_transition
 
@@ -883,7 +884,7 @@ class EventHandlers:
             participant_ids=confirmed_ids,
             overflow_ids=overflow_ids,
             current_count=len(confirmed_ids),
-            max_players=game.max_players or 10,
+            max_players=resolve_max_players(game.max_players),
             status=game.status,
             signup_instructions=game.signup_instructions,
             expected_duration_minutes=game.expected_duration_minutes,
