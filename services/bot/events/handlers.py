@@ -45,7 +45,7 @@ from shared.models.base import utc_now
 from shared.models.game import GameSession
 from shared.models.participant import GameParticipant
 from shared.schemas.events import GameStatusTransitionDueEvent
-from shared.utils import participant_sorting
+from shared.utils.participant_sorting import partition_participants
 from shared.utils.status_transitions import is_valid_transition
 
 logger = logging.getLogger(__name__)
@@ -385,22 +385,12 @@ class EventHandlers:
                     )
                     return
 
-                # Filter to real participants only (exclude placeholders)
-                real_participants = [p for p in game.participants if p.user_id and p.user]
+                # Partition participants into confirmed and overflow
+                partitioned = partition_participants(game.participants, game.max_players)
 
-                # Sort participants by position and join time (if any exist)
-                sorted_participants = (
-                    participant_sorting.sort_participants(real_participants)
-                    if real_participants
-                    else []
-                )
-
-                # Determine max players for active roster
-                max_players = game.max_players or 10
-
-                # Split into confirmed (active) and overflow (waitlist)
-                confirmed_participants = sorted_participants[:max_players]
-                overflow_participants = sorted_participants[max_players:]
+                # Filter to only real users (exclude placeholders)
+                confirmed_participants = [p for p in partitioned.confirmed if p.user]
+                overflow_participants = [p for p in partitioned.overflow if p.user]
 
                 logger.info(
                     f"Game {reminder_event.game_id}: {len(confirmed_participants)} confirmed, "
@@ -507,12 +497,9 @@ class EventHandlers:
                     return
 
                 # Check if participant is confirmed (not on waitlist)
-                real_participants = [p for p in game.participants if p.user_id and p.user]
-                sorted_participants = participant_sorting.sort_participants(real_participants)
-                max_players = game.max_players or 10
-                confirmed_participants = sorted_participants[:max_players]
+                partitioned = partition_participants(game.participants, game.max_players)
 
-                if participant not in confirmed_participants:
+                if participant not in partitioned.confirmed:
                     logger.info(
                         f"Participant {event.participant_id} is waitlisted, skipping join "
                         f"notification for game {event.game_id}"
@@ -854,18 +841,13 @@ class EventHandlers:
             Tuple of (confirmed_ids, overflow_ids) where IDs are
             Discord user IDs (formatted as mentions) or placeholder names
         """
-        all_participants = game.participants
-        sorted_participants = participant_sorting.sort_participants(all_participants)
-
-        max_players = game.max_players or 10
-        confirmed_participants = sorted_participants[:max_players]
-        overflow_participants = sorted_participants[max_players:]
+        partitioned = partition_participants(game.participants, game.max_players)
 
         confirmed_ids = [
-            p.user.discord_id if p.user else p.display_name for p in confirmed_participants
+            p.user.discord_id if p.user else p.display_name for p in partitioned.confirmed
         ]
         overflow_ids = [
-            p.user.discord_id if p.user else p.display_name for p in overflow_participants
+            p.user.discord_id if p.user else p.display_name for p in partitioned.overflow
         ]
 
         return confirmed_ids, overflow_ids

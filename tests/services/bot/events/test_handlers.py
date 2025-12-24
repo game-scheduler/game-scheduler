@@ -582,21 +582,17 @@ async def test_handle_game_reminder_due_success(event_handlers, sample_game, sam
             ) as mock_get_game:
                 mock_get_game.return_value = sample_game
 
-                with patch(
-                    "services.bot.events.handlers.participant_sorting.sort_participants",
-                    side_effect=lambda x: x,
-                ):
-                    with patch.object(
-                        event_handlers, "_send_reminder_dm", new_callable=AsyncMock
-                    ) as mock_send_reminder:
-                        data = {
-                            "game_id": sample_game.id,
-                            "notification_type": "reminder",
-                        }
-                        await event_handlers._handle_notification_due(data)
+                with patch.object(
+                    event_handlers, "_send_reminder_dm", new_callable=AsyncMock
+                ) as mock_send_reminder:
+                    data = {
+                        "game_id": sample_game.id,
+                        "notification_type": "reminder",
+                    }
+                    await event_handlers._handle_notification_due(data)
 
-                        # Should send 3 reminders: 2 participants + 1 host
-                        assert mock_send_reminder.await_count == 3
+                    # Should send 3 reminders: 2 participants + 1 host
+                    assert mock_send_reminder.await_count == 3
 
                     # Check participant reminders
                     participant_calls = [
@@ -684,23 +680,19 @@ async def test_handle_game_reminder_due_no_host(event_handlers, sample_game):
             ) as mock_get_game:
                 mock_get_game.return_value = sample_game
 
-                with patch(
-                    "services.bot.events.handlers.participant_sorting.sort_participants",
-                    side_effect=lambda x: x,
-                ):
-                    with patch.object(
-                        event_handlers, "_send_reminder_dm", new_callable=AsyncMock
-                    ) as mock_send_reminder:
-                        data = {
-                            "game_id": sample_game.id,
-                            "notification_type": "reminder",
-                        }
-                        await event_handlers._handle_notification_due(data)
+                with patch.object(
+                    event_handlers, "_send_reminder_dm", new_callable=AsyncMock
+                ) as mock_send_reminder:
+                    data = {
+                        "game_id": sample_game.id,
+                        "notification_type": "reminder",
+                    }
+                    await event_handlers._handle_notification_due(data)
 
-                        # Should only send participant reminder, no host reminder
-                        assert mock_send_reminder.await_count == 1
-                        # is_host defaults to False, may not be in kwargs
-                        assert mock_send_reminder.call_args.kwargs.get("is_host", False) is False
+                    # Should only send participant reminder, no host reminder
+                    assert mock_send_reminder.await_count == 1
+                    # is_host defaults to False, may not be in kwargs
+                    assert mock_send_reminder.call_args.kwargs.get("is_host", False) is False
 
 
 @pytest.mark.asyncio
@@ -736,33 +728,29 @@ async def test_handle_game_reminder_due_host_error_doesnt_affect_participants(
             ) as mock_get_game:
                 mock_get_game.return_value = sample_game
 
-                with patch(
-                    "services.bot.events.handlers.participant_sorting.sort_participants",
-                    side_effect=lambda x: x,
-                ):
-                    call_count = 0
+                call_count = 0
 
-                    async def mock_send_reminder_side_effect(*args, **kwargs):
-                        nonlocal call_count
-                        call_count += 1
-                        # First call is participant (succeeds), second is host (fails)
-                        if call_count == 2 and kwargs.get("is_host"):
-                            raise Exception("Host notification failed")
+                async def mock_send_reminder_side_effect(*args, **kwargs):
+                    nonlocal call_count
+                    call_count += 1
+                    # First call is participant (succeeds), second is host (fails)
+                    if call_count == 2 and kwargs.get("is_host"):
+                        raise Exception("Host notification failed")
 
-                    with patch.object(
-                        event_handlers, "_send_reminder_dm", new_callable=AsyncMock
-                    ) as mock_send_reminder:
-                        mock_send_reminder.side_effect = mock_send_reminder_side_effect
+                with patch.object(
+                    event_handlers, "_send_reminder_dm", new_callable=AsyncMock
+                ) as mock_send_reminder:
+                    mock_send_reminder.side_effect = mock_send_reminder_side_effect
 
-                        data = {
-                            "game_id": sample_game.id,
-                            "notification_type": "reminder",
-                        }
-                        # Should not raise exception despite host notification failure
-                        await event_handlers._handle_notification_due(data)
+                    data = {
+                        "game_id": sample_game.id,
+                        "notification_type": "reminder",
+                    }
+                    # Should not raise exception despite host notification failure
+                    await event_handlers._handle_notification_due(data)
 
-                        # Should have tried to send both notifications
-                        assert mock_send_reminder.await_count == 2
+                    # Should have tried to send both notifications
+                    assert mock_send_reminder.await_count == 2
 
 
 @pytest.mark.asyncio
@@ -800,47 +788,43 @@ async def test_handle_game_reminder_due_with_waitlist(event_handlers, sample_gam
             ) as mock_get_game:
                 mock_get_game.return_value = sample_game
 
-                with patch(
-                    "services.bot.events.handlers.participant_sorting.sort_participants",
-                    side_effect=lambda x: x,
-                ):
-                    with patch.object(
-                        event_handlers, "_send_reminder_dm", new_callable=AsyncMock
-                    ) as mock_send_reminder:
-                        data = {
-                            "game_id": sample_game.id,
-                            "notification_type": "reminder",
-                        }
-                        await event_handlers._handle_notification_due(data)
+                with patch.object(
+                    event_handlers, "_send_reminder_dm", new_callable=AsyncMock
+                ) as mock_send_reminder:
+                    data = {
+                        "game_id": sample_game.id,
+                        "notification_type": "reminder",
+                    }
+                    await event_handlers._handle_notification_due(data)
 
-                        # Should send 4 reminders: 2 confirmed + 1 waitlist + 1 host
-                        assert mock_send_reminder.await_count == 4
+                    # Should send 4 reminders: 2 confirmed + 1 waitlist + 1 host
+                    assert mock_send_reminder.await_count == 4
 
-                        # Check confirmed participants (is_waitlist=False, is_host=False)
-                        confirmed_calls = [
-                            call
-                            for call in mock_send_reminder.call_args_list
-                            if not call.kwargs.get("is_waitlist", False)
-                            and not call.kwargs.get("is_host", False)
-                        ]
-                        assert len(confirmed_calls) == 2
+                    # Check confirmed participants (is_waitlist=False, is_host=False)
+                    confirmed_calls = [
+                        call
+                        for call in mock_send_reminder.call_args_list
+                        if not call.kwargs.get("is_waitlist", False)
+                        and not call.kwargs.get("is_host", False)
+                    ]
+                    assert len(confirmed_calls) == 2
 
-                        # Check waitlist participants (is_waitlist=True)
-                        waitlist_calls = [
-                            call
-                            for call in mock_send_reminder.call_args_list
-                            if call.kwargs.get("is_waitlist", False)
-                        ]
-                        assert len(waitlist_calls) == 1
+                    # Check waitlist participants (is_waitlist=True)
+                    waitlist_calls = [
+                        call
+                        for call in mock_send_reminder.call_args_list
+                        if call.kwargs.get("is_waitlist", False)
+                    ]
+                    assert len(waitlist_calls) == 1
 
-                        # Check host (is_host=True)
-                        host_calls = [
-                            call
-                            for call in mock_send_reminder.call_args_list
-                            if call.kwargs.get("is_host", False)
-                        ]
-                        assert len(host_calls) == 1
-                        assert host_calls[0].kwargs["user_discord_id"] == "host123"
+                    # Check host (is_host=True)
+                    host_calls = [
+                        call
+                        for call in mock_send_reminder.call_args_list
+                        if call.kwargs.get("is_host", False)
+                    ]
+                    assert len(host_calls) == 1
+                    assert host_calls[0].kwargs["user_discord_id"] == "host123"
 
 
 @pytest.mark.asyncio
@@ -877,27 +861,21 @@ async def test_handle_join_notification_with_signup_instructions(event_handlers,
 
             mock_db.execute = AsyncMock(side_effect=mock_execute)
 
-            with patch(
-                "services.bot.events.handlers.participant_sorting.sort_participants",
-                side_effect=lambda x: x,
-            ):
-                with patch.object(
-                    event_handlers, "_send_dm", new_callable=AsyncMock
-                ) as mock_send_dm:
-                    mock_send_dm.return_value = True
+            with patch.object(event_handlers, "_send_dm", new_callable=AsyncMock) as mock_send_dm:
+                mock_send_dm.return_value = True
 
-                    data = {
-                        "game_id": sample_game.id,
-                        "notification_type": "join_notification",
-                        "participant_id": participant.id,
-                    }
-                    await event_handlers._handle_notification_due(data)
+                data = {
+                    "game_id": sample_game.id,
+                    "notification_type": "join_notification",
+                    "participant_id": participant.id,
+                }
+                await event_handlers._handle_notification_due(data)
 
-                    assert mock_send_dm.await_count == 1
-                    sent_message = mock_send_dm.call_args.args[1]
-                    assert "joined" in sent_message.lower()
-                    assert sample_game.title in sent_message
-                    assert sample_game.signup_instructions in sent_message
+                assert mock_send_dm.await_count == 1
+                sent_message = mock_send_dm.call_args.args[1]
+                assert "joined" in sent_message.lower()
+                assert sample_game.title in sent_message
+                assert sample_game.signup_instructions in sent_message
 
 
 @pytest.mark.asyncio
@@ -934,27 +912,21 @@ async def test_handle_join_notification_without_signup_instructions(event_handle
 
             mock_db.execute = AsyncMock(side_effect=mock_execute)
 
-            with patch(
-                "services.bot.events.handlers.participant_sorting.sort_participants",
-                side_effect=lambda x: x,
-            ):
-                with patch.object(
-                    event_handlers, "_send_dm", new_callable=AsyncMock
-                ) as mock_send_dm:
-                    mock_send_dm.return_value = True
+            with patch.object(event_handlers, "_send_dm", new_callable=AsyncMock) as mock_send_dm:
+                mock_send_dm.return_value = True
 
-                    data = {
-                        "game_id": sample_game.id,
-                        "notification_type": "join_notification",
-                        "participant_id": participant.id,
-                    }
-                    await event_handlers._handle_notification_due(data)
+                data = {
+                    "game_id": sample_game.id,
+                    "notification_type": "join_notification",
+                    "participant_id": participant.id,
+                }
+                await event_handlers._handle_notification_due(data)
 
-                    assert mock_send_dm.await_count == 1
-                    sent_message = mock_send_dm.call_args.args[1]
-                    assert "joined" in sent_message.lower()
-                    assert sample_game.title in sent_message
-                    assert "signup instructions" not in sent_message.lower()
+                assert mock_send_dm.await_count == 1
+                sent_message = mock_send_dm.call_args.args[1]
+                assert "joined" in sent_message.lower()
+                assert sample_game.title in sent_message
+                assert "signup instructions" not in sent_message.lower()
 
 
 @pytest.mark.asyncio

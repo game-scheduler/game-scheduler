@@ -352,15 +352,15 @@ Fix waitlist promotion detection bug where users are not notified when promoted 
 - [x] Task 2.3: Add unit tests for promotion detection with placeholders
   - Details: .copilot-tracking/details/20251224-promotion-detection-placeholder-bug-details.md (Lines 172-200)
 
-### [ ] Phase 3: Migrate Bot Event Handlers
+### [x] Phase 3: Migrate Bot Event Handlers
 
-- [ ] Task 3.1: Update `_handle_game_reminder()` to use `partition_participants()`
+- [x] Task 3.1: Update `_handle_game_reminder()` to use `partition_participants()`
   - Details: .copilot-tracking/details/20251224-promotion-detection-placeholder-bug-details.md (Lines 202-230)
 
-- [ ] Task 3.2: Update `_handle_join_notification()` to use `partition_participants()`
+- [x] Task 3.2: Update `_handle_join_notification()` to use `partition_participants()`
   - Details: .copilot-tracking/details/20251224-promotion-detection-placeholder-bug-details.md (Lines 232-260)
 
-- [ ] Task 3.3: Update `_handle_game_cancelled()` to use `partition_participants()`
+- [x] Task 3.3: Update `_handle_game_cancelled()` to use `partition_participants()`
   - Details: .copilot-tracking/details/20251224-promotion-detection-placeholder-bug-details.md (Lines 262-290)
 
 ### [ ] Phase 4: Migrate API Routes
