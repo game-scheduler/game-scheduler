@@ -173,14 +173,14 @@ Implement true end-to-end testing that validates Discord bot behavior and messag
   - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 221-239)
   - Status: ✅ COMPLETE - E2E test passing, bot handler implemented
 
-- [ ] Task 5.2: Player removal → DM notification test
+- [x] Task 5.2: Player removal → DM notification test
   - Create game with multiple participants
   - Remove participant via API
   - Verify PLAYER_REMOVED event published
   - Verify removed user receives DM notification
   - Verify Discord message updated with new participant count
   - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 240-258)
-  - Status: ❌ NOT STARTED - Critical gap identified in microservice analysis
+  - Status: ✅ COMPLETE - E2E test passing, found and fixed two bugs in event publishing
 
 - [ ] Task 5.3: Waitlist promotion → DM notification test
   - Create game at max capacity with waitlist

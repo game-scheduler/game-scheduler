@@ -506,10 +506,12 @@ class GameService:
         """
         for participant_id in participant_ids:
             result = await self.db.execute(
-                select(participant_model.GameParticipant).where(
+                select(participant_model.GameParticipant)
+                .where(
                     participant_model.GameParticipant.id == participant_id,
                     participant_model.GameParticipant.game_session_id == game.id,
                 )
+                .options(selectinload(participant_model.GameParticipant.user))
             )
             participant = result.scalar_one_or_none()
             if participant:
@@ -1161,7 +1163,7 @@ class GameService:
                 "discord_id": participant.user.discord_id if participant.user else None,
                 "display_name": participant.display_name,
                 "message_id": game.message_id or "",
-                "channel_id": game.channel_id,
+                "channel_id": game.channel.channel_id,
                 "game_title": game.title,
                 "game_scheduled_at": (game.scheduled_at.isoformat() if game.scheduled_at else None),
             },

@@ -675,12 +675,6 @@ class EventHandlers:
                     logger.error(f"Game not found: {game_id}")
                     return
 
-                discord_api = get_discord_client()
-                channel_data = await discord_api.fetch_channel(channel_id)
-                if not channel_data:
-                    logger.error(f"Invalid or inaccessible channel: {channel_id}")
-                    return
-
                 channel = self.bot.get_channel(int(channel_id))
                 if not channel:
                     channel = await self.bot.fetch_channel(int(channel_id))
@@ -704,13 +698,27 @@ class EventHandlers:
 
             # Send DM to removed user
             if discord_id:
+                logger.info(
+                    f"Preparing to send removal DM to user {discord_id} for game {game_title}"
+                )
                 dm_message = f"❌ You were removed from **{game_title}**"
                 if game_scheduled_at:
-                    dm_message += f" scheduled for <t:{int(game.scheduled_at.timestamp())}:F>"
+                    from datetime import datetime
 
+                    try:
+                        scheduled_dt = datetime.fromisoformat(game_scheduled_at)
+                        dm_message += f" scheduled for <t:{int(scheduled_dt.timestamp())}:F>"
+                    except (ValueError, TypeError):
+                        pass
+
+                logger.info(f"Sending DM to {discord_id}: {dm_message}")
                 success = await self._send_dm(discord_id, dm_message)
                 if success:
-                    logger.info(f"Sent removal DM to user {discord_id}")
+                    logger.info(f"✓ Successfully sent removal DM to user {discord_id}")
+                else:
+                    logger.warning(f"Failed to send removal DM to user {discord_id}")
+            else:
+                logger.warning("No discord_id provided for removal DM")
 
         except Exception as e:
             logger.error(f"Failed to handle participant removal: {e}", exc_info=True)
