@@ -48,7 +48,7 @@ from shared.models import participant as participant_model
 from shared.models import template as template_model
 from shared.models import user as user_model
 from shared.schemas import game as game_schemas
-from shared.utils import participant_sorting
+from shared.utils.participant_sorting import partition_participants
 
 logger = logging.getLogger(__name__)
 
@@ -806,13 +806,8 @@ class GameService:
 
         # Capture current participant state for promotion detection
         old_max_players = game.max_players or 10
-        old_all_participants = [p for p in game.participants if p.user_id and p.user]
-        old_sorted_participants = participant_sorting.sort_participants(old_all_participants)
-        old_overflow_ids = {
-            p.user.discord_id
-            for p in old_sorted_participants[old_max_players:]
-            if p.user is not None
-        }
+        old_partitioned = partition_participants(game.participants, old_max_players)
+        old_overflow_ids = old_partitioned.overflow_real_user_ids
 
         # Update game fields
         schedule_needs_update, status_schedule_needs_update = self._update_game_fields(
@@ -1197,17 +1192,13 @@ class GameService:
 
         # Get current participant state
         current_max_players = game.max_players or 10
-        current_all_participants = [p for p in game.participants if p.user_id and p.user]
-        current_sorted_participants = participant_sorting.sort_participants(
-            current_all_participants
-        )
-        current_confirmed_participants = current_sorted_participants[:current_max_players]
+        current_partitioned = partition_participants(game.participants, current_max_players)
 
         # Identify promoted users (were in overflow, now in confirmed)
         promoted_user_ids = [
-            p.user.discord_id
-            for p in current_confirmed_participants
-            if p.user and p.user.discord_id in old_overflow_ids
+            discord_id
+            for discord_id in old_overflow_ids
+            if discord_id in current_partitioned.confirmed_real_user_ids
         ]
 
         if not promoted_user_ids:

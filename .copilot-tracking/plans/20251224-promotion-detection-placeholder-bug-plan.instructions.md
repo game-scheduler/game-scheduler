@@ -341,15 +341,15 @@ Fix waitlist promotion detection bug where users are not notified when promoted 
 - [x] Task 1.3: Add comprehensive unit tests for `partition_participants()`
   - Details: .copilot-tracking/details/20251224-promotion-detection-placeholder-bug-details.md (Lines 77-110)
 
-### [ ] Phase 2: Fix Promotion Detection in games.py
+### [x] Phase 2: Fix Promotion Detection in games.py
 
-- [ ] Task 2.1: Update `update_game()` to use `partition_participants()` for old state
+- [x] Task 2.1: Update `update_game()` to use `partition_participants()` for old state
   - Details: .copilot-tracking/details/20251224-promotion-detection-placeholder-bug-details.md (Lines 112-140)
 
-- [ ] Task 2.2: Update `_detect_and_notify_promotions()` to use `partition_participants()` for current state
+- [x] Task 2.2: Update `_detect_and_notify_promotions()` to use `partition_participants()` for current state
   - Details: .copilot-tracking/details/20251224-promotion-detection-placeholder-bug-details.md (Lines 142-170)
 
-- [ ] Task 2.3: Add unit tests for promotion detection with placeholders
+- [x] Task 2.3: Add unit tests for promotion detection with placeholders
   - Details: .copilot-tracking/details/20251224-promotion-detection-placeholder-bug-details.md (Lines 172-200)
 
 ### [ ] Phase 3: Migrate Bot Event Handlers
