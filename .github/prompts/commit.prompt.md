@@ -41,6 +41,13 @@ uv run ruff check --fix
 uv run ruff format
 ```
 
+### Python Type Checking
+Run mypy for static type checking:
+```bash
+cd /home/mckee/src/github.com/game-scheduler
+uv run mypy services shared
+```
+
 ### Frontend Linting
 Run ESLint and TypeScript type checking:
 ```bash
@@ -62,14 +69,7 @@ npm run format:check
 Run the Python unit tests (excluding e2e and integration tests):
 ```bash
 cd /home/mckee/src/github.com/game-scheduler
-uv run pytest tests/services tests/shared -v
-```
-
-### Python Integration Tests
-Run the integration test suite:
-```bash
-cd /home/mckee/src/github.com/game-scheduler
-./scripts/run-integration-tests.sh
+uv run pytest --ignore tests/e2e --ignore tests/integration -v
 ```
 
 ### Frontend Tests

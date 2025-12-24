@@ -177,6 +177,11 @@ before proceeding.
   - All tests must pass
   - Fix any failures immediately
 
+- [ ] **End-to-end tests pass:**
+  - Run `./scripts/run-e2e-tests.sh`
+  - All tests must pass
+  - Fix any failures immediately
+
 ### 6. Final Lint and Error Check
 
 **MUST be performed last** (after all other fixes):
