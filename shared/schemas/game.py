@@ -22,6 +22,14 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator
 
+from shared.utils.security_constants import (
+    DISCORD_SNOWFLAKE_MAX_LENGTH,
+    DISCORD_SNOWFLAKE_MIN_LENGTH,
+)
+
+# Discord API constraints
+MAX_ROLES_PER_GAME = 10
+
 
 class GameCreateRequest(BaseModel):
     """Create a new game session from a template."""
@@ -113,10 +121,14 @@ class GameUpdateRequest(BaseModel):
         """Validate role IDs are valid Discord snowflakes."""
         if v is None:
             return v
-        if len(v) > 10:
-            raise ValueError("Maximum 10 roles allowed")
+        if len(v) > MAX_ROLES_PER_GAME:
+            raise ValueError(f"Maximum {MAX_ROLES_PER_GAME} roles allowed")
         for role_id in v:
-            if not role_id.isdigit() or len(role_id) < 17 or len(role_id) > 20:
+            if (
+                not role_id.isdigit()
+                or len(role_id) < DISCORD_SNOWFLAKE_MIN_LENGTH
+                or len(role_id) > DISCORD_SNOWFLAKE_MAX_LENGTH
+            ):
                 raise ValueError(f"Invalid Discord role ID format: {role_id}")
         return v
 
