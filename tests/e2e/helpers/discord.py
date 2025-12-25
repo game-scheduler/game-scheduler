@@ -18,7 +18,91 @@
 
 """Discord test helper for E2E tests."""
 
+import asyncio
+from collections.abc import Awaitable, Callable
+from enum import StrEnum
+from typing import TypeVar
+
 import discord
+
+T = TypeVar("T")
+
+
+class DMType(StrEnum):
+    """Types of game-related DMs."""
+
+    REMINDER = "reminder"
+    JOIN = "join"
+    REMOVAL = "removal"
+    PROMOTION = "promotion"
+
+
+async def wait_for_condition(
+    check_func: Callable[[], Awaitable[tuple[bool, T | None]]],
+    timeout: int = 30,
+    interval: float = 1.0,
+    description: str = "condition",
+) -> T:
+    """
+    Poll for condition with timeout.
+
+    Generic polling utility that repeatedly calls check_func until it returns
+    (True, result) or timeout is reached.
+
+    Args:
+        check_func: Async function returning (condition_met: bool, result: T | None)
+                   Should return (True, value) when condition met, (False, None) otherwise
+        timeout: Maximum seconds to wait
+        interval: Seconds between checks
+        description: Human-readable description for error messages
+
+    Returns:
+        Result value returned by check_func when condition met
+
+    Raises:
+        AssertionError: If condition not met within timeout
+
+    Example:
+        async def check_message_exists():
+            try:
+                msg = await channel.fetch_message(msg_id)
+                return (True, msg)
+            except discord.NotFound:
+                return (False, None)
+
+        message = await wait_for_condition(
+            check_message_exists,
+            timeout=10,
+            description="Discord message to appear"
+        )
+    """
+    start_time = asyncio.get_event_loop().time()
+    attempt = 0
+
+    while True:
+        attempt += 1
+        elapsed = asyncio.get_event_loop().time() - start_time
+
+        condition_met, result = await check_func()
+
+        if condition_met:
+            print(f"[WAIT] ✓ {description} met after {elapsed:.1f}s (attempt {attempt})")
+            return result
+
+        if elapsed >= timeout:
+            raise AssertionError(
+                f"{description} not met within {timeout}s timeout ({attempt} attempts)"
+            )
+
+        if attempt == 1:
+            print(f"[WAIT] Waiting for {description} (timeout: {timeout}s, interval: {interval}s)")
+        elif attempt % 5 == 0:
+            print(
+                f"[WAIT] Still waiting for {description}... "
+                f"({elapsed:.0f}s elapsed, attempt {attempt})"
+            )
+
+        await asyncio.sleep(interval)
 
 
 class DiscordTestHelper:
@@ -208,4 +292,190 @@ class DiscordTestHelper:
         assert participants_field is not None, "Participants field missing"
         assert f"/{expected_max_players}" in field.name, (
             f"Max players incorrect in field name: {field.name}"
+        )
+
+    async def wait_for_message(
+        self,
+        channel_id: str,
+        message_id: str,
+        timeout: int = 10,
+        interval: float = 0.5,
+    ) -> discord.Message:
+        """
+        Wait for Discord message to exist.
+
+        Polls channel.fetch_message() until message found or timeout.
+        Useful after API operations that create/update Discord messages.
+
+        Args:
+            channel_id: Discord channel snowflake
+            message_id: Discord message snowflake
+            timeout: Maximum seconds to wait
+            interval: Seconds between fetch attempts
+
+        Returns:
+            Discord Message object
+
+        Raises:
+            AssertionError: If message not found within timeout
+        """
+
+        async def check_message():
+            try:
+                msg = await self.get_message(channel_id, message_id)
+                return (True, msg)
+            except (discord.NotFound, discord.HTTPException):
+                return (False, None)
+
+        return await wait_for_condition(
+            check_message,
+            timeout=timeout,
+            interval=interval,
+            description=f"message {message_id} in channel {channel_id}",
+        )
+
+    async def wait_for_message_update(
+        self,
+        channel_id: str,
+        message_id: str,
+        check_func: Callable[[discord.Message], bool],
+        timeout: int = 10,
+        interval: float = 1.0,
+        description: str = "message update",
+    ) -> discord.Message:
+        """
+        Wait for Discord message to match condition.
+
+        Polls message until check_func returns True. Useful for verifying
+        embed updates, content changes, etc.
+
+        Args:
+            channel_id: Discord channel snowflake
+            message_id: Discord message snowflake
+            check_func: Function that returns True when message matches expected state
+            timeout: Maximum seconds to wait
+            interval: Seconds between checks
+            description: Human-readable description for logging
+
+        Returns:
+            Updated Discord Message object
+
+        Example:
+            # Wait for embed title to change
+            updated_msg = await helper.wait_for_message_update(
+                channel_id,
+                message_id,
+                lambda msg: msg.embeds[0].title == "New Title",
+                description="embed title update"
+            )
+        """
+
+        async def check_update():
+            try:
+                msg = await self.get_message(channel_id, message_id)
+                if check_func(msg):
+                    return (True, msg)
+                return (False, None)
+            except (discord.NotFound, discord.HTTPException):
+                return (False, None)
+
+        return await wait_for_condition(
+            check_update,
+            timeout=timeout,
+            interval=interval,
+            description=description,
+        )
+
+    async def wait_for_dm_matching(
+        self,
+        user_id: str,
+        predicate: Callable[[discord.Message], bool],
+        timeout: int = 150,
+        interval: float = 5.0,
+        description: str = "DM",
+    ) -> discord.Message:
+        """
+        Wait for DM matching predicate.
+
+        Polls user's DM channel until message matching predicate found.
+        Uses longer default timeout since DMs may be delayed by notification
+        daemon polling intervals.
+
+        Args:
+            user_id: Discord user snowflake
+            predicate: Function returning True for matching DM
+            timeout: Maximum seconds to wait (default 150s for daemon delays)
+            interval: Seconds between DM channel checks
+            description: Human-readable description for logging
+
+        Returns:
+            Matching Discord Message object
+
+        Example:
+            # Wait for game reminder DM
+            reminder_dm = await helper.wait_for_dm_matching(
+                user_id,
+                lambda dm: "Test Game" in dm.content and "starts <t:" in dm.content,
+                description="game reminder DM"
+            )
+        """
+
+        async def check_dms():
+            dms = await self.get_user_recent_dms(user_id, limit=15)
+            for dm in dms:
+                if predicate(dm):
+                    return (True, dm)
+            return (False, None)
+
+        return await wait_for_condition(
+            check_dms,
+            timeout=timeout,
+            interval=interval,
+            description=description,
+        )
+
+    async def wait_for_recent_dm(
+        self,
+        user_id: str,
+        game_title: str,
+        dm_type: DMType = DMType.REMINDER,
+        timeout: int = 150,
+        interval: float = 5.0,
+    ) -> discord.Message:
+        """
+        Wait for specific type of game-related DM.
+
+        Convenience wrapper around wait_for_dm_matching for common DM types.
+
+        Args:
+            user_id: Discord user snowflake
+            game_title: Title of game to find DM for
+            dm_type: Type of DM (DMType.REMINDER, JOIN, REMOVAL, or PROMOTION)
+            timeout: Maximum seconds to wait
+            interval: Seconds between checks
+
+        Returns:
+            Matching Discord Message object
+        """
+        predicates = {
+            DMType.REMINDER: lambda dm: (
+                dm.content and game_title in dm.content and "starts <t:" in dm.content
+            ),
+            DMType.JOIN: lambda dm: (
+                dm.content and "joined" in dm.content.lower() and game_title in dm.content
+            ),
+            DMType.REMOVAL: lambda dm: (
+                dm.content and game_title in dm.content and "removed" in dm.content.lower()
+            ),
+            DMType.PROMOTION: lambda dm: (
+                dm.content and game_title in dm.content and "promoted" in dm.content.lower()
+            ),
+        }
+
+        return await self.wait_for_dm_matching(
+            user_id,
+            predicates[dm_type],
+            timeout=timeout,
+            interval=interval,
+            description=f"{dm_type.value} DM for '{game_title}'",
         )

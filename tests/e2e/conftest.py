@@ -23,12 +23,86 @@ Provides fixtures for Discord credentials, database sessions,
 and HTTP clients needed by E2E tests.
 """
 
+import asyncio
 import os
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 import httpx
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
+
+T = TypeVar("T")
+
+
+async def wait_for_db_condition(
+    db_session: AsyncSession,
+    query: str,
+    params: dict,
+    predicate: Callable[[Any], bool],
+    timeout: int = 10,
+    interval: float = 0.5,
+    description: str = "database condition",
+) -> Any:
+    """
+    Poll database query until predicate satisfied.
+
+    Args:
+        db_session: SQLAlchemy async session
+        query: SQL query string
+        params: Query parameters
+        predicate: Function returning True when result matches expectation
+        timeout: Maximum seconds to wait
+        interval: Seconds between queries
+        description: Human-readable description
+
+    Returns:
+        Query result when predicate satisfied
+
+    Raises:
+        AssertionError: If condition not met within timeout
+
+    Example:
+        # Wait for message_id to be populated
+        result = await wait_for_db_condition(
+            db_session,
+            "SELECT message_id FROM game_sessions WHERE id = :game_id",
+            {"game_id": game_id},
+            lambda row: row[0] is not None,
+            description="message_id population"
+        )
+        message_id = result[0]
+    """
+    start_time = asyncio.get_event_loop().time()
+    attempt = 0
+
+    while True:
+        attempt += 1
+        elapsed = asyncio.get_event_loop().time() - start_time
+
+        result = await db_session.execute(text(query), params)
+        row = result.fetchone()
+
+        if row and predicate(row):
+            print(f"[WAIT] ✓ {description} met after {elapsed:.1f}s (attempt {attempt})")
+            return row
+
+        if elapsed >= timeout:
+            raise AssertionError(
+                f"{description} not met within {timeout}s timeout ({attempt} attempts)"
+            )
+
+        if attempt == 1:
+            print(f"[WAIT] Waiting for {description} (timeout: {timeout}s, interval: {interval}s)")
+        elif attempt % 5 == 0:
+            print(
+                f"[WAIT] Still waiting for {description}... "
+                f"({elapsed:.0f}s elapsed, attempt {attempt})"
+            )
+
+        await asyncio.sleep(interval)
 
 
 @pytest.fixture(scope="session")

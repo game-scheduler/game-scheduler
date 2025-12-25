@@ -39,24 +39,24 @@ Replace inconsistent sleep patterns in E2E tests with modular polling utilities 
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Core Polling Utilities
+### [x] Phase 1: Core Polling Utilities
 
-- [ ] Task 1.1: Add `wait_for_condition` generic polling function to discord.py
+- [x] Task 1.1: Add `wait_for_condition` generic polling function to discord.py
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 12-48)
 
-- [ ] Task 1.2: Add `wait_for_message` method to DiscordTestHelper
+- [x] Task 1.2: Add `wait_for_message` method to DiscordTestHelper
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 50-78)
 
-- [ ] Task 1.3: Add `wait_for_message_update` method to DiscordTestHelper
+- [x] Task 1.3: Add `wait_for_message_update` method to DiscordTestHelper
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 80-115)
 
-- [ ] Task 1.4: Add `wait_for_dm_matching` method to DiscordTestHelper
+- [x] Task 1.4: Add `wait_for_dm_matching` method to DiscordTestHelper
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 117-151)
 
-- [ ] Task 1.5: Add `wait_for_recent_dm` convenience method to DiscordTestHelper
+- [x] Task 1.5: Add `wait_for_recent_dm` convenience method to DiscordTestHelper
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 153-185)
 
-- [ ] Task 1.6: Add `wait_for_db_condition` database polling utility
+- [x] Task 1.6: Add `wait_for_db_condition` database polling utility
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 187-225)
 
 ### [ ] Phase 2: High Priority Test Refactoring
