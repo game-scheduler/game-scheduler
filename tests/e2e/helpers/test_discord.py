@@ -345,9 +345,16 @@ class TestDiscordTestHelperWaitForRecentDM:
 
     @pytest.mark.asyncio
     async def test_promotion_dm_type(self):
-        """Should match promotion DM with 'promoted' keyword."""
+        """Should match promotion DM with 'A spot opened up' and 'moved from the waitlist'."""
         helper = DiscordTestHelper("fake_token")
-        mock_dm = Mock(spec=discord.Message, content="You were promoted in Test Game")
+        mock_dm = Mock(
+            spec=discord.Message,
+            content=(
+                "✅ Good news! A spot opened up in **Test Game** "
+                "scheduled for <t:1234567890:F>. You've been moved from "
+                "the waitlist to confirmed participants!"
+            ),
+        )
         helper.wait_for_dm_matching = AsyncMock(return_value=mock_dm)
 
         result = await helper.wait_for_recent_dm("user123", "Test Game", dm_type=DMType.PROMOTION)

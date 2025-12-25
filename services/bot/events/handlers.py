@@ -507,16 +507,17 @@ class EventHandlers:
                     )
                     return
 
+                from shared.message_formats import DMFormats
+
                 # Format message based on signup_instructions presence
                 if game.signup_instructions:
-                    message = (
-                        f"✅ **You've joined {game.title}**\n\n"
-                        f"📋 **Signup Instructions**\n"
-                        f"{game.signup_instructions}\n\n"
-                        f"Game starts <t:{int(game.scheduled_at.timestamp())}:R>"
+                    message = DMFormats.join_with_instructions(
+                        game.title,
+                        game.signup_instructions,
+                        int(game.scheduled_at.timestamp()),
                     )
                 else:
-                    message = f"✅ You've joined **{game.title}**!"
+                    message = DMFormats.join_simple(game.title)
 
                 # Send DM
                 success = await self._send_dm(participant.user.discord_id, message)
@@ -603,11 +604,12 @@ class EventHandlers:
             is_waitlist: Whether participant is on waitlist
             is_host: Whether recipient is the game host
         """
+        from shared.message_formats import DMFormats
+
         if is_host:
-            message = f"🎮 **[Host]** Your game '{game_title}' starts <t:{game_time_unix}:R>"
+            message = DMFormats.reminder_host(game_title, game_time_unix)
         else:
-            waitlist_prefix = "🎫 **[Waitlist]** " if is_waitlist else ""
-            message = f"{waitlist_prefix}Your game '{game_title}' starts <t:{game_time_unix}:R>"
+            message = DMFormats.reminder_participant(game_title, game_time_unix, is_waitlist)
         await self._send_dm(user_discord_id, message)
 
     async def _handle_send_notification(self, data: dict[str, Any]) -> None:
@@ -686,10 +688,12 @@ class EventHandlers:
 
             # Send DM to removed user
             if discord_id:
+                from shared.message_formats import DMFormats
+
                 logger.info(
                     f"Preparing to send removal DM to user {discord_id} for game {game_title}"
                 )
-                dm_message = f"❌ You were removed from **{game_title}**"
+                dm_message = DMFormats.removal(game_title)
                 if game_scheduled_at:
                     from datetime import datetime
 

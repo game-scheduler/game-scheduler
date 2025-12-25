@@ -129,9 +129,10 @@ async def test_discord_user_exists(discord_token, discord_user_id):
         await client.close()
 
 
-def test_database_seeded(db_session, discord_guild_id, discord_channel_id, discord_user_id):
+@pytest.mark.asyncio
+async def test_database_seeded(db_session, discord_guild_id, discord_channel_id, discord_user_id):
     """Verify init service seeded the database with test data."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM guild_configurations WHERE guild_id = :guild_id"),
         {"guild_id": discord_guild_id},
     )
@@ -141,7 +142,7 @@ def test_database_seeded(db_session, discord_guild_id, discord_channel_id, disco
         f"Init service may have failed to seed E2E data"
     )
 
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM channel_configurations WHERE channel_id = :channel_id"),
         {"channel_id": discord_channel_id},
     )
@@ -151,7 +152,7 @@ def test_database_seeded(db_session, discord_guild_id, discord_channel_id, disco
         f"Init service may have failed to seed E2E data"
     )
 
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM users WHERE discord_id = :discord_id"),
         {"discord_id": discord_user_id},
     )

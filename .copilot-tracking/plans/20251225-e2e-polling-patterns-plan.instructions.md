@@ -59,55 +59,55 @@ Replace inconsistent sleep patterns in E2E tests with modular polling utilities 
 - [x] Task 1.6: Add `wait_for_db_condition` database polling utility
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 187-225)
 
-### [ ] Phase 2: High Priority Test Refactoring
+### [x] Phase 2: High Priority Test Refactoring
 
-- [ ] Task 2.1: Refactor test_player_removal.py (10s sleep → poll for removal DM)
+- [x] Task 2.1: Refactor test_player_removal.py (10s sleep → poll for removal DM)
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 227-247)
 
-- [ ] Task 2.2: Refactor test_waitlist_promotion.py (6s sleep → poll for promotion DM)
+- [x] Task 2.2: Refactor test_waitlist_promotion.py (6s sleep → poll for promotion DM)
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 249-268)
 
-- [ ] Task 2.3: Refactor test_game_update.py (2 × 3s sleeps → poll for message updates)
+- [x] Task 2.3: Refactor test_game_update.py (2 × 3s sleeps → poll for message updates)
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 270-293)
 
-- [ ] Task 2.4: Refactor test_user_join.py (2 × 3s sleeps → poll for participant updates)
+- [x] Task 2.4: Refactor test_user_join.py (2 × 3s sleeps → poll for participant updates)
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 295-318)
 
-- [ ] Task 2.5: Refactor test_game_cancellation.py (2s + 3s sleeps → poll for message updates)
+- [x] Task 2.5: Refactor test_game_cancellation.py (2s + 3s sleeps → poll for message updates)
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 320-341)
 
-- [ ] Task 2.6: Refactor test_game_status_transitions.py (3s sleep → poll for message)
+- [x] Task 2.6: Refactor test_game_status_transitions.py (3s sleep → poll for message)
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 343-361)
 
-- [ ] Task 2.7: Refactor test_join_notification.py (2 × 2s sleeps → poll for message/schedule)
+- [x] Task 2.7: Refactor test_join_notification.py (2 × 2s sleeps → poll for message/schedule)
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 363-384)
 
-- [ ] Task 2.8: Refactor test_game_reminder.py (3s sleep → poll for message)
+- [x] Task 2.8: Refactor test_game_reminder.py (3s sleep → poll for message)
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 386-404)
 
-### [ ] Phase 3: Medium Priority Test Consolidation
+### [x] Phase 3: Medium Priority Test Consolidation
 
-- [ ] Task 3.1: Consolidate test_game_announcement.py database polling
+- [x] Task 3.1: Consolidate test_game_announcement.py database polling
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 406-427)
 
-- [ ] Task 3.2: Consolidate test_game_reminder.py database and DM polling
+- [x] Task 3.2: Consolidate test_game_reminder.py database and DM polling
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 429-454)
 
-- [ ] Task 3.3: Consolidate test_join_notification.py database and DM polling
+- [x] Task 3.3: Consolidate test_join_notification.py database and DM polling
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 456-481)
 
-- [ ] Task 3.4: Consolidate test_game_status_transitions.py status polling
+- [x] Task 3.4: Consolidate test_game_status_transitions.py status polling
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 483-508)
 
-### [ ] Phase 4: Configuration and Testing
+### [x] Phase 4: Configuration and Testing
 
-- [ ] Task 4.1: Add e2e_timeouts fixture to conftest.py
+- [x] Task 4.1: Add e2e_timeouts fixture to conftest.py
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 510-535)
 
-- [ ] Task 4.2: Run full E2E test suite and verify improvements
+- [x] Task 4.2: Run full E2E test suite and verify improvements
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 537-561)
 
-- [ ] Task 4.3: Measure and document test execution time improvements
+- [x] Task 4.3: Measure and document test execution time improvements
   - Details: .copilot-tracking/details/20251225-e2e-polling-patterns-details.md (Lines 563-586)
 
 ## Dependencies

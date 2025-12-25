@@ -37,34 +37,35 @@ E2E data seeded by init service:
 Note: Admin bot (from DISCORD_ADMIN_BOT_TOKEN) creates and joins the game in this test.
 """
 
-import asyncio
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 from sqlalchemy import text
 
+from tests.e2e.conftest import TimeoutType, wait_for_game_message_id
+
 
 @pytest.fixture
-def clean_test_data(db_session):
+async def clean_test_data(db_session):
     """Clean up only game-related test data before and after test."""
-    db_session.execute(text("DELETE FROM notification_schedule"))
-    db_session.execute(text("DELETE FROM game_participants"))
-    db_session.execute(text("DELETE FROM game_sessions"))
-    db_session.commit()
+    await db_session.execute(text("DELETE FROM notification_schedule"))
+    await db_session.execute(text("DELETE FROM game_participants"))
+    await db_session.execute(text("DELETE FROM game_sessions"))
+    await db_session.commit()
 
     yield
 
-    db_session.execute(text("DELETE FROM notification_schedule"))
-    db_session.execute(text("DELETE FROM game_participants"))
-    db_session.execute(text("DELETE FROM game_sessions"))
-    db_session.commit()
+    await db_session.execute(text("DELETE FROM notification_schedule"))
+    await db_session.execute(text("DELETE FROM game_participants"))
+    await db_session.execute(text("DELETE FROM game_sessions"))
+    await db_session.commit()
 
 
 @pytest.fixture
-def test_guild_id(db_session, discord_guild_id):
+async def test_guild_id(db_session, discord_guild_id):
     """Get database ID for test guild (seeded by init service)."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM guild_configurations WHERE guild_id = :guild_id"),
         {"guild_id": discord_guild_id},
     )
@@ -75,9 +76,9 @@ def test_guild_id(db_session, discord_guild_id):
 
 
 @pytest.fixture
-def test_channel_id(db_session, discord_channel_id):
+async def test_channel_id(db_session, discord_channel_id):
     """Get database ID for test channel (seeded by init service)."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM channel_configurations WHERE channel_id = :channel_id"),
         {"channel_id": discord_channel_id},
     )
@@ -88,9 +89,9 @@ def test_channel_id(db_session, discord_channel_id):
 
 
 @pytest.fixture
-def test_host_id(db_session, discord_user_id):
+async def test_host_id(db_session, discord_user_id):
     """Get database ID for test user (seeded by init service)."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM users WHERE discord_id = :discord_id"),
         {"discord_id": discord_user_id},
     )
@@ -101,9 +102,9 @@ def test_host_id(db_session, discord_user_id):
 
 
 @pytest.fixture
-def test_template_id(db_session, test_guild_id, synced_guild):
+async def test_template_id(db_session, test_guild_id, synced_guild):
     """Get default template ID for test guild (created by guild sync)."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM game_templates WHERE guild_id = :guild_id AND is_default = true"),
         {"guild_id": test_guild_id},
     )
@@ -127,6 +128,7 @@ async def test_user_join_updates_participant_count(
     discord_channel_id,
     bot_discord_id,
     clean_test_data,
+    e2e_timeouts,
 ):
     """
     E2E: Bot joining game via API updates Discord message participant count.
@@ -155,10 +157,10 @@ async def test_user_join_updates_participant_count(
 
     # Refresh the session to ensure we see committed data
     db_session.expire_all()
-    db_session.commit()
+    await db_session.commit()
 
     # Check game and host details
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id, host_id FROM game_sessions WHERE id = :game_id"),
         {"game_id": game_id},
     )
@@ -169,7 +171,7 @@ async def test_user_join_updates_participant_count(
         print(f"[DEBUG] Host ID: {game_row[1]}")
 
     # Check bot user details
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id, discord_id FROM users WHERE discord_id = :discord_id"),
         {"discord_id": bot_discord_id},
     )
@@ -182,7 +184,7 @@ async def test_user_join_updates_participant_count(
             print(f"[DEBUG] Bot is host: {bot_user[0] == game_row[1]}")
 
     # Check ALL participants (including any with NULL user_id)
-    result = db_session.execute(
+    result = await db_session.execute(
         text(
             "SELECT id, game_session_id, user_id, display_name, position_type, position "
             "FROM game_participants WHERE game_session_id = :game_id"
@@ -199,7 +201,7 @@ async def test_user_join_updates_participant_count(
 
     # Check if bot already has a participant record
     if bot_user:
-        result = db_session.execute(
+        result = await db_session.execute(
             text(
                 "SELECT id, game_session_id, user_id, display_name "
                 "FROM game_participants WHERE user_id = :user_id"
@@ -214,19 +216,17 @@ async def test_user_join_updates_participant_count(
                 f"user_id={p[2]}, display_name={p[3]}"
             )
 
-    await asyncio.sleep(3)
-
-    result = db_session.execute(
-        text("SELECT message_id FROM game_sessions WHERE id = :game_id"),
-        {"game_id": game_id},
+    message_id = await wait_for_game_message_id(
+        db_session, game_id, timeout=e2e_timeouts[TimeoutType.DB_WRITE]
     )
-    row = result.fetchone()
-    assert row is not None, "Game session not found in database"
-    message_id = row[0]
     print(f"[TEST] Message ID: {message_id}")
-    assert message_id is not None, "Message ID should be set after game creation"
+    assert message_id is not None, "Message ID should be populated after announcement"
 
-    initial_message = await discord_helper.get_message(discord_channel_id, message_id)
+    initial_message = await discord_helper.wait_for_message(
+        channel_id=discord_channel_id,
+        message_id=message_id,
+        timeout=e2e_timeouts[TimeoutType.MESSAGE_CREATE],
+    )
     assert initial_message is not None, "Discord message should exist after creation"
     assert len(initial_message.embeds) == 1, "Message should have one embed"
 
@@ -247,4 +247,30 @@ async def test_user_join_updates_participant_count(
     assert join_response.status_code == 200, f"Failed to join game: {join_response.text}"
     print("[TEST] User joined game successfully")
 
-    await asyncio.sleep(3)
+    updated_message = await discord_helper.wait_for_message_update(
+        channel_id=discord_channel_id,
+        message_id=message_id,
+        check_func=lambda msg: (
+            msg.embeds
+            and msg.embeds[0].fields
+            and any("1/4" in field.name for field in msg.embeds[0].fields if field.name)
+        ),
+        timeout=e2e_timeouts[TimeoutType.MESSAGE_UPDATE],
+        description="participant count update to 1/4",
+    )
+    assert updated_message is not None, "Discord message should be updated after join"
+    assert len(updated_message.embeds) == 1, "Message should still have one embed"
+
+    updated_embed = updated_message.embeds[0]
+    updated_participants_field = None
+    for field in updated_embed.fields:
+        if field.name and "Participants" in field.name:
+            updated_participants_field = field
+            break
+
+    assert updated_participants_field is not None, "Participants field should still exist"
+    print(f"[TEST] Updated participant field: {updated_participants_field.name}")
+    assert "1/4" in updated_participants_field.name, (
+        f"Should show 1/4 participants after join: {updated_participants_field.name}"
+    )
+    print("[TEST] ✓ User join successfully updated Discord message")

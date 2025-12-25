@@ -25,6 +25,8 @@ from typing import TypeVar
 
 import discord
 
+from shared.message_formats import DMPredicates
+
 T = TypeVar("T")
 
 
@@ -446,6 +448,8 @@ class DiscordTestHelper:
         Wait for specific type of game-related DM.
 
         Convenience wrapper around wait_for_dm_matching for common DM types.
+        Uses centralized predicates from shared.message_formats to ensure
+        tests stay in sync with production message formats.
 
         Args:
             user_id: Discord user snowflake
@@ -458,18 +462,10 @@ class DiscordTestHelper:
             Matching Discord Message object
         """
         predicates = {
-            DMType.REMINDER: lambda dm: (
-                dm.content and game_title in dm.content and "starts <t:" in dm.content
-            ),
-            DMType.JOIN: lambda dm: (
-                dm.content and "joined" in dm.content.lower() and game_title in dm.content
-            ),
-            DMType.REMOVAL: lambda dm: (
-                dm.content and game_title in dm.content and "removed" in dm.content.lower()
-            ),
-            DMType.PROMOTION: lambda dm: (
-                dm.content and game_title in dm.content and "promoted" in dm.content.lower()
-            ),
+            DMType.REMINDER: DMPredicates.reminder(game_title),
+            DMType.JOIN: DMPredicates.join(game_title),
+            DMType.REMOVAL: DMPredicates.removal(game_title),
+            DMType.PROMOTION: DMPredicates.promotion(game_title),
         }
 
         return await self.wait_for_dm_matching(

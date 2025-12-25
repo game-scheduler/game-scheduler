@@ -1259,11 +1259,9 @@ class GameService:
         """
         scheduled_at_unix = int(game.scheduled_at.timestamp())
 
-        message = (
-            f"✅ Good news! A spot opened up in **{game.title}** "
-            f"scheduled for <t:{scheduled_at_unix}:F>. "
-            f"You've been moved from the waitlist to confirmed participants!"
-        )
+        from shared.message_formats import DMFormats
+
+        message = DMFormats.promotion(game.title, scheduled_at_unix)
 
         notification_event = messaging_events.NotificationSendDMEvent(
             user_id=discord_id,

@@ -40,7 +40,6 @@ E2E data seeded by init service:
 - Test host user (from DISCORD_USER_ID)
 """
 
-import asyncio
 import json
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -48,27 +47,30 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import text
 
+from tests.e2e.conftest import TimeoutType, wait_for_game_message_id
+from tests.e2e.helpers.discord import DMType
+
 
 @pytest.fixture
-def clean_test_data(db_session):
+async def clean_test_data(db_session):
     """Clean up only game-related test data before and after test."""
-    db_session.execute(text("DELETE FROM notification_schedule"))
-    db_session.execute(text("DELETE FROM game_participants"))
-    db_session.execute(text("DELETE FROM game_sessions"))
-    db_session.commit()
+    await db_session.execute(text("DELETE FROM notification_schedule"))
+    await db_session.execute(text("DELETE FROM game_participants"))
+    await db_session.execute(text("DELETE FROM game_sessions"))
+    await db_session.commit()
 
     yield
 
-    db_session.execute(text("DELETE FROM notification_schedule"))
-    db_session.execute(text("DELETE FROM game_participants"))
-    db_session.execute(text("DELETE FROM game_sessions"))
-    db_session.commit()
+    await db_session.execute(text("DELETE FROM notification_schedule"))
+    await db_session.execute(text("DELETE FROM game_participants"))
+    await db_session.execute(text("DELETE FROM game_sessions"))
+    await db_session.commit()
 
 
 @pytest.fixture
-def test_guild_id(db_session, discord_guild_id):
+async def test_guild_id(db_session, discord_guild_id):
     """Get database ID for test guild (seeded by init service)."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM guild_configurations WHERE guild_id = :guild_id"),
         {"guild_id": discord_guild_id},
     )
@@ -79,9 +81,9 @@ def test_guild_id(db_session, discord_guild_id):
 
 
 @pytest.fixture
-def test_channel_id(db_session, discord_channel_id):
+async def test_channel_id(db_session, discord_channel_id):
     """Get database ID for test channel (seeded by init service)."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM channel_configurations WHERE channel_id = :channel_id"),
         {"channel_id": discord_channel_id},
     )
@@ -92,9 +94,9 @@ def test_channel_id(db_session, discord_channel_id):
 
 
 @pytest.fixture
-def test_host_id(db_session, discord_user_id):
+async def test_host_id(db_session, discord_user_id):
     """Get database ID for test user (seeded by init service)."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM users WHERE discord_id = :discord_id"),
         {"discord_id": discord_user_id},
     )
@@ -105,9 +107,9 @@ def test_host_id(db_session, discord_user_id):
 
 
 @pytest.fixture
-def test_template_id(db_session, test_guild_id, synced_guild):
+async def test_template_id(db_session, test_guild_id, synced_guild):
     """Get default template ID for test guild (created by guild sync)."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM game_templates WHERE guild_id = :guild_id AND is_default = true"),
         {"guild_id": test_guild_id},
     )
@@ -143,6 +145,7 @@ async def test_join_notification_with_signup_instructions(
     discord_channel_id,
     discord_user_id,
     clean_test_data,
+    e2e_timeouts,
 ):
     """
     E2E: Join notification delivers DM with signup instructions to participant.
@@ -182,10 +185,17 @@ async def test_join_notification_with_signup_instructions(
     print(f"[TEST] Signup instructions: {signup_instructions[:50]}...")
     print(f"[TEST] Test user {discord_user_id} added as initial participant")
 
-    await asyncio.sleep(2)
+    message_id = await wait_for_game_message_id(
+        db_session, game_id, timeout=e2e_timeouts[TimeoutType.DB_WRITE]
+    )
+    await main_bot_helper.wait_for_message(
+        channel_id=discord_channel_id,
+        message_id=message_id,
+        timeout=e2e_timeouts[TimeoutType.MESSAGE_CREATE],
+    )
 
     # Verify notification_schedule entry created
-    result = db_session.execute(
+    result = await db_session.execute(
         text(
             "SELECT id, notification_type, participant_id, notification_time, sent "
             "FROM notification_schedule "
@@ -217,42 +227,13 @@ async def test_join_notification_with_signup_instructions(
     )
     print(f"[TEST] ✓ Notification scheduled {time_until_notification:.1f} seconds from now")
 
-    # Wait for notification daemon to process (60 second delay + processing time)
-    print("[TEST] Waiting up to 90 seconds for join notification to be sent...")
-    max_wait_seconds = 90
-    check_interval = 5
-    dm_found = False
-
-    for elapsed in range(0, max_wait_seconds, check_interval):
-        if elapsed > 0:
-            print(f"[TEST] Checking for DM... ({elapsed}s elapsed)")
-
-        # Main bot reads DM channel with test user
-        dms = await main_bot_helper.get_user_recent_dms(user_id=discord_user_id, limit=10)
-        print(f"[TEST DEBUG] Found {len(dms)} DMs from bot to user")
-
-        for i, dm in enumerate(dms):
-            print(
-                f"[TEST DEBUG] DM {i}: content={dm.content[:100] if dm.content else 'None'}, "
-                f"embeds={len(dm.embeds)}"
-            )
-
-            # Look for join notification message
-            if dm.content and "joined" in dm.content.lower() and game_title in dm.content:
-                dm_found = True
-                join_dm = dm
-                print("[TEST] ✓ Join notification DM found!")
-                break
-
-        if dm_found:
-            break
-
-        if elapsed < max_wait_seconds - check_interval:
-            await asyncio.sleep(check_interval)
-
-    assert dm_found, (
-        f"Main bot should have sent join notification DM to test user "
-        f"within {max_wait_seconds} seconds"
+    # Wait for notification daemon to process and send DM
+    join_dm = await main_bot_helper.wait_for_recent_dm(
+        user_id=discord_user_id,
+        game_title=game_title,
+        dm_type=DMType.JOIN,
+        timeout=e2e_timeouts[TimeoutType.DM_SCHEDULED],
+        interval=5,
     )
 
     # Verify DM content includes game title and signup instructions
@@ -272,7 +253,7 @@ async def test_join_notification_with_signup_instructions(
     print("[TEST] ✓ Join notification DM confirms user joined")
 
     # Verify notification marked as sent in database
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT sent FROM notification_schedule WHERE id = :schedule_id"),
         {"schedule_id": schedule_id},
     )
@@ -296,6 +277,7 @@ async def test_join_notification_without_signup_instructions(
     discord_channel_id,
     discord_user_id,
     clean_test_data,
+    e2e_timeouts,
 ):
     """
     E2E: Join notification delivers generic DM when no signup instructions.
@@ -328,10 +310,17 @@ async def test_join_notification_without_signup_instructions(
     print(f"\n[TEST] Game created with ID: {game_id} (no signup instructions)")
     print(f"[TEST] Test user {discord_user_id} added as initial participant")
 
-    await asyncio.sleep(2)
+    message_id = await wait_for_game_message_id(
+        db_session, game_id, timeout=e2e_timeouts[TimeoutType.DB_WRITE]
+    )
+    await main_bot_helper.wait_for_message(
+        channel_id=discord_channel_id,
+        message_id=message_id,
+        timeout=e2e_timeouts[TimeoutType.MESSAGE_CREATE],
+    )
 
     # Verify notification_schedule entry created
-    result = db_session.execute(
+    result = await db_session.execute(
         text(
             "SELECT id, notification_type FROM notification_schedule "
             "WHERE game_id = :game_id AND notification_type = 'join_notification'"
@@ -342,34 +331,13 @@ async def test_join_notification_without_signup_instructions(
     assert schedule_row is not None, "Join notification schedule entry should be created"
     print(f"[TEST] ✓ Join notification schedule created (id: {schedule_row[0]})")
 
-    # Wait for notification daemon to process
-    print("[TEST] Waiting up to 90 seconds for join notification to be sent...")
-    max_wait_seconds = 90
-    check_interval = 5
-    dm_found = False
-
-    for elapsed in range(0, max_wait_seconds, check_interval):
-        if elapsed > 0:
-            print(f"[TEST] Checking for DM... ({elapsed}s elapsed)")
-
-        dms = await main_bot_helper.get_user_recent_dms(user_id=discord_user_id, limit=10)
-
-        for dm in dms:
-            if dm.content and "joined" in dm.content.lower() and game_title in dm.content:
-                dm_found = True
-                join_dm = dm
-                print("[TEST] ✓ Join notification DM found!")
-                break
-
-        if dm_found:
-            break
-
-        if elapsed < max_wait_seconds - check_interval:
-            await asyncio.sleep(check_interval)
-
-    assert dm_found, (
-        f"Main bot should have sent join notification DM to test user "
-        f"within {max_wait_seconds} seconds"
+    # Wait for notification daemon to process and send DM
+    join_dm = await main_bot_helper.wait_for_recent_dm(
+        user_id=discord_user_id,
+        game_title=game_title,
+        dm_type=DMType.JOIN,
+        timeout=90,
+        interval=5,
     )
 
     # Verify DM content is generic (no signup instructions section)

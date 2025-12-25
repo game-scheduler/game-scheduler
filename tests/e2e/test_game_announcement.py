@@ -36,34 +36,35 @@ E2E data seeded by init service:
 - Test host user (from DISCORD_USER_ID)
 """
 
-import asyncio
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 from sqlalchemy import text
 
+from tests.e2e.conftest import TimeoutType, wait_for_game_message_id
+
 
 @pytest.fixture
-def clean_test_data(db_session):
+async def clean_test_data(db_session):
     """Clean up only game-related test data before and after test."""
-    db_session.execute(text("DELETE FROM notification_schedule"))
-    db_session.execute(text("DELETE FROM game_participants"))
-    db_session.execute(text("DELETE FROM game_sessions"))
-    db_session.commit()
+    await db_session.execute(text("DELETE FROM notification_schedule"))
+    await db_session.execute(text("DELETE FROM game_participants"))
+    await db_session.execute(text("DELETE FROM game_sessions"))
+    await db_session.commit()
 
     yield
 
-    db_session.execute(text("DELETE FROM notification_schedule"))
-    db_session.execute(text("DELETE FROM game_participants"))
-    db_session.execute(text("DELETE FROM game_sessions"))
-    db_session.commit()
+    await db_session.execute(text("DELETE FROM notification_schedule"))
+    await db_session.execute(text("DELETE FROM game_participants"))
+    await db_session.execute(text("DELETE FROM game_sessions"))
+    await db_session.commit()
 
 
 @pytest.fixture
-def test_guild_id(db_session, discord_guild_id):
+async def test_guild_id(db_session, discord_guild_id):
     """Get database ID for test guild (seeded by init service)."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM guild_configurations WHERE guild_id = :guild_id"),
         {"guild_id": discord_guild_id},
     )
@@ -74,9 +75,9 @@ def test_guild_id(db_session, discord_guild_id):
 
 
 @pytest.fixture
-def test_channel_id(db_session, discord_channel_id):
+async def test_channel_id(db_session, discord_channel_id):
     """Get database ID for test channel (seeded by init service)."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM channel_configurations WHERE channel_id = :channel_id"),
         {"channel_id": discord_channel_id},
     )
@@ -87,9 +88,9 @@ def test_channel_id(db_session, discord_channel_id):
 
 
 @pytest.fixture
-def test_host_id(db_session, discord_user_id):
+async def test_host_id(db_session, discord_user_id):
     """Get database ID for test user (seeded by init service)."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM users WHERE discord_id = :discord_id"),
         {"discord_id": discord_user_id},
     )
@@ -100,9 +101,9 @@ def test_host_id(db_session, discord_user_id):
 
 
 @pytest.fixture
-def test_template_id(db_session, test_guild_id, synced_guild):
+async def test_template_id(db_session, test_guild_id, synced_guild):
     """Get default template ID for test guild (created by guild sync)."""
-    result = db_session.execute(
+    result = await db_session.execute(
         text("SELECT id FROM game_templates WHERE guild_id = :guild_id AND is_default = true"),
         {"guild_id": test_guild_id},
     )
@@ -127,6 +128,7 @@ async def test_game_creation_posts_announcement_to_discord(
     discord_channel_id,
     discord_user_id,
     clean_test_data,
+    e2e_timeouts,
 ):
     """
     E2E: Creating game via API posts announcement to Discord channel.
@@ -152,25 +154,11 @@ async def test_game_creation_posts_announcement_to_discord(
     game_id = response.json()["id"]
     print(f"\n[TEST] Game created with ID: {game_id}")
 
-    # Poll for message_id (announcement happens asynchronously via RabbitMQ)
-    message_id = None
-    for attempt in range(10):
-        result = db_session.execute(
-            text("SELECT message_id, channel_id FROM game_sessions WHERE id = :game_id"),
-            {"game_id": game_id},
-        )
-        row = result.fetchone()
-        assert row is not None, "Game session not found in database"
-        message_id = row[0]
-        game_channel_id = row[1]
+    message_id = await wait_for_game_message_id(
+        db_session, game_id, timeout=e2e_timeouts[TimeoutType.DB_WRITE]
+    )
 
-        if message_id is not None:
-            break
-
-        if attempt < 9:
-            await asyncio.sleep(0.5)
-
-    print(f"[TEST] Database - message_id: {message_id}, channel_id: {game_channel_id}")
+    print(f"[TEST] Database - message_id: {message_id}")
     print(f"[TEST] Expected Discord channel_id: {discord_channel_id}")
     assert message_id is not None, "Message ID should be populated after announcement"
 

@@ -26,15 +26,54 @@ and HTTP clients needed by E2E tests.
 import asyncio
 import os
 from collections.abc import Callable
+from enum import StrEnum
 from typing import Any, TypeVar
 
 import httpx
 import pytest
-from sqlalchemy import create_engine, text
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 T = TypeVar("T")
+
+
+class TimeoutType(StrEnum):
+    """E2E test timeout operation types."""
+
+    MESSAGE_CREATE = "message_create"
+    MESSAGE_UPDATE = "message_update"
+    DM_IMMEDIATE = "dm_immediate"
+    DM_SCHEDULED = "dm_scheduled"
+    STATUS_TRANSITION = "status_transition"
+    DB_WRITE = "db_write"
+
+
+@pytest.fixture(scope="session")
+def e2e_timeouts() -> dict[TimeoutType, int]:
+    """
+    Standard timeout values for E2E test polling operations.
+
+    Returns dict with TimeoutType keys and timeout values (in seconds):
+    - MESSAGE_CREATE: Discord message creation (10s)
+    - MESSAGE_UPDATE: Discord message edit/refresh (10s)
+    - DM_IMMEDIATE: DMs sent immediately by API events (10s)
+    - DM_SCHEDULED: DMs sent by notification daemon polling (150s)
+    - STATUS_TRANSITION: Status transitions via daemon polling (150s)
+    - DB_WRITE: Database write operations (5s)
+
+    These values balance reliability (generous timeouts for daemon operations)
+    with test speed (short timeouts for immediate operations).
+
+    Can be overridden in CI environments by adjusting values here.
+    """
+    return {
+        TimeoutType.MESSAGE_CREATE: 10,
+        TimeoutType.MESSAGE_UPDATE: 10,
+        TimeoutType.DM_IMMEDIATE: 10,
+        TimeoutType.DM_SCHEDULED: 150,
+        TimeoutType.STATUS_TRANSITION: 150,
+        TimeoutType.DB_WRITE: 5,
+    }
 
 
 async def wait_for_db_condition(
@@ -105,6 +144,44 @@ async def wait_for_db_condition(
         await asyncio.sleep(interval)
 
 
+async def wait_for_game_message_id(
+    db_session: AsyncSession,
+    game_id: str,
+    timeout: int = 5,
+) -> str:
+    """
+    Poll database until message_id is populated for a game session.
+
+    Game announcement messages are posted asynchronously via RabbitMQ,
+    so message_id may not be immediately available after game creation.
+
+    Args:
+        db_session: SQLAlchemy async session
+        game_id: UUID of the game session
+        timeout: Maximum seconds to wait (default: 5)
+
+    Returns:
+        Discord message_id string
+
+    Raises:
+        AssertionError: If message_id not populated within timeout
+
+    Example:
+        game_id = response.json()["id"]
+        message_id = await wait_for_game_message_id(db_session, game_id)
+    """
+    row = await wait_for_db_condition(
+        db_session,
+        "SELECT message_id FROM game_sessions WHERE id = :game_id",
+        {"game_id": game_id},
+        lambda row: row[0] is not None,
+        timeout=timeout,
+        interval=0.5,
+        description=f"message_id population for game {game_id}",
+    )
+    return row[0]
+
+
 @pytest.fixture(scope="session")
 def discord_token():
     """Provide Discord admin bot token for E2E tests."""
@@ -139,28 +216,25 @@ def discord_user_id():
 def database_url():
     """Construct database URL from environment variables."""
     return (
-        f"postgresql://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}"
+        f"postgresql+asyncpg://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}"
         f"@{os.environ['POSTGRES_HOST']}:{os.environ['POSTGRES_PORT']}/{os.environ['POSTGRES_DB']}"
     )
 
 
-@pytest.fixture(scope="session")
-def db_engine(database_url):
-    """Create database engine for E2E tests."""
-    engine = create_engine(database_url)
+@pytest.fixture(scope="function")
+async def db_engine(database_url):
+    """Create async database engine for E2E tests."""
+    engine = create_async_engine(database_url, future=True)
     yield engine
-    engine.dispose()
+    await engine.dispose()
 
 
 @pytest.fixture(scope="function")
-def db_session(db_engine):
-    """Provide database session for individual tests."""
-    session_factory = sessionmaker(bind=db_engine)
-    session = session_factory()
-    try:
+async def db_session(db_engine):
+    """Provide async database session for individual tests."""
+    async_session = async_sessionmaker(db_engine, expire_on_commit=False, class_=AsyncSession)
+    async with async_session() as session:
         yield session
-    finally:
-        session.close()
 
 
 @pytest.fixture(scope="session")
