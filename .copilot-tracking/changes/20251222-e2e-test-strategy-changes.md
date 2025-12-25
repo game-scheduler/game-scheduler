@@ -13,7 +13,7 @@ Implementation of true end-to-end testing that validates Discord bot behavior an
 **Phase 2 Status: ✅ COMPLETE** - Bot authentication fixtures with manual session creation fully working (4/4 tests passing).
 **Phase 3 Status: ✅ COMPLETE** - First E2E test fully implemented and passing (1/1 test) with Discord message validation working.
 **Phase 4 Status: ✅ COMPLETE** - Message validation tests completed (Tasks 4.1, 4.2, 4.3, and 4.4 all implemented). Task 4.5 intentionally skipped - see Phase 5.
-**Phase 5 Status: 🔄 IN PROGRESS** - Additional communication path tests (Tasks 5.1 and 5.2 complete, 3 remaining tasks).
+**Phase 5 Status: 🔄 IN PROGRESS** - Additional communication path tests (Tasks 5.1, 5.2, and 5.3 complete, 1 remaining task).
 
 ## Changes
 
@@ -35,6 +35,7 @@ Implementation of true end-to-end testing that validates Discord bot behavior an
 - tests/e2e/test_game_status_transitions.py - E2E test for game status transition validation with Discord message updates (Task 4.4)
 - tests/e2e/test_game_cancellation.py - E2E test for game cancellation message update validation (Task 5.1)
 - tests/e2e/test_player_removal.py - E2E test for player removal DM notification and message update validation (Task 5.2)
+- tests/e2e/test_waitlist_promotion.py - E2E test for waitlist promotion DM notification validation (Task 5.3, parametrized with 2 scenarios)
 
 ### Modified
 
@@ -74,6 +75,10 @@ Implementation of true end-to-end testing that validates Discord bot behavior an
 - services/api/services/games.py - Fixed _remove_participants() to load participant.user relationship with selectinload (Task 5.2)
 - services/api/services/games.py - Fixed _publish_player_removed() to use game.channel.channel_id for Discord channel ID (Task 5.2)
 - services/bot/events/handlers.py - Fixed _handle_player_removed() datetime parsing using fromisoformat() instead of undefined game.scheduled_at (Task 5.2)
+- services/api/services/games.py - Fixed update_game() to refresh game.participants relationship after commit to get updated state (Task 5.3)
+  - Added `await self.db.refresh(game, ["participants"])` after commit (line ~889)
+  - Ensures promotion detection sees correct participant list after deletions
+  - Resolves SQLAlchemy relationship caching issue causing stale data
 
 ## Success Metrics
 
@@ -84,6 +89,13 @@ Implementation of true end-to-end testing that validates Discord bot behavior an
 - ✅ message_id populated in database
 - ✅ Discord message fetched and validated
 - ✅ Embed content verified (title, host mention, player count)
+
+**Phase 5 Progress:**
+- ✅ Task 5.1: Game cancellation message update test passing
+- ✅ Task 5.2: Player removal DM notification test passing (fixed 2 event publishing bugs)
+- ✅ Task 5.3: Waitlist promotion DM notification test passing (both scenarios: via_removal and via_max_players_increase)
+  - Fixed SQLAlchemy relationship caching bug in promotion detection
+  - Both parametrized test scenarios validating correctly
 
 ### Removed
 

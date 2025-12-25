@@ -192,16 +192,14 @@ Implement true end-to-end testing that validates Discord bot behavior and messag
   - Verify promoted user receives DM with promotion message
   - Verify Discord message updated showing user moved to confirmed
   - Details: .copilot-tracking/details/20251222-e2e-test-strategy-details.md (Lines 259-277)
-  - Status: ⚠️ IMPLEMENTED - AWAITING VALIDATION
-  - **Bug Discovered**: Promotion detection was broken when placeholders occupy confirmed slots
-  - **Bug Fixed**: Implemented architectural solution using centralized `partition_participants()` utility
-    - Created `PartitionedParticipants` dataclass in shared/utils/participant_sorting.py
-    - Includes `cleared_waitlist()` method to detect promotions
-    - Updated services/api/services/games.py::update_game() to use new utility (lines 810, 863-865)
-  - **Next Step**: Run E2E test to validate fix works correctly
+  - Status: ✅ COMPLETE - Both test scenarios passing
+  - **Bug Discovered & Fixed**: SQLAlchemy relationship caching issue after participant deletion
+    - Root cause: After committing participant deletions, `game.participants` contained stale cached data
+    - Promotion detection saw old participant count instead of updated state
+    - Solution: Added `await self.db.refresh(game, ["participants"])` after commit to reload relationship
+    - Fix location: services/api/services/games.py::update_game() (line ~889)
   - **Test File**: tests/e2e/test_waitlist_promotion.py (parametrized with 2 scenarios)
-  - **Research**: #file:../research/20251224-promotion-detection-bug.md - Complete bug analysis and fix details
-  - **Resume Guide**: #file:../research/20251224-resume-after-promotion-fix.md - Validation steps and context
+  - **Validation**: Both scenarios passing - via_removal and via_max_players_increase
 
 - [ ] Task 5.4: Join notification → delayed DM test
   - Create game with signup instructions

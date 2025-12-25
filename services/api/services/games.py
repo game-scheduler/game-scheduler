@@ -811,8 +811,23 @@ class GameService:
             )
 
         # Capture current participant state for promotion detection
+        # Must capture actual participant data before any modifications
+        # because SQLAlchemy relationships update even with list() shallow copy
         old_max_players = resolve_max_players(game.max_players)
-        old_partitioned = partition_participants(game.participants, old_max_players)
+        old_participants_snapshot = [
+            participant_model.GameParticipant(
+                id=p.id,
+                game_session_id=p.game_session_id,
+                user_id=p.user_id,
+                user=p.user,  # Reference is OK since user objects aren't modified
+                display_name=p.display_name,
+                position=p.position,
+                position_type=p.position_type,
+                joined_at=p.joined_at,
+            )
+            for p in game.participants
+        ]
+        old_partitioned = partition_participants(old_participants_snapshot, old_max_players)
 
         # Update game fields
         schedule_needs_update, status_schedule_needs_update = self._update_game_fields(
@@ -857,6 +872,9 @@ class GameService:
             await self._update_status_schedules(game)
 
         await self.db.commit()
+
+        # Refresh game object to get updated relationships from database
+        await self.db.refresh(game, ["participants"])
 
         # Reload game with all relationships
         game = await self.get_game(game.id)

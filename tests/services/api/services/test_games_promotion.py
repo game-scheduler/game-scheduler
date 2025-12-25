@@ -236,7 +236,7 @@ async def test_promotion_when_participant_removed(
     mock_db.execute = AsyncMock(return_value=mock_result)
 
     # Mock refresh to update participants list (simulate DB refresh after deletion)
-    def mock_refresh_side_effect(game):
+    def mock_refresh_side_effect(game, attribute_names=None):
         # After removal, participant list has one less confirmed participant
         # This simulates what would happen after db.refresh() in real scenario
         game.participants = participants[1:] + [overflow_participant]
@@ -439,7 +439,7 @@ async def test_promotion_when_placeholder_removed(
     mock_db.execute = AsyncMock(return_value=mock_result)
 
     # Mock refresh to update participants list after deletion
-    def mock_refresh_side_effect(game):
+    def mock_refresh_side_effect(game, attribute_names=None):
         game.participants = [user1, user2]
 
     mock_db.refresh = AsyncMock(side_effect=mock_refresh_side_effect)
@@ -592,7 +592,7 @@ async def test_promotion_multiple_placeholders_removed(
     mock_db.execute = AsyncMock(return_value=mock_result)
 
     # Mock refresh to update participants list after deletion
-    def mock_refresh_side_effect(game):
+    def mock_refresh_side_effect(game, attribute_names=None):
         game.participants = [placeholder2, user1, user2]
 
     mock_db.refresh = AsyncMock(side_effect=mock_refresh_side_effect)
@@ -663,7 +663,7 @@ async def test_promotion_multiple_placeholders_removed(
     mock_result.scalar_one_or_none = MagicMock(return_value=placeholder2)
 
     # Mock refresh for second removal
-    def mock_refresh_side_effect_second(game):
+    def mock_refresh_side_effect_second(game, attribute_names=None):
         game.participants = [user1, user2]
 
     mock_db.refresh = AsyncMock(side_effect=mock_refresh_side_effect_second)
