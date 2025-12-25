@@ -100,7 +100,7 @@ class GameUpdateRequest(BaseModel):
     )
     participants: list[dict[str, str | int]] | None = Field(
         None,
-        description="Updated participants list with mention and pre_filled_position",
+        description="Updated participants list with mention, position_type, and position",
     )
     removed_participant_ids: list[str] | None = Field(
         None,

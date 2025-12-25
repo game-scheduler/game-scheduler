@@ -36,6 +36,7 @@ from shared.models import guild as guild_model
 from shared.models import participant as participant_model
 from shared.models import template as template_model
 from shared.models import user as user_model
+from shared.models.participant import ParticipantType
 from shared.schemas import game as game_schemas
 
 
@@ -858,7 +859,10 @@ async def test_join_game_already_joined(
         max_players=5,
     )
     mock_participant = participant_model.GameParticipant(
-        user_id=sample_user.id, game_session_id=game_id
+        user_id=sample_user.id,
+        game_session_id=game_id,
+        position_type=ParticipantType.SELF_ADDED,
+        position=0,
     )
     mock_game.participants = [mock_participant]
 
@@ -939,7 +943,12 @@ async def test_leave_game_success(game_service, mock_db, sample_user):
         id=game_id, title="Title", guild_id=uuid.uuid4(), channel_id=channel_id
     )
     mock_game.channel = mock_channel
-    mock_participant = participant_model.GameParticipant(id=uuid.uuid4(), user_id=sample_user.id)
+    mock_participant = participant_model.GameParticipant(
+        id=uuid.uuid4(),
+        user_id=sample_user.id,
+        position_type=ParticipantType.SELF_ADDED,
+        position=0,
+    )
     mock_game.participants = [mock_participant]
 
     game_result = MagicMock()

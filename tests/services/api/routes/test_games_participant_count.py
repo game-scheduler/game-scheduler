@@ -30,6 +30,7 @@ from shared.models import game as game_model
 from shared.models import guild as guild_model
 from shared.models import participant as participant_model
 from shared.models import user as user_model
+from shared.models.participant import ParticipantType
 
 
 @pytest.fixture
@@ -93,6 +94,8 @@ async def test_participant_count_includes_discord_users_only(
             user_id=user1_id,
             joined_at=datetime.datetime.now(datetime.UTC),
             user=user1,
+            position_type=ParticipantType.SELF_ADDED,
+            position=0,
         ),
         participant_model.GameParticipant(
             id=str(uuid.uuid4()),
@@ -100,6 +103,8 @@ async def test_participant_count_includes_discord_users_only(
             user_id=user2_id,
             joined_at=datetime.datetime.now(datetime.UTC),
             user=user2,
+            position_type=ParticipantType.SELF_ADDED,
+            position=0,
         ),
     ]
 
@@ -169,6 +174,8 @@ async def test_participant_count_includes_placeholder_participants(
             display_name="Placeholder Player 1",
             joined_at=datetime.datetime.now(datetime.UTC),
             user=None,
+            position_type=ParticipantType.HOST_ADDED,
+            position=0,
         ),
         participant_model.GameParticipant(
             id=str(uuid.uuid4()),
@@ -177,6 +184,8 @@ async def test_participant_count_includes_placeholder_participants(
             display_name="Placeholder Player 2",
             joined_at=datetime.datetime.now(datetime.UTC),
             user=None,
+            position_type=ParticipantType.HOST_ADDED,
+            position=1,
         ),
         participant_model.GameParticipant(
             id=str(uuid.uuid4()),
@@ -185,6 +194,8 @@ async def test_participant_count_includes_placeholder_participants(
             display_name="Placeholder Player 3",
             joined_at=datetime.datetime.now(datetime.UTC),
             user=None,
+            position_type=ParticipantType.HOST_ADDED,
+            position=2,
         ),
     ]
 
@@ -258,6 +269,8 @@ async def test_participant_count_includes_mixed_participants(
             user_id=user1_id,
             joined_at=datetime.datetime.now(datetime.UTC),
             user=user1,
+            position_type=ParticipantType.SELF_ADDED,
+            position=0,
         ),
         participant_model.GameParticipant(
             id=str(uuid.uuid4()),
@@ -266,6 +279,8 @@ async def test_participant_count_includes_mixed_participants(
             display_name="Placeholder Player",
             joined_at=datetime.datetime.now(datetime.UTC),
             user=None,
+            position_type=ParticipantType.HOST_ADDED,
+            position=0,
         ),
         participant_model.GameParticipant(
             id=str(uuid.uuid4()),
@@ -273,6 +288,8 @@ async def test_participant_count_includes_mixed_participants(
             user_id=user2_id,
             joined_at=datetime.datetime.now(datetime.UTC),
             user=user2,
+            position_type=ParticipantType.SELF_ADDED,
+            position=0,
         ),
         participant_model.GameParticipant(
             id=str(uuid.uuid4()),
@@ -281,6 +298,8 @@ async def test_participant_count_includes_mixed_participants(
             display_name="Another Placeholder",
             joined_at=datetime.datetime.now(datetime.UTC),
             user=None,
+            position_type=ParticipantType.HOST_ADDED,
+            position=1,
         ),
     ]
 

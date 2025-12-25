@@ -51,76 +51,76 @@ Replace single `pre_filled_position` field with two-field system (`position_type
 - [ ] Task 1.3: Test migration on test database and verify schema changes
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 71-88)
 
-### [ ] Phase 2: Model and Schema Updates
+### [x] Phase 2: Model and Schema Updates
 
-- [ ] Task 2.1: Update GameParticipant model with new fields
+- [x] Task 2.1: Update GameParticipant model with new fields
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 90-122)
 
-- [ ] Task 2.2: Update ParticipantResponse schema
+- [x] Task 2.2: Update ParticipantResponse schema
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 124-142)
 
-- [ ] Task 2.3: Update model/schema test fixtures and verify tests pass
+- [x] Task 2.3: Update model/schema test fixtures and verify tests pass
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 144-164)
 
-### [ ] Phase 3: Sorting Logic Refactoring
+### [x] Phase 3: Sorting Logic Refactoring
 
-- [ ] Task 3.1: Replace sort_participants() implementation
+- [x] Task 3.1: Replace sort_participants() implementation
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 166-197)
 
-- [ ] Task 3.2: Update PartitionedParticipants docstrings
+- [x] Task 3.2: Update PartitionedParticipants docstrings
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 199-212)
 
-- [ ] Task 3.3: Update sorting test fixtures and verify tests pass
+- [x] Task 3.3: Update sorting test fixtures and verify tests pass
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 214-234)
 
-### [ ] Phase 4: Business Logic Updates
+### [x] Phase 4: Business Logic Updates
 
-- [ ] Task 4.1: Update game service participant creation
+- [x] Task 4.1: Update game service participant creation
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 236-257)
 
-- [ ] Task 4.2: Update game service participant queries
+- [x] Task 4.2: Update game service participant queries
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 259-278)
 
-- [ ] Task 4.3: Update game service position updates
+- [x] Task 4.3: Update game service position updates
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 280-296)
 
-- [ ] Task 4.4: Update service test fixtures and run service tests
+- [x] Task 4.4: Update service test fixtures and run service tests
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 298-319)
 
-### [ ] Phase 5: API Route Updates
+### [x] Phase 5: API Route Updates
 
-- [ ] Task 5.1: Update participant serialization in routes
+- [x] Task 5.1: Update participant serialization in routes
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 321-342)
 
-- [ ] Task 5.2: Update participant creation in join endpoints
+- [x] Task 5.2: Update participant creation in join endpoints
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 344-362)
 
-- [ ] Task 5.3: Update API test fixtures and run API tests
+- [x] Task 5.3: Update API test fixtures and run API tests
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 364-381)
 
-### [ ] Phase 6: Bot and Additional Component Updates
+### [x] Phase 6: Bot and Additional Component Updates
 
-- [ ] Task 6.1: Update bot event handler test fixtures
+- [x] Task 6.1: Update bot event handler test fixtures
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 383-400)
 
-- [ ] Task 6.2: Update remaining test fixtures and helpers
+- [x] Task 6.2: Update remaining test fixtures and helpers
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 402-420)
 
-- [ ] Task 6.3: Run full test suite validation
+- [x] Task 6.3: Run full test suite validation
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 422-439)
 
-### [ ] Phase 7: End-to-End Validation
+### [x] Phase 7: End-to-End Validation
 
-- [ ] Task 7.1: Run integration tests
+- [x] Task 7.1: Run integration tests
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 441-452)
 
-- [ ] Task 7.2: Run E2E tests
+- [x] Task 7.2: Run E2E tests
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 454-465)
 
-- [ ] Task 7.3: Manual testing of participant ordering
+- [x] Task 7.3: Manual testing of participant ordering
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 467-485)
 
-- [ ] Task 7.4: Verify gap handling works correctly
+- [x] Task 7.4: Verify gap handling works correctly
   - Details: .copilot-tracking/details/20251224-participant-ordering-schema-refactor-details.md (Lines 487-504)
 
 ## Dependencies

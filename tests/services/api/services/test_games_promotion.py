@@ -30,7 +30,7 @@ from shared.messaging.events import EventType
 from shared.models.channel import ChannelConfiguration
 from shared.models.game import GameSession
 from shared.models.guild import GuildConfiguration
-from shared.models.participant import GameParticipant
+from shared.models.participant import GameParticipant, ParticipantType
 from shared.models.user import User
 from shared.schemas.game import GameUpdateRequest
 
@@ -130,6 +130,8 @@ def create_participant(game_id: str, user_id: str, discord_id: str, joined_at: d
         user_id=user_id,
         joined_at=joined_at,
         user=user,
+        position_type=ParticipantType.SELF_ADDED,
+        position=0,
     )
 
 
@@ -142,6 +144,8 @@ def create_placeholder(game_id: str, display_name: str, joined_at: datetime):
         display_name=display_name,
         joined_at=joined_at,
         user=None,
+        position_type=ParticipantType.HOST_ADDED,
+        position=0,
     )
 
 

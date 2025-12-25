@@ -22,7 +22,15 @@ from datetime import datetime
 from enum import IntEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    SmallInteger,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
@@ -58,7 +66,10 @@ class GameParticipant(Base):
     )
     display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     joined_at: Mapped[datetime] = mapped_column(default=utc_now, server_default=func.now())
-    pre_filled_position: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    position_type: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, server_default=text("24000")
+    )
+    position: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default=text("0"))
 
     # Relationships
     game: Mapped["GameSession"] = relationship("GameSession", back_populates="participants")

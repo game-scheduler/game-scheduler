@@ -28,7 +28,7 @@ from fastapi.testclient import TestClient
 from services.api.app import create_app
 from shared.models.game import GameSession
 from shared.models.guild import GuildConfiguration
-from shared.models.participant import GameParticipant
+from shared.models.participant import GameParticipant, ParticipantType
 from shared.models.user import User
 from shared.schemas.auth import CurrentUser
 
@@ -220,6 +220,8 @@ def test_export_game_as_participant(app, mock_user, mock_game):
         id="part-123",
         game_session_id="game-123",
         user_id="123456789",
+        position_type=ParticipantType.SELF_ADDED,
+        position=0,
     )
     participant.user = mock_user.user
     mock_game.participants = [participant]

@@ -23,6 +23,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from shared.models.participant import ParticipantType
 from shared.utils.games import DEFAULT_MAX_PLAYERS
 from shared.utils.participant_sorting import (
     PartitionedParticipants,
@@ -38,12 +39,14 @@ def mock_participant():
     def _create(
         participant_id: str,
         joined_at: datetime | None = None,
-        pre_filled_position: int | None = None,
+        position_type: int = ParticipantType.SELF_ADDED,
+        position: int = 0,
     ):
         participant = Mock()
         participant.id = participant_id
         participant.joined_at = joined_at or datetime.now(UTC)
-        participant.pre_filled_position = pre_filled_position
+        participant.position_type = position_type
+        participant.position = position
         return participant
 
     return _create
@@ -67,7 +70,12 @@ class TestSortParticipants:
         """Test that pre-populated participants come before regular participants."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
         p1 = mock_participant("1", joined_at=base_time)
-        p2 = mock_participant("2", joined_at=base_time, pre_filled_position=1)
+        p2 = mock_participant(
+            "2",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=1,
+        )
 
         result = sort_participants([p1, p2])
         assert result == [p2, p1]
@@ -76,7 +84,12 @@ class TestSortParticipants:
         """Test that placeholder participants come before regular participants."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
         p1 = mock_participant("1", joined_at=base_time)
-        p2 = mock_participant("2", joined_at=base_time, pre_filled_position=1)
+        p2 = mock_participant(
+            "2",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=1,
+        )
 
         result = sort_participants([p1, p2])
         assert result == [p2, p1]
@@ -84,9 +97,24 @@ class TestSortParticipants:
     def test_pre_populated_order_preserved(self, mock_participant):
         """Test that pre-populated participants maintain position-based order."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
-        p1 = mock_participant("1", joined_at=base_time, pre_filled_position=1)
-        p2 = mock_participant("2", joined_at=base_time, pre_filled_position=2)
-        p3 = mock_participant("3", joined_at=base_time, pre_filled_position=3)
+        p1 = mock_participant(
+            "1",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=1,
+        )
+        p2 = mock_participant(
+            "2",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=2,
+        )
+        p3 = mock_participant(
+            "3",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=3,
+        )
 
         # Should be sorted by position (1, 2, 3)
         result = sort_participants([p1, p2, p3])
@@ -99,9 +127,24 @@ class TestSortParticipants:
     def test_placeholder_order_preserved(self, mock_participant):
         """Test that placeholder participants maintain position-based order."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
-        p1 = mock_participant("1", joined_at=base_time, pre_filled_position=1)
-        p2 = mock_participant("2", joined_at=base_time, pre_filled_position=2)
-        p3 = mock_participant("3", joined_at=base_time, pre_filled_position=3)
+        p1 = mock_participant(
+            "1",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=1,
+        )
+        p2 = mock_participant(
+            "2",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=2,
+        )
+        p3 = mock_participant(
+            "3",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=3,
+        )
 
         # Should be sorted by position (1, 2, 3)
         result = sort_participants([p1, p2, p3])
@@ -130,9 +173,18 @@ class TestSortParticipants:
         t2 = datetime(2025, 1, 1, 12, 1, 0, tzinfo=UTC)
         t3 = datetime(2025, 1, 1, 12, 2, 0, tzinfo=UTC)
 
-        pre1 = mock_participant("pre1", joined_at=t1, pre_filled_position=1)
-        pre2 = mock_participant("pre2", joined_at=t1, pre_filled_position=2)
-        placeholder = mock_participant("placeholder", joined_at=t1, pre_filled_position=3)
+        pre1 = mock_participant(
+            "pre1", joined_at=t1, position_type=ParticipantType.HOST_ADDED, position=1
+        )
+        pre2 = mock_participant(
+            "pre2", joined_at=t1, position_type=ParticipantType.HOST_ADDED, position=2
+        )
+        placeholder = mock_participant(
+            "placeholder",
+            joined_at=t1,
+            position_type=ParticipantType.HOST_ADDED,
+            position=3,
+        )
         regular1 = mock_participant("reg1", joined_at=t3)
         regular2 = mock_participant("reg2", joined_at=t2)
 
@@ -144,8 +196,18 @@ class TestSortParticipants:
     def test_pre_populated_placeholder_order_preserved(self, mock_participant):
         """Test that pre-populated and placeholder participants sort by position."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
-        pre = mock_participant("pre", joined_at=base_time, pre_filled_position=1)
-        ph = mock_participant("ph", joined_at=base_time, pre_filled_position=2)
+        pre = mock_participant(
+            "pre",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=1,
+        )
+        ph = mock_participant(
+            "ph",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=2,
+        )
 
         # Should sort by position (pre=1, ph=2)
         result = sort_participants([pre, ph])
@@ -164,7 +226,8 @@ class TestSortParticipants:
             mock_participant(
                 f"priority{i}",
                 joined_at=base_time,
-                pre_filled_position=i + 1,
+                position_type=ParticipantType.HOST_ADDED,
+                position=i + 1,
             )
             for i in range(5)
         ]
@@ -212,7 +275,12 @@ class TestPartitionParticipants:
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
 
         # Placeholder in position 0
-        placeholder = mock_participant("placeholder", joined_at=base_time, pre_filled_position=0)
+        placeholder = mock_participant(
+            "placeholder",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=0,
+        )
         placeholder.user = None
         placeholder.display_name = "Reserved"
 
@@ -266,7 +334,12 @@ class TestPartitionParticipants:
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
 
         # Placeholder in confirmed (position 0)
-        placeholder1 = mock_participant("ph1", joined_at=base_time, pre_filled_position=0)
+        placeholder1 = mock_participant(
+            "ph1",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=0,
+        )
         placeholder1.user = None
 
         # Real users
@@ -356,7 +429,12 @@ class TestPartitionParticipants:
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
 
         # Create priority participant
-        priority = mock_participant("priority", joined_at=base_time, pre_filled_position=0)
+        priority = mock_participant(
+            "priority",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=0,
+        )
         priority.user = Mock()
         priority.user.discord_id = "discord_priority"
 
@@ -449,7 +527,12 @@ class TestPartitionParticipants:
         """Test cleared_waitlist() with placeholder occupying confirmed slot."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
 
-        placeholder = mock_participant("placeholder", joined_at=base_time, pre_filled_position=0)
+        placeholder = mock_participant(
+            "placeholder",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=0,
+        )
         placeholder.user = None
 
         user1 = mock_participant("user1", joined_at=base_time.replace(minute=1))
@@ -533,7 +616,12 @@ class TestPartitionParticipants:
         """Test cleared_waitlist() doesn't detect placeholders as cleared."""
         base_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
 
-        placeholder1 = mock_participant("placeholder1", joined_at=base_time, pre_filled_position=0)
+        placeholder1 = mock_participant(
+            "placeholder1",
+            joined_at=base_time,
+            position_type=ParticipantType.HOST_ADDED,
+            position=0,
+        )
         placeholder1.user = None
 
         user1 = mock_participant("user1", joined_at=base_time.replace(minute=1))

@@ -29,6 +29,7 @@ import pytest
 from services.bot.events.handlers import EventHandlers
 from shared.messaging.events import EventType
 from shared.models.game import GameSession, GameStatus
+from shared.models.participant import ParticipantType
 from shared.models.user import User
 
 
@@ -554,13 +555,15 @@ async def test_handle_game_reminder_due_success(event_handlers, sample_game, sam
     mock_participant_1 = MagicMock()
     mock_participant_1.user_id = participant_user_1.id
     mock_participant_1.user = participant_user_1
-    mock_participant_1.pre_filled_position = None
+    mock_participant_1.position_type = ParticipantType.SELF_ADDED
+    mock_participant_1.position = 0
     mock_participant_1.joined_at = datetime(2025, 11, 1, 10, 0, 0, tzinfo=UTC)
 
     mock_participant_2 = MagicMock()
     mock_participant_2.user_id = participant_user_2.id
     mock_participant_2.user = participant_user_2
-    mock_participant_2.pre_filled_position = None
+    mock_participant_2.position_type = ParticipantType.SELF_ADDED
+    mock_participant_2.position = 0
     mock_participant_2.joined_at = datetime(2025, 11, 1, 11, 0, 0, tzinfo=UTC)
 
     sample_game.host = host_user
@@ -658,7 +661,8 @@ async def test_handle_game_reminder_due_no_host(event_handlers, sample_game):
     mock_participant = MagicMock()
     mock_participant.user_id = participant_user.id
     mock_participant.user = participant_user
-    mock_participant.pre_filled_position = None
+    mock_participant.position_type = ParticipantType.SELF_ADDED
+    mock_participant.position = 0
     mock_participant.joined_at = datetime(2025, 11, 1, 10, 0, 0, tzinfo=UTC)
 
     sample_game.host = None
@@ -706,7 +710,8 @@ async def test_handle_game_reminder_due_host_error_doesnt_affect_participants(
     mock_participant = MagicMock()
     mock_participant.user_id = participant_user.id
     mock_participant.user = participant_user
-    mock_participant.pre_filled_position = None
+    mock_participant.position_type = ParticipantType.SELF_ADDED
+    mock_participant.position = 0
     mock_participant.joined_at = datetime(2025, 11, 1, 10, 0, 0, tzinfo=UTC)
 
     sample_game.host = host_user
@@ -765,7 +770,8 @@ async def test_handle_game_reminder_due_with_waitlist(event_handlers, sample_gam
         mock_participant = MagicMock()
         mock_participant.user_id = user.id
         mock_participant.user = user
-        mock_participant.pre_filled_position = None
+        mock_participant.position_type = ParticipantType.SELF_ADDED
+        mock_participant.position = 0
         mock_participant.joined_at = datetime(2025, 11, 1, 10 + i, 0, 0, tzinfo=UTC)
         participants.append(mock_participant)
 

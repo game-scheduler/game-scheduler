@@ -36,7 +36,7 @@ from shared.database import get_db_session
 from shared.models.base import utc_now
 from shared.models.game import GameSession
 from shared.models.notification_schedule import NotificationSchedule
-from shared.models.participant import GameParticipant
+from shared.models.participant import GameParticipant, ParticipantType
 from shared.models.user import User
 from shared.utils.games import resolve_max_players
 
@@ -81,6 +81,8 @@ async def handle_join_game(
         participant = GameParticipant(
             game_session_id=str(game_id),
             user_id=user_result.id,
+            position_type=ParticipantType.SELF_ADDED,
+            position=0,
         )
         db.add(participant)
         try:

@@ -43,9 +43,9 @@ class ParticipantResponse(BaseModel):
         description="Discord CDN avatar URL (None if no avatar)",
     )
     joined_at: str = Field(..., description="Join timestamp (UTC ISO)")
-    pre_filled_position: int | None = Field(
-        None,
-        description="Position in pre-populated list (1-indexed, None for regular participants)",
+    position_type: int = Field(
+        ..., description="Participant type (8000=host-added, 24000=self-added)"
     )
+    position: int = Field(..., description="Priority within participant type")
 
     model_config = {"from_attributes": True}

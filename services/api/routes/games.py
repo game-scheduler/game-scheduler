@@ -42,6 +42,7 @@ from shared import database
 from shared.discord.client import fetch_channel_name_safe, fetch_guild_name_safe
 from shared.messaging import publisher as messaging_publisher
 from shared.models import game as game_model
+from shared.models.participant import ParticipantType
 from shared.schemas import auth as auth_schemas
 from shared.schemas import game as game_schemas
 from shared.schemas import participant as participant_schemas
@@ -524,7 +525,8 @@ async def join_game(
             display_name=display_name,
             avatar_url=avatar_url,
             joined_at=participant.joined_at.replace(tzinfo=UTC).isoformat().replace("+00:00", "Z"),
-            pre_filled_position=participant.pre_filled_position,
+            position_type=participant.position_type,
+            position=participant.position,
         )
 
     except ValueError as e:
@@ -622,7 +624,8 @@ async def _build_game_response(
                 display_name=display_name,
                 avatar_url=avatar_url,
                 joined_at=datetime_utils.format_datetime_as_utc(participant.joined_at),
-                pre_filled_position=participant.pre_filled_position,
+                position_type=participant.position_type,
+                position=participant.position,
             )
         )
 
@@ -641,7 +644,8 @@ async def _build_game_response(
         display_name=host_display_name,
         avatar_url=host_avatar_url,
         joined_at=datetime_utils.format_datetime_as_utc(game.created_at),
-        pre_filled_position=None,
+        position_type=ParticipantType.SELF_ADDED,
+        position=0,
     )
 
     return game_schemas.GameResponse(

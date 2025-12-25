@@ -18,6 +18,16 @@ Replace single `pre_filled_position` field with two-field system (`position_type
 ### Modified
 
 - shared/models/participant.py - Added ParticipantType IntEnum with HOST_ADDED=8000 and SELF_ADDED=24000 values for extensible participant type system
+- shared/models/participant.py - Replaced pre_filled_position field with position_type and position fields using SmallInteger with server defaults
+- shared/schemas/participant.py - Updated ParticipantResponse schema to use position_type and position instead of pre_filled_position
+- shared/utils/participant_sorting.py - Replaced two-list sorting with single three-tuple sort key (position_type, position, joined_at)
+- shared/utils/participant_sorting.py - Updated PartitionedParticipants docstring to reflect new sorting behavior
+- tests/shared/utils/test_participant_sorting.py - Updated mock_participant fixture to use position_type and position parameters
+- tests/shared/utils/test_participant_sorting.py - Updated all test cases to use position_type=8000, position=N instead of pre_filled_position=N
+- tests/services/api/services/test_calendar_export.py - Updated GameParticipant creation to use position_type and position
+- tests/services/api/services/test_games_edit_participants.py - Updated participant test fixtures to use position_type and position
+- tests/services/api/services/test_participant_creation_order.py - Updated participant creation loop to use position_type and position
+- tests/services/bot/events/test_handlers.py - Updated mock participant fixtures to use position_type=24000 and position=0
 
 ### Removed
 
@@ -28,3 +38,16 @@ Replace single `pre_filled_position` field with two-field system (`position_type
 - Reversible migration transforms pre_filled_position → (position_type, position)
 - Database schema verified with new fields
 - Migration tested and verified on development database
+
+**Phase 2 Complete**: Model and schema updates successfully implemented.
+- GameParticipant model updated with position_type and position fields (SmallInteger with server defaults)
+- ParticipantResponse schema updated to expose new fields
+- All test fixtures across entire test suite updated to use new field structure
+- Test updates include: shared utils, API services, bot event handlers
+- All hard-coded magic numbers replaced with ParticipantType enum constants
+
+**Phase 3 Complete**: Sorting logic successfully refactored and verified.
+- Replaced two-list sorting approach with single three-tuple sort key
+- Eliminated NULL checking and list merging complexity
+- Updated PartitionedParticipants docstring to reflect new sorting behavior
+- All 26 sorting tests passing with new implementation

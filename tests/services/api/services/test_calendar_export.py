@@ -29,7 +29,7 @@ from services.api.services.calendar_export import CalendarExportService
 from shared.models.channel import ChannelConfiguration
 from shared.models.game import GameSession
 from shared.models.guild import GuildConfiguration
-from shared.models.participant import GameParticipant
+from shared.models.participant import GameParticipant, ParticipantType
 from shared.models.user import User
 
 
@@ -152,7 +152,8 @@ async def test_export_game_as_participant(
         id="part-123",
         game_session_id="game-123",
         user_id="123456789",
-        pre_filled_position=0,
+        position_type=ParticipantType.HOST_ADDED,
+        position=0,
     )
     participant.user = mock_user
     mock_game.participants = [participant]

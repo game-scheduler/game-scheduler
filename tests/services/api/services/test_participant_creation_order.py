@@ -29,6 +29,7 @@ import datetime
 import pytest
 
 from shared.models import participant as participant_model
+from shared.models.participant import ParticipantType
 
 
 @pytest.mark.asyncio
@@ -49,7 +50,8 @@ async def test_sequential_participant_creation_preserves_order():
             game_session_id="test-game-id",
             user_id=f"user{i}" if i % 2 == 0 else None,
             display_name=name if i % 2 == 1 else None,
-            pre_filled_position=i + 1,
+            position_type=ParticipantType.HOST_ADDED,
+            position=i + 1,
         )
         # Simulate database assigning joined_at timestamp
         # In reality, database assigns server_default=func.now()

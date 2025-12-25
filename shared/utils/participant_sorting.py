@@ -34,10 +34,13 @@ class PartitionedParticipants:
     This provides a single source of truth for participant ordering that accounts
     for placeholders, ensuring consistent behavior across bot formatters, API
     services, and notification logic.
+
+    Participants are sorted by (position_type, position, joined_at) before
+    partitioning into confirmed/overflow groups based on max_players.
     """
 
     all_sorted: list["GameParticipant"]
-    """All participants sorted by priority (host, cohost, signup time)"""
+    """All participants sorted by (position_type, position, joined_at)"""
 
     confirmed: list["GameParticipant"]
     """Participants in confirmed slots (0 to max_players-1)"""
@@ -72,30 +75,26 @@ class PartitionedParticipants:
 
 
 def sort_participants(participants: list["GameParticipant"]) -> list["GameParticipant"]:
-    """Sort participants by priority and join time.
+    """Sort participants by position_type, position, and join time.
 
-    Two classes of participants:
-    1. Priority participants (pre_filled_position set) - sorted by pre_filled_position
-    2. Regular participants (pre_filled_position NULL) - sorted by joined_at
+    Uses a three-tuple sort key for consistent ordering:
+    1. position_type (8000=host-added, 24000=self-added) - determines priority class
+    2. position - relative position within the priority class
+    3. joined_at - tie-breaker for participants with same position_type and position
+
+    This eliminates the need for NULL checking and two-list merging.
 
     Args:
         participants: List of GameParticipant models to sort
 
     Returns:
-        Sorted list with priority participants first (by position),
-        followed by regular participants (by join time)
+        Sorted list with host-added participants first (by position),
+        followed by self-added participants (by position, then join time)
     """
-    priority_participants = sorted(
-        [p for p in participants if p.pre_filled_position is not None],
-        key=lambda p: p.pre_filled_position,
+    return sorted(
+        participants,
+        key=lambda p: (p.position_type, p.position, p.joined_at),
     )
-
-    regular_participants = sorted(
-        [p for p in participants if p.pre_filled_position is None],
-        key=lambda p: p.joined_at,
-    )
-
-    return priority_participants + regular_participants
 
 
 def partition_participants(

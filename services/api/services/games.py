@@ -47,6 +47,7 @@ from shared.models import guild as guild_model
 from shared.models import participant as participant_model
 from shared.models import template as template_model
 from shared.models import user as user_model
+from shared.models.participant import ParticipantType
 from shared.schemas import game as game_schemas
 from shared.utils.games import resolve_max_players
 from shared.utils.participant_sorting import partition_participants
@@ -308,14 +309,16 @@ class GameService:
                     game_session_id=game.id,
                     user_id=user.id,
                     display_name=None,
-                    pre_filled_position=position,
+                    position_type=ParticipantType.HOST_ADDED,
+                    position=position,
                 )
             else:  # placeholder
                 participant = participant_model.GameParticipant(
                     game_session_id=game.id,
                     user_id=None,
                     display_name=participant_data["display_name"],
-                    pre_filled_position=position,
+                    position_type=ParticipantType.HOST_ADDED,
+                    position=position,
                 )
             self.db.add(participant)
 
@@ -535,11 +538,11 @@ class GameService:
         Raises:
             ValidationError: If @mentions cannot be resolved
         """
-        # Get current pre-filled participants
+        # Get current host-added participants
         current_prefilled = await self.db.execute(
             select(participant_model.GameParticipant).where(
                 participant_model.GameParticipant.game_session_id == game.id,
-                participant_model.GameParticipant.pre_filled_position.isnot(None),
+                participant_model.GameParticipant.position_type == ParticipantType.HOST_ADDED,
             )
         )
         current_participants = current_prefilled.scalars().all()
@@ -555,7 +558,7 @@ class GameService:
                 mentions_with_positions.append(
                     (
                         str(participant_data["mention"]),
-                        int(participant_data.get("pre_filled_position", 0)),
+                        int(participant_data.get("position", 0)),
                     )
                 )
 
@@ -568,10 +571,10 @@ class GameService:
         for participant_data in participant_data_list:
             if participant_data.get("participant_id"):
                 participant_id = str(participant_data["participant_id"])
-                position = int(participant_data.get("pre_filled_position", 0))
+                position = int(participant_data.get("position", 0))
                 for p in current_participants:
                     if p.id == participant_id:
-                        p.pre_filled_position = position
+                        p.position = position
                         break
 
         await self.db.flush()
@@ -626,14 +629,16 @@ class GameService:
                     game_session_id=game.id,
                     user_id=user.id,
                     display_name=None,
-                    pre_filled_position=position,
+                    position_type=ParticipantType.HOST_ADDED,
+                    position=position,
                 )
             else:
                 new_participant = participant_model.GameParticipant(
                     game_session_id=game.id,
                     user_id=None,
                     display_name=p_data["display_name"],
-                    pre_filled_position=position,
+                    position_type=ParticipantType.HOST_ADDED,
+                    position=position,
                 )
             self.db.add(new_participant)
 
@@ -645,7 +650,7 @@ class GameService:
             .where(
                 participant_model.GameParticipant.game_session_id == game.id,
                 participant_model.GameParticipant.user_id.isnot(None),
-                participant_model.GameParticipant.pre_filled_position.isnot(None),
+                participant_model.GameParticipant.position_type == ParticipantType.HOST_ADDED,
             )
             .order_by(participant_model.GameParticipant.joined_at.desc())
             .limit(len([p for p in valid_participants if p["type"] == "discord"]))
@@ -1001,6 +1006,8 @@ class GameService:
             game_session_id=game_id,
             user_id=user.id,
             display_name=None,
+            position_type=ParticipantType.SELF_ADDED,
+            position=0,
         )
         self.db.add(participant)
         try:

@@ -34,6 +34,7 @@ from shared.models import game as game_model
 from shared.models import guild as guild_model
 from shared.models import participant as participant_model
 from shared.models import user as user_model
+from shared.models.participant import ParticipantType
 from shared.schemas import game as game_schemas
 
 
@@ -125,7 +126,8 @@ async def test_update_game_with_discord_mention_format(
         game_session_id=game_id,
         user_id=discord_user_id,
         display_name=None,  # Discord users have null display_name
-        pre_filled_position=1,
+        position_type=ParticipantType.HOST_ADDED,
+        position=1,
     )
 
     discord_user = user_model.User(
@@ -176,7 +178,7 @@ async def test_update_game_with_discord_mention_format(
         participants=[
             {
                 "mention": "<@999888777666555444>",  # Frontend sends this format
-                "pre_filled_position": 1,
+                "position": 1,
             }
         ]
     )
@@ -267,7 +269,7 @@ async def test_update_game_preserves_discord_users_not_placeholders(
         participants=[
             {
                 "mention": "<@123456789012345678>",
-                "pre_filled_position": 1,
+                "position": 1,
             }
         ]
     )

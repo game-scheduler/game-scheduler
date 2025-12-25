@@ -356,7 +356,7 @@ class EventHandlers:
 
         Processes participants according to game rules:
         - Filters to only real participants (user_id IS NOT NULL)
-        - Sorts by pre_filled_position then joined_at
+        - Sorts by position_type, position, then joined_at
         - Determines active vs waitlist based on max_players
         - Sends DM to each eligible participant
 
