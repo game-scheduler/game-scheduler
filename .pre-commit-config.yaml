@@ -129,6 +129,24 @@ repos:
         always_run: true
         verbose: true
 
+      # Diff coverage check for modified Python code (RUNS ON EVERY COMMIT)
+      - id: diff-coverage
+        name: Coverage check on modified lines
+        entry: bash -c 'py_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E "^(services|shared)/.*\.py$" | grep -v "__pycache__"); if [ -n "$py_files" ]; then uv run pytest --cov --cov-report=xml --cov-report=term -q && uv run diff-cover coverage.xml --compare-branch=origin/main --fail-under=80 --ignore-whitespace; else echo "No source Python files changed"; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+      # Diff coverage check for modified TypeScript code (RUNS ON EVERY COMMIT)
+      - id: diff-coverage-frontend
+        name: Frontend coverage check on modified lines
+        entry: bash -c 'ts_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E "^frontend/src/.*\.(ts|tsx)$" | grep -v "\.test\."); if [ -n "$ts_files" ]; then cd frontend && npm run test:coverage -- --run && cd .. && uv run diff-cover frontend/coverage/lcov.info --compare-branch=origin/main --fail-under=80 --ignore-whitespace; else echo "No source TypeScript files changed"; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
   # Optional/Manual hooks - run with: pre-commit run <hook-id> --hook-stage manual
   - repo: local
     hooks:
