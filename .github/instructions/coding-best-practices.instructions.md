@@ -130,6 +130,7 @@ def process_user_data(user_id: str) -> UserData:
 ### Testing Standards
 
 - **Write tests first or alongside code**: TDD or test-during-development
+- **Write unit tests at the same time as code**: Don't defer testing to later; tests are part of the implementation, not an afterthought
 - **Test the happy path and edge cases**: Include normal and boundary conditions
 - **Keep tests independent**: Tests should not depend on execution order
 - **Use descriptive test names**: Test names should describe what is being tested
