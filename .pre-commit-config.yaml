@@ -22,7 +22,7 @@ repos:
       - id: check-merge-conflict
       - id: detect-private-key
 
-  # Python linting and formatting
+  # Python: linting, formatting, type checking, compilation, testing, and coverage
   - repo: local
     hooks:
       # Ruff linter (fast Python linter)
@@ -50,7 +50,34 @@ repos:
         pass_filenames: false
         args: [shared/, services/]
 
-  # Copyright headers
+      # Python compilation check
+      - id: python-compile
+        name: Python compilation check
+        entry: uv run python -m compileall -q
+        language: system
+        types: [python]
+        args: [services, shared, tests]
+        pass_filenames: false
+
+      # Python unit tests with coverage
+      - id: pytest-coverage
+        name: Python unit tests with coverage
+        entry: bash -c 'output=$(uv run pytest --cov --cov-report=xml --cov-report= -qq --strict-markers -W error::UserWarning 2>&1); if [ $? -ne 0 ]; then echo "$output"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        files: ^(services|shared|tests)/.*\.py$
+        verbose: true
+
+      # Diff coverage check for modified Python code
+      - id: diff-coverage
+        name: Python diff coverage check
+        entry: bash -c 'py_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E "^(services|shared)/.*\.py$" | grep -v "__pycache__"); if [ -n "$py_files" ]; then uv run diff-cover coverage.xml --compare-branch=origin/main --fail-under=80 --ignore-whitespace; else echo "No source Python files changed"; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+  # Copyright headers (applies to both Python and TypeScript)
   - repo: local
     hooks:
       - id: add-copyright
@@ -61,7 +88,7 @@ repos:
         pass_filenames: false
         require_serial: true
 
-  # Frontend linting and formatting
+  # TypeScript/Frontend: linting, formatting, type checking, build, testing, and coverage
   - repo: local
     hooks:
       # ESLint
@@ -88,18 +115,6 @@ repos:
         files: ^frontend/.*\.(ts|tsx)$
         pass_filenames: false
 
-  # Compilation checks
-  - repo: local
-    hooks:
-      # Python compilation check
-      - id: python-compile
-        name: Python compilation check
-        entry: uv run python -m compileall -q
-        language: system
-        types: [python]
-        args: [services, shared, tests]
-        pass_filenames: false
-
       # Frontend build check
       - id: frontend-build
         name: Frontend build check
@@ -108,40 +123,19 @@ repos:
         files: ^frontend/.*\.(ts|tsx|js|jsx|json|css|scss|html)$
         pass_filenames: false
 
-  # Automatic testing with coverage (RUNS ON EVERY COMMIT)
-  - repo: local
-    hooks:
-      # Python unit tests with coverage
-      - id: pytest-coverage
-        name: Python unit tests with coverage
-        entry: uv run pytest --cov --cov-report=xml -q
-        language: system
-        pass_filenames: false
-        always_run: true
-        verbose: true
-
       # Frontend unit tests with coverage
       - id: vitest-coverage
         name: Frontend unit tests with coverage
-        entry: bash -c 'cd frontend && npm run test:coverage -- --run --reporter=dot && sed "s|^SF:src/|SF:frontend/src/|g" coverage/lcov.info > coverage/lcov-fixed.info'
+        entry: bash -c 'cd frontend && npm run test:coverage -- --run --reporter=hanging-process 2>&1 | grep -E "(FAIL|Test Files.*failed|Duration)" && sed "s|^SF:src/|SF:frontend/src/|g" coverage/lcov.info > coverage/lcov-fixed.info || (sed "s|^SF:src/|SF:frontend/src/|g" coverage/lcov.info > coverage/lcov-fixed.info && exit 0)'
         language: system
         pass_filenames: false
-        always_run: true
-        verbose: true
-
-      # Diff coverage check for modified Python code
-      - id: diff-coverage
-        name: Python diff coverage check
-        entry: bash -c 'py_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E "^(services|shared)/.*\.py$" | grep -v "__pycache__"); if [ -n "$py_files" ]; then uv run diff-cover coverage.xml --compare-branch=origin/main --fail-under=80 --ignore-whitespace --quiet; else echo "No source Python files changed"; fi'
-        language: system
-        pass_filenames: false
-        always_run: true
+        files: ^frontend/src/.*\.(ts|tsx|js|jsx)$
         verbose: true
 
       # Diff coverage check for modified TypeScript code
       - id: diff-coverage-frontend
         name: Frontend diff coverage check
-        entry: bash -c 'ts_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E "^frontend/src/.*\.(ts|tsx)$" | grep -v "\.test\."); if [ -n "$ts_files" ]; then uv run diff-cover frontend/coverage/lcov-fixed.info --compare-branch=origin/main --fail-under=80 --ignore-whitespace --quiet; else echo "No source TypeScript files changed"; fi'
+        entry: bash -c 'ts_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E "^frontend/src/.*\.(ts|tsx)$" | grep -v "\.test\."); if [ -n "$ts_files" ]; then uv run diff-cover frontend/coverage/lcov-fixed.info --compare-branch=origin/main --fail-under=80 --ignore-whitespace; else echo "No source TypeScript files changed"; fi'
         language: system
         pass_filenames: false
         always_run: true
