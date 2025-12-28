@@ -80,6 +80,28 @@ class GameCreateRequest(BaseModel):
         ),
         max_length=200,
     )
+    signup_method: str | None = Field(
+        None,
+        description=(
+            "Signup method (SELF_SIGNUP or HOST_SELECTED). Must be in template's "
+            "allowed_signup_methods if specified. Defaults to template's default_signup_method."
+        ),
+        max_length=50,
+    )
+
+    @field_validator("signup_method")
+    @classmethod
+    def validate_signup_method(cls, v: str | None) -> str | None:
+        """Validate signup method is a valid value."""
+        if v is None:
+            return v
+        # Import here to avoid circular dependency
+        from shared.models.signup_method import SignupMethod
+
+        valid_values = [method.value for method in SignupMethod]
+        if v not in valid_values:
+            raise ValueError(f"Invalid signup method: {v}. Must be one of {valid_values}")
+        return v
 
 
 class GameUpdateRequest(BaseModel):
@@ -113,6 +135,10 @@ class GameUpdateRequest(BaseModel):
     removed_participant_ids: list[str] | None = Field(
         None,
         description="List of participant IDs to remove",
+    )
+    signup_method: str | None = Field(
+        None,
+        description="Signup method (SELF_SIGNUP or HOST_SELECTED)",
     )
 
     @field_validator("notify_role_ids")
@@ -156,6 +182,7 @@ class GameResponse(BaseModel):
         None, description="Expected game duration in minutes"
     )
     status: str = Field(..., description="Game status")
+    signup_method: str = Field(..., description="Signup method (SELF_SIGNUP or HOST_SELECTED)")
     participant_count: int = Field(..., description="Current number of participants")
     participants: list["ParticipantResponse"] = Field(
         default_factory=list, description="List of participants"

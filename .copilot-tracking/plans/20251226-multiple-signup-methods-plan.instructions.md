@@ -45,69 +45,73 @@ Add support for multiple signup methods (Self Signup and Host Selected) with tem
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Backend Schema and Model
+### [x] Phase 1: Backend Schema and Model
 
-- [ ] Task 1.1: Create SignupMethod enum
+- [x] Task 1.1: Create SignupMethod enum
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 15-45)
 
-- [ ] Task 1.2: Update GameTemplate model with signup method fields
+- [x] Task 1.2: Update GameTemplate model with signup method fields
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 47-75)
 
-- [ ] Task 1.3: Update GameSession model with signup_method field
+- [x] Task 1.3: Update GameSession model with signup_method field
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 77-100)
 
-- [ ] Task 1.4: Create database migration
+- [x] Task 1.4: Create database migration
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 102-145)
 
-### [ ] Phase 2: API Schema and Service
+### [x] Phase 2: API Schema and Service
 
-- [ ] Task 2.1: Update GameCreateRequest schema
+- [x] Task 2.1: Update GameCreateRequest schema
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 147-170)
 
-- [ ] Task 2.2: Update GameResponse schema
+- [x] Task 2.2: Update GameResponse schema
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 172-190)
 
-- [ ] Task 2.3: Update GameService.create_game() with signup method resolution
+- [x] Task 2.3: Update GameService.create_game() with signup method resolution
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 192-235)
 
-- [ ] Task 2.4: Update template schemas for signup method fields
+- [x] Task 2.4: Update template schemas for signup method fields
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 237-260)
 
-### [ ] Phase 3: Discord Bot Button Control
+### [x] Phase 3: Discord Bot Button Control
 
-- [ ] Task 3.1: Update GameView with signup_method parameter
-  - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 262-290)
+- [x] Task 3.1: Update GameView with signup_method parameter
+  - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 15-45)
 
-- [ ] Task 3.2: Update format_game_announcement() to pass signup_method
-  - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 292-320)
+- [x] Task 3.2: Update format_game_announcement() to pass signup_method
+  - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 47-75)
 
-- [ ] Task 3.3: Update event handlers to pass signup_method to GameView
+- [x] Task 3.3: Update event handlers to pass signup_method to GameView
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 322-355)
 
-### [ ] Phase 4: Frontend UI
+### [x] Phase 4: Frontend UI
 
-- [ ] Task 4.1: Update TypeScript types and interfaces
+- [x] Task 4.1: Update TypeScript types and interfaces
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 357-385)
 
-- [ ] Task 4.2: Add signup method selector to GameForm
+- [x] Task 4.2: Add signup method selector to GameForm
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 387-430)
 
-- [ ] Task 4.3: Update CreateGame page with signup method handling
+- [x] Task 4.3: Update CreateGame page with signup method handling
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 432-465)
 
-- [ ] Task 4.4: Display signup method in GameDetails page
+- [x] Task 4.4: Display signup method in GameDetails page
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 467-495)
 
-### [ ] Phase 5: Testing and Validation
+### [x] Phase 5: Testing and Validation
 
-- [ ] Task 5.1: Add unit tests for SignupMethod enum
-  - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 497-520)
+- [x] Task 5.1: Add comprehensive unit tests for all code changes
+  - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 287-320)
+  - Tests: SignupMethod enum (7), GameTemplate fields (5), GameSession field (3), service layer logic (6), bot view behavior (5), frontend selector (8)
+  - Total: 34 unit tests covering all Python and TypeScript changes
 
-- [ ] Task 5.2: Add integration tests for game creation with signup methods
+- [x] Task 5.2: Add integration tests for game creation with signup methods
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 522-555)
+  - Tests: API endpoint with authentication → database → RabbitMQ message verification (2 tests)
 
-- [ ] Task 5.3: Add E2E tests for Discord button behavior
+- [x] Task 5.3: Add E2E tests for Discord button behavior
   - Details: .copilot-tracking/details/20251226-multiple-signup-methods-details.md (Lines 557-585)
+  - Tests: SELF_SIGNUP enabled button, HOST_SELECTED disabled button, default behavior with state persistence (3 tests)
 
 ## Dependencies
 

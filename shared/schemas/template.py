@@ -53,6 +53,15 @@ class TemplateCreateRequest(BaseModel):
     where: str | None = Field(None, description="Default location/platform")
     signup_instructions: str | None = Field(None, description="Default signup instructions")
 
+    # Signup method configuration
+    allowed_signup_methods: list[str] | None = Field(
+        None, description="Allowed signup methods (empty/null = all methods allowed)"
+    )
+    default_signup_method: str | None = Field(
+        None,
+        description="Default signup method (must be in allowed list if both specified)",
+    )
+
 
 class TemplateUpdateRequest(BaseModel):
     """Update game template (all fields optional)."""
@@ -74,6 +83,10 @@ class TemplateUpdateRequest(BaseModel):
     reminder_minutes: list[int] | None = None
     where: str | None = None
     signup_instructions: str | None = None
+
+    # Signup method configuration
+    allowed_signup_methods: list[str] | None = None
+    default_signup_method: str | None = None
 
 
 class TemplateResponse(BaseModel):
@@ -106,6 +119,12 @@ class TemplateResponse(BaseModel):
     where: str | None = Field(None, description="Default location")
     signup_instructions: str | None = Field(None, description="Default signup instructions")
 
+    # Signup method configuration
+    allowed_signup_methods: list[str] | None = Field(
+        None, description="Allowed signup methods (empty/null = all methods allowed)"
+    )
+    default_signup_method: str | None = Field(None, description="Default signup method")
+
     created_at: str = Field(..., description="Creation timestamp (ISO format)")
     updated_at: str = Field(..., description="Last update timestamp (ISO format)")
 
@@ -133,6 +152,10 @@ class TemplateListItem(BaseModel):
     reminder_minutes: list[int] | None = Field(None, description="Reminder minutes")
     where: str | None = Field(None, description="Location")
     signup_instructions: str | None = Field(None, description="Signup instructions")
+
+    # Signup method configuration
+    allowed_signup_methods: list[str] | None = Field(None, description="Allowed signup methods")
+    default_signup_method: str | None = Field(None, description="Default signup method")
 
     model_config = {"from_attributes": True}
 

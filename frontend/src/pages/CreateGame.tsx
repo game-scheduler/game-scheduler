@@ -186,6 +186,11 @@ export const CreateGame: FC = () => {
         payload.append('expected_duration_minutes', expectedDuration.toString());
       }
 
+      // Add signup method
+      if (formData.signupMethod) {
+        payload.append('signup_method', formData.signupMethod);
+      }
+
       // Add initial participants as JSON array
       const participantsList = formData.participants
         .filter((p) => p.mention.trim())
@@ -352,6 +357,8 @@ export const CreateGame: FC = () => {
                       updated_at: '',
                     },
                   ]}
+                  allowedSignupMethods={selectedTemplate.allowed_signup_methods}
+                  defaultSignupMethod={selectedTemplate.default_signup_method}
                   initialData={{
                     max_players: selectedTemplate.max_players,
                     expected_duration_minutes: selectedTemplate.expected_duration_minutes,

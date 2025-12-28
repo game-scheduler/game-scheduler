@@ -107,12 +107,14 @@ class TestGameCreatedEvent:
             host_id="111222333",
             scheduled_at=scheduled_at,
             max_players=5,
+            signup_method="SELF_SIGNUP",
         )
 
         assert event_data.game_id == game_id
         assert event_data.title == "Test Game"
         assert event_data.guild_id == "123456789"
         assert event_data.max_players == 5
+        assert event_data.signup_method == "SELF_SIGNUP"
 
     def test_game_created_event_optional_max_players(self):
         """Test game created event without max players."""
@@ -125,6 +127,7 @@ class TestGameCreatedEvent:
             channel_id="456",
             host_id="789",
             scheduled_at=scheduled_at,
+            signup_method="SELF_SIGNUP",
         )
 
         assert event_data.max_players is None

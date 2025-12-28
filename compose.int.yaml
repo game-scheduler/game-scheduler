@@ -69,6 +69,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      api:
+        condition: service_healthy
       retry-daemon:
         condition: service_started
       notification-daemon:
@@ -92,6 +94,7 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       TEST_ENVIRONMENT: ${TEST_ENVIRONMENT}
       POSTGRES_HOST: postgres
       POSTGRES_USER: ${POSTGRES_USER}

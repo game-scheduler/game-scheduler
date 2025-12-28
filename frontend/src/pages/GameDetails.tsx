@@ -38,7 +38,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import { useParams, useNavigate } from 'react-router';
 import axios from 'axios';
 import { apiClient } from '../api/client';
-import { GameSession } from '../types';
+import { GameSession, SignupMethod, SIGNUP_METHOD_INFO } from '../types';
 import { ParticipantList } from '../components/ParticipantList';
 import { useAuth } from '../hooks/useAuth';
 import { Time } from '../constants/time';
@@ -292,6 +292,13 @@ export const GameDetails: FC = () => {
             {game.reminder_minutes && game.reminder_minutes.length > 0 && (
               <Typography variant="body2">
                 <strong>Reminders:</strong> {game.reminder_minutes.join(', ')} minutes before
+              </Typography>
+            )}
+            {game.signup_method && (
+              <Typography variant="body2">
+                <strong>Signup Method:</strong>{' '}
+                {SIGNUP_METHOD_INFO[game.signup_method as SignupMethod]?.displayName ||
+                  game.signup_method}
               </Typography>
             )}
           </Box>

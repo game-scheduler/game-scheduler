@@ -116,6 +116,7 @@ async def create_game(
     reminder_minutes: Annotated[str | None, Form()] = None,
     where: Annotated[str | None, Form()] = None,
     signup_instructions: Annotated[str | None, Form()] = None,
+    signup_method: Annotated[str | None, Form()] = None,
     initial_participants: Annotated[str | None, Form()] = None,
     host: Annotated[str | None, Form()] = None,
     thumbnail: Annotated[UploadFile | None, File()] = None,
@@ -156,6 +157,7 @@ async def create_game(
             reminder_minutes=reminder_minutes_list,
             where=where,
             signup_instructions=signup_instructions,
+            signup_method=signup_method,
             initial_participants=initial_participants_list,
             host=host,
         )
@@ -309,6 +311,7 @@ async def update_game(
     notify_role_ids: Annotated[str | None, Form()] = None,
     participants: Annotated[str | None, Form()] = None,
     removed_participant_ids: Annotated[str | None, Form()] = None,
+    signup_method: Annotated[str | None, Form()] = None,
     thumbnail: Annotated[UploadFile | None, File()] = None,
     image: Annotated[UploadFile | None, File()] = None,
     remove_thumbnail: Annotated[bool, Form()] = False,
@@ -364,6 +367,7 @@ async def update_game(
             status=status,
             notify_role_ids=notify_role_ids_list,
             participants=participants_list,
+            signup_method=signup_method,
             removed_participant_ids=removed_participant_ids_list,
         )
 
@@ -666,6 +670,7 @@ async def _build_game_response(
         expected_duration_minutes=game.expected_duration_minutes,
         notify_role_ids=game.notify_role_ids,
         status=game.status,
+        signup_method=game.signup_method,
         participant_count=participant_count,
         participants=participant_responses,
         created_at=datetime_utils.format_datetime_as_utc(game.created_at),

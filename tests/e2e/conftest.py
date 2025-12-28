@@ -243,40 +243,18 @@ def bot_discord_id(discord_token):
 @pytest.fixture(scope="function")
 async def authenticated_admin_client(api_base_url, bot_discord_id, discord_token):
     """HTTP client authenticated as admin bot."""
-    import uuid
-    from datetime import UTC, datetime, timedelta
-
     import httpx
 
-    from services.api.auth.tokens import encrypt_token
-    from shared.cache.client import RedisClient
+    from tests.shared.auth_helpers import cleanup_test_session, create_test_session
 
     client = httpx.AsyncClient(base_url=api_base_url, timeout=10.0)
 
-    redis_client = RedisClient()
-    await redis_client.connect()
-
-    session_token = str(uuid.uuid4())
-    encrypted_access = encrypt_token(discord_token)
-    encrypted_refresh = encrypt_token("e2e_bot_refresh")
-    expiry = datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=604800)
-
-    session_data = {
-        "user_id": bot_discord_id,
-        "access_token": encrypted_access,
-        "refresh_token": encrypted_refresh,
-        "expires_at": expiry.isoformat(),
-    }
-
-    session_key = f"session:{session_token}"
-    await redis_client.set_json(session_key, session_data, ttl=604800)
-
+    session_token, _ = await create_test_session(discord_token, bot_discord_id)
     client.cookies.set("session_token", session_token)
 
     yield client
 
-    await redis_client.delete(session_key)
-    await redis_client.disconnect()
+    await cleanup_test_session(session_token)
     await client.aclose()
 
 

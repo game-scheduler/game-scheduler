@@ -146,6 +146,7 @@ async def test_create_game_with_thumbnail(
         channel_id=sample_channel.id,
         host_id=sample_user.id,
         status=game_model.GameStatus.SCHEDULED.value,
+        signup_method="SELF_SIGNUP",
         thumbnail_data=thumbnail_data,
         thumbnail_mime_type=thumbnail_mime,
     )
@@ -220,6 +221,7 @@ async def test_create_game_with_both_images(
         channel_id=sample_channel.id,
         host_id=sample_user.id,
         status=game_model.GameStatus.SCHEDULED.value,
+        signup_method="SELF_SIGNUP",
         thumbnail_data=thumbnail_data,
         thumbnail_mime_type=thumbnail_mime,
         image_data=image_data,

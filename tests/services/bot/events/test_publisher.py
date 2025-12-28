@@ -89,6 +89,7 @@ async def test_publish_game_created(bot_publisher, mock_publisher):
     channel_id = "123456789"
     host_id = "111222333"
     scheduled_at = "2025-11-20T18:00:00Z"
+    signup_method = "SELF_SIGNUP"
 
     await bot_publisher.publish_game_created(
         game_id=game_id,
@@ -97,6 +98,7 @@ async def test_publish_game_created(bot_publisher, mock_publisher):
         channel_id=channel_id,
         host_id=host_id,
         scheduled_at=scheduled_at,
+        signup_method=signup_method,
     )
 
     mock_publisher.publish.assert_awaited_once()

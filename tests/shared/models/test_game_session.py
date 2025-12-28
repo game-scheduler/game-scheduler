@@ -69,3 +69,29 @@ def test_game_session_data_columns_are_binary():
         columns["thumbnail_data"].type
     )
     assert "BYTEA" in str(columns["image_data"].type) or "BLOB" in str(columns["image_data"].type)
+
+
+def test_game_session_has_signup_method_column():
+    """Verify GameSession model has signup_method column."""
+    mapper = inspect(GameSession)
+    column_names = {col.key for col in mapper.columns}
+
+    assert "signup_method" in column_names, "Missing signup_method column"
+
+
+def test_game_session_signup_method_not_nullable():
+    """Verify signup_method column is not nullable and has default."""
+    mapper = inspect(GameSession)
+    columns = {col.key: col for col in mapper.columns}
+
+    signup_method_col = columns["signup_method"]
+    assert not signup_method_col.nullable, "signup_method should not be nullable"
+    assert signup_method_col.default is not None, "signup_method should have default value"
+
+
+def test_game_session_signup_method_is_string():
+    """Verify signup_method column is string type."""
+    mapper = inspect(GameSession)
+    columns = {col.key: col for col in mapper.columns}
+
+    assert "VARCHAR(50)" in str(columns["signup_method"].type)

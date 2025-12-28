@@ -34,7 +34,7 @@ import {
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { Channel, GameSession } from '../types';
+import { Channel, GameSession, SignupMethod, SIGNUP_METHOD_INFO } from '../types';
 import { ValidationErrors } from './ValidationErrors';
 import { formatParticipantDisplay } from '../utils/formatParticipant';
 import {
@@ -84,6 +84,7 @@ export interface GameFormData {
   reminderMinutes: string;
   expectedDurationMinutes: string;
   participants: EditableParticipantInput[];
+  signupMethod: string;
   thumbnailFile: File | null;
   imageFile: File | null;
   removeThumbnail: boolean;
@@ -98,6 +99,8 @@ interface GameFormProps {
   canChangeChannel?: boolean;
   isBotManager?: boolean;
   channels: Channel[];
+  allowedSignupMethods?: string[] | null;
+  defaultSignupMethod?: string | null;
   onSubmit: (formData: GameFormData) => Promise<void>;
   onCancel: () => void;
   validationErrors?: Array<{
@@ -170,6 +173,8 @@ export const GameForm: FC<GameFormProps> = ({
   canChangeChannel = true,
   isBotManager = false,
   channels,
+  allowedSignupMethods = null,
+  defaultSignupMethod = null,
   onSubmit,
   onCancel,
   validationErrors,
@@ -179,6 +184,19 @@ export const GameForm: FC<GameFormProps> = ({
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Calculate available signup methods: if empty/null, all methods are available
+  const availableSignupMethods =
+    !allowedSignupMethods || allowedSignupMethods.length === 0
+      ? Object.values(SignupMethod)
+      : allowedSignupMethods.filter((method) => method in SignupMethod);
+
+  // Determine default signup method
+  const resolvedDefaultSignupMethod =
+    defaultSignupMethod && availableSignupMethods.includes(defaultSignupMethod)
+      ? defaultSignupMethod
+      : availableSignupMethods[0] || SignupMethod.SELF_SIGNUP;
+
   const [formData, setFormData] = useState<GameFormData>({
     title: initialData?.title || '',
     host: '',
@@ -210,6 +228,7 @@ export const GameForm: FC<GameFormProps> = ({
             validationStatus: 'valid' as const, // From server, so validated
           }))
       : [],
+    signupMethod: initialData?.signup_method || resolvedDefaultSignupMethod,
     thumbnailFile: null,
     imageFile: null,
     removeThumbnail: false,
@@ -250,13 +269,14 @@ export const GameForm: FC<GameFormProps> = ({
                 validationStatus: 'valid' as const,
               }))
           : [],
+        signupMethod: initialData.signup_method || resolvedDefaultSignupMethod,
         thumbnailFile: null,
         imageFile: null,
         removeThumbnail: false,
         removeImage: false,
       });
     }
-  }, [initialData]);
+  }, [initialData, resolvedDefaultSignupMethod]);
 
   // Auto-select channel when only one is available
   useEffect(() => {
@@ -294,7 +314,12 @@ export const GameForm: FC<GameFormProps> = ({
   };
 
   const handleSelectChange = (event: SelectChangeEvent) => {
-    setFormData((prev) => ({ ...prev, channelId: event.target.value }));
+    const { name, value } = event.target;
+    if (name === 'signupMethod') {
+      setFormData((prev) => ({ ...prev, signupMethod: value }));
+    } else {
+      setFormData((prev) => ({ ...prev, channelId: value }));
+    }
   };
 
   const handleDateChange = (date: Date | null) => {
@@ -543,6 +568,28 @@ export const GameForm: FC<GameFormProps> = ({
               </Typography>
             </Box>
           )}
+
+          <FormControl fullWidth margin="normal" sx={{ mb: 1 }}>
+            <InputLabel sx={{ fontSize: '1.1rem' }}>Signup Method</InputLabel>
+            <Select
+              value={formData.signupMethod}
+              onChange={handleSelectChange}
+              name="signupMethod"
+              label="Signup Method"
+              disabled={loading || availableSignupMethods.length === 1}
+              data-testid="signup-method-select"
+            >
+              {availableSignupMethods.map((method) => (
+                <MenuItem key={method} value={method}>
+                  {SIGNUP_METHOD_INFO[method as SignupMethod].displayName}
+                </MenuItem>
+              ))}
+            </Select>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5 }}>
+              {SIGNUP_METHOD_INFO[formData.signupMethod as SignupMethod]?.description ||
+                'Select how players can join this game'}
+            </Typography>
+          </FormControl>
 
           <TextField
             fullWidth

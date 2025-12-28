@@ -15,6 +15,30 @@
 // You should have received a copy of the GNU Affero General Public License along
 // with Game_Scheduler If not, see <https://www.gnu.org/licenses/>.
 
+export enum SignupMethod {
+  SELF_SIGNUP = 'SELF_SIGNUP',
+  HOST_SELECTED = 'HOST_SELECTED',
+}
+
+export interface SignupMethodInfo {
+  value: SignupMethod;
+  displayName: string;
+  description: string;
+}
+
+export const SIGNUP_METHOD_INFO: Record<SignupMethod, SignupMethodInfo> = {
+  [SignupMethod.SELF_SIGNUP]: {
+    value: SignupMethod.SELF_SIGNUP,
+    displayName: 'Self Signup',
+    description: 'Players can join the game by clicking the Discord button',
+  },
+  [SignupMethod.HOST_SELECTED]: {
+    value: SignupMethod.HOST_SELECTED,
+    displayName: 'Host Selected',
+    description: 'Only the host can add players (Discord button disabled)',
+  },
+};
+
 export interface User {
   discordId: string;
   createdAt: string;
@@ -60,6 +84,7 @@ export interface GameSession {
   reminder_minutes: number[] | null;
   notify_role_ids: string[] | null;
   expected_duration_minutes: number | null;
+  signup_method: string;
   status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   participant_count: number;
   participants?: Participant[];
@@ -134,6 +159,8 @@ export interface GameTemplate {
   reminder_minutes: number[] | null;
   where: string | null;
   signup_instructions: string | null;
+  allowed_signup_methods: string[] | null;
+  default_signup_method: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -153,6 +180,8 @@ export interface TemplateListItem {
   reminder_minutes: number[] | null;
   where: string | null;
   signup_instructions: string | null;
+  allowed_signup_methods: string[] | null;
+  default_signup_method: string | null;
 }
 
 export interface TemplateCreateRequest {
@@ -170,6 +199,8 @@ export interface TemplateCreateRequest {
   reminder_minutes?: number[] | null;
   where?: string | null;
   signup_instructions?: string | null;
+  allowed_signup_methods?: string[] | null;
+  default_signup_method?: string | null;
 }
 
 export interface TemplateUpdateRequest {
@@ -186,4 +217,6 @@ export interface TemplateUpdateRequest {
   reminder_minutes?: number[] | null;
   where?: string | null;
   signup_instructions?: string | null;
+  allowed_signup_methods?: string[] | null;
+  default_signup_method?: string | null;
 }

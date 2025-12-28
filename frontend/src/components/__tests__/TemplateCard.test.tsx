@@ -38,6 +38,8 @@ const mockTemplate: GameTemplate = {
   reminder_minutes: [60, 15],
   where: 'Discord Voice',
   signup_instructions: 'Please bring your character sheet',
+  allowed_signup_methods: null,
+  default_signup_method: null,
   created_at: '2025-01-01T00:00:00Z',
   updated_at: '2025-01-01T00:00:00Z',
 };

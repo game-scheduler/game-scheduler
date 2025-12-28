@@ -75,6 +75,8 @@ describe('CreateGame', () => {
     notify_role_ids: null,
     allowed_player_role_ids: null,
     allowed_host_role_ids: null,
+    allowed_signup_methods: null,
+    default_signup_method: null,
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
   };
@@ -303,5 +305,62 @@ describe('CreateGame', () => {
     await waitFor(() => {
       expect(screen.getByText('Server 2 Game (Default)')).toBeInTheDocument();
     });
+  });
+
+  it('includes signup_method in form submission when provided', async () => {
+    const mockTemplateWithSignup: GameTemplate = {
+      ...mockTemplate,
+      default_signup_method: 'HOST_SELECTED',
+    };
+
+    vi.mocked(apiClient.get).mockImplementation((url: string) => {
+      if (url === '/api/v1/guilds') {
+        return Promise.resolve({ data: { guilds: [mockGuild] } });
+      }
+      if (url === '/api/v1/guilds/1/templates') {
+        return Promise.resolve({ data: [mockTemplateWithSignup] });
+      }
+      if (url === '/api/v1/guilds/1/config') {
+        return Promise.resolve({ status: StatusCodes.FORBIDDEN });
+      }
+      return Promise.resolve({ data: [] });
+    });
+
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: { id: 'new-game-id' },
+    });
+
+    const user = userEvent.setup();
+    renderWithAuth();
+
+    // Wait for the form to load with template
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: /game title/i })).toBeInTheDocument();
+    });
+
+    // Fill in required fields
+    const titleInput = screen.getByRole('textbox', { name: /game title/i });
+    await user.clear(titleInput);
+    await user.type(titleInput, 'Test Game');
+
+    const descriptionInput = screen.getByRole('textbox', { name: /description/i });
+    await user.clear(descriptionInput);
+    await user.type(descriptionInput, 'Test Description');
+
+    // Submit the form
+    const submitButton = screen.getByRole('button', { name: /create game/i });
+    await user.click(submitButton);
+
+    // Verify the API was called with signup_method in the payload
+    await waitFor(() => {
+      expect(apiClient.post).toHaveBeenCalled();
+    });
+
+    const postCall = vi.mocked(apiClient.post).mock.calls[0];
+    expect(postCall).toBeDefined();
+    const formData = postCall![1] as FormData;
+
+    // Verify signup_method is in the FormData
+    expect(formData.get('signup_method')).toBe('HOST_SELECTED');
   });
 });

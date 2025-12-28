@@ -25,6 +25,8 @@ allowing players to join and leave games via Discord buttons.
 import discord
 from discord.ui import Button, View
 
+from shared.models.signup_method import SignupMethod
+
 
 class GameView(View):
     """Persistent view with Join and Leave buttons for game sessions.
@@ -36,26 +38,35 @@ class GameView(View):
         game_id: UUID of the game session
         is_full: Whether the game has reached max players
         is_started: Whether the game has started (IN_PROGRESS or COMPLETED)
+        signup_method: Signup method controlling button behavior
     """
 
-    def __init__(self, game_id: str, is_full: bool = False, is_started: bool = False):
+    def __init__(
+        self,
+        game_id: str,
+        is_full: bool = False,
+        is_started: bool = False,
+        signup_method: str = SignupMethod.SELF_SIGNUP.value,
+    ):
         """Initialize the game view with buttons.
 
         Args:
             game_id: Game session UUID
             is_full: Whether game is at capacity
             is_started: Whether game has started
+            signup_method: Signup method (SELF_SIGNUP or HOST_SELECTED)
         """
         super().__init__(timeout=None)
         self.game_id = game_id
         self.is_full = is_full
         self.is_started = is_started
+        self.signup_method = signup_method
 
         self.join_button: Button[GameView] = Button(
             style=discord.ButtonStyle.success,
             label="Join Game",
             custom_id=f"join_game_{game_id}",
-            disabled=is_started,
+            disabled=is_started or (signup_method == SignupMethod.HOST_SELECTED.value),
         )
         # Type ignore: discord.py's callback assignment pattern not fully typed
         self.join_button.callback = self._join_button_callback  # type: ignore[method-assign]
@@ -88,21 +99,33 @@ class GameView(View):
         """
         await interaction.response.defer()
 
-    def update_button_states(self, is_full: bool, is_started: bool):
+    def update_button_states(
+        self, is_full: bool, is_started: bool, signup_method: str | None = None
+    ):
         """Update button enabled/disabled states.
 
         Args:
             is_full: Whether game is at capacity (unused since waitlists are supported)
             is_started: Whether game has started
+            signup_method: Optional new signup method to apply
         """
         self.is_full = is_full
         self.is_started = is_started
-        self.join_button.disabled = is_started
+        if signup_method is not None:
+            self.signup_method = signup_method
+        self.join_button.disabled = is_started or (
+            self.signup_method == SignupMethod.HOST_SELECTED.value
+        )
         self.leave_button.disabled = is_started
 
     @classmethod
     def from_game_data(
-        cls, game_id: str, current_players: int, max_players: int, status: str
+        cls,
+        game_id: str,
+        current_players: int,
+        max_players: int,
+        status: str,
+        signup_method: str = SignupMethod.SELF_SIGNUP.value,
     ) -> "GameView":
         """Create a GameView from game session data.
 
@@ -111,10 +134,11 @@ class GameView(View):
             current_players: Current participant count
             max_players: Maximum allowed participants
             status: Game status (SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED)
+            signup_method: Signup method (SELF_SIGNUP or HOST_SELECTED)
 
         Returns:
             Configured GameView instance
         """
         is_full = current_players >= max_players
         is_started = status in ("IN_PROGRESS", "COMPLETED", "CANCELLED")
-        return cls(game_id, is_full, is_started)
+        return cls(game_id, is_full, is_started, signup_method)

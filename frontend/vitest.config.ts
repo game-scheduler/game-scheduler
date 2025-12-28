@@ -8,7 +8,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     css: true,
-    testTimeout: 30000, // 30 seconds for coverage runs (slower due to instrumentation)
+    testTimeout: 60000, // 60 seconds - coverage instrumentation significantly slows tests
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

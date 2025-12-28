@@ -384,6 +384,7 @@ class TestFormatGameAnnouncement:
                     current_count=0,
                     max_players=5,
                     status="SCHEDULED",
+                    signup_method="SELF_SIGNUP",
                 )
 
                 assert isinstance(result, tuple)
@@ -409,6 +410,7 @@ class TestFormatGameAnnouncement:
                     current_count=0,
                     max_players=5,
                     status="SCHEDULED",
+                    signup_method="SELF_SIGNUP",
                 )
 
                 mock_view_class.from_game_data.assert_called_once()
@@ -438,6 +440,7 @@ class TestFormatGameAnnouncement:
                     current_count=2,
                     max_players=5,
                     status="SCHEDULED",
+                    signup_method="SELF_SIGNUP",
                     channel_id="voice123",
                 )
 
@@ -779,6 +782,7 @@ class TestGameEmbedImages:
                 current_count=0,
                 max_players=5,
                 status="SCHEDULED",
+                signup_method="SELF_SIGNUP",
                 has_thumbnail=True,
                 has_image=True,
             )
@@ -810,6 +814,7 @@ class TestGameEmbedImages:
                 current_count=0,
                 max_players=5,
                 status="SCHEDULED",
+                signup_method="SELF_SIGNUP",
                 has_thumbnail=False,
                 has_image=False,
             )

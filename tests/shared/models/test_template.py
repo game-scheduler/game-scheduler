@@ -158,3 +158,62 @@ def test_game_template_has_check_constraint():
     constraint_names = {const.name for const in table.constraints if hasattr(const, "name")}
 
     assert "ck_template_order_positive" in constraint_names
+
+
+def test_game_template_has_signup_method_columns():
+    """Verify GameTemplate model has signup method configuration columns."""
+    mapper = inspect(GameTemplate)
+    column_names = {col.key for col in mapper.columns}
+
+    signup_method_columns = {
+        "allowed_signup_methods",
+        "default_signup_method",
+    }
+
+    assert signup_method_columns.issubset(column_names), (
+        f"Missing signup method columns: {signup_method_columns - column_names}"
+    )
+
+
+def test_game_template_signup_method_columns_nullable():
+    """Verify signup method columns are nullable."""
+    mapper = inspect(GameTemplate)
+    columns = {col.key: col for col in mapper.columns}
+
+    assert columns["allowed_signup_methods"].nullable, "allowed_signup_methods should be nullable"
+    assert columns["default_signup_method"].nullable, "default_signup_method should be nullable"
+
+
+def test_game_template_allowed_signup_methods_is_json():
+    """Verify allowed_signup_methods column uses JSON type."""
+    mapper = inspect(GameTemplate)
+    columns = {col.key: col for col in mapper.columns}
+
+    assert "JSON" in str(columns["allowed_signup_methods"].type)
+
+
+def test_game_template_default_signup_method_is_string():
+    """Verify default_signup_method column is string type."""
+    mapper = inspect(GameTemplate)
+    columns = {col.key: col for col in mapper.columns}
+
+    assert "VARCHAR(50)" in str(columns["default_signup_method"].type)
+
+
+def test_game_template_signup_method_fields():
+    """Verify GameTemplate accepts signup method configuration fields."""
+    now = utc_now()
+    template = GameTemplate(
+        id="test-id",
+        guild_id="guild-id",
+        name="Test Template",
+        channel_id="channel-id",
+        order=0,
+        created_at=now,
+        updated_at=now,
+        allowed_signup_methods=["SELF_SIGNUP", "HOST_SELECTED"],
+        default_signup_method="SELF_SIGNUP",
+    )
+
+    assert template.allowed_signup_methods == ["SELF_SIGNUP", "HOST_SELECTED"]
+    assert template.default_signup_method == "SELF_SIGNUP"

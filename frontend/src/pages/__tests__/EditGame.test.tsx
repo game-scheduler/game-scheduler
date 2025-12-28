@@ -73,6 +73,7 @@ describe('EditGame', () => {
     notify_role_ids: [],
     expected_duration_minutes: null,
     status: 'SCHEDULED',
+    signup_method: 'SELF_SIGNUP',
     participant_count: 3,
     participants: [],
     created_at: '2025-01-01T00:00:00Z',

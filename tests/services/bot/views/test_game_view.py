@@ -189,3 +189,95 @@ class TestGameView:
 
         await view._leave_button_callback(interaction)
         interaction.response.defer.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_initializes_with_self_signup_method(self):
+        """Test GameView with SELF_SIGNUP method enables join button."""
+        from shared.models.signup_method import SignupMethod
+
+        view = GameView(game_id="test-game-id", signup_method=SignupMethod.SELF_SIGNUP.value)
+        assert view.signup_method == SignupMethod.SELF_SIGNUP.value
+        assert not view.join_button.disabled
+
+    @pytest.mark.asyncio
+    async def test_initializes_with_host_selected_method(self):
+        """Test GameView with HOST_SELECTED method disables join button."""
+        from shared.models.signup_method import SignupMethod
+
+        view = GameView(game_id="test-game-id", signup_method=SignupMethod.HOST_SELECTED.value)
+        assert view.signup_method == SignupMethod.HOST_SELECTED.value
+        assert view.join_button.disabled
+
+    @pytest.mark.asyncio
+    async def test_host_selected_overrides_other_states(self):
+        """Test HOST_SELECTED disables join button even when game has space."""
+        from shared.models.signup_method import SignupMethod
+
+        view = GameView(
+            game_id="test-game-id",
+            is_full=False,
+            is_started=False,
+            signup_method=SignupMethod.HOST_SELECTED.value,
+        )
+        assert not view.is_full
+        assert not view.is_started
+        assert view.join_button.disabled  # Still disabled due to signup method
+
+    @pytest.mark.asyncio
+    async def test_from_game_data_with_self_signup(self):
+        """Test creating view from game data with SELF_SIGNUP method."""
+        from shared.models.signup_method import SignupMethod
+
+        view = GameView.from_game_data(
+            game_id="test-id",
+            current_players=3,
+            max_players=5,
+            status="SCHEDULED",
+            signup_method=SignupMethod.SELF_SIGNUP.value,
+        )
+        assert not view.join_button.disabled
+
+    @pytest.mark.asyncio
+    async def test_from_game_data_with_host_selected(self):
+        """Test creating view from game data with HOST_SELECTED method."""
+        from shared.models.signup_method import SignupMethod
+
+        view = GameView.from_game_data(
+            game_id="test-id",
+            current_players=3,
+            max_players=5,
+            status="SCHEDULED",
+            signup_method=SignupMethod.HOST_SELECTED.value,
+        )
+        assert view.join_button.disabled
+        assert not view.leave_button.disabled  # Leave always enabled when not started
+
+    @pytest.mark.asyncio
+    async def test_host_selected_leave_button_always_enabled_when_not_started(self):
+        """Test HOST_SELECTED games allow players to leave via button."""
+        from shared.models.signup_method import SignupMethod
+
+        view = GameView(
+            game_id="test-game-id",
+            is_full=True,
+            is_started=False,
+            signup_method=SignupMethod.HOST_SELECTED.value,
+        )
+        assert view.join_button.disabled  # Can't self-join
+        assert not view.leave_button.disabled  # Can self-leave
+
+    @pytest.mark.asyncio
+    async def test_update_button_states_with_host_selected_method(self):
+        """Test updating button states with HOST_SELECTED method."""
+        from shared.models.signup_method import SignupMethod
+
+        view = GameView(game_id="test-id", signup_method=SignupMethod.SELF_SIGNUP.value)
+        assert not view.join_button.disabled
+
+        view.update_button_states(
+            is_full=False,
+            is_started=False,
+            signup_method=SignupMethod.HOST_SELECTED.value,
+        )
+        assert view.join_button.disabled
+        assert not view.leave_button.disabled

@@ -151,6 +151,9 @@ export const EditGame: FC = () => {
         payload.append('expected_duration_minutes', expectedDuration.toString());
       }
 
+      // Add signup method
+      payload.append('signup_method', formData.signupMethod);
+
       // Add participants as JSON array
       const participantsList = formData.participants
         .filter((p) => p.mention.trim() && p.isExplicitlyPositioned)

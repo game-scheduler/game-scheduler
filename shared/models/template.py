@@ -78,6 +78,8 @@ class GameTemplate(Base):
     reminder_minutes: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
     where: Mapped[str | None] = mapped_column(Text, nullable=True)
     signup_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
+    allowed_signup_methods: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    default_signup_method: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # Relationships
     guild: Mapped["GuildConfiguration"] = relationship(

@@ -163,6 +163,7 @@ async def test_create_game_without_participants(
         channel_id=sample_channel.id,
         host_id=sample_user.id,
         status="SCHEDULED",
+        signup_method="SELF_SIGNUP",
     )
     created_game.host = sample_user
     created_game.participants = []
@@ -248,6 +249,7 @@ async def test_create_game_with_where_field(
         channel_id=sample_channel.id,
         host_id=sample_user.id,
         status="SCHEDULED",
+        signup_method="SELF_SIGNUP",
     )
     created_game.host = sample_user
     created_game.participants = []
@@ -319,6 +321,7 @@ async def test_create_game_with_valid_participants(
         channel_id=sample_channel.id,
         host_id=sample_user.id,
         status="SCHEDULED",
+        signup_method="SELF_SIGNUP",
     )
     created_game.host = sample_user
     created_game.participants = []
@@ -469,6 +472,7 @@ async def test_create_game_timezone_conversion(
         channel_id=sample_channel.id,
         host_id=sample_user.id,
         status="SCHEDULED",
+        signup_method="SELF_SIGNUP",
     )
     created_game.host = sample_user
     created_game.participants = []
@@ -1317,6 +1321,7 @@ async def test_create_game_creates_status_schedules(
         channel_id=sample_channel.id,
         host_id=sample_user.id,
         status="SCHEDULED",
+        signup_method="SELF_SIGNUP",
     )
     created_game.host = sample_user
     created_game.participants = []
@@ -1424,6 +1429,7 @@ async def test_create_game_with_empty_host_defaults_to_current_user(
         channel_id=sample_channel.id,
         host_id=sample_user.id,
         status="SCHEDULED",
+        signup_method="SELF_SIGNUP",
     )
     created_game.host = sample_user
     created_game.participants = []
@@ -1536,6 +1542,7 @@ async def test_create_game_bot_manager_can_override_host(
         channel_id=sample_channel.id,
         host_id=different_host.id,
         status="SCHEDULED",
+        signup_method="SELF_SIGNUP",
     )
     created_game.host = different_host
     created_game.participants = []
@@ -1766,6 +1773,7 @@ async def test_create_game_bot_manager_empty_host_uses_self(
         channel_id=sample_channel.id,
         host_id=sample_user.id,
         status="SCHEDULED",
+        signup_method="SELF_SIGNUP",
     )
     created_game.host = sample_user
     created_game.participants = []
@@ -1804,3 +1812,427 @@ async def test_create_game_bot_manager_empty_host_uses_self(
         )
 
     assert game.host_id == sample_user.id
+
+
+@pytest.mark.asyncio
+async def test_create_game_explicit_signup_method(
+    game_service,
+    mock_db,
+    mock_participant_resolver,
+    mock_role_service,
+    sample_template,
+    sample_guild,
+    sample_channel,
+    sample_user,
+):
+    """Test creating game with explicit signup method."""
+    from shared.models.signup_method import SignupMethod
+
+    game_data = game_schemas.GameCreateRequest(
+        template_id=sample_template.id,
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        signup_method=SignupMethod.HOST_SELECTED.value,
+    )
+
+    created_game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        guild_id=sample_guild.id,
+        channel_id=sample_channel.id,
+        host_id=sample_user.id,
+        status="SCHEDULED",
+        signup_method=SignupMethod.HOST_SELECTED.value,
+    )
+    created_game.host = sample_user
+    created_game.participants = []
+
+    template_result = MagicMock()
+    template_result.scalar_one_or_none.return_value = sample_template
+    guild_result = MagicMock()
+    guild_result.scalar_one_or_none.return_value = sample_guild
+    host_result = MagicMock()
+    host_result.scalar_one_or_none.return_value = sample_user
+    channel_result = MagicMock()
+    channel_result.scalar_one_or_none.return_value = sample_channel
+    reload_result = MagicMock()
+    reload_result.scalar_one_or_none.return_value = created_game
+
+    mock_db.execute = AsyncMock(
+        side_effect=[
+            template_result,
+            guild_result,
+            host_result,
+            channel_result,
+            reload_result,
+        ]
+    )
+    mock_db.flush = AsyncMock()
+    mock_db.commit = AsyncMock()
+    mock_db.add = MagicMock()
+    mock_role_service.check_game_host_permission = AsyncMock(return_value=True)
+
+    with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
+        game = await game_service.create_game(
+            game_data=game_data,
+            host_user_id=sample_user.id,
+            access_token="token",
+        )
+
+    assert game.signup_method == SignupMethod.HOST_SELECTED.value
+
+
+@pytest.mark.asyncio
+async def test_create_game_uses_template_default_signup_method(
+    game_service,
+    mock_db,
+    mock_participant_resolver,
+    mock_role_service,
+    sample_guild,
+    sample_channel,
+    sample_user,
+):
+    """Test creating game uses template default signup method when not specified."""
+    from shared.models.signup_method import SignupMethod
+
+    template_with_default = template_model.GameTemplate(
+        id=str(uuid.uuid4()),
+        guild_id=sample_guild.id,
+        channel_id=sample_channel.id,
+        name="Test Template",
+        order=0,
+        is_default=True,
+        max_players=10,
+        reminder_minutes=[60, 15],
+        default_signup_method=SignupMethod.HOST_SELECTED.value,
+    )
+
+    game_data = game_schemas.GameCreateRequest(
+        template_id=template_with_default.id,
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+    )
+
+    created_game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        guild_id=sample_guild.id,
+        channel_id=sample_channel.id,
+        host_id=sample_user.id,
+        status="SCHEDULED",
+        signup_method=SignupMethod.HOST_SELECTED.value,
+    )
+    created_game.host = sample_user
+    created_game.participants = []
+
+    template_result = MagicMock()
+    template_result.scalar_one_or_none.return_value = template_with_default
+    guild_result = MagicMock()
+    guild_result.scalar_one_or_none.return_value = sample_guild
+    host_result = MagicMock()
+    host_result.scalar_one_or_none.return_value = sample_user
+    channel_result = MagicMock()
+    channel_result.scalar_one_or_none.return_value = sample_channel
+    reload_result = MagicMock()
+    reload_result.scalar_one_or_none.return_value = created_game
+
+    mock_db.execute = AsyncMock(
+        side_effect=[
+            template_result,
+            guild_result,
+            host_result,
+            channel_result,
+            reload_result,
+        ]
+    )
+    mock_db.flush = AsyncMock()
+    mock_db.commit = AsyncMock()
+    mock_db.add = MagicMock()
+    mock_role_service.check_game_host_permission = AsyncMock(return_value=True)
+
+    with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
+        game = await game_service.create_game(
+            game_data=game_data,
+            host_user_id=sample_user.id,
+            access_token="token",
+        )
+
+    assert game.signup_method == SignupMethod.HOST_SELECTED.value
+
+
+@pytest.mark.asyncio
+async def test_create_game_defaults_to_self_signup(
+    game_service,
+    mock_db,
+    mock_participant_resolver,
+    mock_role_service,
+    sample_template,
+    sample_guild,
+    sample_channel,
+    sample_user,
+):
+    """Test creating game defaults to SELF_SIGNUP when no method specified."""
+    from shared.models.signup_method import SignupMethod
+
+    game_data = game_schemas.GameCreateRequest(
+        template_id=sample_template.id,
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+    )
+
+    created_game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        guild_id=sample_guild.id,
+        channel_id=sample_channel.id,
+        host_id=sample_user.id,
+        status="SCHEDULED",
+        signup_method=SignupMethod.SELF_SIGNUP.value,
+    )
+    created_game.host = sample_user
+    created_game.participants = []
+
+    template_result = MagicMock()
+    template_result.scalar_one_or_none.return_value = sample_template
+    guild_result = MagicMock()
+    guild_result.scalar_one_or_none.return_value = sample_guild
+    host_result = MagicMock()
+    host_result.scalar_one_or_none.return_value = sample_user
+    channel_result = MagicMock()
+    channel_result.scalar_one_or_none.return_value = sample_channel
+    reload_result = MagicMock()
+    reload_result.scalar_one_or_none.return_value = created_game
+
+    mock_db.execute = AsyncMock(
+        side_effect=[
+            template_result,
+            guild_result,
+            host_result,
+            channel_result,
+            reload_result,
+        ]
+    )
+    mock_db.flush = AsyncMock()
+    mock_db.commit = AsyncMock()
+    mock_db.add = MagicMock()
+    mock_role_service.check_game_host_permission = AsyncMock(return_value=True)
+
+    with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
+        game = await game_service.create_game(
+            game_data=game_data,
+            host_user_id=sample_user.id,
+            access_token="token",
+        )
+
+    assert game.signup_method == SignupMethod.SELF_SIGNUP.value
+
+
+@pytest.mark.asyncio
+async def test_create_game_validates_signup_method_against_allowed_list(
+    game_service,
+    mock_db,
+    mock_role_service,
+    sample_guild,
+    sample_channel,
+    sample_user,
+):
+    """Test creating game validates signup method against template's allowed list."""
+    from shared.models.signup_method import SignupMethod
+
+    template_with_restrictions = template_model.GameTemplate(
+        id=str(uuid.uuid4()),
+        guild_id=sample_guild.id,
+        channel_id=sample_channel.id,
+        name="Restricted Template",
+        order=0,
+        is_default=True,
+        max_players=10,
+        reminder_minutes=[60, 15],
+        allowed_signup_methods=[SignupMethod.HOST_SELECTED.value],
+        default_signup_method=SignupMethod.HOST_SELECTED.value,
+    )
+
+    game_data = game_schemas.GameCreateRequest(
+        template_id=template_with_restrictions.id,
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        signup_method=SignupMethod.SELF_SIGNUP.value,
+    )
+
+    template_result = MagicMock()
+    template_result.scalar_one_or_none.return_value = template_with_restrictions
+    guild_result = MagicMock()
+    guild_result.scalar_one_or_none.return_value = sample_guild
+    host_result = MagicMock()
+    host_result.scalar_one_or_none.return_value = sample_user
+    channel_result = MagicMock()
+    channel_result.scalar_one_or_none.return_value = sample_channel
+
+    mock_db.execute = AsyncMock(
+        side_effect=[template_result, guild_result, host_result, channel_result]
+    )
+    mock_role_service.check_game_host_permission = AsyncMock(return_value=True)
+
+    with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
+        with pytest.raises(ValueError, match="not allowed for this template"):
+            await game_service.create_game(
+                game_data=game_data,
+                host_user_id=sample_user.id,
+                access_token="token",
+            )
+
+
+@pytest.mark.asyncio
+async def test_create_game_allows_any_method_when_allowed_list_is_none(
+    game_service,
+    mock_db,
+    mock_participant_resolver,
+    mock_role_service,
+    sample_template,
+    sample_guild,
+    sample_channel,
+    sample_user,
+):
+    """Test creating game allows any signup method when template has no restrictions."""
+    from shared.models.signup_method import SignupMethod
+
+    sample_template.allowed_signup_methods = None
+
+    game_data = game_schemas.GameCreateRequest(
+        template_id=sample_template.id,
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        signup_method=SignupMethod.HOST_SELECTED.value,
+    )
+
+    created_game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        guild_id=sample_guild.id,
+        channel_id=sample_channel.id,
+        host_id=sample_user.id,
+        status="SCHEDULED",
+        signup_method=SignupMethod.HOST_SELECTED.value,
+    )
+    created_game.host = sample_user
+    created_game.participants = []
+
+    template_result = MagicMock()
+    template_result.scalar_one_or_none.return_value = sample_template
+    guild_result = MagicMock()
+    guild_result.scalar_one_or_none.return_value = sample_guild
+    host_result = MagicMock()
+    host_result.scalar_one_or_none.return_value = sample_user
+    channel_result = MagicMock()
+    channel_result.scalar_one_or_none.return_value = sample_channel
+    reload_result = MagicMock()
+    reload_result.scalar_one_or_none.return_value = created_game
+
+    mock_db.execute = AsyncMock(
+        side_effect=[
+            template_result,
+            guild_result,
+            host_result,
+            channel_result,
+            reload_result,
+        ]
+    )
+    mock_db.flush = AsyncMock()
+    mock_db.commit = AsyncMock()
+    mock_db.add = MagicMock()
+    mock_role_service.check_game_host_permission = AsyncMock(return_value=True)
+
+    with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
+        game = await game_service.create_game(
+            game_data=game_data,
+            host_user_id=sample_user.id,
+            access_token="token",
+        )
+
+    assert game.signup_method == SignupMethod.HOST_SELECTED.value
+
+
+@pytest.mark.asyncio
+async def test_create_game_allows_any_method_when_allowed_list_is_empty(
+    game_service,
+    mock_db,
+    mock_participant_resolver,
+    mock_role_service,
+    sample_template,
+    sample_guild,
+    sample_channel,
+    sample_user,
+):
+    """Test creating game allows any signup method when template has empty allowed list."""
+    from shared.models.signup_method import SignupMethod
+
+    sample_template.allowed_signup_methods = []
+
+    game_data = game_schemas.GameCreateRequest(
+        template_id=sample_template.id,
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        signup_method=SignupMethod.HOST_SELECTED.value,
+    )
+
+    created_game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime.now(datetime.UTC),
+        guild_id=sample_guild.id,
+        channel_id=sample_channel.id,
+        host_id=sample_user.id,
+        status="SCHEDULED",
+        signup_method=SignupMethod.HOST_SELECTED.value,
+    )
+    created_game.host = sample_user
+    created_game.participants = []
+
+    template_result = MagicMock()
+    template_result.scalar_one_or_none.return_value = sample_template
+    guild_result = MagicMock()
+    guild_result.scalar_one_or_none.return_value = sample_guild
+    host_result = MagicMock()
+    host_result.scalar_one_or_none.return_value = sample_user
+    channel_result = MagicMock()
+    channel_result.scalar_one_or_none.return_value = sample_channel
+    reload_result = MagicMock()
+    reload_result.scalar_one_or_none.return_value = created_game
+
+    mock_db.execute = AsyncMock(
+        side_effect=[
+            template_result,
+            guild_result,
+            host_result,
+            channel_result,
+            reload_result,
+        ]
+    )
+    mock_db.flush = AsyncMock()
+    mock_db.commit = AsyncMock()
+    mock_db.add = MagicMock()
+    mock_role_service.check_game_host_permission = AsyncMock(return_value=True)
+
+    with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
+        game = await game_service.create_game(
+            game_data=game_data,
+            host_user_id=sample_user.id,
+            access_token="token",
+        )
+
+    assert game.signup_method == SignupMethod.HOST_SELECTED.value

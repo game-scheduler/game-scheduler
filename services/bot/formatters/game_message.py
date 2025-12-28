@@ -242,6 +242,7 @@ def format_game_announcement(
     current_count: int,
     max_players: int,
     status: str,
+    signup_method: str,
     channel_id: str | None = None,
     signup_instructions: str | None = None,
     expected_duration_minutes: int | None = None,
@@ -265,6 +266,7 @@ def format_game_announcement(
         current_count: Current confirmed participant count
         max_players: Maximum allowed participants
         status: Game status
+        signup_method: Signup method (SELF_SIGNUP or HOST_SELECTED)
         channel_id: Optional voice channel ID
         signup_instructions: Optional signup instructions
         expected_duration_minutes: Optional expected game duration in minutes
@@ -317,6 +319,7 @@ def format_game_announcement(
         current_players=current_count,
         max_players=max_players,
         status=status,
+        signup_method=signup_method,
     )
 
     # Format role mentions for message content (appears above embed)

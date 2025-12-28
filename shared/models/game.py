@@ -26,6 +26,7 @@ from sqlalchemy import JSON, ForeignKey, Integer, LargeBinary, String, Text, fun
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
+from .signup_method import SignupMethod
 
 if TYPE_CHECKING:
     from .channel import ChannelConfiguration
@@ -87,6 +88,12 @@ class GameSession(Base):
         default=GameStatus.SCHEDULED.value,
         server_default=text(f"'{GameStatus.SCHEDULED.value}'"),
         index=True,
+    )
+    signup_method: Mapped[str] = mapped_column(
+        String(50),
+        default=SignupMethod.SELF_SIGNUP.value,
+        server_default=text(f"'{SignupMethod.SELF_SIGNUP.value}'"),
+        nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
         default=utc_now, server_default=func.now(), index=True

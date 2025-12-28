@@ -93,6 +93,8 @@ def mock_template():
     template.reminder_minutes = [60, 15]
     template.where = "Online"
     template.signup_instructions = "Just join!"
+    template.allowed_signup_methods = ["SELF_SIGNUP", "HOST_SELECTED"]
+    template.default_signup_method = "SELF_SIGNUP"
     template.created_at = datetime(2024, 1, 1, 12, 0, 0)
     template.updated_at = datetime(2024, 1, 1, 12, 0, 0)
     template.channel = channel_config

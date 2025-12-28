@@ -74,6 +74,7 @@ async def test_scheduled_at_has_utc_marker(
         channel_id="1",
         host_id="1",
         status="scheduled",
+        signup_method="SELF_SIGNUP",
     )
     game.id = "1"
     game.guild = guild
@@ -143,6 +144,7 @@ async def test_created_updated_have_utc_marker(
         channel_id="1",
         host_id="1",
         status="scheduled",
+        signup_method="SELF_SIGNUP",
     )
     game.id = "1"
     game.guild = guild
@@ -211,6 +213,7 @@ async def test_midnight_utc_not_offset(
         channel_id="1",
         host_id="1",
         status="scheduled",
+        signup_method="SELF_SIGNUP",
     )
     game.id = "1"
     game.guild = guild
@@ -295,6 +298,7 @@ async def test_various_times_consistent(
             channel_id="1",
             host_id="1",
             status="scheduled",
+            signup_method="SELF_SIGNUP",
         )
         game.id = "1"
         game.guild = guild

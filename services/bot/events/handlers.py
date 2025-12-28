@@ -890,6 +890,7 @@ class EventHandlers:
             current_count=len(confirmed_ids),
             max_players=resolve_max_players(game.max_players),
             status=game.status,
+            signup_method=game.signup_method,
             signup_instructions=game.signup_instructions,
             expected_duration_minutes=game.expected_duration_minutes,
             notify_role_ids=game.notify_role_ids or [],

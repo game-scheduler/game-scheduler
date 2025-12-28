@@ -91,6 +91,7 @@ class GameCreatedEvent(BaseModel):
     scheduled_at: datetime
     max_players: int | None = None
     notify_role_ids: list[str] | None = None
+    signup_method: str
 
 
 class PlayerJoinedEvent(BaseModel):

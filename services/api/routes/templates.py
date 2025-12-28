@@ -113,6 +113,8 @@ async def list_templates(
                 reminder_minutes=template.reminder_minutes,
                 where=template.where,
                 signup_instructions=template.signup_instructions,
+                allowed_signup_methods=template.allowed_signup_methods,
+                default_signup_method=template.default_signup_method,
             )
         )
 
@@ -157,6 +159,8 @@ async def get_template(
         reminder_minutes=template.reminder_minutes,
         where=template.where,
         signup_instructions=template.signup_instructions,
+        allowed_signup_methods=template.allowed_signup_methods,
+        default_signup_method=template.default_signup_method,
         created_at=template.created_at.isoformat(),
         updated_at=template.updated_at.isoformat(),
     )
@@ -223,6 +227,8 @@ async def create_template(
         reminder_minutes=template.reminder_minutes,
         where=template.where,
         signup_instructions=template.signup_instructions,
+        allowed_signup_methods=template.allowed_signup_methods,
+        default_signup_method=template.default_signup_method,
         created_at=template.created_at.isoformat(),
         updated_at=template.updated_at.isoformat(),
     )
@@ -276,6 +282,8 @@ async def update_template(
         reminder_minutes=updated_template.reminder_minutes,
         where=updated_template.where,
         signup_instructions=updated_template.signup_instructions,
+        allowed_signup_methods=updated_template.allowed_signup_methods,
+        default_signup_method=updated_template.default_signup_method,
         created_at=updated_template.created_at.isoformat(),
         updated_at=updated_template.updated_at.isoformat(),
     )
@@ -356,6 +364,8 @@ async def set_default_template(
         reminder_minutes=updated_template.reminder_minutes,
         where=updated_template.where,
         signup_instructions=updated_template.signup_instructions,
+        allowed_signup_methods=updated_template.allowed_signup_methods,
+        default_signup_method=updated_template.default_signup_method,
         created_at=updated_template.created_at.isoformat(),
         updated_at=updated_template.updated_at.isoformat(),
     )

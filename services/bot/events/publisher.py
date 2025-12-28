@@ -67,6 +67,7 @@ class BotEventPublisher:
         channel_id: str,
         host_id: str,
         scheduled_at: str,
+        signup_method: str,
     ) -> None:
         """
         Publish game created event.
@@ -78,6 +79,7 @@ class BotEventPublisher:
             channel_id: Discord channel ID
             host_id: Discord ID of the host
             scheduled_at: ISO 8601 UTC timestamp string
+            signup_method: Method used for player signups
         """
         from datetime import datetime
 
@@ -90,6 +92,7 @@ class BotEventPublisher:
             channel_id=channel_id,
             host_id=host_id,
             scheduled_at=scheduled_at_dt,
+            signup_method=signup_method,
         )
 
         event = Event(event_type=EventType.GAME_CREATED, data=event_data.model_dump())

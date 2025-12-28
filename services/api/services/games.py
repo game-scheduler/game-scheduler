@@ -243,6 +243,24 @@ class GameService:
         notify_role_ids = template.notify_role_ids
         allowed_player_role_ids = template.allowed_player_role_ids
 
+        # Resolve signup method: request → template default → SELF_SIGNUP fallback
+        from shared.models.signup_method import SignupMethod
+
+        signup_method = (
+            game_data.signup_method
+            or template.default_signup_method
+            or SignupMethod.SELF_SIGNUP.value
+        )
+
+        # Validate signup method against template's allowed list if specified
+        if template.allowed_signup_methods:
+            if signup_method not in template.allowed_signup_methods:
+                allowed_str = ", ".join(template.allowed_signup_methods)
+                raise ValueError(
+                    f"Signup method '{signup_method}' not allowed for this template. "
+                    f"Allowed methods: {allowed_str}"
+                )
+
         # Resolve initial participants if provided
         valid_participants: list[dict[str, Any]] = []
         if game_data.initial_participants:
@@ -288,6 +306,7 @@ class GameService:
             expected_duration_minutes=expected_duration_minutes,
             notify_role_ids=notify_role_ids,
             allowed_player_role_ids=allowed_player_role_ids,
+            signup_method=signup_method,
             status=game_model.GameStatus.SCHEDULED.value,
             thumbnail_data=thumbnail_data,
             thumbnail_mime_type=thumbnail_mime_type,
@@ -501,6 +520,8 @@ class GameService:
         if update_data.status is not None:
             game.status = update_data.status
             status_schedule_needs_update = True
+        if update_data.signup_method is not None:
+            game.signup_method = update_data.signup_method
 
         return schedule_needs_update, status_schedule_needs_update
 
@@ -1149,6 +1170,7 @@ class GameService:
             scheduled_at=game.scheduled_at,
             max_players=game.max_players,
             notify_role_ids=game.notify_role_ids,
+            signup_method=game.signup_method,
         )
 
         event = messaging_events.Event(

@@ -80,6 +80,7 @@ async def test_participant_count_includes_discord_users_only(
         channel_id=channel.id,
         host_id=host_id,
         status="SCHEDULED",
+        signup_method="SELF_SIGNUP",
         created_at=datetime.datetime.now(datetime.UTC),
         updated_at=datetime.datetime.now(datetime.UTC),
     )
@@ -159,6 +160,7 @@ async def test_participant_count_includes_placeholder_participants(
         channel_id=channel.id,
         host_id=host_id,
         status="SCHEDULED",
+        signup_method="SELF_SIGNUP",
         created_at=datetime.datetime.now(datetime.UTC),
         updated_at=datetime.datetime.now(datetime.UTC),
     )
@@ -255,6 +257,7 @@ async def test_participant_count_includes_mixed_participants(
         channel_id=channel.id,
         host_id=host_id,
         status="SCHEDULED",
+        signup_method="SELF_SIGNUP",
         created_at=datetime.datetime.now(datetime.UTC),
         updated_at=datetime.datetime.now(datetime.UTC),
     )
@@ -358,6 +361,7 @@ async def test_participant_count_with_empty_participants(
         channel_id=channel.id,
         host_id=host_id,
         status="SCHEDULED",
+        signup_method="SELF_SIGNUP",
         created_at=datetime.datetime.now(datetime.UTC),
         updated_at=datetime.datetime.now(datetime.UTC),
     )
