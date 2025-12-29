@@ -84,7 +84,7 @@ markers = [
     "integration: Integration tests requiring RabbitMQ, Postgres, Redis",
     "e2e: End-to-end tests requiring Discord bot and full stack",
 ]
-addopts = "-m 'not e2e and not integration'"
+addopts = "-m 'not e2e and not integration' --strict-markers -W error::UserWarning"
 filterwarnings = [
     "ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning:pika.data",
 ]
