@@ -145,7 +145,11 @@ async def test_cleared_reminder_minutes_not_reverted_to_template_default(
     session_token, session_data = await create_test_session(TEST_DISCORD_TOKEN, TEST_BOT_DISCORD_ID)
 
     try:
-        async with httpx.AsyncClient(base_url=api_base_url, timeout=10.0) as client:
+        async with httpx.AsyncClient(
+            base_url=api_base_url,
+            timeout=10.0,
+            cookies={"session_token": session_token},
+        ) as client:
             # Create game with EMPTY reminder_minutes (user cleared the field)
             scheduled_at = datetime.now(UTC) + timedelta(hours=2)
             response = await client.post(
@@ -157,7 +161,6 @@ async def test_cleared_reminder_minutes_not_reverted_to_template_default(
                     "scheduled_at": scheduled_at.isoformat(),
                     "reminder_minutes": "[]",  # Explicitly empty - user cleared it
                 },
-                cookies={"session_token": session_token},
             )
 
             assert response.status_code == 201, f"Failed to create game: {response.text}"
@@ -231,7 +234,11 @@ async def test_cleared_optional_text_fields_not_reverted_to_template_defaults(
     session_token, session_data = await create_test_session(TEST_DISCORD_TOKEN, TEST_BOT_DISCORD_ID)
 
     try:
-        async with httpx.AsyncClient(base_url=api_base_url, timeout=10.0) as client:
+        async with httpx.AsyncClient(
+            base_url=api_base_url,
+            timeout=10.0,
+            cookies={"session_token": session_token},
+        ) as client:
             # Create game with ALL optional fields cleared
             # For integer fields, omit them entirely instead of sending empty strings
             # which would cause FastAPI validation errors
@@ -248,7 +255,6 @@ async def test_cleared_optional_text_fields_not_reverted_to_template_defaults(
                     # Note: max_players and expected_duration_minutes are omitted
                     # to clear them (sending empty string causes validation error)
                 },
-                cookies={"session_token": session_token},
             )
 
             assert response.status_code == 201, f"Failed to create game: {response.text}"
