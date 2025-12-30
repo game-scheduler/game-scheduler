@@ -32,6 +32,7 @@ from services.bot.utils.discord_format import (
     format_discord_timestamp,
     format_duration,
     format_participant_list,
+    format_user_or_placeholder,
 )
 from services.bot.views.game_view import GameView
 from shared.utils.limits import MAX_STRING_DISPLAY_LENGTH
@@ -82,7 +83,6 @@ class GameMessageFormatter:
             expected_duration_minutes: Optional expected game duration in minutes
             where: Optional game location
             game_id: Optional game UUID for calendar download link
-            host_display_name: Optional host display name for embed author
             host_avatar_url: Optional host Discord CDN avatar URL for embed author icon
             thumbnail_url: Optional thumbnail image URL
             image_url: Optional banner image URL
@@ -102,62 +102,89 @@ class GameMessageFormatter:
 
         embed = discord.Embed(
             title=game_title,
-            url=calendar_url,
             description=truncated_description,
             color=GameMessageFormatter._get_status_color(status),
         )
 
-        # Set host as author with avatar if display name provided
+        # Set author with @username for Discord IDs or plain name for placeholders
         if host_display_name:
-            if host_avatar_url:
-                embed.set_author(name=f"Host: {host_display_name}", icon_url=host_avatar_url)
-            else:
-                embed.set_author(name=f"Host: {host_display_name}")
+            # Discord user - prefix with @
+            author_name = f"@{host_display_name}"
+        else:
+            # Placeholder or unknown - use as-is without @ prefix
+            author_name = host_id if not host_id.isdigit() else "@User"
 
-        # Field order matches web layout: When, Duration+Where, Channel, Participants
-        when_value = (
-            f"{format_discord_timestamp(scheduled_at, 'F')}\n"
+        if host_avatar_url:
+            embed.set_author(name=author_name, icon_url=host_avatar_url)
+        else:
+            embed.set_author(name=author_name)
+
+        # Set thumbnail or image if provided
+        if thumbnail_url:
+            embed.set_thumbnail(url=thumbnail_url)
+        if image_url:
+            embed.set_image(url=image_url)
+
+        # Game Time field: Date/time with timezone and relative time (full width)
+        game_time_value = (
+            f"{format_discord_timestamp(scheduled_at, 'F')} "
             f"({format_discord_timestamp(scheduled_at, 'R')})"
         )
-        if calendar_url:
-            when_value += f" 📅 [Download]({calendar_url})"
+        embed.add_field(name="Game Time", value=game_time_value, inline=False)
 
+        # Host field with mention or placeholder (Discord will render mentions in field values)
+        formatted_host = format_user_or_placeholder(host_id)
+        embed.add_field(name="Host", value=formatted_host, inline=True)
+
+        # Run Time field (if present)
         if expected_duration_minutes:
             duration_text = format_duration(expected_duration_minutes)
-            when_value += f"\nDuration {duration_text}"
+            embed.add_field(name="Run Time", value=duration_text, inline=True)
+        else:
+            # Add empty field to maintain layout
+            embed.add_field(name="\u200b", value="\u200b", inline=True)
+
+        # Where field (if present)
         if where:
-            when_value += f"\nWhere: {where}"
+            embed.add_field(name="Where", value=where, inline=True)
+        else:
+            # Add empty field to maintain layout
+            embed.add_field(name="\u200b", value="\u200b", inline=True)
 
-        embed.add_field(name="\u200b", value=when_value, inline=False)
-
+        # Voice Channel field (if present)
         if channel_id:
             embed.add_field(name="Voice Channel", value=f"<#{channel_id}>", inline=False)
 
-        # Host is displayed in author field if host_display_name provided
-        # Otherwise show as field for backward compatibility
-        if not host_display_name:
-            embed.add_field(name="Host", value=format_discord_mention(host_id), inline=False)
-
+        # Participants field with numbered list
         if participant_ids:
             embed.add_field(
                 name=f"Participants ({current_count}/{max_players})",
-                value=format_participant_list(participant_ids, max_display=15),
-                inline=False,
+                value=format_participant_list(participant_ids, max_display=15, start_number=1),
+                inline=True,
             )
         else:
             embed.add_field(
                 name=f"Participants ({current_count}/{max_players})",
                 value="No participants yet",
-                inline=False,
+                inline=True,
             )
 
+        # Waitlisted field with numbered list (continues numbering)
         if overflow_ids:
-            overflow_text = format_participant_list(overflow_ids, max_display=10)
-            embed.add_field(
-                name=f"Waitlist ({len(overflow_ids)})",
-                value=overflow_text,
-                inline=False,
+            start_num = len(participant_ids) + 1
+            overflow_text = format_participant_list(
+                overflow_ids, max_display=10, start_number=start_num
             )
+            embed.add_field(
+                name=f"Waitlisted ({len(overflow_ids)})",
+                value=overflow_text,
+                inline=True,
+            )
+
+        # Links field (if calendar URL present)
+        if calendar_url:
+            links_value = f"📅 [Add to Calendar]({calendar_url})"
+            embed.add_field(name="Links", value=links_value, inline=True)
 
         from shared.models.game import GameStatus as GameStatusEnum
 
@@ -168,13 +195,8 @@ class GameMessageFormatter:
         except (ValueError, AttributeError):
             pass
 
+        # Footer with status only (Discord timestamp format doesn't work in footers)
         embed.set_footer(text=f"Status: {status_display}")
-
-        if thumbnail_url:
-            embed.set_thumbnail(url=thumbnail_url)
-
-        if image_url:
-            embed.set_image(url=image_url)
 
         return embed
 
@@ -272,7 +294,6 @@ def format_game_announcement(
         expected_duration_minutes: Optional expected game duration in minutes
         notify_role_ids: Optional list of Discord role IDs to mention
         where: Optional game location
-        host_display_name: Optional host display name for embed author
         host_avatar_url: Optional host Discord CDN avatar URL for embed author icon
         has_thumbnail: Whether game has a thumbnail image
         has_image: Whether game has a banner image

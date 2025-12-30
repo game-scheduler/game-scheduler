@@ -132,6 +132,18 @@ def format_discord_mention(user_id: str) -> str:
     return f"<@{user_id}>"
 
 
+def format_user_or_placeholder(user_id: str) -> str:
+    """Format a user ID as Discord mention or return placeholder name.
+
+    Args:
+        user_id: Discord user ID (numeric string) or placeholder name
+
+    Returns:
+        Discord mention for IDs, plain text for placeholder names
+    """
+    return user_id if not user_id.isdigit() else format_discord_mention(user_id)
+
+
 def format_discord_timestamp(dt: datetime, style: str = "F") -> str:
     """Format a datetime as a Discord timestamp.
 
@@ -156,7 +168,10 @@ def format_discord_timestamp(dt: datetime, style: str = "F") -> str:
 
 
 def format_participant_list(
-    participant_ids: list[str], max_display: int = 10, include_count: bool = True
+    participant_ids: list[str],
+    max_display: int = 10,
+    include_count: bool = True,
+    start_number: int = 1,
 ) -> str:
     """Format a list of participants using Discord mentions or placeholder names.
 
@@ -164,6 +179,7 @@ def format_participant_list(
         participant_ids: List of Discord user IDs or placeholder names
         max_display: Maximum number of participants to display
         include_count: Whether to include total count if truncated
+        start_number: Starting number for the numbered list (default: 1)
 
     Returns:
         Formatted participant list with Discord mentions and/or placeholder names
@@ -171,10 +187,10 @@ def format_participant_list(
     if not participant_ids:
         return "No participants yet"
 
-    # Format each participant: Discord mention for IDs, plain text for placeholders
+    # Format each participant with number: Discord mention for IDs, plain text for placeholders
     mentions = [
-        uid if not uid.isdigit() else format_discord_mention(uid)
-        for uid in participant_ids[:max_display]
+        f"{start_number + i}. {format_user_or_placeholder(uid)}"
+        for i, uid in enumerate(participant_ids[:max_display])
     ]
     result = "\n".join(mentions)
 

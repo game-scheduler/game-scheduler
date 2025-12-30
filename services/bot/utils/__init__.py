@@ -22,10 +22,12 @@ from services.bot.utils.discord_format import (
     format_discord_mention,
     format_discord_timestamp,
     format_participant_list,
+    format_user_or_placeholder,
 )
 
 __all__ = [
     "format_discord_mention",
     "format_discord_timestamp",
     "format_participant_list",
+    "format_user_or_placeholder",
 ]

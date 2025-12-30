@@ -490,7 +490,7 @@ export const GameForm: FC<GameFormProps> = ({
 
           <TextField
             fullWidth
-            label="Physical Location"
+            label="Location"
             name="where"
             value={formData.where}
             onChange={handleChange}

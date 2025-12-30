@@ -310,7 +310,7 @@ describe('GameForm - Host Field Conditional Rendering', () => {
     );
 
     expect(getByLabelText(/game title/i)).toBeInTheDocument();
-    expect(getByLabelText(/physical location/i)).toBeInTheDocument();
+    expect(getByLabelText(/location/i)).toBeInTheDocument();
     const datePicker = container.querySelector('input[value*="/"]');
     expect(datePicker).toBeInTheDocument();
     expect(queryByLabelText(/game host/i)).not.toBeInTheDocument();

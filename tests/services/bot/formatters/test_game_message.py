@@ -76,8 +76,8 @@ class TestGameMessageFormatter:
             )
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
-            # Timestamp field now has zero-width space as name, check for timestamp format
-            assert any("<t:" in str(call) for call in calls)
+            # Game Time field should have timestamp format
+            assert any("Game Time" in str(call) and "<t:" in str(call) for call in calls)
 
     def test_embed_includes_players_field(self):
         """Test that embed includes participant count in Participants field heading."""
@@ -104,7 +104,7 @@ class TestGameMessageFormatter:
             assert any("Participants" in str(call) and "2/5" in str(call) for call in calls)
 
     def test_embed_includes_host_field(self):
-        """Test that embed includes host mention field when no display name provided."""
+        """Test that embed always includes host in a field with mention format."""
         scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
 
         with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
@@ -122,14 +122,14 @@ class TestGameMessageFormatter:
                 current_count=0,
                 max_players=5,
                 status="SCHEDULED",
-                host_display_name=None,  # No display name, should show as field
             )
 
+            # Should have Host field with Discord mention
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
 
-    def test_embed_host_in_author_field_when_display_name_provided(self):
-        """Test that host is shown in author field when display name provided."""
+    def test_embed_includes_host_field_ignores_avatar(self):
+        """Test that host is shown in field with mention - avatar URL is not used."""
         scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
 
         with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
@@ -147,21 +147,12 @@ class TestGameMessageFormatter:
                 current_count=0,
                 max_players=5,
                 status="SCHEDULED",
-                host_display_name="TestHost",
                 host_avatar_url="https://cdn.discordapp.com/avatars/123456/abc123.png",
             )
 
-            # Should NOT have Host field when display name provided
-            add_field_calls = [str(call) for call in mock_embed.add_field.call_args_list]
-            assert not any(
-                "Host" in str(call) and "<@123456>" in str(call) for call in add_field_calls
-            )
-
-            # Should have set_author called with host info
-            mock_embed.set_author.assert_called_once_with(
-                name="Host: TestHost",
-                icon_url="https://cdn.discordapp.com/avatars/123456/abc123.png",
-            )
+            # Host field should have Discord mention (avatar not used in fields)
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
 
     def test_embed_includes_channel_when_provided(self):
         """Test that embed includes voice channel when provided."""
@@ -481,9 +472,8 @@ class TestFormatGameAnnouncement:
                 assert result == mock_embed
                 mock_embed_class.assert_called_once()
                 call_kwargs = mock_embed_class.call_args[1]
-                assert (
-                    call_kwargs["url"] == "https://example.com/download-calendar/test-game-id-123"
-                )
+                # Title is now plain text without URL
+                assert "url" not in call_kwargs
 
     def test_embed_excludes_url_when_game_id_not_provided(self):
         """Test that embed excludes URL when game_id is not provided."""
@@ -509,10 +499,11 @@ class TestFormatGameAnnouncement:
             assert result == mock_embed
             mock_embed_class.assert_called_once()
             call_kwargs = mock_embed_class.call_args[1]
-            assert call_kwargs["url"] is None
+            # Title is now plain text without URL
+            assert "url" not in call_kwargs
 
-    def test_embed_sets_author_with_avatar_url(self):
-        """Test that embed.set_author() is called with host display name and avatar URL."""
+    def test_embed_includes_host_field_with_mention(self):
+        """Test that host field is created with mention format."""
         scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
 
         with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
@@ -530,17 +521,15 @@ class TestFormatGameAnnouncement:
                 current_count=0,
                 max_players=5,
                 status="SCHEDULED",
-                host_display_name="PlayerOne",
                 host_avatar_url="https://cdn.discordapp.com/avatars/123456/abc123.png?size=64",
             )
 
-            mock_embed.set_author.assert_called_once_with(
-                name="Host: PlayerOne",
-                icon_url="https://cdn.discordapp.com/avatars/123456/abc123.png?size=64",
-            )
+            # Host field should have Discord mention
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
 
-    def test_embed_sets_author_without_avatar_url(self):
-        """Test that embed.set_author() is called with host display name only when no avatar URL."""
+    def test_embed_includes_host_field_without_avatar(self):
+        """Test that host field is created with mention format when no avatar URL."""
         scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
 
         with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
@@ -558,14 +547,15 @@ class TestFormatGameAnnouncement:
                 current_count=0,
                 max_players=5,
                 status="SCHEDULED",
-                host_display_name="PlayerOne",
                 host_avatar_url=None,
             )
 
-            mock_embed.set_author.assert_called_once_with(name="Host: PlayerOne")
+            # Host field should have Discord mention
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
 
-    def test_embed_does_not_set_author_when_no_display_name(self):
-        """Test that embed.set_author() is not called when host_display_name is None."""
+    def test_embed_includes_host_field_with_placeholder(self):
+        """Test that host field shows placeholder name when host_id is not a Discord ID."""
         scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
 
         with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
@@ -577,20 +567,21 @@ class TestFormatGameAnnouncement:
                 game_title="Game",
                 description="Desc",
                 scheduled_at=scheduled_at,
-                host_id="123456",
+                host_id="TempHost",
                 participant_ids=[],
                 overflow_ids=[],
                 current_count=0,
                 max_players=5,
                 status="SCHEDULED",
-                host_display_name=None,
                 host_avatar_url="https://cdn.discordapp.com/avatars/123456/abc123.png?size=64",
             )
 
-            mock_embed.set_author.assert_not_called()
+            # Host field should have placeholder name
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert any("Host" in str(call) and "TempHost" in str(call) for call in calls)
 
-    def test_embed_handles_animated_avatar_url(self):
-        """Test that embed handles animated avatars (a_ prefix) correctly."""
+    def test_embed_includes_host_field_with_animated_avatar(self):
+        """Test that host field is created even when animated avatar URL is provided."""
         scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
 
         with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
@@ -608,17 +599,15 @@ class TestFormatGameAnnouncement:
                 current_count=0,
                 max_players=5,
                 status="SCHEDULED",
-                host_display_name="AnimatedUser",
                 host_avatar_url="https://cdn.discordapp.com/avatars/123456/a_animated123.gif?size=64",
             )
 
-            mock_embed.set_author.assert_called_once_with(
-                name="Host: AnimatedUser",
-                icon_url="https://cdn.discordapp.com/avatars/123456/a_animated123.gif?size=64",
-            )
+            # Host field should have Discord mention
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
 
-    def test_embed_no_host_field_when_display_name_provided(self):
-        """Test embed does NOT include Host field when display name provided."""
+    def test_embed_always_has_host_field(self):
+        """Test embed always includes Host field with mention."""
         scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
 
         with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
@@ -636,14 +625,12 @@ class TestFormatGameAnnouncement:
                 current_count=0,
                 max_players=5,
                 status="SCHEDULED",
-                host_display_name="PlayerOne",
                 host_avatar_url="https://cdn.discordapp.com/avatars/123456/abc123.png?size=64",
             )
 
-            # Verify author is set and Host field is NOT added
-            mock_embed.set_author.assert_called_once()
+            # Verify Host field is present with mention
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
-            assert not any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
+            assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
 
 
 class TestGameEmbedImages:
@@ -823,3 +810,234 @@ class TestGameEmbedImages:
             assert view == mock_view
             mock_embed.set_thumbnail.assert_not_called()
             mock_embed.set_image.assert_not_called()
+
+
+class TestEmbedNewFields:
+    """Tests for new embed fields added to improve layout."""
+
+    def test_embed_includes_links_field_with_calendar_url(self):
+        """Test that embed includes Links field when game_id is provided."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                game_id="test-game-id",
+            )
+
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert any("Links" in str(call) and "Add to Calendar" in str(call) for call in calls)
+
+    def test_embed_excludes_links_field_without_calendar_url(self):
+        """Test that embed excludes Links field when game_id is not provided."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                game_id=None,
+            )
+
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert not any("Links" in str(call) for call in calls)
+
+    def test_embed_includes_game_time_field(self):
+        """Test that embed includes Game Time field."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+            )
+
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert any("Game Time" in str(call) for call in calls)
+
+    def test_embed_footer_includes_status(self):
+        """Test that embed footer includes status."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+            )
+
+            footer_call = str(mock_embed.set_footer.call_args)
+            assert "Status:" in footer_call
+
+    def test_embed_has_separate_when_field(self):
+        """Test that embed has separate Game Time field."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+            )
+
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert any("Game Time" in str(call) for call in calls)
+
+    def test_embed_has_separate_run_time_field_when_provided(self):
+        """Test that embed has separate Run Time field when duration provided."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                expected_duration_minutes=120,
+            )
+
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert any("Run Time" in str(call) for call in calls)
+
+    def test_embed_excludes_run_time_field_when_not_provided(self):
+        """Test that embed excludes Run Time field when no duration."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                expected_duration_minutes=None,
+            )
+
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert not any("Run Time" in str(call) for call in calls)
+
+    def test_embed_has_separate_where_field_when_provided(self):
+        """Test that embed has separate Where field when location provided."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                where="Game Room #1",
+            )
+
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+            assert any("Where" in str(call) and "Game Room #1" in str(call) for call in calls)
+
+    def test_waitlist_numbering_continues_from_signups(self):
+        """Test that waitlist numbering continues from signup list."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+
+        with patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class:
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+
+            formatter = GameMessageFormatter()
+            formatter.create_game_embed(
+                game_title="Game",
+                description="Desc",
+                scheduled_at=scheduled_at,
+                host_id="123",
+                participant_ids=["111", "222", "333"],
+                overflow_ids=["444", "555"],
+                current_count=3,
+                max_players=3,
+                status="SCHEDULED",
+            )
+
+            calls = [str(call) for call in mock_embed.add_field.call_args_list]
+
+            # Check that waitlist starts at 4 (after 3 signups)
+            waitlist_calls = [call for call in calls if "Waitlisted" in str(call)]
+            assert len(waitlist_calls) > 0
+            waitlist_str = str(waitlist_calls[0])
+            assert "4." in waitlist_str
+            assert "5." in waitlist_str

@@ -266,6 +266,12 @@ class DiscordTestHelper:
         expected_title: str,
         expected_host_id: str,
         expected_max_players: int,
+        expected_game_time: str | None = None,
+        expected_run_time: str | None = None,
+        expected_location: str | None = None,
+        expected_voice_channel: str | None = None,
+        expected_game_id: int | None = None,
+        verify_numbered_participants: bool = True,
     ) -> None:
         """
         Verify game announcement embed structure and content.
@@ -275,6 +281,13 @@ class DiscordTestHelper:
             expected_title: Expected game title
             expected_host_id: Expected Discord host user ID
             expected_max_players: Expected maximum player count
+            expected_game_time: Optional timestamp to verify in Game Time field
+            expected_run_time: Optional duration text to verify in Run Time field
+            expected_location: Optional location text to verify in Where field
+            expected_voice_channel: Optional voice channel name to verify
+            expected_game_id: Optional game ID to verify Links field contains calendar URL
+            verify_numbered_participants: Whether to verify participant list numbering
+                (default True)
 
         Raises:
             AssertionError: If embed does not match expected values
@@ -282,19 +295,111 @@ class DiscordTestHelper:
         assert embed.title == expected_title, f"Title mismatch: {embed.title}"
 
         assert embed.author and embed.author.name, "Embed should have author with name"
-        assert "Host:" in embed.author.name, f"Author should contain 'Host:': {embed.author.name}"
+        assert embed.author.name.startswith("@"), (
+            f"Author should start with '@': {embed.author.name}"
+        )
 
-        # Find the participants field - it has format "Participants (X/Y)"
-        participants_field = None
+        # Build field map for easier verification
+        field_map = {}
         for field in embed.fields:
-            if field.name and "Participants" in field.name:
-                participants_field = field.value
+            if field.name:
+                field_map[field.name] = field.value
+
+        # Verify Game Time field exists and has Discord timestamp format
+        game_time_field = None
+        for name in field_map.keys():
+            if "Game Time" in name:
+                game_time_field = field_map[name]
+                break
+        assert game_time_field is not None, "Game Time field missing"
+        assert "<t:" in game_time_field, (
+            f"Game Time should contain Discord timestamp: {game_time_field}"
+        )
+        if expected_game_time:
+            assert expected_game_time in game_time_field, (
+                f"Game Time timestamp mismatch: {game_time_field}"
+            )
+
+        # Verify Run Time field if duration expected
+        if expected_run_time:
+            run_time_field = field_map.get("Run Time")
+            assert run_time_field is not None, "Run Time field missing when duration expected"
+            assert expected_run_time in run_time_field, f"Run Time mismatch: {run_time_field}"
+
+        # Verify Where field if location expected
+        if expected_location:
+            where_field = field_map.get("Where")
+            assert where_field is not None, "Where field missing when location expected"
+            assert expected_location in where_field, f"Where field mismatch: {where_field}"
+
+        # Verify Voice Channel field if expected
+        if expected_voice_channel:
+            voice_channel_field = field_map.get("Voice Channel")
+            assert voice_channel_field is not None, "Voice Channel field missing when expected"
+            assert expected_voice_channel in voice_channel_field, (
+                f"Voice Channel mismatch: {voice_channel_field}"
+            )
+
+        # Find and verify Participants field - format "Participants (X/Y)"
+        participants_field_name = None
+        participants_field_value = None
+        for name, value in field_map.items():
+            if "Participants" in name:
+                participants_field_name = name
+                participants_field_value = value
                 break
 
-        assert participants_field is not None, "Participants field missing"
-        assert f"/{expected_max_players}" in field.name, (
-            f"Max players incorrect in field name: {field.name}"
+        assert participants_field_name is not None, "Participants field missing"
+        assert f"/{expected_max_players}" in participants_field_name, (
+            f"Max players incorrect in field name: {participants_field_name}"
         )
+
+        # Verify numbered participant list format if requested
+        if (
+            verify_numbered_participants
+            and participants_field_value
+            and participants_field_value not in ("None yet", "No participants yet")
+        ):
+            lines = participants_field_value.split("\n")
+            for i, line in enumerate(lines, start=1):
+                if line.strip():
+                    assert line.startswith(f"{i}."), (
+                        f"Participant line {i} should start with '{i}.': {line}"
+                    )
+
+        # Verify Waitlisted field exists if there are any waitlisted players
+        waitlisted_field_name = None
+        waitlisted_field_value = None
+        for name, value in field_map.items():
+            if "Waitlisted" in name:
+                waitlisted_field_name = name
+                waitlisted_field_value = value
+                break
+
+        # If there are participants and max_players is set, waitlist field should exist
+        if waitlisted_field_name and waitlisted_field_value and waitlisted_field_value != "None":
+            # Verify waitlist numbering continues from participants
+            if verify_numbered_participants:
+                participant_count = len(
+                    [line for line in participants_field_value.split("\n") if line.strip()]
+                )
+                waitlist_lines = waitlisted_field_value.split("\n")
+                for i, line in enumerate(waitlist_lines, start=participant_count + 1):
+                    if line.strip():
+                        assert line.startswith(f"{i}."), (
+                            f"Waitlist line should start with '{i}.': {line}"
+                        )
+
+        # Verify Links field with calendar download if game_id provided
+        if expected_game_id:
+            links_field = field_map.get("Links")
+            assert links_field is not None, "Links field missing when game_id provided"
+            assert f"/games/{expected_game_id}/calendar" in links_field, (
+                f"Links field should contain calendar URL: {links_field}"
+            )
+
+        # Verify footer contains status
+        assert embed.footer and embed.footer.text, "Embed should have footer with status"
 
     async def wait_for_message(
         self,

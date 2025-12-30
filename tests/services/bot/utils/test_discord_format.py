@@ -26,7 +26,32 @@ from services.bot.utils.discord_format import (
     format_duration,
     format_game_status_emoji,
     format_participant_list,
+    format_user_or_placeholder,
 )
+
+
+class TestFormatUserOrPlaceholder:
+    """Tests for format_user_or_placeholder function."""
+
+    def test_formats_discord_id_as_mention(self):
+        """Test that numeric Discord IDs are formatted as mentions."""
+        result = format_user_or_placeholder("123456789012345678")
+        assert result == "<@123456789012345678>"
+
+    def test_returns_placeholder_name_unchanged(self):
+        """Test that placeholder names are returned as-is."""
+        result = format_user_or_placeholder("placeholder")
+        assert result == "placeholder"
+
+    def test_returns_alphanumeric_placeholder_unchanged(self):
+        """Test that alphanumeric placeholders are returned as-is."""
+        result = format_user_or_placeholder("Player123")
+        assert result == "Player123"
+
+    def test_handles_mixed_content_placeholder(self):
+        """Test that strings with letters are treated as placeholders."""
+        result = format_user_or_placeholder("Host-12abc")
+        assert result == "Host-12abc"
 
 
 class TestFormatDiscordMention:
@@ -79,13 +104,17 @@ class TestFormatParticipantList:
         """Test formatting a single participant."""
         participants = ["123456789012345678"]
         result = format_participant_list(participants)
-        assert result == "<@123456789012345678>"
+        assert result == "1. <@123456789012345678>"
 
     def test_formats_multiple_participants(self):
         """Test formatting multiple participants."""
-        participants = ["111111111111111111", "222222222222222222", "333333333333333333"]
+        participants = [
+            "111111111111111111",
+            "222222222222222222",
+            "333333333333333333",
+        ]
         result = format_participant_list(participants)
-        expected = "<@111111111111111111>\n<@222222222222222222>\n<@333333333333333333>"
+        expected = "1. <@111111111111111111>\n2. <@222222222222222222>\n3. <@333333333333333333>"
         assert result == expected
 
     def test_handles_empty_list(self):
@@ -106,6 +135,20 @@ class TestFormatParticipantList:
         result = format_participant_list(participants, max_display=10, include_count=False)
         assert "... and" not in result
         assert result.count("<@") == 10
+
+    def test_custom_start_number(self):
+        """Test numbering starts from custom start_number."""
+        participants = ["111111111111111111", "222222222222222222"]
+        result = format_participant_list(participants, start_number=5)
+        assert "5. <@111111111111111111>" in result
+        assert "6. <@222222222222222222>" in result
+        assert "1." not in result
+
+    def test_start_number_for_waitlist_continuation(self):
+        """Test waitlist numbering continues from signup count."""
+        waitlist = ["999999999999999999"]
+        result = format_participant_list(waitlist, start_number=4)
+        assert "4. <@999999999999999999>" in result
 
 
 class TestFormatGameStatusEmoji:
