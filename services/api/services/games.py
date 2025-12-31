@@ -356,7 +356,18 @@ class GameService:
         await self.db.flush()
 
         # Reload game with participants to check confirmed vs waitlisted
-        await self.db.refresh(game, ["participants"])
+        # Use selectinload to eager load participants AND their nested user relationships
+        # to prevent lazy loading errors in partition_participants()
+        result = await self.db.execute(
+            select(game_model.GameSession)
+            .where(game_model.GameSession.id == game.id)
+            .options(
+                selectinload(game_model.GameSession.participants).selectinload(
+                    participant_model.GameParticipant.user
+                )
+            )
+        )
+        game = result.scalar_one()
 
         # Schedule join notifications for newly added participants
         await self._schedule_join_notifications_for_game(game)

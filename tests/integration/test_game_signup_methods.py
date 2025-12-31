@@ -86,16 +86,55 @@ def redis_client():
 @pytest.fixture
 def clean_test_data(db_session):
     """Clean up test data before and after tests."""
+    # Collect host user IDs from test game sessions before deleting them
+    host_ids_result = db_session.execute(
+        text("SELECT DISTINCT host_id FROM game_sessions WHERE title LIKE 'INT_TEST%'")
+    )
+    host_ids = [row[0] for row in host_ids_result.fetchall()]
+
+    # Delete test game sessions (cascades to participants via FK)
     db_session.execute(text("DELETE FROM game_sessions WHERE title LIKE 'INT_TEST%'"))
+    # Delete test templates
     db_session.execute(text("DELETE FROM game_templates WHERE name LIKE 'INT_TEST%'"))
-    db_session.execute(text(f"DELETE FROM users WHERE discord_id = '{TEST_BOT_DISCORD_ID}'"))
+    # Delete test users - host users from games plus the bot user
+    if host_ids:
+        placeholders = ",".join([f":id{i}" for i in range(len(host_ids))])
+        params = {f"id{i}": host_id for i, host_id in enumerate(host_ids)}
+        params["discord_id"] = TEST_BOT_DISCORD_ID
+        db_session.execute(
+            text(f"DELETE FROM users WHERE id IN ({placeholders}) OR discord_id = :discord_id"),
+            params,
+        )
+    else:
+        db_session.execute(
+            text("DELETE FROM users WHERE discord_id = :discord_id"),
+            {"discord_id": TEST_BOT_DISCORD_ID},
+        )
     db_session.commit()
 
     yield
 
+    # Same cleanup after test
+    host_ids_result = db_session.execute(
+        text("SELECT DISTINCT host_id FROM game_sessions WHERE title LIKE 'INT_TEST%'")
+    )
+    host_ids = [row[0] for row in host_ids_result.fetchall()]
+
     db_session.execute(text("DELETE FROM game_sessions WHERE title LIKE 'INT_TEST%'"))
     db_session.execute(text("DELETE FROM game_templates WHERE name LIKE 'INT_TEST%'"))
-    db_session.execute(text(f"DELETE FROM users WHERE discord_id = '{TEST_BOT_DISCORD_ID}'"))
+    if host_ids:
+        placeholders = ",".join([f":id{i}" for i in range(len(host_ids))])
+        params = {f"id{i}": host_id for i, host_id in enumerate(host_ids)}
+        params["discord_id"] = TEST_BOT_DISCORD_ID
+        db_session.execute(
+            text(f"DELETE FROM users WHERE id IN ({placeholders}) OR discord_id = :discord_id"),
+            params,
+        )
+    else:
+        db_session.execute(
+            text("DELETE FROM users WHERE discord_id = :discord_id"),
+            {"discord_id": TEST_BOT_DISCORD_ID},
+        )
     db_session.commit()
 
 

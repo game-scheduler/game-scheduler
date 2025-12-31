@@ -134,10 +134,70 @@ def sample_game_data(sample_template):
         template_id=sample_template.id,
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         max_players=4,
         reminder_minutes=[60],
     )
+
+
+def setup_create_game_mocks(
+    mock_db,
+    sample_template,
+    sample_guild,
+    sample_user,
+    sample_channel,
+    created_game,
+):
+    """
+    Set up common mock pattern for game creation tests.
+
+    Creates mock results for the sequence of database queries in create_game:
+    1. Template lookup (scalar_one_or_none)
+    2. Guild lookup (scalar_one_or_none)
+    3. Host user lookup (scalar_one_or_none)
+    4. Channel lookup (scalar_one_or_none)
+    5. Game reload with relationships (scalar_one)
+    6. Final get_game() call after commit (scalar_one_or_none)
+    """
+    template_result = MagicMock()
+    template_result.scalar_one_or_none.return_value = sample_template
+
+    guild_result = MagicMock()
+    guild_result.scalar_one_or_none.return_value = sample_guild
+
+    host_result = MagicMock()
+    host_result.scalar_one_or_none.return_value = sample_user
+
+    channel_result = MagicMock()
+    channel_result.scalar_one_or_none.return_value = sample_channel
+
+    reload_result = MagicMock()
+    reload_result.scalar_one.return_value = created_game
+
+    # Final get_game() uses scalar_one_or_none(), needs separate mock
+    get_game_result = MagicMock()
+    get_game_result.scalar_one_or_none.return_value = created_game
+
+    mock_db.execute = AsyncMock(
+        side_effect=[
+            template_result,
+            guild_result,
+            host_result,
+            channel_result,
+            reload_result,
+            get_game_result,
+        ]
+    )
+    mock_db.flush = AsyncMock()
+    mock_db.commit = AsyncMock()
+    mock_db.add = MagicMock()
+
+    def mock_add_side_effect(obj):
+        if isinstance(obj, game_model.GameSession):
+            obj.id = created_game.id
+            obj.channel_id = created_game.channel_id
+
+    mock_db.add.side_effect = mock_add_side_effect
 
 
 @pytest.mark.asyncio
@@ -158,7 +218,7 @@ async def test_create_game_without_participants(
         id=str(uuid.uuid4()),
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=sample_user.id,
@@ -168,39 +228,15 @@ async def test_create_game_without_participants(
     created_game.host = sample_user
     created_game.participants = []
 
-    template_result = MagicMock()
-    template_result.scalar_one_or_none.return_value = sample_template
-    guild_result = MagicMock()
-    guild_result.scalar_one_or_none.return_value = sample_guild
-    channel_result = MagicMock()
-    channel_result.scalar_one_or_none.return_value = sample_channel
-    host_result = MagicMock()
-    host_result.scalar_one_or_none.return_value = sample_user
-
-    # Mock get_game call after commit
-    reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
-
-    mock_db.execute = AsyncMock(
-        side_effect=[
-            template_result,
-            guild_result,
-            host_result,
-            channel_result,
-            reload_result,
-        ]
+    setup_create_game_mocks(
+        mock_db,
+        sample_template,
+        sample_guild,
+        sample_user,
+        sample_channel,
+        created_game,
     )
-    mock_db.flush = AsyncMock()
-    mock_db.commit = AsyncMock()
-    mock_db.add = MagicMock()
     mock_participant_resolver.ensure_user_exists = AsyncMock(return_value=sample_user)
-
-    def mock_add_side_effect(obj):
-        if isinstance(obj, game_model.GameSession):
-            obj.id = created_game.id
-            obj.channel_id = created_game.channel_id
-
-    mock_db.add.side_effect = mock_add_side_effect
 
     with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
         game = await game_service.create_game(
@@ -233,7 +269,7 @@ async def test_create_game_with_where_field(
         template_id=sample_template.id,
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         where="Discord Voice Channel #gaming",
         max_players=4,
         reminder_minutes=[60],
@@ -243,7 +279,7 @@ async def test_create_game_with_where_field(
         id=str(uuid.uuid4()),
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         where="Discord Voice Channel #gaming",
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
@@ -254,36 +290,14 @@ async def test_create_game_with_where_field(
     created_game.host = sample_user
     created_game.participants = []
 
-    template_result = MagicMock()
-    template_result.scalar_one_or_none.return_value = sample_template
-    guild_result = MagicMock()
-    guild_result.scalar_one_or_none.return_value = sample_guild
-    channel_result = MagicMock()
-    channel_result.scalar_one_or_none.return_value = sample_channel
-    host_result = MagicMock()
-    host_result.scalar_one_or_none.return_value = sample_user
-    reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
-
-    mock_db.execute = AsyncMock(
-        side_effect=[
-            template_result,
-            guild_result,
-            host_result,
-            channel_result,
-            reload_result,
-        ]
+    setup_create_game_mocks(
+        mock_db,
+        sample_template,
+        sample_guild,
+        sample_user,
+        sample_channel,
+        created_game,
     )
-    mock_db.flush = AsyncMock()
-    mock_db.commit = AsyncMock()
-    mock_db.add = MagicMock()
-
-    def mock_add_side_effect(obj):
-        if isinstance(obj, game_model.GameSession):
-            obj.id = created_game.id
-            obj.where = game_data.where
-
-    mock_db.add.side_effect = mock_add_side_effect
 
     with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
         game = await game_service.create_game(
@@ -324,7 +338,7 @@ async def test_create_game_with_empty_reminders_overrides_template(
         template_id=template_with_reminders.id,
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         reminder_minutes=[],
     )
 
@@ -332,7 +346,7 @@ async def test_create_game_with_empty_reminders_overrides_template(
         id=str(uuid.uuid4()),
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         reminder_minutes=[],
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
@@ -343,36 +357,14 @@ async def test_create_game_with_empty_reminders_overrides_template(
     created_game.host = sample_user
     created_game.participants = []
 
-    template_result = MagicMock()
-    template_result.scalar_one_or_none.return_value = template_with_reminders
-    guild_result = MagicMock()
-    guild_result.scalar_one_or_none.return_value = sample_guild
-    channel_result = MagicMock()
-    channel_result.scalar_one_or_none.return_value = sample_channel
-    host_result = MagicMock()
-    host_result.scalar_one_or_none.return_value = sample_user
-    reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
-
-    mock_db.execute = AsyncMock(
-        side_effect=[
-            template_result,
-            guild_result,
-            host_result,
-            channel_result,
-            reload_result,
-        ]
+    setup_create_game_mocks(
+        mock_db,
+        template_with_reminders,
+        sample_guild,
+        sample_user,
+        sample_channel,
+        created_game,
     )
-    mock_db.flush = AsyncMock()
-    mock_db.commit = AsyncMock()
-    mock_db.add = MagicMock()
-
-    def mock_add_side_effect(obj):
-        if isinstance(obj, game_model.GameSession):
-            obj.id = created_game.id
-            obj.reminder_minutes = game_data.reminder_minutes
-
-    mock_db.add.side_effect = mock_add_side_effect
 
     with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
         game = await game_service.create_game(
@@ -415,7 +407,7 @@ async def test_create_game_with_cleared_optional_fields_overrides_template(
         template_id=template_with_defaults.id,
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         where="",
         signup_instructions="",
         max_players=None,
@@ -426,7 +418,7 @@ async def test_create_game_with_cleared_optional_fields_overrides_template(
         id=str(uuid.uuid4()),
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         where="",
         signup_instructions="",
         max_players=None,
@@ -440,39 +432,14 @@ async def test_create_game_with_cleared_optional_fields_overrides_template(
     created_game.host = sample_user
     created_game.participants = []
 
-    template_result = MagicMock()
-    template_result.scalar_one_or_none.return_value = template_with_defaults
-    guild_result = MagicMock()
-    guild_result.scalar_one_or_none.return_value = sample_guild
-    channel_result = MagicMock()
-    channel_result.scalar_one_or_none.return_value = sample_channel
-    host_result = MagicMock()
-    host_result.scalar_one_or_none.return_value = sample_user
-    reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
-
-    mock_db.execute = AsyncMock(
-        side_effect=[
-            template_result,
-            guild_result,
-            host_result,
-            channel_result,
-            reload_result,
-        ]
+    setup_create_game_mocks(
+        mock_db,
+        template_with_defaults,
+        sample_guild,
+        sample_user,
+        sample_channel,
+        created_game,
     )
-    mock_db.flush = AsyncMock()
-    mock_db.commit = AsyncMock()
-    mock_db.add = MagicMock()
-
-    def mock_add_side_effect(obj):
-        if isinstance(obj, game_model.GameSession):
-            obj.id = created_game.id
-            obj.where = game_data.where
-            obj.signup_instructions = game_data.signup_instructions
-            obj.max_players = game_data.max_players
-            obj.expected_duration_minutes = game_data.expected_duration_minutes
-
-    mock_db.add.side_effect = mock_add_side_effect
 
     with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
         game = await game_service.create_game(
@@ -508,7 +475,7 @@ async def test_create_game_with_valid_participants(
         id=str(uuid.uuid4()),
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=sample_user.id,
@@ -535,38 +502,14 @@ async def test_create_game_with_valid_participants(
         return_value=user_model.User(id=str(uuid.uuid4()), discord_id="444")
     )
 
-    template_result = MagicMock()
-    template_result.scalar_one_or_none.return_value = sample_template
-    guild_result = MagicMock()
-    guild_result.scalar_one_or_none.return_value = sample_guild
-    channel_result = MagicMock()
-    channel_result.scalar_one_or_none.return_value = sample_channel
-    host_result = MagicMock()
-    host_result.scalar_one_or_none.return_value = sample_user
-
-    # Mock get_game call after commit
-    reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
-
-    mock_db.execute = AsyncMock(
-        side_effect=[
-            template_result,
-            guild_result,
-            host_result,
-            channel_result,
-            reload_result,
-        ]
+    setup_create_game_mocks(
+        mock_db,
+        sample_template,
+        sample_guild,
+        sample_user,
+        sample_channel,
+        created_game,
     )
-    mock_db.flush = AsyncMock()
-    mock_db.commit = AsyncMock()
-    mock_db.add = MagicMock()
-
-    def mock_add_side_effect(obj):
-        if isinstance(obj, game_model.GameSession):
-            obj.id = created_game.id
-            obj.channel_id = created_game.channel_id
-
-    mock_db.add.side_effect = mock_add_side_effect
 
     with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
         game = await game_service.create_game(
@@ -659,7 +602,7 @@ async def test_create_game_timezone_conversion(
         id=str(uuid.uuid4()),
         title="Timezone Test",
         description="Test timezone conversion",
-        scheduled_at=datetime.datetime(2025, 11, 20, 15, 0, 0),  # Should be 15:00 UTC
+        scheduled_at=datetime.datetime(2025, 11, 20, 15, 0, 0).replace(tzinfo=None),  # Naive UTC
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=sample_user.id,
@@ -679,7 +622,9 @@ async def test_create_game_timezone_conversion(
     host_result.scalar_one_or_none.return_value = sample_user
 
     reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
+    reload_result.scalar_one.return_value = created_game
+    get_game_result = MagicMock()
+    get_game_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
         side_effect=[
@@ -688,6 +633,7 @@ async def test_create_game_timezone_conversion(
             host_result,
             channel_result,
             reload_result,
+            get_game_result,
         ]
     )
     mock_db.flush = AsyncMock()
@@ -1206,7 +1152,7 @@ async def test_ensure_in_progress_schedule_creates_new(game_service, mock_db, sa
     game = game_model.GameSession(
         id=str(uuid.uuid4()),
         title="Test Game",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         expected_duration_minutes=120,
         status="SCHEDULED",
     )
@@ -1392,7 +1338,7 @@ async def test_update_status_schedules_deletes_for_non_scheduled_game(game_servi
     game = game_model.GameSession(
         id=str(uuid.uuid4()),
         title="Test Game",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         expected_duration_minutes=60,
         status="IN_PROGRESS",
     )
@@ -1492,7 +1438,7 @@ async def test_create_game_creates_status_schedules(
     """Test create_game creates both IN_PROGRESS and COMPLETED status schedules."""
     from shared.models import game_status_schedule as game_status_schedule_model
 
-    scheduled_time = datetime.datetime.now(datetime.UTC)
+    scheduled_time = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
     game_data = game_schemas.GameCreateRequest(
         template_id=sample_template.id,
         title="Test Game",
@@ -1518,40 +1464,24 @@ async def test_create_game_creates_status_schedules(
     created_game.host = sample_user
     created_game.participants = []
 
-    template_result = MagicMock()
-    template_result.scalar_one_or_none.return_value = sample_template
-    guild_result = MagicMock()
-    guild_result.scalar_one_or_none.return_value = sample_guild
-    channel_result = MagicMock()
-    channel_result.scalar_one_or_none.return_value = sample_channel
-    host_result = MagicMock()
-    host_result.scalar_one_or_none.return_value = sample_user
-    reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
-
-    mock_db.execute = AsyncMock(
-        side_effect=[
-            template_result,
-            guild_result,
-            host_result,
-            channel_result,
-            reload_result,
-        ]
-    )
-    mock_db.flush = AsyncMock()
-    mock_db.commit = AsyncMock()
-    mock_db.add = MagicMock()
-    mock_participant_resolver.ensure_user_exists = AsyncMock(return_value=sample_user)
-
+    # Track objects added to the database
     added_objects = []
 
-    def mock_add_side_effect(obj):
+    def track_add(obj):
         added_objects.append(obj)
         if isinstance(obj, game_model.GameSession):
             obj.id = created_game.id
             obj.channel_id = created_game.channel_id
 
-    mock_db.add.side_effect = mock_add_side_effect
+    setup_create_game_mocks(
+        mock_db,
+        sample_template,
+        sample_guild,
+        sample_user,
+        sample_channel,
+        created_game,
+    )
+    mock_db.add.side_effect = track_add
 
     with patch("services.api.auth.roles.get_role_service", return_value=mock_role_service):
         await game_service.create_game(
@@ -1609,14 +1539,14 @@ async def test_create_game_with_empty_host_defaults_to_current_user(
     game_data = game_schemas.GameCreateRequest(
         template_id=sample_template.id,
         title="Test Game",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         host=None,
     )
 
     created_game = game_model.GameSession(
         id=str(uuid.uuid4()),
         title="Test Game",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=sample_user.id,
@@ -1635,7 +1565,9 @@ async def test_create_game_with_empty_host_defaults_to_current_user(
     channel_result = MagicMock()
     channel_result.scalar_one_or_none.return_value = sample_channel
     reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
+    reload_result.scalar_one.return_value = created_game
+    get_game_result = MagicMock()
+    get_game_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
         side_effect=[
@@ -1644,6 +1576,7 @@ async def test_create_game_with_empty_host_defaults_to_current_user(
             host_result,
             channel_result,
             reload_result,
+            get_game_result,
         ]
     )
     mock_db.flush = AsyncMock()
@@ -1673,7 +1606,7 @@ async def test_create_game_regular_user_cannot_override_host(
     game_data = game_schemas.GameCreateRequest(
         template_id=sample_template.id,
         title="Test Game",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         host="@different_user",
     )
 
@@ -1722,14 +1655,14 @@ async def test_create_game_bot_manager_can_override_host(
     game_data = game_schemas.GameCreateRequest(
         template_id=sample_template.id,
         title="Test Game",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         host="@different_host",
     )
 
     created_game = game_model.GameSession(
         id=str(uuid.uuid4()),
         title="Test Game",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=different_host.id,
@@ -1752,7 +1685,9 @@ async def test_create_game_bot_manager_can_override_host(
     channel_result = MagicMock()
     channel_result.scalar_one_or_none.return_value = sample_channel
     reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
+    reload_result.scalar_one.return_value = created_game
+    get_game_result = MagicMock()
+    get_game_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
         side_effect=[
@@ -1763,6 +1698,7 @@ async def test_create_game_bot_manager_can_override_host(
             final_host_result,
             channel_result,
             reload_result,
+            get_game_result,
         ]
     )
     mock_db.flush = AsyncMock()
@@ -1807,7 +1743,7 @@ async def test_create_game_bot_manager_invalid_host_raises_validation_error(
     game_data = game_schemas.GameCreateRequest(
         template_id=sample_template.id,
         title="Test Game",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         host="@invalid_user",
     )
 
@@ -1881,7 +1817,7 @@ async def test_create_game_bot_manager_host_without_permissions_fails(
     game_data = game_schemas.GameCreateRequest(
         template_id=template_with_restrictions.id,
         title="Test Game",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         host="@different_host",
     )
 
@@ -1953,14 +1889,14 @@ async def test_create_game_bot_manager_empty_host_uses_self(
     game_data = game_schemas.GameCreateRequest(
         template_id=sample_template.id,
         title="Test Game",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         host="",
     )
 
     created_game = game_model.GameSession(
         id=str(uuid.uuid4()),
         title="Test Game",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=sample_user.id,
@@ -1979,7 +1915,9 @@ async def test_create_game_bot_manager_empty_host_uses_self(
     channel_result = MagicMock()
     channel_result.scalar_one_or_none.return_value = sample_channel
     reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
+    reload_result.scalar_one.return_value = created_game
+    get_game_result = MagicMock()
+    get_game_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
         side_effect=[
@@ -1988,6 +1926,7 @@ async def test_create_game_bot_manager_empty_host_uses_self(
             host_result,
             channel_result,
             reload_result,
+            get_game_result,
         ]
     )
     mock_db.flush = AsyncMock()
@@ -2024,7 +1963,7 @@ async def test_create_game_explicit_signup_method(
         template_id=sample_template.id,
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         signup_method=SignupMethod.HOST_SELECTED.value,
     )
 
@@ -2032,7 +1971,7 @@ async def test_create_game_explicit_signup_method(
         id=str(uuid.uuid4()),
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=sample_user.id,
@@ -2051,7 +1990,9 @@ async def test_create_game_explicit_signup_method(
     channel_result = MagicMock()
     channel_result.scalar_one_or_none.return_value = sample_channel
     reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
+    reload_result.scalar_one.return_value = created_game
+    get_game_result = MagicMock()
+    get_game_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
         side_effect=[
@@ -2060,6 +2001,7 @@ async def test_create_game_explicit_signup_method(
             host_result,
             channel_result,
             reload_result,
+            get_game_result,
         ]
     )
     mock_db.flush = AsyncMock()
@@ -2106,14 +2048,14 @@ async def test_create_game_uses_template_default_signup_method(
         template_id=template_with_default.id,
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
     )
 
     created_game = game_model.GameSession(
         id=str(uuid.uuid4()),
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=sample_user.id,
@@ -2132,7 +2074,9 @@ async def test_create_game_uses_template_default_signup_method(
     channel_result = MagicMock()
     channel_result.scalar_one_or_none.return_value = sample_channel
     reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
+    reload_result.scalar_one.return_value = created_game
+    get_game_result = MagicMock()
+    get_game_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
         side_effect=[
@@ -2141,6 +2085,7 @@ async def test_create_game_uses_template_default_signup_method(
             host_result,
             channel_result,
             reload_result,
+            get_game_result,
         ]
     )
     mock_db.flush = AsyncMock()
@@ -2176,14 +2121,14 @@ async def test_create_game_defaults_to_self_signup(
         template_id=sample_template.id,
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
     )
 
     created_game = game_model.GameSession(
         id=str(uuid.uuid4()),
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=sample_user.id,
@@ -2202,7 +2147,9 @@ async def test_create_game_defaults_to_self_signup(
     channel_result = MagicMock()
     channel_result.scalar_one_or_none.return_value = sample_channel
     reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
+    reload_result.scalar_one.return_value = created_game
+    get_game_result = MagicMock()
+    get_game_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
         side_effect=[
@@ -2211,6 +2158,7 @@ async def test_create_game_defaults_to_self_signup(
             host_result,
             channel_result,
             reload_result,
+            get_game_result,
         ]
     )
     mock_db.flush = AsyncMock()
@@ -2257,7 +2205,7 @@ async def test_create_game_validates_signup_method_against_allowed_list(
         template_id=template_with_restrictions.id,
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         signup_method=SignupMethod.SELF_SIGNUP.value,
     )
 
@@ -2304,7 +2252,7 @@ async def test_create_game_allows_any_method_when_allowed_list_is_none(
         template_id=sample_template.id,
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         signup_method=SignupMethod.HOST_SELECTED.value,
     )
 
@@ -2312,7 +2260,7 @@ async def test_create_game_allows_any_method_when_allowed_list_is_none(
         id=str(uuid.uuid4()),
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=sample_user.id,
@@ -2331,7 +2279,9 @@ async def test_create_game_allows_any_method_when_allowed_list_is_none(
     channel_result = MagicMock()
     channel_result.scalar_one_or_none.return_value = sample_channel
     reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
+    reload_result.scalar_one.return_value = created_game
+    get_game_result = MagicMock()
+    get_game_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
         side_effect=[
@@ -2340,6 +2290,7 @@ async def test_create_game_allows_any_method_when_allowed_list_is_none(
             host_result,
             channel_result,
             reload_result,
+            get_game_result,
         ]
     )
     mock_db.flush = AsyncMock()
@@ -2377,7 +2328,7 @@ async def test_create_game_allows_any_method_when_allowed_list_is_empty(
         template_id=sample_template.id,
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         signup_method=SignupMethod.HOST_SELECTED.value,
     )
 
@@ -2385,7 +2336,7 @@ async def test_create_game_allows_any_method_when_allowed_list_is_empty(
         id=str(uuid.uuid4()),
         title="Test Game",
         description="Test description",
-        scheduled_at=datetime.datetime.now(datetime.UTC),
+        scheduled_at=datetime.datetime.now(datetime.UTC).replace(tzinfo=None),
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=sample_user.id,
@@ -2404,7 +2355,9 @@ async def test_create_game_allows_any_method_when_allowed_list_is_empty(
     channel_result = MagicMock()
     channel_result.scalar_one_or_none.return_value = sample_channel
     reload_result = MagicMock()
-    reload_result.scalar_one_or_none.return_value = created_game
+    reload_result.scalar_one.return_value = created_game
+    get_game_result = MagicMock()
+    get_game_result.scalar_one_or_none.return_value = created_game
 
     mock_db.execute = AsyncMock(
         side_effect=[
@@ -2413,6 +2366,7 @@ async def test_create_game_allows_any_method_when_allowed_list_is_empty(
             host_result,
             channel_result,
             reload_result,
+            get_game_result,
         ]
     )
     mock_db.flush = AsyncMock()
