@@ -49,7 +49,11 @@ async def test_validation_exception_handler_returns_422(mock_request):
     """Test that validation errors return 422 status code."""
     mock_exc = MagicMock(spec=RequestValidationError)
     mock_exc.errors.return_value = [
-        {"loc": ("body", "name"), "msg": "field required", "type": "value_error.missing"}
+        {
+            "loc": ("body", "name"),
+            "msg": "field required",
+            "type": "value_error.missing",
+        }
     ]
 
     response = await error_handler.validation_exception_handler(mock_request, mock_exc)
@@ -78,7 +82,11 @@ async def test_validation_exception_handler_includes_multiple_errors(mock_reques
     """Test that multiple validation errors are all included."""
     mock_exc = MagicMock(spec=RequestValidationError)
     mock_exc.errors.return_value = [
-        {"loc": ("body", "name"), "msg": "field required", "type": "value_error.missing"},
+        {
+            "loc": ("body", "name"),
+            "msg": "field required",
+            "type": "value_error.missing",
+        },
         {"loc": ("body", "age"), "msg": "must be positive", "type": "value_error"},
     ]
 
@@ -118,12 +126,39 @@ async def test_database_exception_handler_returns_generic_message(mock_request):
     """Test that database errors return generic message to user."""
     mock_exc = MagicMock(spec=SQLAlchemyError)
 
-    with patch("services.api.middleware.error_handler.logger"):
+    with (
+        patch("services.api.middleware.error_handler.logger"),
+        patch("services.api.middleware.error_handler.get_api_config") as mock_config,
+    ):
+        mock_config.return_value.debug = False
         response = await error_handler.database_exception_handler(mock_request, mock_exc)
 
     body = response.body.decode()
     assert "database_error" in body
-    assert "database error occurred" in body
+    assert "An internal error has occurred" in body
+    assert "Please create an issue" in body
+    assert "UTC" in body
+    assert "detail" not in body
+
+
+@pytest.mark.asyncio
+async def test_database_exception_handler_includes_details_in_debug_mode(mock_request):
+    """Test that database errors include details in debug mode."""
+    mock_exc = MagicMock(spec=SQLAlchemyError)
+    mock_exc.__str__ = MagicMock(return_value="Test database error")
+
+    with (
+        patch("services.api.middleware.error_handler.logger"),
+        patch("services.api.middleware.error_handler.get_api_config") as mock_config,
+    ):
+        mock_config.return_value.debug = True
+        response = await error_handler.database_exception_handler(mock_request, mock_exc)
+
+    body = response.body.decode()
+    assert "database_error" in body
+    assert "An internal error has occurred" in body
+    assert "detail" in body
+    assert "Test database error" in body
 
 
 @pytest.mark.asyncio

@@ -23,12 +23,15 @@ Catches and formats exceptions into consistent JSON responses.
 """
 
 import logging
+from datetime import UTC, datetime
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
+
+from services.api.config import get_api_config
 
 logger = logging.getLogger(__name__)
 
@@ -77,18 +80,27 @@ async def database_exception_handler(request: Request, exc: SQLAlchemyError) -> 
     Returns:
         JSON response with 500 status and error message
     """
-    logger.error(f"Database error: {exc}", exc_info=True)
+    error_time = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+    logger.error(f"Database error at {error_time}: {exc}", exc_info=True)
 
-    # Include error details for debugging
-    error_detail = str(exc)
+    config = get_api_config()
+
+    message = (
+        "An internal error has occurred. "
+        f"Please create an issue which includes the time: {error_time} UTC"
+    )
+
+    content = {
+        "error": "database_error",
+        "message": message,
+    }
+
+    if config.debug:
+        content["detail"] = str(exc)
 
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "error": "database_error",
-            "message": "A database error occurred",
-            "detail": error_detail,
-        },
+        content=content,
     )
 
 
