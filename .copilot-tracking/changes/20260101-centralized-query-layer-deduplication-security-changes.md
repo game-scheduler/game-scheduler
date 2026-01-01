@@ -34,5 +34,8 @@ Creating a centralized guild-scoped query layer that eliminates code duplication
 - tests/integration/test_guild_queries.py - Fixed field name mismatches (game_id → game_session_id) in assertions and SQL queries
 - tests/integration/test_guild_queries.py - Increased performance threshold from 5ms to 10ms (realistic for RLS overhead)
 - tests/integration/test_guild_queries.py - Added ChannelConfiguration creation in test_list_games_respects_channel_filter to satisfy foreign key constraints
+- tests/integration/test_games_route_guild_isolation.py - Integration tests for games route establishing pre-migration baseline (6 passing tests: test_get_game_returns_any_game_without_guild_filter documents SECURITY GAP with no guild filtering, test_list_games_filters_by_guild_when_specified verifies guild_id filtering, test_list_games_with_channel_filter verifies channel filtering, test_list_games_with_status_filter verifies status filtering, test_list_games_pagination verifies pagination behavior, test_guild_isolation_in_list_games verifies complete guild isolation)
+- tests/e2e/test_game_authorization.py - E2E tests for game creation/deletion authorization with real infrastructure (3 passing tests: test_create_game_with_authorization for POST with real auth, test_delete_game_authorization for DELETE flow with idempotent behavior and 204 soft delete, test_delete_game_authorization_forbidden documenting 403 vs 404 security pattern per API guidelines; all tests use real E2E fixtures from init service with full authorization through role service/cache/Discord API)
+- .gitignore - Added *.out pattern to ignore test output files
 
 ### Removed
