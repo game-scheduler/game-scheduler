@@ -9,6 +9,8 @@ Minimal throwaway test to validate that PostgreSQL Row-Level Security (RLS) corr
 
 **Success Criteria**: Query returns exactly 2 out of 3 rows when context set to 2 guild IDs.
 
+**Test Results**: See [Phase 0: Database User Configuration](20260101-middleware-rls-guild-isolation-research.md#phase-0-database-user-configuration-prerequisites) in the middleware RLS implementation research document for complete test execution results and critical findings about superuser bypass behavior.
+
 ## Test Script
 
 ### Standalone SQL Test
@@ -489,11 +491,18 @@ rm tests/integration/test_rls_multi_guild_validation.py
 
 ## Next Steps
 
-1. **Run SQL test manually** - Validate RLS mechanism works
-2. **Run Python integration test** - Validate from application code
-3. **Check performance** - Verify index usage
-4. **If all pass** → Proceed with full implementation in [20260101-middleware-rls-guild-isolation-research.md](20260101-middleware-rls-guild-isolation-research.md)
-5. **If any fail** → Research alternative RLS policy patterns
+**✅ Tests Completed** - See [Phase 0: Database User Configuration](20260101-middleware-rls-guild-isolation-research.md#phase-0-database-user-configuration-prerequisites) for complete results.
+
+**Key Findings**:
+- RLS filtering works perfectly with non-superuser roles
+- RLS is completely bypassed for superusers (even with FORCE)
+- Production requires two-user architecture: admin (superuser) + app (non-superuser)
+
+**Implementation Path**:
+1. ✅ **Validated** - RLS mechanism works correctly
+2. ✅ **Validated** - Index usage confirmed (Bitmap Index Scan)
+3. ⏭️ **Next** - Implement Phase 0 (two-user database architecture)
+4. ⏭️ **Next** - Proceed with full implementation in [20260101-middleware-rls-guild-isolation-research.md](20260101-middleware-rls-guild-isolation-research.md)
 
 ## References
 

@@ -7,7 +7,11 @@
 
 **Key Insight**: Guild isolation is tenant-level data filtering (perfect for middleware), NOT resource-specific authorization (which FastAPI dependencies already handle correctly).
 
-**Timeline**: 3 weeks with test-first methodology, incremental delivery, zero breaking changes.
+**Timeline**: 3.5 weeks with test-first methodology, incremental delivery, zero breaking changes.
+- **Phase 0** (1-2 days): Configure non-superuser database roles for RLS enforcement
+- **Week 1**: Infrastructure (ContextVars, event listeners, tests)
+- **Week 2**: Service factory migration
+- **Week 3**: RLS policy enablement and validation
 
 **Benefits Over Wrapper Approach**:
 - 70% faster delivery (3 weeks vs 8 weeks)
@@ -99,6 +103,7 @@ Filtered Results (only user's guilds)
 - Uses `current_setting('app.current_guild_ids')` to filter rows
 - Works with indexes (no performance penalty)
 - Defense-in-depth safety net
+- **CRITICAL**: Requires non-superuser database role (validated in [20260101-rls-multi-guild-validation-test.md](20260101-rls-multi-guild-validation-test.md))
 
 ### Why This Works
 
@@ -115,6 +120,7 @@ Filtered Results (only user's guilds)
 - Enable RLS incrementally (table by table)
 
 **Incremental Adoption**:
+- Phase 0: Database user reconfiguration (non-superuser for RLS)
 - Week 1: Infrastructure in place, zero behavior changes
 - Week 2: Migrate service factories, test each one
 - Week 3: Enable RLS (safety net after app already correct)
@@ -134,6 +140,122 @@ Filtered Results (only user's guilds)
 - **Unit tests**: Every new function in isolation
 - **Integration tests**: Database + RLS context + query execution
 - **E2E tests**: Full request flow (route → service → database → RLS)
+
+### Phase 0: Database User Configuration (Prerequisites)
+
+**CRITICAL FINDING**: PostgreSQL Row-Level Security (RLS) only enforces policies on **non-superuser roles**. Even with `FORCE ROW LEVEL SECURITY`, superusers and users with `BYPASSRLS` privilege bypass all RLS policies.
+
+**Validation Test Results** (from [20260101-rls-multi-guild-validation-test.md](20260101-rls-multi-guild-validation-test.md)):
+- ✅ RLS correctly filters rows when context set to 2 guild IDs → Returns 2 rows
+- ✅ RLS correctly filters rows when context set to 1 guild ID → Returns 1 row
+- ✅ RLS correctly filters rows when context is empty → Returns 0 rows
+- ✅ RLS correctly blocks access when no context set → Returns 0 rows
+- ✅ Index usage confirmed (Bitmap Index Scan on guild_id index)
+- ❌ RLS bypassed completely when user is superuser (even with FORCE)
+
+**Current State**: Application database users (`gamebot`, `gamebot_integration`, etc.) are created as superusers in Alembic migrations, which completely disables RLS enforcement.
+
+**Required Changes**: Create **TWO separate database users** with distinct privileges and purposes.
+
+#### Phase 0.1: Create Two-User Database Architecture
+
+**File**: `alembic/env.py` or init container scripts
+
+**Current behavior** (single superuser):
+```sql
+CREATE USER gamebot WITH PASSWORD 'password' SUPERUSER;
+-- Used for both migrations AND application runtime
+```
+
+**Required behavior** (two users with separation of duties):
+```sql
+-- User 1: Admin user for migrations and DDL operations
+CREATE USER gamebot_admin WITH PASSWORD 'admin_password' SUPERUSER;
+COMMENT ON ROLE gamebot_admin IS 'Superuser for Alembic migrations and database administration';
+
+-- User 2: Application user for runtime queries (NON-SUPERUSER)
+CREATE USER gamebot_app WITH PASSWORD 'app_password' LOGIN;
+COMMENT ON ROLE gamebot_app IS 'Non-privileged user for application runtime (RLS enforced)';
+
+-- Grant minimal required permissions to application user
+GRANT CONNECT ON DATABASE game_scheduler TO gamebot_app;
+GRANT USAGE ON SCHEMA public TO gamebot_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO gamebot_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gamebot_app;
+
+-- Ensure future tables are also accessible
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO gamebot_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES TO gamebot_app;
+```
+
+**User Responsibilities**:
+
+| User | Privilege Level | Purpose | Used By | RLS Enforced |
+|------|----------------|---------|---------|--------------|
+| `gamebot_admin` | Superuser | Migrations, DDL, database administration | Alembic, init container | ❌ No (bypasses RLS) |
+| `gamebot_app` | Non-superuser | Application runtime queries | API, bot, daemons | ✅ Yes |
+
+**Rationale**:
+- **Separation of duties**: Migration operations separate from application queries
+- **RLS enforcement**: Non-superuser required for policies to apply to runtime queries
+- **Principle of least privilege**: Application only needs CRUD, not DDL (can't DROP tables)
+- **Production security**: Compromised application can't modify schema or drop database
+- **Audit trail**: Clear distinction between admin actions and application actions
+
+**Environment Variable Updates**:
+```bash
+# For migrations (Alembic, init container)
+POSTGRES_ADMIN_USER=gamebot_admin
+POSTGRES_ADMIN_PASSWORD=admin_password_here
+ADMIN_DATABASE_URL=postgresql://gamebot_admin:admin_password_here@postgres:5432/game_scheduler
+
+# For application runtime (API, bot, daemons)
+POSTGRES_APP_USER=gamebot_app
+POSTGRES_APP_PASSWORD=app_password_here
+DATABASE_URL=postgresql://gamebot_app:app_password_here@postgres:5432/game_scheduler
+```
+
+**Migration Strategy**:
+1. Create `gamebot_admin` superuser for migrations
+2. Create `gamebot_app` non-superuser for application runtime
+3. Grant required permissions to `gamebot_app`
+4. Update Alembic to use `gamebot_admin` credentials
+5. Update `DATABASE_URL` in all services to use `gamebot_app`
+6. Test RLS enforcement with `gamebot_app`
+7. Deprecate old single-user pattern
+
+**Verification Test**:
+```bash
+# Test 1: Verify admin user can run migrations
+docker compose --env-file config/env.int exec postgres psql -U gamebot_admin -d game_scheduler_integration
+# Should be able to: CREATE TABLE, DROP TABLE, ALTER TABLE, etc.
+
+# Test 2: Verify app user has correct permissions
+docker compose --env-file config/env.int exec postgres psql -U gamebot_app -d game_scheduler_integration
+# Should be able to: SELECT, INSERT, UPDATE, DELETE
+# Should NOT be able to: CREATE TABLE, DROP TABLE (will get permission denied)
+
+# Test 3: Verify RLS enforcement on app user
+docker compose --env-file config/env.int exec postgres psql -U gamebot_app -d game_scheduler_integration
+# (Run SQL from 20260101-rls-multi-guild-validation-test.md)
+# Should see filtered results (2 rows, 1 row, 0 rows as expected)
+
+# Test 4: Verify admin user bypasses RLS (for migrations)
+docker compose --env-file config/env.int exec postgres psql -U gamebot_admin -d game_scheduler_integration
+# (Same SQL) Should see ALL rows unfiltered (3 rows regardless of context)
+```
+
+**Timeline**: 1-2 days
+- Day 1: Create both users in init container, update Alembic connection, grant permissions
+- Day 2: Update all service DATABASE_URLs, verify RLS enforcement, test in integration environment
+
+**Deliverable**: Two-user database architecture with:
+- Superuser (`gamebot_admin`) for migrations and administration
+- Non-superuser (`gamebot_app`) for application runtime with RLS enforcement validated
+
+**Blocker**: This MUST be completed before any RLS policies are created. RLS policies on superuser connections are completely ineffective.
 
 ### Week 1: Infrastructure + Tests (Zero Behavior Changes)
 
