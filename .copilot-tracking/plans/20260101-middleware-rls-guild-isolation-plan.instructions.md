@@ -103,7 +103,7 @@ These files will be useful reference but do NOT cover Phase 1 infrastructure tas
   - Details: [.copilot-tracking/details/20260101-middleware-rls-guild-isolation-details.md](../.copilot-tracking/details/20260101-middleware-rls-guild-isolation-details.md) (Lines 285-300)
   - **Status**: Completed - Changed to async function that fetches guilds and sets context
 
-- [ ] Task 2.3: Write integration tests for template routes RLS
+- [x] Task 2.3: Write integration tests for template routes RLS
   - Details: [.copilot-tracking/details/20260101-middleware-rls-guild-isolation-details.md](../.copilot-tracking/details/20260101-middleware-rls-guild-isolation-details.md) (Lines 302-317)
 
 - [ ] Task 2.4: Migrate template route dependencies (7 functions)

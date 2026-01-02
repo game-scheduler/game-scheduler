@@ -20,6 +20,8 @@ Implementing transparent guild isolation using SQLAlchemy event listeners, Postg
 - tests/integration/test_guild_isolation_rls.py - Integration tests for SQLAlchemy event listener RLS context setting
 - tests/services/api/test_database_dependencies.py - Unit tests for enhanced database dependency function (get_db_with_user_guilds)
 - alembic/versions/436f4d5b2b35_add_rls_policies_disabled.py - Alembic migration that creates RLS policies and indexes but leaves RLS disabled
+- tests/integration/test_game_service_guild_isolation.py - Integration tests for GameService guild isolation behavior with RLS context
+- tests/integration/test_template_routes_guild_isolation.py - Integration tests for template routes guild isolation behavior with RLS context
 
 ### Modified
 
@@ -326,3 +328,32 @@ SELECT indexname FROM pg_indexes WHERE tablename IN ('game_sessions', 'game_temp
 - tests/integration/conftest.py - Added seed_user_guilds_cache() shared helper function
 - tests/integration/test_game_signup_methods.py - Added cache seeding call
 - tests/integration/test_template_default_overrides.py - Added cache seeding calls in both test functions
+#### Task 2.3: Write integration tests for template routes RLS
+**Status**: ✅ Completed
+**Completed**: 2026-01-02
+**Details**: Created integration tests for template routes guild isolation in tests/integration/test_template_routes_guild_isolation.py. Tests verify that template route handlers properly filter results to only templates from the user's guilds when guild context is set.
+
+**Implementation**:
+- Created test_template_routes_guild_isolation.py with 3 test cases:
+  1. test_list_templates_only_returns_user_guild_templates - Verifies list_templates filters to user's guild
+  2. test_get_template_returns_404_for_other_guild_template - Verifies get_template returns 404 for other guild's template (xfail until RLS enabled)
+  3. test_list_templates_with_no_guild_context_returns_all - Verifies behavior without guild context
+- Tests use multi-guild fixtures from conftest.py (guild_a, guild_b, template_a, template_b)
+- Mock oauth2.get_user_guilds to control guild membership
+- Mock Discord client for channel name lookups
+- Mock role service to bypass permission checks
+- Use seed_user_guilds_cache() to populate cache for integration tests
+
+**Test Results**:
+- ✅ 2 tests pass (list_templates filtering, no-context behavior)
+- ⚠️ 1 test marked xfail (get_template cross-guild 404 - expected until RLS enabled in Phase 3)
+
+**Expected Behavior**:
+- list_templates already filters by guild_id parameter, so test passes with current code
+- get_template test marked xfail because RLS not enabled yet - currently can fetch any template by ID
+- After RLS enabled in Phase 3, database query will return None for templates outside user's guilds
+
+**Test Command**: `docker compose --env-file config/env.int run --build --rm --no-deps integration-tests tests/integration/test_template_routes_guild_isolation.py -v`
+
+**Files Added**:
+- tests/integration/test_template_routes_guild_isolation.py - NEW integration test suite for template routes guild isolation
