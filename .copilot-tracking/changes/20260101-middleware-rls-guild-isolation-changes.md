@@ -38,6 +38,7 @@ Implementing transparent guild isolation using SQLAlchemy event listeners, Postg
 - tests/integration/test_notification_daemon.py - Convert postgresql+asyncpg:// URL to postgresql:// for psycopg2 connections
 - pyproject.toml - Exclude services/init/* from coverage reporting (infrastructure code)
 - shared/database.py - Added get_db_with_user_guilds() dependency function that fetches user's guilds, sets ContextVar, yields session, and clears ContextVar in finally block
+- services/api/routes/guilds.py - Migrated list_guilds() to use get_db_with_user_guilds dependency (line 47)
 
 ### Removed
 
@@ -389,3 +390,26 @@ SELECT indexname FROM pg_indexes WHERE tablename IN ('game_sessions', 'game_temp
 - shared/database.py - Changed CurrentUser import from TYPE_CHECKING forward reference to direct import to fix FastAPI OpenAPI schema generation
 
 **Issue Fixed**: After initial implementation, version endpoint test failed with Pydantic error during OpenAPI schema generation. Root cause: `get_db_with_user_guilds` used forward reference string `"auth_schemas.CurrentUser"` which FastAPI couldn't resolve. Fixed by importing `CurrentUser` directly instead of using TYPE_CHECKING conditional import.
+#### Task 2.5: Migrate guild routes dependency
+**Status**: ✅ Completed
+**Completed**: 2026-01-02
+**Details**: Migrated `list_guilds` route handler dependency from `get_db` to `get_db_with_user_guilds` for automatic guild isolation RLS context setting. Single-line change with zero functional impact in Phase 2 (RLS disabled), but establishes the foundation for automatic database-level guild filtering when RLS is enabled in Phase 3.
+
+**Implementation**:
+- Modified services/api/routes/guilds.py - Line 47, list_guilds function
+- Changed from: `db: AsyncSession = Depends(database.get_db)`
+- Changed to: `db: AsyncSession = Depends(database.get_db_with_user_guilds)`
+- Function signature and return type unchanged
+- All downstream logic unaffected (transparent change)
+
+**Test Results**:
+- ✅ All 13 unit tests pass (tests/services/api/routes/test_guilds.py)
+- Test command: `uv run pytest tests/services/api/routes/test_guilds.py -v`
+- Zero breaking changes to existing functionality
+- RLS context now set automatically for all guild configuration queries (will enable filtering in Phase 3)
+- ✅ **Integration test validation**: Full integration test suite passes (90 passed, 4 xfailed in 117.10s) - bash scripts/run-integration-tests.sh
+
+**Impact**: Zero breaking changes. All previously passing tests continue to pass. Guild routes now ready for Phase 3 RLS enablement.
+
+**Files Modified**:
+- services/api/routes/guilds.py - 1 dependency change (line 47)

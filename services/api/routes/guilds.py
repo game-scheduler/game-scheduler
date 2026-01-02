@@ -43,7 +43,7 @@ router = APIRouter(prefix="/api/v1/guilds", tags=["guilds"])
 @router.get("", response_model=guild_schemas.GuildListResponse)
 async def list_guilds(
     current_user: auth_schemas.CurrentUser = Depends(dependencies.auth.get_current_user),
-    db: AsyncSession = Depends(database.get_db),
+    db: AsyncSession = Depends(database.get_db_with_user_guilds),
 ) -> guild_schemas.GuildListResponse:
     """
     List all guilds where the bot is present and user is a member.
