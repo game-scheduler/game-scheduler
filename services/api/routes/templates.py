@@ -44,7 +44,7 @@ router = APIRouter(prefix="/api/v1", tags=["templates"])
 async def list_templates(
     guild_id: str,
     current_user: auth_schemas.CurrentUser = Depends(dependencies.auth.get_current_user),
-    db: AsyncSession = Depends(database.get_db),
+    db: AsyncSession = Depends(database.get_db_with_user_guilds),
 ) -> list[template_schemas.TemplateListItem]:
     """
     List templates for a guild with role-based filtering.
@@ -125,7 +125,7 @@ async def list_templates(
 async def get_template(
     template_id: str,
     current_user: auth_schemas.CurrentUser = Depends(dependencies.auth.get_current_user),
-    db: AsyncSession = Depends(database.get_db),
+    db: AsyncSession = Depends(database.get_db_with_user_guilds),
 ) -> template_schemas.TemplateResponse:
     """Get template details by ID."""
     template_svc = template_service_module.TemplateService(db)
@@ -175,7 +175,7 @@ async def create_template(
     guild_id: str,
     request: template_schemas.TemplateCreateRequest,
     current_user: auth_schemas.CurrentUser = Depends(dependencies.auth.get_current_user),
-    db: AsyncSession = Depends(database.get_db),
+    db: AsyncSession = Depends(database.get_db_with_user_guilds),
 ) -> template_schemas.TemplateResponse:
     """Create new template (requires bot manager role)."""
     guild_config = await queries.get_guild_by_id(db, guild_id)
@@ -239,7 +239,7 @@ async def update_template(
     template_id: str,
     request: template_schemas.TemplateUpdateRequest,
     current_user: auth_schemas.CurrentUser = Depends(dependencies.auth.get_current_user),
-    db: AsyncSession = Depends(database.get_db),
+    db: AsyncSession = Depends(database.get_db_with_user_guilds),
 ) -> template_schemas.TemplateResponse:
     """Update template (requires bot manager role)."""
     template_svc = template_service_module.TemplateService(db)
@@ -293,7 +293,7 @@ async def update_template(
 async def delete_template(
     template_id: str,
     current_user: auth_schemas.CurrentUser = Depends(dependencies.auth.get_current_user),
-    db: AsyncSession = Depends(database.get_db),
+    db: AsyncSession = Depends(database.get_db_with_user_guilds),
 ) -> None:
     """Delete template (requires bot manager role, cannot delete is_default)."""
     template_svc = template_service_module.TemplateService(db)
@@ -325,7 +325,7 @@ async def delete_template(
 async def set_default_template(
     template_id: str,
     current_user: auth_schemas.CurrentUser = Depends(dependencies.auth.get_current_user),
-    db: AsyncSession = Depends(database.get_db),
+    db: AsyncSession = Depends(database.get_db_with_user_guilds),
 ) -> template_schemas.TemplateResponse:
     """Set template as default (requires bot manager role)."""
     template_svc = template_service_module.TemplateService(db)
@@ -375,7 +375,7 @@ async def set_default_template(
 async def reorder_templates(
     request: template_schemas.TemplateReorderRequest,
     current_user: auth_schemas.CurrentUser = Depends(dependencies.auth.get_current_user),
-    db: AsyncSession = Depends(database.get_db),
+    db: AsyncSession = Depends(database.get_db_with_user_guilds),
 ) -> None:
     """Bulk reorder templates (requires bot manager role)."""
     if not request.template_orders:

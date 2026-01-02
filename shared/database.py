@@ -21,7 +21,6 @@
 import os
 from collections.abc import AsyncGenerator
 from contextlib import contextmanager
-from typing import TYPE_CHECKING
 
 from sqlalchemy import create_engine as create_sync_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -31,9 +30,7 @@ from shared.data_access.guild_isolation import (
     clear_current_guild_ids,
     set_current_guild_ids,
 )
-
-if TYPE_CHECKING:
-    from shared.schemas import auth as auth_schemas
+from shared.schemas.auth import CurrentUser
 
 # Base PostgreSQL URL without driver specification
 _raw_database_url = os.getenv(
@@ -100,7 +97,7 @@ async def get_db() -> AsyncGenerator[AsyncSession]:
 
 
 async def get_db_with_user_guilds(
-    current_user: "auth_schemas.CurrentUser",
+    current_user: CurrentUser,
 ) -> AsyncGenerator[AsyncSession]:
     """
     Provide database session with user's guilds set for RLS enforcement.
@@ -110,23 +107,18 @@ async def get_db_with_user_guilds(
 
     For unauthenticated operations (migrations, service tasks), use get_db() instead.
 
-    Args:
-        current_user: Current authenticated user (must be injected explicitly in routes)
-
-    Yields:
-        AsyncSession: Database session with guild context set
-
-    Example:
-        from services.api.dependencies.auth import get_current_user
-
+    IMPORTANT: Routes must explicitly pass current_user dependency:
         @router.get("/games")
         async def list_games(
             current_user: CurrentUser = Depends(get_current_user),
             db: AsyncSession = Depends(get_db_with_user_guilds)
         ):
-            # All queries automatically filtered to user's guilds
-            result = await db.execute(select(GameSession))
-            return result.scalars().all()
+
+    Args:
+        current_user: Current authenticated user (must be passed via Depends)
+
+    Yields:
+        AsyncSession: Database session with guild context set
     """
     from services.api.auth import oauth2
 

@@ -357,3 +357,35 @@ SELECT indexname FROM pg_indexes WHERE tablename IN ('game_sessions', 'game_temp
 
 **Files Added**:
 - tests/integration/test_template_routes_guild_isolation.py - NEW integration test suite for template routes guild isolation
+#### Task 2.4: Migrate template route dependencies (7 functions)
+**Status**: ✅ Completed
+**Completed**: 2026-01-02
+**Details**: Migrated all 7 template route handler dependencies from `get_db` to `get_db_with_user_guilds` for automatic guild isolation RLS context setting. This is a transparent change with zero functional impact in Phase 2 (RLS disabled), but establishes the foundation for automatic database-level guild filtering when RLS is enabled in Phase 3.
+
+**Implementation**:
+- Modified services/api/routes/templates.py - Changed dependency in 7 route handlers:
+  1. list_templates (line 47)
+  2. get_template (line 128)
+  3. create_template (line 178)
+  4. update_template (line 242)
+  5. delete_template (line 296)
+  6. set_default_template (line 328)
+  7. reorder_templates (line 378)
+- Changed from: `db: AsyncSession = Depends(database.get_db)`
+- Changed to: `db: AsyncSession = Depends(database.get_db_with_user_guilds)`
+
+**Test Results**:
+- ✅ All 7 unit tests pass (tests/services/api/routes/test_templates.py)
+- ✅ All 2 integration tests pass, 1 xfail as expected (tests/integration/test_template_routes_guild_isolation.py)
+- ⚠️ 2 pre-existing failures in test_template_default_overrides.py confirmed to exist before Task 2.4 changes
+  - Verified by stashing changes, rebuilding environment, and running tests
+  - Root cause: Tests expect channels to be seeded in integration DB, but init service only seeds for E2E
+  - Not a regression from Task 2.4 - these tests need separate fix
+
+**Impact**: Zero breaking changes. All previously passing tests continue to pass. Template routes now ready for Phase 3 RLS enablement.
+
+**Files Modified**:
+- services/api/routes/templates.py - 7 dependency changes (lines 47, 128, 178, 242, 296, 328, 378)
+- shared/database.py - Changed CurrentUser import from TYPE_CHECKING forward reference to direct import to fix FastAPI OpenAPI schema generation
+
+**Issue Fixed**: After initial implementation, version endpoint test failed with Pydantic error during OpenAPI schema generation. Root cause: `get_db_with_user_guilds` used forward reference string `"auth_schemas.CurrentUser"` which FastAPI couldn't resolve. Fixed by importing `CurrentUser` directly instead of using TYPE_CHECKING conditional import.
