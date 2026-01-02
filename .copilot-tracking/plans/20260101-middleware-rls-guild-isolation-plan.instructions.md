@@ -61,11 +61,11 @@ Implement transparent guild isolation using SQLAlchemy event listeners, PostgreS
 
 These files will be useful reference but do NOT cover Phase 1 infrastructure tasks (ContextVars, event listeners, enhanced dependency).
 
-- [ ] Task 1.1: Write unit tests for ContextVar functions
+- [x] Task 1.1: Write unit tests for ContextVar functions
   - Details: [.copilot-tracking/details/20260101-middleware-rls-guild-isolation-details.md](../.copilot-tracking/details/20260101-middleware-rls-guild-isolation-details.md) (Lines 108-124)
   - **Status**: No existing coverage - must create new test file
 
-- [ ] Task 1.2: Implement ContextVar functions
+- [x] Task 1.2: Implement ContextVar functions
   - Details: [.copilot-tracking/details/20260101-middleware-rls-guild-isolation-details.md](../.copilot-tracking/details/20260101-middleware-rls-guild-isolation-details.md) (Lines 126-142)
 
 - [ ] Task 1.3: Write integration tests for event listener

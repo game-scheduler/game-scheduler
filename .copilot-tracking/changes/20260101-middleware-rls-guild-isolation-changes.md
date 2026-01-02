@@ -15,6 +15,8 @@ Implementing transparent guild isolation using SQLAlchemy event listeners, Postg
 
 - services/init/database_users.py - Database user creation with separation of duties (gamebot_admin superuser reserved for future use, gamebot_app non-superuser with CREATE permissions for migrations and runtime with RLS)
 - tests/integration/test_database_users.py - Integration tests to verify database user creation and permissions
+- shared/data_access/guild_isolation.py - ContextVar functions for thread-safe, async-safe guild ID storage (set_current_guild_ids, get_current_guild_ids, clear_current_guild_ids)
+- tests/shared/data_access/test_guild_isolation.py - Unit tests for ContextVar management functions
 
 ### Modified
 
@@ -66,3 +68,34 @@ Implementing transparent guild isolation using SQLAlchemy event listeners, Postg
 **Results**: Reduced integration test failures from 16 failed/37 errors to 1 failed/8 errors. Remaining failures are pre-existing MissingGreenlet issues unrelated to permissions. All new guild isolation tests passing.
 
 **Architecture Decision**: Minimize superuser usage - gamebot_admin exists but is reserved for future admin tasks. gamebot_app has CREATE permissions and handles both migrations and runtime queries. All tables owned by gamebot_app, eliminating ALTER DEFAULT PRIVILEGES complexity.
+
+### Phase 1: Infrastructure + Tests (Week 1)
+
+**Status**: 🚧 In Progress
+**Started**: 2026-01-02
+
+#### Task 1.1: Write unit tests for ContextVar functions
+**Status**: ✅ Completed
+**Completed**: 2026-01-02
+**Details**: Created comprehensive unit tests for guild isolation ContextVar management in tests/shared/data_access/test_guild_isolation.py. Tests cover:
+- set_current_guild_ids and get_current_guild_ids basic functionality
+- get_current_guild_ids returns None when not set
+- clear_current_guild_ids properly clears context
+- Async task isolation (ContextVars maintain separate state between concurrent async tasks)
+
+Tests initially failed with ModuleNotFoundError as expected (red phase).
+
+**Test Results**: 4 tests written, verified failure before implementation.
+
+#### Task 1.2: Implement ContextVar functions
+**Status**: ✅ Completed
+**Completed**: 2026-01-02
+**Details**: Implemented thread-safe, async-safe ContextVar functions in shared/data_access/guild_isolation.py. Module provides:
+- _current_guild_ids: ContextVar for request-scoped guild ID storage
+- set_current_guild_ids(): Store guild IDs in current request context
+- get_current_guild_ids(): Retrieve guild IDs or None if not set
+- clear_current_guild_ids(): Clear guild IDs from context
+
+Implementation uses Python's built-in contextvars module for automatic isolation between requests and async tasks. No global state or race conditions.
+
+**Test Results**: All 4 unit tests pass (green phase). Verified thread-safety and async task isolation.
