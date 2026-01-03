@@ -28,7 +28,7 @@ class BotConfig(BaseSettings):
 
     Attributes:
         discord_bot_token: Discord bot authentication token
-        discord_client_id: Discord application ID for OAuth2
+        discord_bot_client_id: Discord application ID for OAuth2
         database_url: PostgreSQL connection string with asyncpg driver
         rabbitmq_url: RabbitMQ AMQP connection string
         redis_url: Redis connection string
@@ -45,7 +45,7 @@ class BotConfig(BaseSettings):
 
     # Make Discord tokens optional for integration tests
     discord_bot_token: str | None = Field(default=None, description="Discord bot token")
-    discord_client_id: str | None = Field(default=None, description="Discord application ID")
+    discord_bot_client_id: str | None = Field(default=None, description="Discord application ID")
 
     database_url: str = Field(
         default="postgresql+asyncpg://postgres:postgres@localhost:5432/game_scheduler",

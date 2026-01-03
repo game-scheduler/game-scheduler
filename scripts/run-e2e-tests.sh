@@ -21,14 +21,14 @@ fi
 source "$ENV_FILE"
 
 # Check for required test Discord credentials
-if [ -z "$DISCORD_TOKEN" ]; then
-  echo "ERROR: DISCORD_TOKEN environment variable is required in $ENV_FILE"
+if [ -z "$DISCORD_BOT_TOKEN" ]; then
+  echo "ERROR: DISCORD_BOT_TOKEN environment variable is required in $ENV_FILE"
   echo "See TESTING_E2E.md for setup instructions"
   exit 1
 fi
 
-if [ -z "$DISCORD_GUILD_ID" ] || [ -z "$DISCORD_CHANNEL_ID" ]; then
-  echo "WARNING: DISCORD_GUILD_ID and DISCORD_CHANNEL_ID should be set in $ENV_FILE"
+if [ -z "$DISCORD_GUILD_A_ID" ] || [ -z "$DISCORD_GUILD_A_CHANNEL_ID" ]; then
+  echo "WARNING: DISCORD_GUILD_A_ID and DISCORD_GUILD_A_CHANNEL_ID should be set in $ENV_FILE"
   echo "Tests may fail without these. See TESTING_E2E.md for setup instructions"
 fi
 

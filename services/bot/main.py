@@ -56,7 +56,7 @@ async def main() -> None:
 
     try:
         # Check if running in test environment without Discord credentials
-        if not config.discord_bot_token or not config.discord_client_id:
+        if not config.discord_bot_token or not config.discord_bot_client_id:
             logger.warning(
                 "Discord credentials not configured. Bot will not start (integration test mode)."
             )

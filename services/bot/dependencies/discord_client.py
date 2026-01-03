@@ -39,7 +39,7 @@ def get_discord_client() -> DiscordAPIClient:
     if _discord_client_instance is None:
         bot_config = config.get_config()
         _discord_client_instance = DiscordAPIClient(
-            client_id=bot_config.discord_client_id or "",
+            client_id=bot_config.discord_bot_client_id or "",
             client_secret="",  # Bot service doesn't need OAuth2 secret
             bot_token=bot_config.discord_bot_token or "",
         )

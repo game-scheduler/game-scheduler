@@ -31,18 +31,18 @@ class TestBotConfig:
         """Test configuration creation with all required fields."""
         config = BotConfig(
             discord_bot_token="test_token",
-            discord_client_id="123456789",
+            discord_bot_client_id="123456789",
         )
 
         assert config.discord_bot_token == "test_token"
-        assert config.discord_client_id == "123456789"
+        assert config.discord_bot_client_id == "123456789"
 
-    def test_config_with_defaults(self) -> None:
+    def test_config_with_optional_defaults(self) -> None:
         """Test that optional fields have correct default values."""
         with patch.dict(os.environ, {}, clear=True):
             config = BotConfig(
                 discord_bot_token="test_token",
-                discord_client_id="123456789",
+                discord_bot_client_id="123456789",
                 _env_file=None,
             )
 
@@ -59,7 +59,7 @@ class TestBotConfig:
         """Test configuration with custom values for optional fields."""
         config = BotConfig(
             discord_bot_token="test_token",
-            discord_client_id="123456789",
+            discord_bot_client_id="123456789",
             database_url="postgresql+asyncpg://custom:pass@db:5432/custom_db",
             rabbitmq_url="amqp://user:pass@rabbitmq:5672/",
             redis_url="redis://redis:6379/1",
@@ -77,7 +77,7 @@ class TestBotConfig:
         """Test configuration loading from environment variables."""
         env_vars = {
             "DISCORD_BOT_TOKEN": "env_token",
-            "DISCORD_CLIENT_ID": "987654321",
+            "DISCORD_BOT_CLIENT_ID": "987654321",
             "LOG_LEVEL": "WARNING",
             "ENVIRONMENT": "staging",
         }
@@ -86,7 +86,7 @@ class TestBotConfig:
             config = BotConfig()
 
             assert config.discord_bot_token == "env_token"
-            assert config.discord_client_id == "987654321"
+            assert config.discord_bot_client_id == "987654321"
             assert config.log_level == "WARNING"
             assert config.environment == "staging"
 
@@ -94,14 +94,14 @@ class TestBotConfig:
         """Test that environment variable names are case-insensitive."""
         env_vars = {
             "discord_bot_token": "lower_token",
-            "DISCORD_CLIENT_ID": "123456789",
+            "DISCORD_BOT_CLIENT_ID": "123456789",
         }
 
         with patch.dict(os.environ, env_vars, clear=True):
             config = BotConfig()
 
             assert config.discord_bot_token == "lower_token"
-            assert config.discord_client_id == "123456789"
+            assert config.discord_bot_client_id == "123456789"
 
 
 class TestGetConfig:
@@ -109,7 +109,7 @@ class TestGetConfig:
 
     def test_get_config_returns_singleton(self) -> None:
         """Test that get_config returns the same instance on multiple calls."""
-        with patch.dict(os.environ, {"DISCORD_BOT_TOKEN": "token", "DISCORD_CLIENT_ID": "123"}):
+        with patch.dict(os.environ, {"DISCORD_BOT_TOKEN": "token", "DISCORD_BOT_CLIENT_ID": "123"}):
             from services.bot import config as config_module
 
             config_module._config = None
@@ -121,7 +121,7 @@ class TestGetConfig:
 
     def test_get_config_creates_instance(self) -> None:
         """Test that get_config creates a valid BotConfig instance."""
-        with patch.dict(os.environ, {"DISCORD_BOT_TOKEN": "token", "DISCORD_CLIENT_ID": "123"}):
+        with patch.dict(os.environ, {"DISCORD_BOT_TOKEN": "token", "DISCORD_BOT_CLIENT_ID": "123"}):
             from services.bot import config as config_module
 
             config_module._config = None
@@ -130,4 +130,4 @@ class TestGetConfig:
 
             assert isinstance(config, BotConfig)
             assert config.discord_bot_token == "token"
-            assert config.discord_client_id == "123"
+            assert config.discord_bot_client_id == "123"

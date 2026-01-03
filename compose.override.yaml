@@ -62,7 +62,7 @@ services:
     build:
       target: development
       args:
-        VITE_DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+        VITE_DISCORD_CLIENT_ID: ${DISCORD_BOT_CLIENT_ID}
         VITE_API_URL: ${API_URL:-http://localhost:8000}
     volumes:
       - ${HOST_WORKSPACE_FOLDER:-.}/frontend/src:/app/src:ro
@@ -75,7 +75,7 @@ services:
       - "${FRONTEND_HOST_PORT:-3000}:80"
     environment:
       VITE_API_URL: ${API_URL:-http://localhost:8000}
-      VITE_DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      VITE_DISCORD_CLIENT_ID: ${DISCORD_BOT_CLIENT_ID}
 
   postgres:
     ports:

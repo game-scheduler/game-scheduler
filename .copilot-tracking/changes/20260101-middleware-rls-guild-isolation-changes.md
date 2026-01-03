@@ -27,12 +27,13 @@ Implementing transparent guild isolation using SQLAlchemy event listeners, Postg
 
 - services/init/main.py - Added database user creation as step 2/6 in initialization sequence (between PostgreSQL wait and migrations)
 - services/api/app.py - Added import of shared.data_access.guild_isolation module to register SQLAlchemy event listener at application startup
-- config/env.dev - Updated to two-user architecture with ADMIN_DATABASE_URL and DATABASE_URL separation
-- config/env.int - Updated to two-user architecture with admin and app user credentials
-- config/env.e2e - Updated to two-user architecture with admin and app user credentials
-- config/env.staging - Updated to two-user architecture with admin and app user credentials
-- config/env.prod - Updated to two-user architecture with admin and app user credentials
-- config/env.example - Updated template to two-user architecture for documentation
+- config/env.dev - Updated to two-user architecture with ADMIN_DATABASE_URL and DATABASE_URL separation, plus optional Guild B environment variables (commented out)
+- config/env.int - Updated to two-user architecture with admin and app user credentials, plus optional Guild B environment variables (commented out)
+- config/env.e2e - Updated to two-user architecture with admin and app user credentials, plus optional Guild B environment variables for cross-guild isolation testing
+- config/env.staging - Updated to two-user architecture with admin and app user credentials, plus optional Guild B environment variables (commented out)
+- config/env.prod - Updated to two-user architecture with admin and app user credentials, plus optional Guild B environment variables (commented out)
+- config/env.example - Updated template to two-user architecture for documentation, plus optional Guild B environment variables (commented out)
+- config.template/env.template - Added optional Guild B environment variables (commented out) for consistency across all environment files
 - alembic/env.py - Changed to use DATABASE_URL (gamebot_app) instead of ADMIN_DATABASE_URL for migrations (simpler architecture with app user running migrations)
 - tests/integration/test_database_infrastructure.py - Convert postgresql+asyncpg:// URL to postgresql:// for synchronous SQLAlchemy tests
 - tests/integration/test_notification_daemon.py - Convert postgresql+asyncpg:// URL to postgresql:// for psycopg2 connections
@@ -41,6 +42,9 @@ Implementing transparent guild isolation using SQLAlchemy event listeners, Postg
 - services/api/routes/guilds.py - Migrated list_guilds() to use get_db_with_user_guilds dependency (line 47)
 - services/api/routes/export.py - Migrated export_game() to use get_db_with_user_guilds dependency (line 92)
 - tests/services/api/routes/test_export.py - Updated all 4 test functions to override get_db_with_user_guilds instead of get_db (lines 96, 148, 191, 253)
+- services/init/seed_e2e.py - Extended E2E seed function to optionally create Guild B infrastructure for cross-guild isolation testing
+- tests/e2e/conftest.py - Added 7 Guild B fixtures (guild_b_id, channel_b_id, user_b_id, user_b_token, authenticated_client_b, guild_b_db_id, guild_b_template_id)
+- TESTING_E2E.md - Added Guild B setup documentation in section 6 with configuration examples
 
 ### Removed
 
@@ -476,3 +480,68 @@ SELECT indexname FROM pg_indexes WHERE tablename IN ('game_sessions', 'game_temp
 - ✅ Ready for Phase 3: RLS enablement
 
 **Phase 2 Completion**: All tasks complete. Infrastructure is in place, all migrations complete, zero breaking changes confirmed across 1,125 total tests.
+### Phase 3: Enable RLS + E2E Validation
+
+**Status**: 🚧 In Progress
+**Started**: 2026-01-02
+
+#### Task 3.0: Multi-guild E2E infrastructure setup
+**Status**: ✅ Completed
+**Completed**: 2026-01-02
+**Details**: Set up Guild B, User B, and E2E fixtures for cross-guild isolation testing. This infrastructure enables Phase 3.1 E2E tests that verify users cannot access games/templates from other guilds.
+
+**Implementation**:
+- Modified config/env.e2e - Added environment variables for Guild B configuration (lines after DISCORD_USER_ID):
+  - DISCORD_GUILD_B_ID (required - second test guild for isolation tests)
+  - DISCORD_CHANNEL_B_ID (required - channel in Guild B)
+  - DISCORD_USER_B_ID (required - user who is member of Guild B only, NOT Guild A)
+  - DISCORD_USER_B_TOKEN (required - OAuth token for User B)
+- Modified services/init/seed_e2e.py - Extended E2E seed function to create Guild B infrastructure (required):
+  - Verify Guild B environment variables present (DISCORD_GUILD_B_ID, DISCORD_CHANNEL_B_ID, DISCORD_USER_B_ID)
+  - Seed Guild B configuration (guild, channel, user, default template)
+  - User B is member of Guild B only (NOT Guild A) for isolation testing
+  - Return false if Guild B variables not provided (no longer optional)
+- Modified tests/e2e/conftest.py - Added Guild B test fixtures (all required):
+  - discord_guild_b_id() - Guild B Discord snowflake ID (fails if not set)
+  - discord_channel_b_id() - Channel B Discord snowflake ID (fails if not set)
+  - discord_user_b_id() - User B Discord snowflake ID (fails if not set)
+  - discord_user_b_token() - OAuth token for User B (fails if not set)
+  - authenticated_client_b() - HTTP client authenticated as User B
+  - guild_b_db_id() - Database UUID for Guild B
+  - guild_b_template_id() - Default template UUID for Guild B
+- Modified TESTING_E2E.md - Added Guild B setup documentation:
+  - New section 6: "(Optional) Set Up Guild B for Cross-Guild Isolation Tests"
+  - Explains purpose: testing that users only see data from their own guilds
+  - Setup steps: create second test guild, channel, user with proper membership isolation
+  - When to skip: if not testing guild isolation features
+  - Added Guild B environment variable examples in configuration section
+- Modified tests/e2e/test_00_environment.py - Added 9 Guild B validation tests (all required):
+  - test_guild_b_environment_variables() - Verify all Guild B env vars set (fails if any missing)
+  - test_guild_b_exists() - Verify Guild B exists and bot has access
+  - test_channel_b_exists() - Verify Channel B exists in Guild B
+  - test_user_b_exists() - Verify User B exists
+  - test_guild_b_database_seeded() - Verify Guild B, Channel B, User B in database
+  - test_guild_b_has_default_template() - Verify Guild B has default template
+  - test_user_b_not_in_guild_a() - Verify User B NOT member of Guild A (isolation)
+  - test_user_a_not_in_guild_b() - Verify User A NOT member of Guild B (isolation)
+  - All tests fail with clear messages if Guild B not configured
+
+**Test Results**:
+- ✅ Tests will validate proper Guild B configuration before isolation testing
+- ✅ Clear failure messages guide setup if Guild B not configured
+- ✅ Tests ensure proper isolation (User A ∉ Guild B, User B ∉ Guild A)
+
+**Impact**: Infrastructure ready for Task 3.1 E2E cross-guild isolation tests. Guild B setup is required for E2E tests - tests will fail with clear messages if not configured.
+
+**Files Modified**:
+- config/env.e2e - Added 4 optional environment variables for Guild B (uncommented for E2E use)
+- config/env.dev - Added 4 optional Guild B environment variables (commented out)
+- config/env.int - Added 4 optional Guild B environment variables (commented out)
+- config/env.prod - Added 4 optional Guild B environment variables (commented out)
+- config/env.staging - Added 4 optional Guild B environment variables (commented out)
+- config/env.example - Added 4 optional Guild B environment variables (commented out)
+- config.template/env.template - Added 4 optional Guild B environment variables (commented out)
+- services/init/seed_e2e.py - Extended seed function with Guild B logic (lines 38-169)
+- tests/e2e/conftest.py - Added 7 new Guild B fixtures (after discord_user_id fixture)
+- tests/e2e/test_00_environment.py - Added 9 Guild B validation tests (guild exists, channel exists, user exists, database seeded, default template, user isolation)
+- TESTING_E2E.md - Added Guild B setup section and documentation

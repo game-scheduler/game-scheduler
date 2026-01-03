@@ -32,7 +32,7 @@ def bot_config() -> BotConfig:
     """Create a test bot configuration."""
     return BotConfig(
         discord_bot_token="test_token",
-        discord_client_id="123456789",
+        discord_bot_client_id="123456789",
         log_level="DEBUG",
         environment="development",
     )
@@ -80,7 +80,8 @@ class TestGameSchedulerBot:
 
         with patch("services.bot.commands.setup_commands", new_callable=AsyncMock):
             with patch(
-                "services.bot.events.publisher.BotEventPublisher", return_value=mock_publisher
+                "services.bot.events.publisher.BotEventPublisher",
+                return_value=mock_publisher,
             ):
                 with patch("services.bot.handlers.ButtonHandler"):
                     with patch("services.bot.events.handlers.EventHandlers"):
@@ -100,7 +101,8 @@ class TestGameSchedulerBot:
 
         with patch("services.bot.commands.setup_commands", new_callable=AsyncMock):
             with patch(
-                "services.bot.events.publisher.BotEventPublisher", return_value=mock_publisher
+                "services.bot.events.publisher.BotEventPublisher",
+                return_value=mock_publisher,
             ):
                 with patch("services.bot.handlers.ButtonHandler"):
                     with patch("services.bot.events.handlers.EventHandlers"):
@@ -213,18 +215,18 @@ class TestCreateBot:
         """Test create_bot works with different configurations."""
         config1 = BotConfig(
             discord_bot_token="token1",
-            discord_client_id="111",
+            discord_bot_client_id="111",
             environment="development",
         )
         config2 = BotConfig(
             discord_bot_token="token2",
-            discord_client_id="222",
+            discord_bot_client_id="222",
             environment="production",
         )
 
         bot1 = await create_bot(config1)
         bot2 = await create_bot(config2)
 
-        assert bot1.config.discord_client_id == "111"
-        assert bot2.config.discord_client_id == "222"
+        assert bot1.config.discord_bot_client_id == "111"
+        assert bot2.config.discord_bot_client_id == "222"
         assert bot1 is not bot2

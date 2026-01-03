@@ -126,9 +126,9 @@ These files will be useful reference but do NOT cover Phase 1 infrastructure tas
 
 **NOTE**: `tests/e2e/test_game_authorization.py` provides E2E test infrastructure but focuses on **authorization**, not **guild isolation**. Useful as template but needs extension.
 
-- [ ] Task 3.0: Multi-guild E2E infrastructure setup
+- [x] Task 3.0: Multi-guild E2E infrastructure setup
   - Details: [.copilot-tracking/details/20260101-middleware-rls-guild-isolation-details.md](../.copilot-tracking/details/20260101-middleware-rls-guild-isolation-details.md) (Lines 381-430)
-  - **Status**: New prerequisite - Guild B + User B infrastructure for isolation testing
+  - **Status**: ✅ Completed - Guild B + User B infrastructure for isolation testing
 
 - [ ] Task 3.1: Write E2E tests for cross-guild isolation
   - Details: [.copilot-tracking/details/20260101-middleware-rls-guild-isolation-details.md](../.copilot-tracking/details/20260101-middleware-rls-guild-isolation-details.md) (Lines 432-465)

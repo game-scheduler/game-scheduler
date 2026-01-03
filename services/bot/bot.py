@@ -66,7 +66,7 @@ class GameSchedulerBot(commands.Bot):
         super().__init__(
             command_prefix="!",
             intents=intents,
-            application_id=int(config.discord_client_id),
+            application_id=int(config.discord_bot_client_id),
         )
 
     async def setup_hook(self) -> None:

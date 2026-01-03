@@ -38,9 +38,9 @@ pytestmark = pytest.mark.e2e
 async def test_environment_variables():
     """Verify all required E2E environment variables are set."""
     required_vars = [
-        "DISCORD_TOKEN",
-        "DISCORD_GUILD_ID",
-        "DISCORD_CHANNEL_ID",
+        "DISCORD_BOT_TOKEN",
+        "DISCORD_GUILD_A_ID",
+        "DISCORD_GUILD_A_CHANNEL_ID",
         "DISCORD_USER_ID",
         "DATABASE_URL",
         "API_BASE_URL",
@@ -183,3 +183,197 @@ def test_api_accessible(http_client):
     assert response.status_code == 200, (
         f"API health check failed with status {response.status_code}"
     )
+
+
+# ======================================================================================
+# Guild B / User B Environment Tests (Required for cross-guild isolation testing)
+# ======================================================================================
+
+
+@pytest.mark.asyncio
+async def test_guild_b_environment_variables(
+    discord_guild_b_id, discord_channel_b_id, discord_user_b_id, discord_user_b_token
+):
+    """Verify all Guild B environment variables are set."""
+    assert discord_guild_b_id, (
+        "DISCORD_GUILD_B_ID must be set for cross-guild isolation testing. "
+        "See TESTING_E2E.md section 6 for setup instructions"
+    )
+    assert discord_channel_b_id, (
+        "DISCORD_CHANNEL_B_ID must be set for cross-guild isolation testing. "
+        "See TESTING_E2E.md section 6 for setup instructions"
+    )
+    assert discord_user_b_id, (
+        "DISCORD_USER_B_ID must be set for cross-guild isolation testing. "
+        "See TESTING_E2E.md section 6 for setup instructions"
+    )
+    assert discord_user_b_token, (
+        "DISCORD_USER_B_TOKEN must be set for cross-guild isolation testing. "
+        "See TESTING_E2E.md section 6 for setup instructions"
+    )
+
+
+@pytest.mark.asyncio
+async def test_guild_b_exists(discord_user_b_token, discord_guild_b_id):
+    """Verify Guild B exists and Admin Bot B has access."""
+
+    client = discord.Client(intents=discord.Intents.default())
+
+    try:
+        await client.login(discord_user_b_token)
+        guild = client.get_guild(int(discord_guild_b_id))
+
+        if guild is None:
+            guild = await client.fetch_guild(int(discord_guild_b_id))
+
+        assert guild is not None, (
+            f"Guild B {discord_guild_b_id} not found or bot not a member. "
+            f"Check DISCORD_GUILD_B_ID and verify bot is invited to Guild B"
+        )
+    except discord.Forbidden:
+        pytest.fail(f"Bot does not have access to Guild B {discord_guild_b_id}")
+    except discord.NotFound:
+        pytest.fail(f"Guild B {discord_guild_b_id} does not exist")
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_channel_b_exists(discord_user_b_token, discord_guild_b_id, discord_channel_b_id):
+    """Verify Channel B exists and Admin Bot B has access."""
+    client = discord.Client(intents=discord.Intents.default())
+
+    try:
+        await client.login(discord_user_b_token)
+
+        try:
+            channel = await client.fetch_channel(int(discord_channel_b_id))
+            assert isinstance(channel, discord.TextChannel), (
+                f"Channel B {discord_channel_b_id} is not a text channel"
+            )
+            assert str(channel.guild.id) == discord_guild_b_id, (
+                f"Channel B {discord_channel_b_id} is not in Guild B {discord_guild_b_id}"
+            )
+        except discord.Forbidden:
+            pytest.fail(f"Bot does not have access to Channel B {discord_channel_b_id}")
+        except discord.NotFound:
+            pytest.fail(f"Channel B {discord_channel_b_id} does not exist")
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_user_b_exists(discord_user_b_token, discord_user_b_id):
+    """Verify User B (Admin Bot B) exists."""
+    client = discord.Client(intents=discord.Intents.default())
+
+    try:
+        await client.login(discord_user_b_token)
+
+        try:
+            user = await client.fetch_user(int(discord_user_b_id))
+            assert user is not None, f"User B {discord_user_b_id} not found"
+        except discord.NotFound:
+            pytest.fail(f"User B {discord_user_b_id} does not exist")
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_guild_b_database_seeded(
+    db_session, discord_guild_b_id, discord_channel_b_id, discord_user_b_id
+):
+    """Verify init service seeded Guild B data in database."""
+    result = await db_session.execute(
+        text("SELECT id FROM guild_configurations WHERE guild_id = :guild_id"),
+        {"guild_id": discord_guild_b_id},
+    )
+    guild_row = result.fetchone()
+    assert guild_row is not None, (
+        f"Guild B {discord_guild_b_id} not found in database. "
+        f"Init service may have failed to seed Guild B data"
+    )
+
+    result = await db_session.execute(
+        text("SELECT id FROM channel_configurations WHERE channel_id = :channel_id"),
+        {"channel_id": discord_channel_b_id},
+    )
+    channel_row = result.fetchone()
+    assert channel_row is not None, (
+        f"Channel B {discord_channel_b_id} not found in database. "
+        f"Init service may have failed to seed Guild B data"
+    )
+
+    result = await db_session.execute(
+        text("SELECT id FROM users WHERE discord_id = :discord_id"),
+        {"discord_id": discord_user_b_id},
+    )
+    user_row = result.fetchone()
+    assert user_row is not None, (
+        f"User B {discord_user_b_id} not found in database. "
+        f"Init service may have failed to seed Guild B data"
+    )
+
+
+@pytest.mark.asyncio
+async def test_guild_b_has_default_template(db_session, discord_guild_b_id):
+    """Verify Guild B has a default game template."""
+    result = await db_session.execute(
+        text(
+            "SELECT t.id FROM game_templates t "
+            "JOIN guild_configurations g ON t.guild_id = g.id "
+            "WHERE g.guild_id = :guild_id AND t.is_default = true"
+        ),
+        {"guild_id": discord_guild_b_id},
+    )
+    template_row = result.fetchone()
+    assert template_row is not None, (
+        f"Guild B {discord_guild_b_id} does not have a default template. "
+        f"Init service may have failed to seed Guild B template"
+    )
+
+
+@pytest.mark.asyncio
+async def test_user_b_not_in_guild_a(discord_user_b_token, discord_guild_id):
+    """Verify User B is NOT a member of Guild A (isolation requirement)."""
+    client = discord.Client(intents=discord.Intents.default())
+
+    try:
+        await client.login(discord_user_b_token)
+
+        try:
+            guild = await client.fetch_guild(int(discord_guild_id))
+            # If we can fetch the guild, User B is a member - this violates isolation
+            pytest.fail(
+                f"User B should NOT have access to Guild A ({discord_guild_id}), "
+                f"but successfully fetched guild: {guild.name}"
+            )
+        except (discord.Forbidden, discord.NotFound):
+            # Expected: User B is not a member of Guild A
+            # Discord returns NotFound (404) when bot isn't a guild member (privacy)
+            pass
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_user_a_not_in_guild_b(discord_token, discord_guild_b_id):
+    """Verify User A is NOT a member of Guild B (isolation requirement)."""
+    client = discord.Client(intents=discord.Intents.default())
+
+    try:
+        await client.login(discord_token)
+
+        try:
+            guild = await client.fetch_guild(int(discord_guild_b_id))
+            # If we can fetch the guild, User A is a member - this violates isolation
+            pytest.fail(
+                f"User A should NOT have access to Guild B ({discord_guild_b_id}), "
+                f"but successfully fetched guild: {guild.name}"
+            )
+        except (discord.Forbidden, discord.NotFound):
+            # Expected: User A is not a member of Guild B
+            # Discord returns NotFound (404) when bot isn't a guild member (privacy)
+            pass
+    finally:
+        await client.close()

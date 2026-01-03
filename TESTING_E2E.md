@@ -96,7 +96,21 @@ Generate OAuth2 invite URL:
 2. Right-click your username → "Copy User ID" - this becomes `TEST_DISCORD_USER_ID`
 3. Optionally, create additional test user accounts if needed
 
-### 6. Configure Environment Variables
+### 6. (Optional) Set Up Guild B for Cross-Guild Isolation Tests
+
+To test guild isolation features (ensuring users can only see data from their own guilds):
+
+1. **Create a second test guild** named "Game Scheduler Test B"
+2. **Create a channel** in Guild B and get its ID → `DISCORD_GUILD_B_ID` and `DISCORD_CHANNEL_B_ID`
+3. **Create a second test user** (different from User A)
+   - Right-click username → "Copy User ID" → `DISCORD_USER_B_ID`
+   - Get OAuth token for User B → `DISCORD_USER_B_TOKEN`
+4. **Important:** User B should be a member of Guild B ONLY (not Guild A)
+5. Invite both bots to Guild B with same permissions as Guild A
+
+**When to skip:** If not testing guild isolation features, leave these environment variables unset.
+
+### 7. Configure Environment Variables
 
 The project uses environment files in the `env/` directory. Update the test environment files:
 
@@ -156,6 +170,14 @@ DISCORD_GUILD_ID=123456789012345678
 DISCORD_CHANNEL_ID=123456789012345678
 DISCORD_CHANNEL_ID=123456789012345678
 TEST_DISCORD_USER_ID=123456789012345678
+
+# Optional: Guild B and User B for cross-guild isolation testing
+# User B must be a member of Guild B ONLY (not Guild A)
+# Leave commented if not testing cross-guild isolation
+# DISCORD_GUILD_B_ID=987654321098765432
+# DISCORD_CHANNEL_B_ID=987654321098765432
+# DISCORD_USER_B_ID=987654321098765432
+# DISCORD_USER_B_TOKEN=your_user_b_bot_token_here
 
 TEST_ENVIRONMENT=true
 API_HOST_PORT=8001

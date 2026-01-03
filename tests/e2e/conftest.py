@@ -153,31 +153,83 @@ async def wait_for_game_message_id(
 @pytest.fixture(scope="session")
 def discord_token():
     """Provide Discord admin bot token for E2E tests."""
-    return os.environ["DISCORD_ADMIN_BOT_TOKEN"]
+    return os.environ["DISCORD_ADMIN_BOT_A_TOKEN"]
 
 
 @pytest.fixture(scope="session")
 def discord_main_bot_token():
     """Provide Discord main bot token (sends notifications)."""
-    return os.environ["DISCORD_TOKEN"]
+    return os.environ["DISCORD_BOT_TOKEN"]
 
 
 @pytest.fixture(scope="session")
 def discord_guild_id():
     """Provide test Discord guild ID from environment."""
-    return os.environ["DISCORD_GUILD_ID"]
+    return os.environ["DISCORD_GUILD_A_ID"]
 
 
 @pytest.fixture(scope="session")
 def discord_channel_id():
     """Provide test Discord channel ID from environment."""
-    return os.environ["DISCORD_CHANNEL_ID"]
+    return os.environ["DISCORD_GUILD_A_CHANNEL_ID"]
 
 
 @pytest.fixture(scope="session")
 def discord_user_id():
     """Provide test Discord user ID from environment."""
     return os.environ["DISCORD_USER_ID"]
+
+
+@pytest.fixture(scope="session")
+def discord_guild_b_id():
+    """Guild B for cross-guild isolation testing (required)."""
+    guild_b_id = os.environ.get("DISCORD_GUILD_B_ID")
+    if not guild_b_id:
+        pytest.skip(
+            "DISCORD_GUILD_B_ID environment variable not set. "
+            "Guild B is required for cross-guild isolation testing. "
+            "See TESTING_E2E.md section 6 for setup instructions."
+        )
+    return guild_b_id
+
+
+@pytest.fixture(scope="session")
+def discord_channel_b_id():
+    """Channel in Guild B for isolation tests (required)."""
+    channel_b_id = os.environ.get("DISCORD_GUILD_B_CHANNEL_ID")
+    if not channel_b_id:
+        pytest.skip(
+            "DISCORD_GUILD_B_CHANNEL_ID environment variable not set. "
+            "Guild B is required for cross-guild isolation testing. "
+            "See TESTING_E2E.md section 6 for setup instructions."
+        )
+    return channel_b_id
+
+
+@pytest.fixture(scope="session")
+def discord_user_b_id():
+    """User B (member of Guild B only, required)."""
+    user_b_id = os.environ.get("DISCORD_ADMIN_BOT_B_CLIENT_ID")
+    if not user_b_id:
+        pytest.fail(
+            "DISCORD_ADMIN_BOT_B_CLIENT_ID environment variable not set. "
+            "Guild B is required for cross-guild isolation testing. "
+            "See TESTING_E2E.md section 6 for setup instructions."
+        )
+    return user_b_id
+
+
+@pytest.fixture(scope="session")
+def discord_user_b_token():
+    """Bot token for User B (Admin Bot B acting as authenticated user in Guild B)."""
+    user_b_token = os.environ.get("DISCORD_ADMIN_BOT_B_TOKEN")
+    if not user_b_token:
+        pytest.fail(
+            "DISCORD_ADMIN_BOT_B_TOKEN environment variable not set. "
+            "Guild B is required for cross-guild isolation testing. "
+            "See TESTING_E2E.md section 6 for setup instructions."
+        )
+    return user_b_token
 
 
 @pytest.fixture(scope="session")
@@ -282,3 +334,53 @@ async def synced_guild(authenticated_admin_client, discord_guild_id):
     sync_results = response.json()
     print(f"[synced_guild fixture] Sync results: {sync_results}")
     return sync_results
+
+
+@pytest.fixture(scope="function")
+async def authenticated_client_b(api_base_url, discord_user_b_id, discord_user_b_token):
+    """HTTP client authenticated as User B (Guild B member)."""
+    import httpx
+
+    from tests.shared.auth_helpers import cleanup_test_session, create_test_session
+
+    client = httpx.AsyncClient(base_url=api_base_url, timeout=10.0)
+
+    session_token, _ = await create_test_session(discord_user_b_token, discord_user_b_id)
+    client.cookies.set("session_token", session_token)
+
+    yield client
+
+    await cleanup_test_session(session_token)
+    await client.aclose()
+
+
+@pytest.fixture(scope="function")
+async def guild_b_db_id(db_session, discord_guild_b_id):
+    """Get database UUID for Guild B."""
+    from sqlalchemy import text
+
+    result = await db_session.execute(
+        text("SELECT id FROM guild_configurations WHERE guild_id = :guild_id"),
+        {"guild_id": discord_guild_b_id},
+    )
+    row = result.fetchone()
+    if not row:
+        pytest.fail(
+            f"Guild B {discord_guild_b_id} not found in database - init seed may have failed"
+        )
+    return row[0]
+
+
+@pytest.fixture(scope="function")
+async def guild_b_template_id(db_session, guild_b_db_id):
+    """Get default template UUID for Guild B."""
+    from sqlalchemy import text
+
+    result = await db_session.execute(
+        text("SELECT id FROM game_templates WHERE guild_id = :guild_id AND is_default = true"),
+        {"guild_id": guild_b_db_id},
+    )
+    row = result.fetchone()
+    if not row:
+        pytest.fail("Guild B default template not found - init seed may have failed")
+    return row[0]

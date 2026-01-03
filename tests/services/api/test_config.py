@@ -57,8 +57,8 @@ def test_api_config_loads_defaults():
 def test_api_config_loads_from_environment():
     """Test that APIConfig loads values from environment variables."""
     env_vars = {
-        "DISCORD_CLIENT_ID": "test_client_id",
-        "DISCORD_CLIENT_SECRET": "test_secret",
+        "DISCORD_BOT_CLIENT_ID": "test_client_id",
+        "DISCORD_BOT_CLIENT_SECRET": "test_secret",
         "DISCORD_BOT_TOKEN": "test_token",
         "DATABASE_URL": "postgresql+asyncpg://test:test@testhost:5432/testdb",
         "REDIS_URL": "redis://testhost:6379/1",
