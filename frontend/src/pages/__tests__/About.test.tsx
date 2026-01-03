@@ -50,11 +50,10 @@ describe('About', () => {
     render(<About />);
 
     await waitFor(() => {
-      expect(screen.getByText('API Version:')).toBeInTheDocument();
+      expect(
+        screen.getByText(/Version 0\.0\.1\.dev478\+gd128f6a \(API 1\.0\.0\)/)
+      ).toBeInTheDocument();
     });
-
-    expect(screen.getByText('1.0.0')).toBeInTheDocument();
-    expect(screen.getByText('0.0.1.dev478+gd128f6a')).toBeInTheDocument();
   });
 
   it('calls /api/v1/version endpoint', async () => {
@@ -124,16 +123,14 @@ describe('About', () => {
     });
   });
 
-  it('displays both API and Git version chips', async () => {
+  it('displays version in correct format', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({ data: mockVersionInfo });
 
     render(<About />);
 
     await waitFor(() => {
-      expect(screen.getByText('API Version:')).toBeInTheDocument();
+      expect(screen.getByText(/Version .+ \(API .+\)/)).toBeInTheDocument();
     });
-
-    expect(screen.getByText('Git Version:')).toBeInTheDocument();
   });
 
   it('shows warning alert on error but still displays other content', async () => {
@@ -163,11 +160,15 @@ describe('About', () => {
     render(<About />);
 
     await waitFor(() => {
-      expect(screen.getByText('API Version:')).toBeInTheDocument();
+      expect(screen.getByText('Version Information')).toBeInTheDocument();
     });
 
-    // Should not crash with empty versions
-    expect(screen.getByText('Git Version:')).toBeInTheDocument();
+    // Should not crash with empty versions - checking for content containing "Version" and "API" in parentheses
+    expect(
+      screen.getByText((content, element) => {
+        return element?.tagName === 'P' && /Version.*\(API.*\)/.test(content);
+      })
+    ).toBeInTheDocument();
   });
 
   it('displays page title', async () => {

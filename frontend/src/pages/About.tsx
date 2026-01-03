@@ -25,8 +25,6 @@ import {
   Divider,
   CircularProgress,
   Alert,
-  Chip,
-  Stack,
 } from '@mui/material';
 import { apiClient } from '../api/client';
 
@@ -84,20 +82,9 @@ export const About: FC = () => {
             Version Information
           </Typography>
           {versionInfo && (
-            <Stack spacing={1} sx={{ mt: 2 }}>
-              <Box display="flex" alignItems="center" gap={1}>
-                <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                  API Version:
-                </Typography>
-                <Chip label={versionInfo.api_version} size="small" color="primary" />
-              </Box>
-              <Box display="flex" alignItems="center" gap={1}>
-                <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
-                  Git Version:
-                </Typography>
-                <Chip label={versionInfo.git_version} size="small" variant="outlined" />
-              </Box>
-            </Stack>
+            <Typography variant="body1" sx={{ mt: 2 }}>
+              Version {versionInfo.git_version} (API {versionInfo.api_version})
+            </Typography>
           )}
         </CardContent>
       </Card>
