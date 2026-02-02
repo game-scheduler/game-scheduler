@@ -43,14 +43,14 @@ pytestmark = pytest.mark.e2e
 @pytest.fixture
 async def fresh_guild_sync(
     admin_db: AsyncSession,
-    discord_guild_id: str,
-    discord_guild_b_id: str,
+    discord_ids,
 ):
     """
     Function-scoped fixture ensuring each test starts with clean guild state.
 
     Deletes guilds before test to ensure fresh sync testing.
     Deletes guilds after test to ensure test independence.
+    Uses discord_ids fixture for environment variable management.
     """
     # Clean up before test
     await admin_db.execute(text("DELETE FROM game_sessions"))
@@ -58,7 +58,7 @@ async def fresh_guild_sync(
     await admin_db.execute(text("DELETE FROM channel_configurations"))
     await admin_db.execute(
         text("DELETE FROM guild_configurations WHERE guild_id IN (:guild_a, :guild_b)"),
-        {"guild_a": discord_guild_id, "guild_b": discord_guild_b_id},
+        {"guild_a": discord_ids.guild_a_id, "guild_b": discord_ids.guild_b_id},
     )
     await admin_db.commit()
 
@@ -70,7 +70,7 @@ async def fresh_guild_sync(
     await admin_db.execute(text("DELETE FROM channel_configurations"))
     await admin_db.execute(
         text("DELETE FROM guild_configurations WHERE guild_id IN (:guild_a, :guild_b)"),
-        {"guild_a": discord_guild_id, "guild_b": discord_guild_b_id},
+        {"guild_a": discord_ids.guild_a_id, "guild_b": discord_ids.guild_b_id},
     )
     await admin_db.commit()
 
@@ -159,8 +159,7 @@ async def get_templates_for_guild(admin_db: AsyncSession):
 @pytest.mark.asyncio
 async def test_complete_guild_creation(
     authenticated_admin_client: AsyncClient,
-    discord_guild_id: str,
-    discord_channel_id: str,
+    discord_ids,
     admin_db: AsyncSession,
     get_guild_by_discord_id,
     get_channels_for_guild,
@@ -186,9 +185,9 @@ async def test_complete_guild_creation(
     assert sync_results["new_guilds"] > 0, "Sync should create at least one guild"
 
     # Verify guild created in database
-    guild = await get_guild_by_discord_id(discord_guild_id)
-    assert guild is not None, f"Guild {discord_guild_id} not found in database"
-    assert guild["guild_id"] == discord_guild_id
+    guild = await get_guild_by_discord_id(discord_ids.guild_a_id)
+    assert guild is not None, f"Guild {discord_ids.guild_a_id} not found in database"
+    assert guild["guild_id"] == discord_ids.guild_a_id
     guild_db_id = guild["id"]
 
     # Verify channels created
@@ -200,8 +199,8 @@ async def test_complete_guild_creation(
 
     # Verify at least one channel is the expected text channel
     channel_ids = [ch["channel_id"] for ch in channels]
-    assert discord_channel_id in channel_ids, (
-        f"Expected channel {discord_channel_id} not found in synced channels"
+    assert discord_ids.channel_a_id in channel_ids, (
+        f"Expected channel {discord_ids.channel_a_id} not found in synced channels"
     )
 
     # Verify all channels are active
@@ -234,7 +233,7 @@ async def test_complete_guild_creation(
 @pytest.mark.asyncio
 async def test_sync_idempotency(
     authenticated_admin_client: AsyncClient,
-    discord_guild_id: str,
+    discord_ids,
     admin_db: AsyncSession,
     get_guild_by_discord_id,
     get_channels_for_guild,
@@ -258,7 +257,7 @@ async def test_sync_idempotency(
     )
 
     # Get counts after first sync
-    guild = await get_guild_by_discord_id(discord_guild_id)
+    guild = await get_guild_by_discord_id(discord_ids.guild_a_id)
     assert guild is not None, "Guild not found after first sync"
     guild_db_id = guild["id"]
 
@@ -303,8 +302,7 @@ async def test_sync_idempotency(
 async def test_multi_guild_sync(
     authenticated_admin_client: AsyncClient,
     authenticated_client_b: AsyncClient,
-    discord_guild_id: str,
-    discord_guild_b_id: str,
+    discord_ids,
     admin_db: AsyncSession,
     get_guild_by_discord_id,
     get_channels_for_guild,
@@ -325,12 +323,12 @@ async def test_multi_guild_sync(
     assert sync_a_results["new_guilds"] > 0, "User A sync should create guild"
 
     # Verify Guild A created
-    guild_a = await get_guild_by_discord_id(discord_guild_id)
-    assert guild_a is not None, f"Guild A {discord_guild_id} not found in database"
+    guild_a = await get_guild_by_discord_id(discord_ids.guild_a_id)
+    assert guild_a is not None, f"Guild A {discord_ids.guild_a_id} not found in database"
     guild_a_db_id = guild_a["id"]
 
     # Verify Guild B does NOT exist yet
-    guild_b = await get_guild_by_discord_id(discord_guild_b_id)
+    guild_b = await get_guild_by_discord_id(discord_ids.guild_b_id)
     assert guild_b is None, "Guild B should not exist before User B sync"
 
     # User B syncs - should create Guild B
@@ -341,8 +339,8 @@ async def test_multi_guild_sync(
     assert sync_b_results["new_guilds"] > 0, "User B sync should create guild"
 
     # Verify Guild B created
-    guild_b = await get_guild_by_discord_id(discord_guild_b_id)
-    assert guild_b is not None, f"Guild B {discord_guild_b_id} not found in database"
+    guild_b = await get_guild_by_discord_id(discord_ids.guild_b_id)
+    assert guild_b is not None, f"Guild B {discord_ids.guild_b_id} not found in database"
     guild_b_db_id = guild_b["id"]
 
     # Verify both guilds have channels
@@ -376,8 +374,7 @@ async def test_rls_enforcement_after_sync(
     authenticated_admin_client: AsyncClient,
     authenticated_client_b: AsyncClient,
     admin_db: AsyncSession,
-    discord_guild_id: str,
-    discord_guild_b_id: str,
+    discord_ids,
     get_guild_by_discord_id,
     fresh_guild_sync,
 ):
@@ -398,11 +395,11 @@ async def test_rls_enforcement_after_sync(
     assert response_b.status_code == 200, f"User B sync failed: {response_b.text}"
 
     # Get guild database IDs
-    guild_a = await get_guild_by_discord_id(discord_guild_id)
+    guild_a = await get_guild_by_discord_id(discord_ids.guild_a_id)
     assert guild_a is not None, "Guild A not found"
     guild_a_db_id = guild_a["id"]
 
-    guild_b = await get_guild_by_discord_id(discord_guild_b_id)
+    guild_b = await get_guild_by_discord_id(discord_ids.guild_b_id)
     assert guild_b is not None, "Guild B not found"
     guild_b_db_id = guild_b["id"]
 
@@ -466,8 +463,7 @@ async def test_rls_enforcement_after_sync(
 @pytest.mark.asyncio
 async def test_channel_filtering(
     authenticated_admin_client: AsyncClient,
-    discord_guild_id: str,
-    discord_channel_id: str,
+    discord_ids,
     admin_db: AsyncSession,
     get_guild_by_discord_id,
     get_channels_for_guild,
@@ -489,7 +485,7 @@ async def test_channel_filtering(
     sync_results = response.json()
 
     # Get guild from database
-    guild = await get_guild_by_discord_id(discord_guild_id)
+    guild = await get_guild_by_discord_id(discord_ids.guild_a_id)
     assert guild is not None, "Guild not found in database"
     guild_db_id = guild["id"]
 
@@ -502,8 +498,8 @@ async def test_channel_filtering(
     channel_db_ids = [ch["id"] for ch in channels]  # Database UUIDs
 
     # Verify the known text channel is in the list
-    assert discord_channel_id in channel_ids, (
-        f"Expected text channel {discord_channel_id} not found in synced channels"
+    assert discord_ids.channel_a_id in channel_ids, (
+        f"Expected text channel {discord_ids.channel_a_id} not found in synced channels"
     )
 
     # Verify response count matches database count
@@ -525,7 +521,7 @@ async def test_channel_filtering(
 @pytest.mark.asyncio
 async def test_template_creation_with_channels(
     authenticated_admin_client: AsyncClient,
-    discord_guild_id: str,
+    discord_ids,
     admin_db: AsyncSession,
     get_guild_by_discord_id,
     get_channels_for_guild,
@@ -545,7 +541,7 @@ async def test_template_creation_with_channels(
     assert response.status_code == 200, f"Sync failed: {response.text}"
 
     # Get guild from database
-    guild = await get_guild_by_discord_id(discord_guild_id)
+    guild = await get_guild_by_discord_id(discord_ids.guild_a_id)
     assert guild is not None, "Guild not found"
     guild_db_id = guild["id"]
 
@@ -579,8 +575,7 @@ async def test_template_creation_with_channels(
 async def test_sync_respects_user_permissions(
     authenticated_admin_client: AsyncClient,
     authenticated_client_b: AsyncClient,
-    discord_guild_id: str,
-    discord_guild_b_id: str,
+    discord_ids,
     get_guild_by_discord_id,
     fresh_guild_sync,
 ):
@@ -610,13 +605,13 @@ async def test_sync_respects_user_permissions(
     assert "new_channels" in sync_a_results
 
     # Verify Guild A was synced (Admin Bot A has MANAGE_GUILD in A)
-    guild_a = await get_guild_by_discord_id(discord_guild_id)
+    guild_a = await get_guild_by_discord_id(discord_ids.guild_a_id)
     assert guild_a is not None, (
         "Guild A should be synced - Admin Bot A has MANAGE_GUILD permission in Guild A"
     )
 
     # Verify Guild B was NOT synced by Admin Bot A (no MANAGE_GUILD in B, not a member)
-    guild_b = await get_guild_by_discord_id(discord_guild_b_id)
+    guild_b = await get_guild_by_discord_id(discord_ids.guild_b_id)
     assert guild_b is None, (
         "Guild B should NOT be synced by Admin Bot A - "
         "Admin Bot A lacks MANAGE_GUILD in Guild B and is not a member"
@@ -628,12 +623,12 @@ async def test_sync_respects_user_permissions(
     assert response_b.status_code == 200, f"Admin Bot B sync failed: {response_b.text}"
 
     # Now verify Guild B exists (Admin Bot B has MANAGE_GUILD in B)
-    guild_b = await get_guild_by_discord_id(discord_guild_b_id)
+    guild_b = await get_guild_by_discord_id(discord_ids.guild_b_id)
     assert guild_b is not None, (
         "Guild B should be synced - Admin Bot B has MANAGE_GUILD permission in Guild B"
     )
 
     # Verify Guild A still exists and wasn't touched by Admin Bot B's sync
-    guild_a_after = await get_guild_by_discord_id(discord_guild_id)
+    guild_a_after = await get_guild_by_discord_id(discord_ids.guild_a_id)
     assert guild_a_after is not None, "Guild A should still exist after Admin Bot B sync"
     assert guild_a_after["id"] == guild_a["id"], "Guild A ID should be unchanged"
