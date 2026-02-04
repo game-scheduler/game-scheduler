@@ -114,3 +114,58 @@ def test_api_config_debug_mode_in_production():
     with patch.dict(os.environ, {"ENVIRONMENT": "production"}, clear=True):
         cfg = config.APIConfig()
         assert cfg.debug is False
+
+
+def test_get_cookie_domain_same_hostname():
+    """Test that _get_cookie_domain returns None for same hostname."""
+    result = config._get_cookie_domain("http://localhost:3000", "http://localhost:8000")
+    assert result is None
+
+
+def test_get_cookie_domain_different_subdomains():
+    """Test that _get_cookie_domain returns common parent domain."""
+    result = config._get_cookie_domain("https://app.example.com", "https://api.example.com")
+    assert result == ".example.com"
+
+
+def test_get_cookie_domain_staging_subdomains():
+    """Test cookie domain for staging deployment subdomains."""
+    result = config._get_cookie_domain(
+        "https://staging.game-scheduler.daddog.com",
+        "https://api.staging.game-scheduler.daddog.com",
+    )
+    assert result == ".staging.game-scheduler.daddog.com"
+
+
+def test_get_cookie_domain_no_common_parent():
+    """Test that _get_cookie_domain returns None for unrelated domains."""
+    result = config._get_cookie_domain("https://example.com", "https://other.org")
+    assert result is None
+
+
+def test_get_cookie_domain_invalid_url():
+    """Test that _get_cookie_domain handles invalid URLs."""
+    result = config._get_cookie_domain("not-a-url", "https://example.com")
+    assert result is None
+
+
+def test_api_config_cookie_domain_derived():
+    """Test that APIConfig derives cookie_domain from URLs."""
+    env_vars = {
+        "FRONTEND_URL": "https://app.example.com",
+        "BACKEND_URL": "https://api.example.com",
+    }
+    with patch.dict(os.environ, env_vars, clear=True):
+        cfg = config.APIConfig()
+        assert cfg.cookie_domain == ".example.com"
+
+
+def test_api_config_cookie_domain_localhost():
+    """Test that APIConfig sets cookie_domain to None for localhost."""
+    env_vars = {
+        "FRONTEND_URL": "http://localhost:3000",
+        "BACKEND_URL": "http://localhost:8000",
+    }
+    with patch.dict(os.environ, env_vars, clear=True):
+        cfg = config.APIConfig()
+        assert cfg.cookie_domain is None

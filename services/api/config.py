@@ -27,6 +27,59 @@ and API server settings.
 """
 
 import os
+from urllib.parse import urlparse
+
+
+def _get_cookie_domain(frontend_url: str, backend_url: str) -> str | None:
+    """Derive cookie domain from frontend and backend URLs.
+
+    If URLs are on different subdomains of the same parent domain, returns
+    the common parent domain with leading dot for subdomain sharing.
+    If same domain or no common parent, returns None for browser default.
+
+    Args:
+        frontend_url: Frontend application URL
+        backend_url: Backend API URL
+
+    Returns:
+        Cookie domain string with leading dot, or None
+
+    Examples:
+        >>> _get_cookie_domain('https://app.example.com', 'https://api.example.com')
+        '.example.com'
+        >>> _get_cookie_domain('http://localhost:3000', 'http://localhost:8000')
+        None
+    """
+    frontend_host = urlparse(frontend_url).hostname
+    backend_host = urlparse(backend_url).hostname
+
+    if not frontend_host or not backend_host:
+        return None
+
+    # Same hostname = no domain needed (same origin)
+    if frontend_host == backend_host:
+        return None
+
+    # Different hostnames = find common parent domain
+    frontend_parts = frontend_host.split(".")
+    backend_parts = backend_host.split(".")
+
+    min_domain_parts = 2
+    # Find common suffix by comparing from right to left
+    common_parts: list[str] = []
+    for frontend_part, backend_part in zip(
+        reversed(frontend_parts), reversed(backend_parts), strict=False
+    ):
+        if frontend_part == backend_part:
+            common_parts.insert(0, frontend_part)
+        else:
+            break
+
+    # Need at least 2 parts for valid domain (e.g., 'example.com')
+    if len(common_parts) >= min_domain_parts:
+        return "." + ".".join(common_parts)
+
+    return None
 
 
 class APIConfig:
@@ -53,6 +106,7 @@ class APIConfig:
         self.api_port = int(os.getenv("API_PORT", "8000"))
 
         self.frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        self.backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
 
         self.jwt_secret = os.getenv("JWT_SECRET", "change-me-in-production")
         self.jwt_algorithm = "HS256"
@@ -62,6 +116,9 @@ class APIConfig:
         self.debug = self.environment == "development"
 
         self.log_level = os.getenv("LOG_LEVEL", "INFO")
+
+        # Derive cookie domain for cross-subdomain sharing
+        self.cookie_domain = _get_cookie_domain(self.frontend_url, self.backend_url)
 
 
 _config_instance: APIConfig | None = None

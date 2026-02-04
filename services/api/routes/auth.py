@@ -43,8 +43,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
-# ruff: noqa: B008
-
 
 @router.get("/login")
 async def login(
@@ -136,6 +134,7 @@ async def callback(
         secure=is_production,
         samesite="lax",
         max_age=86400,
+        domain=config.cookie_domain,
     )
 
     # Return JSON for modern frontends (development mode with fetch)
@@ -191,8 +190,9 @@ async def logout(
     Returns:
         Success message
     """
+    config = get_api_config()
     await tokens.delete_user_tokens(current_user.session_token)
-    response.delete_cookie(key="session_token", samesite="lax")
+    response.delete_cookie(key="session_token", samesite="lax", domain=config.cookie_domain)
     return {"message": "Logged out successfully"}
 
 
