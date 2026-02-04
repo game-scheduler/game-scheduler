@@ -12,7 +12,7 @@ fail_fast: true
 repos:
   # Standard pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
     hooks:
       # File cleanup
       - id: trailing-whitespace
@@ -25,29 +25,48 @@ repos:
       - id: detect-private-key
 
   # Copyright headers (applies to both Python and TypeScript)
-  - repo: local
+  - repo: https://github.com/Argmaster/autocopyright
+    rev: "6612ed69641e0e4887eed08c564eb8cfb62105c3"  # frozen: v1.1.0
     hooks:
-      - id: add-copyright-python
+      - id: autocopyright
         name: Add copyright headers (Python)
-        entry: autocopyright -s "#" -d alembic -d services -d shared -d tests -g "*.py" -l "./templates/mit-template.jinja2"
-        language: python
+        args:
+          - -s
+          - "#"
+          - -d
+          - alembic
+          - -d
+          - services
+          - -d
+          - shared
+          - -d
+          - tests
+          - -g
+          - "*.py"
+          - -l
+          - ./templates/mit-template.jinja2
         files: \.py$
-        pass_filenames: false
         require_serial: true
-        additional_dependencies: ['autocopyright~=1.1.0']
 
-      - id: add-copyright-typescript
+      - id: autocopyright
         name: Add copyright headers (TypeScript)
-        entry: autocopyright -s "//" -d frontend/src -g "*.ts" -g "*.tsx" -l "./templates/mit-template.jinja2"
-        language: python
+        args:
+          - -s
+          - "//"
+          - -d
+          - frontend/src
+          - -g
+          - "*.ts"
+          - -g
+          - "*.tsx"
+          - -l
+          - ./templates/mit-template.jinja2
         files: \.(ts|tsx)$
-        pass_filenames: false
         require_serial: true
-        additional_dependencies: ['autocopyright~=1.1.0']
 
   # Ruff: Python linting and formatting (official repository)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.10
+    rev: 0470f7c8a653e950f7cc5a653204ceb3fde4c02a  # frozen: v0.15.0
     hooks:
       - id: ruff
         args: [--fix]
