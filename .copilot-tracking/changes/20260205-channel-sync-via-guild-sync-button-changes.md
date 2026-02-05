@@ -22,5 +22,8 @@ Extend existing guild sync operation to refresh channel lists for existing guild
 - shared/schemas/guild.py - Added `updated_channels` field to GuildSyncResponse schema to track channels synced for existing guilds
 - services/api/routes/guilds.py - Updated `sync_guilds()` endpoint to return `updated_channels` in response and updated docstring to reflect channel sync functionality
 - services/api/routes/guilds.py - Updated `list_guild_channels()` endpoint to filter channels by is_active=True, hiding deleted Discord channels from dropdowns (docstring updated to reflect active-only filtering)
+- frontend/src/api/guilds.ts - Added `updated_channels` field to GuildSyncResponse interface to match backend schema
+- frontend/src/pages/GuildListPage.tsx - Updated sync button labels from "Refresh Servers" to "Sync Servers and Channels" to reflect that both guilds and channels are synced
+- frontend/src/pages/GuildListPage.tsx - Updated sync success message to display counts for new guilds, new channels, and updated channels with proper pluralization
 
 ### Removed

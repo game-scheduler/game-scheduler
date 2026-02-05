@@ -65,12 +65,12 @@ Extend existing guild sync operation to refresh channel lists for existing guild
 - [x] Task 4.1: Filter channels by `is_active=True` in list_guild_channels endpoint
   - Details: .copilot-tracking/details/20260205-channel-sync-via-guild-sync-button-details.md (Lines 202-245)
 
-### [ ] Phase 5: Frontend - UI Updates
+### [x] Phase 5: Frontend - UI Updates
 
-- [ ] Task 5.1: Update sync button label to "Sync guilds and channels"
+- [x] Task 5.1: Update sync button label to "Sync guilds and channels"
   - Details: .copilot-tracking/details/20260205-channel-sync-via-guild-sync-button-details.md (Lines 247-280)
 
-- [ ] Task 5.2: Update success message to display updated channel count
+- [x] Task 5.2: Update success message to display updated channel count
   - Details: .copilot-tracking/details/20260205-channel-sync-via-guild-sync-button-details.md (Lines 282-315)
 
 ### [ ] Phase 6: Testing and Validation

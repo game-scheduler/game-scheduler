@@ -20,6 +20,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router';
 import { GuildListPage } from '../GuildListPage';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -146,5 +147,79 @@ describe('GuildListPage', () => {
     });
     const avatars = screen.getAllByText('T');
     expect(avatars.length).toBeGreaterThan(0);
+  });
+
+  it('displays success message with new guilds and channels on sync', async () => {
+    renderWithAuth();
+    await waitFor(() => {
+      expect(screen.getByText('My Servers')).toBeInTheDocument();
+    });
+
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: { new_guilds: 1, new_channels: 2, updated_channels: 0 },
+    });
+
+    const syncButton = screen.getByRole('button', { name: /Sync Servers and Channels/i });
+    await userEvent.click(syncButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Synced 1 new server, 2 new channels/)).toBeInTheDocument();
+    });
+  });
+
+  it('displays success message with updated channels on sync', async () => {
+    renderWithAuth();
+    await waitFor(() => {
+      expect(screen.getByText('My Servers')).toBeInTheDocument();
+    });
+
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: { new_guilds: 0, new_channels: 1, updated_channels: 3 },
+    });
+
+    const syncButton = screen.getByRole('button', { name: /Sync Servers and Channels/i });
+    await userEvent.click(syncButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Synced 1 new channel, 3 updated channels/)).toBeInTheDocument();
+    });
+  });
+
+  it('displays success message when all synced', async () => {
+    renderWithAuth();
+    await waitFor(() => {
+      expect(screen.getByText('My Servers')).toBeInTheDocument();
+    });
+
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: { new_guilds: 0, new_channels: 0, updated_channels: 0 },
+    });
+
+    const syncButton = screen.getByRole('button', { name: /Sync Servers and Channels/i });
+    await userEvent.click(syncButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/All servers and channels are already synced/)).toBeInTheDocument();
+    });
+  });
+
+  it('handles proper pluralization in sync messages', async () => {
+    renderWithAuth();
+    await waitFor(() => {
+      expect(screen.getByText('My Servers')).toBeInTheDocument();
+    });
+
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: { new_guilds: 2, new_channels: 1, updated_channels: 1 },
+    });
+
+    const syncButton = screen.getByRole('button', { name: /Sync Servers and Channels/i });
+    await userEvent.click(syncButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Synced 2 new servers, 1 new channel, 1 updated channel/)
+      ).toBeInTheDocument();
+    });
   });
 });

@@ -56,15 +56,27 @@ export const GuildListPage: FC = () => {
 
       const result: GuildSyncResponse = await syncUserGuilds();
 
-      if (result.new_guilds > 0 || result.new_channels > 0) {
-        setSyncMessage(
-          `Synced ${result.new_guilds} new server(s) and ${result.new_channels} new channel(s)`
-        );
+      if (result.new_guilds > 0 || result.new_channels > 0 || result.updated_channels > 0) {
+        const messageParts: string[] = [];
+        if (result.new_guilds > 0) {
+          messageParts.push(`${result.new_guilds} new server${result.new_guilds > 1 ? 's' : ''}`);
+        }
+        if (result.new_channels > 0) {
+          messageParts.push(
+            `${result.new_channels} new channel${result.new_channels > 1 ? 's' : ''}`
+          );
+        }
+        if (result.updated_channels > 0) {
+          messageParts.push(
+            `${result.updated_channels} updated channel${result.updated_channels > 1 ? 's' : ''}`
+          );
+        }
+        setSyncMessage(`Synced ${messageParts.join(', ')}`);
         // Refresh the guilds list
         const response = await apiClient.get<{ guilds: Guild[] }>('/api/v1/guilds');
         setGuilds(response.data.guilds);
       } else {
-        setSyncMessage('All servers are already synced');
+        setSyncMessage('All servers and channels are already synced');
       }
     } catch (err: any) {
       console.error('Failed to sync guilds:', err);
@@ -128,7 +140,7 @@ export const GuildListPage: FC = () => {
           onClick={handleSyncGuilds}
           disabled={syncing}
         >
-          {syncing ? 'Syncing...' : 'Refresh Servers'}
+          {syncing ? 'Syncing...' : 'Sync Servers and Channels'}
         </Button>
         {syncMessage && (
           <Alert severity="success" sx={{ mt: 2 }} onClose={() => setSyncMessage(null)}>
@@ -156,7 +168,7 @@ export const GuildListPage: FC = () => {
           onClick={handleSyncGuilds}
           disabled={syncing}
         >
-          {syncing ? 'Syncing...' : 'Refresh Servers'}
+          {syncing ? 'Syncing...' : 'Sync Servers and Channels'}
         </Button>
       </Box>
 
