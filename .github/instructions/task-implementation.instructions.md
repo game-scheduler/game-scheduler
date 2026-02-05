@@ -141,7 +141,7 @@ Implementation is complete when:
 ## Template Changes File
 
 Use the following as a template for the changes file that tracks implementation progress for releases.
-Replace `{{ }}` with appropriate values. Create this file in `./.copilot-tracking/changes/` with filename: `YYYYMMDD-task-description-changes.md`
+Replace `{{ }}` with appropriate values. Create this file in `./.copilot-tracking/changes/` with filename: `YYYYMMDD-NN-task-description-changes.md` (where NN is a 2-digit sequence number starting at 01 and incrementing: 01, 02, 03, etc.)
 
 **IMPORTANT**: Update this file after EVERY task completion by appending to Added, Modified, or Removed sections.
 **MANDATORY**: Always include the following at the top of the changes file: `<!-- markdownlint-disable-file -->`

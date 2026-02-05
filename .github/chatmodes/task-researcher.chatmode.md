@@ -75,8 +75,8 @@ You MUST reference existing project conventions from:
 - Workspace configuration files - Linting rules and build configurations
 
 You WILL use date-prefixed descriptive names:
-- Research Notes: `YYYYMMDD-task-description-research.md`
-- Specialized Research: `YYYYMMDD-topic-specific-research.md`
+- Research Notes: `YYYYMMDD-NN-task-description-research.md` (where NN is a 2-digit sequence number starting at 01 and incrementing: 01, 02, 03, etc.)
+- Specialized Research: `YYYYMMDD-NN-topic-specific-research.md`
 
 ## Research Documentation Standards
 

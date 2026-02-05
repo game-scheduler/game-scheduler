@@ -41,7 +41,7 @@ You WILL create actionable task plans based on verified research findings. You W
 
 **MANDATORY FIRST STEP**: You WILL verify comprehensive research exists by:
 
-1. You WILL search for research files in `./.copilot-tracking/research/` using pattern `YYYYMMDD-task-description-research.md`
+1. You WILL search for research files in `./.copilot-tracking/research/` using pattern `YYYYMMDD-NN-task-description-research.md` (where NN is a 2-digit sequence number starting at 01 and incrementing: 01, 02, 03, etc.)
 2. You WILL validate research completeness - research file MUST contain:
    - Tool usage documentation with verified findings
    - Complete code examples and specifications
@@ -94,8 +94,8 @@ You WILL process user input as follows:
 
 You WILL use these exact naming patterns:
 
-- **Plan/Checklist**: `YYYYMMDD-task-description-plan.instructions.md`
-- **Details**: `YYYYMMDD-task-description-details.md`
+- **Plan/Checklist**: `YYYYMMDD-NN-task-description-plan.instructions.md` (where NN is a 2-digit sequence number starting at 01 and incrementing: 01, 02, 03, etc.)
+- **Details**: `YYYYMMDD-NN-task-description-details.md`
 - **Implementation Prompts**: `implement-task-description.prompt.md`
 
 **CRITICAL**: Research files MUST exist in `./.copilot-tracking/research/` before creating any planning files.
@@ -108,7 +108,7 @@ You WILL create exactly three files for each task:
 
 You WILL include:
 
-- **Frontmatter**: `---\napplyTo: '.copilot-tracking/changes/YYYYMMDD-task-description-changes.md'\n---`
+- **Frontmatter**: `---\napplyTo: '.copilot-tracking/changes/YYYYMMDD-NN-task-description-changes.md'\n---` (where NN is a 2-digit sequence number starting at 01 and incrementing: 01, 02, 03, etc.)
 - **Markdownlint disable**: `<!-- markdownlint-disable-file -->`
 - **Overview**: One sentence task description
 - **Objectives**: Specific, measurable goals
@@ -147,7 +147,7 @@ You WILL use these templates as the foundation for all planning files:
 
 ```markdown
 ---
-applyTo: ".copilot-tracking/changes/{{date}}-{{task_description}}-changes.md"
+applyTo: ".copilot-tracking/changes/{{date}}-{{sequence}}-{{task_description}}-changes.md"
 ---
 
 <!-- markdownlint-disable-file -->
@@ -186,15 +186,15 @@ applyTo: ".copilot-tracking/changes/{{date}}-{{task_description}}-changes.md"
 
 - [ ] Task 1.1: {{specific_action_1_1}}
 
-  - Details: .copilot-tracking/details/{{date}}-{{task_description}}-details.md (Lines {{line_start}}-{{line_end}})
+  - Details: .copilot-tracking/details/{{date}}-{{sequence}}-{{task_description}}-details.md (Lines {{line_start}}-{{line_end}})
 
 - [ ] Task 1.2: {{specific_action_1_2}}
-  - Details: .copilot-tracking/details/{{date}}-{{task_description}}-details.md (Lines {{line_start}}-{{line_end}})
+  - Details: .copilot-tracking/details/{{date}}-{{sequence}}-{{task_description}}-details.md (Lines {{line_start}}-{{line_end}})
 
 ### [ ] Phase 2: {{phase_2_name}}
 
 - [ ] Task 2.1: {{specific_action_2_1}}
-  - Details: .copilot-tracking/details/{{date}}-{{task_description}}-details.md (Lines {{line_start}}-{{line_end}})
+  - Details: .copilot-tracking/details/{{date}}-{{sequence}}-{{task_description}}-details.md (Lines {{line_start}}-{{line_end}})
 
 ## Dependencies
 
@@ -220,7 +220,7 @@ applyTo: ".copilot-tracking/changes/{{date}}-{{task_description}}-changes.md"
 
 ## Research Reference
 
-**Source Research**: #file:../research/{{date}}-{{task_description}}-research.md
+**Source Research**: #file:../research/{{date}}-{{sequence}}-{{task_description}}-research.md
 
 ## Phase 1: {{phase_1_name}}
 
@@ -235,7 +235,7 @@ applyTo: ".copilot-tracking/changes/{{date}}-{{task_description}}-changes.md"
   - {{completion_criteria_1}}
   - {{completion_criteria_2}}
 - **Research References**:
-  - #file:../research/{{date}}-{{task_description}}-research.md (Lines {{research_line_start}}-{{research_line_end}}) - {{research_section_description}}
+  - #file:../research/{{date}}-{{sequence}}-{{task_description}}-research.md (Lines {{research_line_start}}-{{research_line_end}}) - {{research_section_description}}
   - #githubRepo:"{{org_repo}} {{search_terms}}" - {{implementation_patterns_description}}
 - **Dependencies**:
   - {{previous_task_requirement}}
@@ -250,7 +250,7 @@ applyTo: ".copilot-tracking/changes/{{date}}-{{task_description}}-changes.md"
 - **Success**:
   - {{completion_criteria}}
 - **Research References**:
-  - #file:../research/{{date}}-{{task_description}}-research.md (Lines {{research_line_start}}-{{research_line_end}}) - {{research_section_description}}
+  - #file:../research/{{date}}-{{sequence}}-{{task_description}}-research.md (Lines {{research_line_start}}-{{research_line_end}}) - {{research_section_description}}
 - **Dependencies**:
   - Task 1.1 completion
 
@@ -265,7 +265,7 @@ applyTo: ".copilot-tracking/changes/{{date}}-{{task_description}}-changes.md"
 - **Success**:
   - {{completion_criteria}}
 - **Research References**:
-  - #file:../research/{{date}}-{{task_description}}-research.md (Lines {{research_line_start}}-{{research_line_end}}) - {{research_section_description}}
+  - #file:../research/{{date}}-{{sequence}}-{{task_description}}-research.md (Lines {{research_line_start}}-{{research_line_end}}) - {{research_section_description}}
   - #githubRepo:"{{org_repo}} {{search_terms}}" - {{patterns_description}}
 - **Dependencies**:
   - Phase 1 completion
@@ -299,12 +299,12 @@ model: Claude Sonnet 4.5
 
 ### Step 1: Create Changes Tracking File
 
-You WILL create `{{date}}-{{task_description}}-changes.md` in #file:../changes/ if it does not exist.
+You WILL create `{{date}}-{{sequence}}-{{task_description}}-changes.md` in #file:../changes/ if it does not exist.
 
 ### Step 2: Execute Implementation
 
 You WILL follow #file:../../.github/instructions/task-implementation.instructions.md
-You WILL systematically implement #file:../plans/20251114-discord-game-scheduling-system-plan.instructions.md task-by-task
+You WILL systematically implement #file:../plans/{{date}}-{{sequence}}-{{task_description}}-plan.instructions.md task-by-task
 You WILL follow ALL project standards and conventions:
 
 - #file:../../.github/instructions/python.instructions.md for all Python code
@@ -319,13 +319,13 @@ You WILL follow ALL project standards and conventions:
 
 When ALL Phases are checked off (`[x]`) and completed you WILL do the following:
 
-1. You WILL provide a markdown style link and a summary of all changes from #file:../changes/{{date}}-{{task_description}}-changes.md to the user:
+1. You WILL provide a markdown style link and a summary of all changes from #file:../changes/{{date}}-{{sequence}}-{{task_description}}-changes.md to the user:
 
    - You WILL keep the overall summary brief
    - You WILL add spacing around any lists
    - You MUST wrap any reference to a file in a markdown style link
 
-2. You WILL provide markdown style links to .copilot-tracking/plans/{{date}}-{{task_description}}-plan.instructions.md, .copilot-tracking/details/{{date}}-{{task_description}}-details.md, and .copilot-tracking/research/{{date}}-{{task_description}}-research.md documents. You WILL recommend cleaning these files up as well.
+2. You WILL provide markdown style links to .copilot-tracking/plans/{{date}}-{{sequence}}-{{task_description}}-plan.instructions.md, .copilot-tracking/details/{{date}}-{{sequence}}-{{task_description}}-details.md, and .copilot-tracking/research/{{date}}-{{sequence}}-{{task_description}}-research.md documents. You WILL recommend cleaning these files up as well.
 3. **MANDATORY**: You WILL attempt to delete .copilot-tracking/prompts/{{implement_task_description}}.prompt.md
 
 ## Success Criteria
@@ -348,7 +348,7 @@ When ALL Phases are checked off (`[x]`) and completed you WILL do the following:
 
 ### Research Validation Workflow
 
-1. You WILL search for research files in `./.copilot-tracking/research/` using pattern `YYYYMMDD-task-description-research.md`
+1. You WILL search for research files in `./.copilot-tracking/research/` using pattern `YYYYMMDD-NN-task-description-research.md` (where NN is a 2-digit sequence number starting at 01 and incrementing: 01, 02, 03, etc.)
 2. You WILL validate research completeness against quality standards
 3. **If research missing/incomplete**: You WILL use #file:./task-researcher.chatmode.md immediately
 4. **If research needs updates**: You WILL use #file:./task-researcher.chatmode.md for refinement
