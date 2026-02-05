@@ -224,7 +224,14 @@ class EventHandlers:
                 if not channel:
                     return
 
-                message = await channel.send(content=content, embed=embed, view=view)
+                # Allow role mentions (including @everyone) in game announcements
+                allowed_mentions = discord.AllowedMentions(roles=True, everyone=True)
+                message = await channel.send(
+                    content=content,
+                    embed=embed,
+                    view=view,
+                    allowed_mentions=allowed_mentions,
+                )
 
                 game.message_id = str(message.id)
                 await db.commit()
@@ -1203,6 +1210,7 @@ class EventHandlers:
             host_avatar_url=host_avatar_url,
             has_thumbnail=game.thumbnail_data is not None,
             has_image=game.image_data is not None,
+            guild_id=game.guild.guild_id if game.guild else None,
         )
 
     async def _get_game_with_participants(

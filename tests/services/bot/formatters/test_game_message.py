@@ -1008,6 +1008,110 @@ class TestGameEmbedImages:
             assert embed == mock_embed
             assert view == mock_view
             mock_embed.set_thumbnail.assert_not_called()
+
+    def test_format_game_announcement_with_everyone_role(self):
+        """Test format_game_announcement uses literal @everyone for guild_id match."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+        guild_id = "123456789"
+
+        with (
+            patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class,
+            patch("services.bot.formatters.game_message.GameView") as mock_view_class,
+        ):
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+            mock_view = MagicMock()
+            mock_view_class.from_game_data.return_value = mock_view
+
+            content, embed, view = format_game_announcement(
+                game_id="game-123",
+                game_title="Test Game",
+                description="Test description",
+                scheduled_at=scheduled_at,
+                host_id="host-456",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                signup_method="SELF_SIGNUP",
+                notify_role_ids=[guild_id],
+                guild_id=guild_id,
+            )
+
+            assert content == "@everyone"
+            assert embed == mock_embed
+            assert view == mock_view
+
+    def test_format_game_announcement_with_regular_roles(self):
+        """Test format_game_announcement uses <@&role_id> format for regular roles."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+        guild_id = "123456789"
+        role_id = "987654321"
+
+        with (
+            patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class,
+            patch("services.bot.formatters.game_message.GameView") as mock_view_class,
+        ):
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+            mock_view = MagicMock()
+            mock_view_class.from_game_data.return_value = mock_view
+
+            content, embed, view = format_game_announcement(
+                game_id="game-123",
+                game_title="Test Game",
+                description="Test description",
+                scheduled_at=scheduled_at,
+                host_id="host-456",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                signup_method="SELF_SIGNUP",
+                notify_role_ids=[role_id],
+                guild_id=guild_id,
+            )
+
+            assert content == f"<@&{role_id}>"
+            assert embed == mock_embed
+            assert view == mock_view
+
+    def test_format_game_announcement_with_mixed_roles(self):
+        """Test format_game_announcement with both @everyone and regular roles."""
+        scheduled_at = datetime(2025, 11, 15, 19, 0, 0, tzinfo=UTC)
+        guild_id = "123456789"
+        role_id = "987654321"
+
+        with (
+            patch("services.bot.formatters.game_message.discord.Embed") as mock_embed_class,
+            patch("services.bot.formatters.game_message.GameView") as mock_view_class,
+        ):
+            mock_embed = MagicMock()
+            mock_embed_class.return_value = mock_embed
+            mock_view = MagicMock()
+            mock_view_class.from_game_data.return_value = mock_view
+
+            content, embed, view = format_game_announcement(
+                game_id="game-123",
+                game_title="Test Game",
+                description="Test description",
+                scheduled_at=scheduled_at,
+                host_id="host-456",
+                participant_ids=[],
+                overflow_ids=[],
+                current_count=0,
+                max_players=5,
+                status="SCHEDULED",
+                signup_method="SELF_SIGNUP",
+                notify_role_ids=[guild_id, role_id],
+                guild_id=guild_id,
+            )
+
+            assert content == f"@everyone <@&{role_id}>"
+            assert embed == mock_embed
+            assert view == mock_view
             mock_embed.set_image.assert_not_called()
 
 

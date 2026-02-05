@@ -267,7 +267,7 @@ export const TemplateForm: FC<TemplateFormProps> = ({
             >
               {roles.map((role) => (
                 <MenuItem key={role.id} value={role.id}>
-                  {role.name}
+                  {role.name.startsWith('@') ? role.name : `@${role.name}`}
                 </MenuItem>
               ))}
             </Select>
@@ -282,12 +282,18 @@ export const TemplateForm: FC<TemplateFormProps> = ({
               onChange={(e) => handleRoleChange(e, setAllowedPlayerRoleIds)}
               input={<OutlinedInput label="Allowed Player Roles" />}
               renderValue={(selected) =>
-                selected.map((id) => roles.find((r) => r.id === id)?.name || id).join(', ')
+                selected
+                  .map((id) => {
+                    const role = roles.find((r) => r.id === id);
+                    if (!role) return id;
+                    return role.name.startsWith('@') ? role.name : `@${role.name}`;
+                  })
+                  .join(', ')
               }
             >
               {roles.map((role) => (
                 <MenuItem key={role.id} value={role.id}>
-                  {role.name}
+                  {role.name.startsWith('@') ? role.name : `@${role.name}`}
                 </MenuItem>
               ))}
             </Select>
@@ -302,12 +308,18 @@ export const TemplateForm: FC<TemplateFormProps> = ({
               onChange={(e) => handleRoleChange(e, setAllowedHostRoleIds)}
               input={<OutlinedInput label="Allowed Host Roles" />}
               renderValue={(selected) =>
-                selected.map((id) => roles.find((r) => r.id === id)?.name || id).join(', ')
+                selected
+                  .map((id) => {
+                    const role = roles.find((r) => r.id === id);
+                    if (!role) return id;
+                    return role.name.startsWith('@') ? role.name : `@${role.name}`;
+                  })
+                  .join(', ')
               }
             >
               {roles.map((role) => (
                 <MenuItem key={role.id} value={role.id}>
-                  {role.name}
+                  {role.name.startsWith('@') ? role.name : `@${role.name}`}
                 </MenuItem>
               ))}
             </Select>

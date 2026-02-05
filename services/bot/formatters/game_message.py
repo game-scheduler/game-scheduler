@@ -26,6 +26,7 @@ including announcements, updates, and participant lists.
 """
 
 import contextlib
+import logging
 from datetime import datetime
 
 import discord
@@ -41,6 +42,8 @@ from services.bot.utils.discord_format import (
 from services.bot.views.game_view import GameView
 from shared.models.game import GameStatus
 from shared.utils.limits import MAX_STRING_DISPLAY_LENGTH
+
+logger = logging.getLogger(__name__)
 
 
 class GameMessageFormatter:
@@ -362,6 +365,7 @@ def format_game_announcement(
     host_avatar_url: str | None = None,
     has_thumbnail: bool = False,
     has_image: bool = False,
+    guild_id: str | None = None,
 ) -> tuple[str | None, discord.Embed, GameView]:
     """Format a complete game announcement with embed and buttons.
 
@@ -385,10 +389,10 @@ def format_game_announcement(
         host_avatar_url: Optional host Discord CDN avatar URL for embed author icon
         has_thumbnail: Whether game has a thumbnail image
         has_image: Whether game has a banner image
+        guild_id: Optional guild ID for special @everyone handling
 
     Returns:
         Tuple of (content, embed, view) where content contains role mentions if any
-        Tuple of (embed, view) ready to send to Discord
     """
     formatter = GameMessageFormatter()
 
@@ -434,7 +438,13 @@ def format_game_announcement(
     # Format role mentions for message content (appears above embed)
     content = None
     if notify_role_ids:
-        role_mentions = " ".join([f"<@&{role_id}>" for role_id in notify_role_ids])
-        content = role_mentions
+        mentions = []
+        for role_id in notify_role_ids:
+            # Special handling: @everyone uses literal string, not <@&guild_id>
+            if guild_id and role_id == guild_id:
+                mentions.append("@everyone")
+            else:
+                mentions.append(f"<@&{role_id}>")
+        content = " ".join(mentions)
 
     return content, embed, view

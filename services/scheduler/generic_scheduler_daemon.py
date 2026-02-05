@@ -193,7 +193,8 @@ class SchedulerDaemon:
             raise RuntimeError(msg)
 
         return (
-            self.db.query(self.model_class)
+            self.db
+            .query(self.model_class)
             .filter(getattr(self.model_class, self.status_field) == False)  # noqa: E712
             .filter(getattr(self.model_class, self.time_field).isnot(None))
             .order_by(getattr(self.model_class, self.time_field).asc())

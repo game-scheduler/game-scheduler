@@ -141,22 +141,38 @@ async def test_handle_game_created_success(event_handlers, mock_bot, sample_game
     mock_guild.guild_id = sample_game.guild_id
     sample_game.guild = mock_guild
 
-    with patch("services.bot.events.handlers.get_discord_client"):
-        with patch("services.bot.events.handlers.get_db_session"):
-            with patch(
-                "services.bot.events.handlers.EventHandlers._get_game_with_participants",
-                return_value=sample_game,
-            ):
-                with patch(
-                    "services.bot.events.handlers.get_member_display_info",
-                    return_value=("Test User", "https://example.com/avatar.png"),
-                ):
-                    data = {
-                        "game_id": sample_game.id,
-                        "channel_id": sample_game.channel_id,
-                    }
-                    # Should complete without raising an exception
-                    await event_handlers._handle_game_created(data)
+    mock_channel = AsyncMock(spec=discord.TextChannel)
+    mock_message = MagicMock()
+    mock_message.id = 987654321
+    mock_channel.send = AsyncMock(return_value=mock_message)
+
+    with (
+        patch("services.bot.events.handlers.get_discord_client"),
+        patch("services.bot.events.handlers.get_db_session"),
+        patch(
+            "services.bot.events.handlers.EventHandlers._validate_discord_channel",
+            return_value=True,
+        ),
+        patch(
+            "services.bot.events.handlers.EventHandlers._get_bot_channel",
+            return_value=mock_channel,
+        ),
+        patch(
+            "services.bot.events.handlers.EventHandlers._get_game_with_participants",
+            return_value=sample_game,
+        ),
+        patch(
+            "services.bot.events.handlers.get_member_display_info",
+            return_value=("Test User", "https://example.com/avatar.png"),
+        ),
+        patch("services.bot.events.handlers.discord.AllowedMentions") as mock_mentions,
+    ):
+        data = {
+            "game_id": sample_game.id,
+            "channel_id": sample_game.channel_id,
+        }
+        await event_handlers._handle_game_created(data)
+        mock_mentions.assert_called_once_with(roles=True, everyone=True)
 
 
 @pytest.mark.asyncio
