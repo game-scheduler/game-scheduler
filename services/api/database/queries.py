@@ -241,16 +241,21 @@ async def get_channel_by_discord_id(
 
 async def get_channels_by_guild(db: AsyncSession, guild_id: str) -> list[ChannelConfiguration]:
     """
-    Fetch all channels for a guild.
+    Fetch all active channels for a guild.
+
+    Only returns channels where is_active=True, hiding deleted Discord channels
+    from channel selection dropdowns.
 
     Args:
         db: Database session
         guild_id: Guild configuration ID (UUID)
 
     Returns:
-        List of channel configurations
+        List of active channel configurations
     """
     result = await db.execute(
-        select(ChannelConfiguration).where(ChannelConfiguration.guild_id == guild_id)
+        select(ChannelConfiguration).where(
+            ChannelConfiguration.guild_id == guild_id, ChannelConfiguration.is_active
+        )
     )
     return list(result.scalars().all())
