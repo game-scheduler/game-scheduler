@@ -27,6 +27,7 @@ import pytest
 from sqlalchemy import text
 
 from services.api.services import guild_service
+from shared.models.channel import ChannelConfiguration
 from shared.models.guild import GuildConfiguration
 
 
@@ -421,3 +422,164 @@ class TestSyncUserGuildsHelpers:
 
         # Verify channel creation was never called
         mock_create_channel.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("services.api.services.guild_service.channel_service.create_channel_config")
+    async def test_sync_guild_channels_adds_new_channels(self, mock_create_channel):
+        """Test that new Discord channels are added to database."""
+        mock_db = AsyncMock()
+        mock_discord_client = AsyncMock()
+
+        # Discord has two text channels
+        mock_discord_client.get_guild_channels = AsyncMock(
+            return_value=[
+                {"id": "channel_1", "type": 0, "name": "Channel 1"},
+                {"id": "channel_2", "type": 0, "name": "Channel 2"},
+            ]
+        )
+
+        # Database has no channels
+        mock_execute_result = MagicMock()
+        mock_execute_result.scalars.return_value.all.return_value = []
+        mock_db.execute = AsyncMock(return_value=mock_execute_result)
+
+        result = await guild_service._sync_guild_channels(
+            mock_db, mock_discord_client, "guild_uuid", "guild_discord_id"
+        )
+
+        # Verify both channels were created
+        assert result == 2
+        assert mock_create_channel.call_count == 2
+        mock_create_channel.assert_any_call(mock_db, "guild_uuid", "channel_1", is_active=True)
+        mock_create_channel.assert_any_call(mock_db, "guild_uuid", "channel_2", is_active=True)
+
+    @pytest.mark.asyncio
+    async def test_sync_guild_channels_marks_missing_channels_inactive(self):
+        """Test that channels missing from Discord are marked inactive."""
+        mock_db = AsyncMock()
+        mock_discord_client = AsyncMock()
+
+        # Discord has one channel
+        mock_discord_client.get_guild_channels = AsyncMock(
+            return_value=[
+                {"id": "channel_1", "type": 0, "name": "Channel 1"},
+            ]
+        )
+
+        # Database has two active channels
+        existing_channel_1 = ChannelConfiguration(
+            id="uuid_1", guild_id="guild_uuid", channel_id="channel_1", is_active=True
+        )
+        existing_channel_2 = ChannelConfiguration(
+            id="uuid_2", guild_id="guild_uuid", channel_id="channel_2", is_active=True
+        )
+
+        mock_execute_result = MagicMock()
+        mock_execute_result.scalars.return_value.all.return_value = [
+            existing_channel_1,
+            existing_channel_2,
+        ]
+        mock_db.execute = AsyncMock(return_value=mock_execute_result)
+
+        result = await guild_service._sync_guild_channels(
+            mock_db, mock_discord_client, "guild_uuid", "guild_discord_id"
+        )
+
+        # Verify one channel was marked inactive
+        assert result == 1
+        assert existing_channel_1.is_active is True  # Still in Discord
+        assert existing_channel_2.is_active is False  # Missing from Discord
+
+    @pytest.mark.asyncio
+    @patch("services.api.services.guild_service.channel_service.create_channel_config")
+    async def test_sync_guild_channels_reactivates_existing_channels(self, mock_create_channel):
+        """Test that inactive channels are reactivated if they reappear in Discord."""
+        mock_db = AsyncMock()
+        mock_discord_client = AsyncMock()
+
+        # Discord has one channel
+        mock_discord_client.get_guild_channels = AsyncMock(
+            return_value=[
+                {"id": "channel_1", "type": 0, "name": "Channel 1"},
+            ]
+        )
+
+        # Database has the channel but it's inactive
+        existing_channel = ChannelConfiguration(
+            id="uuid_1", guild_id="guild_uuid", channel_id="channel_1", is_active=False
+        )
+
+        mock_execute_result = MagicMock()
+        mock_execute_result.scalars.return_value.all.return_value = [existing_channel]
+        mock_db.execute = AsyncMock(return_value=mock_execute_result)
+
+        result = await guild_service._sync_guild_channels(
+            mock_db, mock_discord_client, "guild_uuid", "guild_discord_id"
+        )
+
+        # Verify channel was reactivated
+        assert result == 1
+        assert existing_channel.is_active is True
+        mock_create_channel.assert_not_called()  # No new channel created
+
+    @pytest.mark.asyncio
+    async def test_sync_guild_channels_ignores_non_text_channels(self):
+        """Test that non-text channels are ignored."""
+        mock_db = AsyncMock()
+        mock_discord_client = AsyncMock()
+
+        # Discord has mixed channel types
+        mock_discord_client.get_guild_channels = AsyncMock(
+            return_value=[
+                {"id": "channel_1", "type": 0, "name": "Text Channel"},
+                {"id": "channel_2", "type": 2, "name": "Voice Channel"},
+                {"id": "channel_3", "type": 4, "name": "Category"},
+            ]
+        )
+
+        # Database has no channels
+        mock_execute_result = MagicMock()
+        mock_execute_result.scalars.return_value.all.return_value = []
+        mock_db.execute = AsyncMock(return_value=mock_execute_result)
+
+        with patch(
+            "services.api.services.guild_service.channel_service.create_channel_config"
+        ) as mock_create:
+            result = await guild_service._sync_guild_channels(
+                mock_db, mock_discord_client, "guild_uuid", "guild_discord_id"
+            )
+
+            # Verify only one channel (text) was created
+            assert result == 1
+            assert mock_create.call_count == 1
+            mock_create.assert_called_once_with(mock_db, "guild_uuid", "channel_1", is_active=True)
+
+    @pytest.mark.asyncio
+    async def test_sync_guild_channels_no_changes_needed(self):
+        """Test that no changes are made when database matches Discord."""
+        mock_db = AsyncMock()
+        mock_discord_client = AsyncMock()
+
+        # Discord has one channel
+        mock_discord_client.get_guild_channels = AsyncMock(
+            return_value=[
+                {"id": "channel_1", "type": 0, "name": "Channel 1"},
+            ]
+        )
+
+        # Database has the same active channel
+        existing_channel = ChannelConfiguration(
+            id="uuid_1", guild_id="guild_uuid", channel_id="channel_1", is_active=True
+        )
+
+        mock_execute_result = MagicMock()
+        mock_execute_result.scalars.return_value.all.return_value = [existing_channel]
+        mock_db.execute = AsyncMock(return_value=mock_execute_result)
+
+        result = await guild_service._sync_guild_channels(
+            mock_db, mock_discord_client, "guild_uuid", "guild_discord_id"
+        )
+
+        # Verify no changes were made
+        assert result == 0
+        assert existing_channel.is_active is True

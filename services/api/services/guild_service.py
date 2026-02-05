@@ -36,6 +36,7 @@ from shared.data_access.guild_isolation import (
     set_current_guild_ids,
 )
 from shared.discord.client import DiscordAPIClient
+from shared.models.channel import ChannelConfiguration
 from shared.models.guild import GuildConfiguration
 
 
@@ -148,6 +149,69 @@ async def _get_existing_guild_ids(db: AsyncSession) -> set[str]:
     result = await db.execute(select(GuildConfiguration))
     existing_guilds = result.scalars().all()
     return {guild.guild_id for guild in existing_guilds}
+
+
+async def _sync_guild_channels(
+    db: AsyncSession,
+    client: DiscordAPIClient,
+    guild_config_id: str,
+    guild_discord_id: str,
+) -> int:
+    """
+    Sync channels from Discord to database for a guild.
+
+    - Adds new text channels with is_active=True (get-or-create pattern)
+    - Marks channels missing from Discord as is_active=False
+    - Returns count of channels added/updated
+
+    Does not commit. Caller must commit transaction.
+
+    Args:
+        db: Database session
+        client: Discord API client
+        guild_config_id: Guild UUID in database
+        guild_discord_id: Guild snowflake ID in Discord
+
+    Returns:
+        Number of channels added or updated
+    """
+    # Fetch current channels from Discord
+    discord_channels = await client.get_guild_channels(guild_discord_id)
+    text_channel_type = 0
+    discord_text_channel_ids = {
+        ch["id"] for ch in discord_channels if ch.get("type") == text_channel_type
+    }
+
+    # Get existing channels from database
+    result = await db.execute(
+        select(ChannelConfiguration).where(ChannelConfiguration.guild_id == guild_config_id)
+    )
+    existing_channels = {ch.channel_id: ch for ch in result.scalars().all()}
+
+    channels_updated = 0
+
+    # Add new channels or reactivate existing ones
+    for channel_discord_id in discord_text_channel_ids:
+        if channel_discord_id in existing_channels:
+            channel = existing_channels[channel_discord_id]
+            if not channel.is_active:
+                channel.is_active = True
+                channels_updated += 1
+        else:
+            await channel_service.create_channel_config(
+                db, guild_config_id, channel_discord_id, is_active=True
+            )
+            channels_updated += 1
+
+    # Mark missing channels as inactive
+    for channel_discord_id, channel in existing_channels.items():
+        if channel_discord_id not in discord_text_channel_ids and channel.is_active:
+            channel.is_active = False
+            channels_updated += 1
+
+    # SQLAlchemy ORM tracks changes to fetched objects; modifications will be
+    # persisted when the transaction is committed by the caller
+    return channels_updated
 
 
 async def _create_guild_with_channels_and_template(

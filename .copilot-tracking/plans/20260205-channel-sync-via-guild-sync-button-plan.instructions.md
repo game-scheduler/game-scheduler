@@ -42,9 +42,9 @@ Extend existing guild sync operation to refresh channel lists for existing guild
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Backend - Channel Sync Helper
+### [x] Phase 1: Backend - Channel Sync Helper
 
-- [ ] Task 1.1: Create `_sync_guild_channels()` helper function
+- [x] Task 1.1: Create `_sync_guild_channels()` helper function
   - Details: .copilot-tracking/details/20260205-channel-sync-via-guild-sync-button-details.md (Lines 15-80)
 
 ### [ ] Phase 2: Backend - Extend sync_user_guilds
