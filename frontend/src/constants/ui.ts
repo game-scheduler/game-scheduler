@@ -70,6 +70,21 @@ export const UI = {
   MAX_PLAYERS_LIMIT: 100,
 
   /**
+   * Maximum description length (characters).
+   */
+  MAX_DESCRIPTION_LENGTH: 4000,
+
+  /**
+   * Maximum location length (characters).
+   */
+  MAX_LOCATION_LENGTH: 500,
+
+  /**
+   * Maximum signup instructions length (characters).
+   */
+  MAX_SIGNUP_INSTRUCTIONS_LENGTH: 1000,
+
+  /**
    * Number of hex digits for color padding.
    */
   HEX_COLOR_PADDING: 6,

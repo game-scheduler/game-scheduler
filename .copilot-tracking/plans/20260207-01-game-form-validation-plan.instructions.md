@@ -105,21 +105,21 @@ Implement comprehensive frontend validation for game creation forms with reusabl
 - [x] Task 2.6: Add character counters to text fields
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 334-352)
 
-### [ ] Phase 3: TemplateForm Validation Integration with TDD
+### [x] Phase 3: TemplateForm Validation Integration with TDD
 
-- [ ] Task 3.1: Add on-blur validation to TemplateForm
+- [x] Task 3.1: Add on-blur validation to TemplateForm
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 353-367)
 
-- [ ] Task 3.2: Write failing TemplateForm validation tests
+- [x] Task 3.2: Write failing TemplateForm validation tests
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 368-384)
 
-- [ ] Task 3.3: Implement TemplateForm validation
+- [x] Task 3.3: Implement TemplateForm validation
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 385-401)
 
-- [ ] Task 3.4: Replace duration TextField with DurationSelector
+- [x] Task 3.4: Replace duration TextField with DurationSelector
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 402-417)
 
-- [ ] Task 3.5: Add character counters
+- [x] Task 3.5: Add character counters
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 418-435)
 
 ### [ ] Phase 4: Backend Schema Alignment with TDD

@@ -46,8 +46,13 @@ import {
   TemplateCreateRequest,
   TemplateUpdateRequest,
 } from '../types';
-import { formatDurationForDisplay, parseDurationString } from './GameForm';
 import { UI } from '../constants/ui';
+import {
+  validateReminderMinutes,
+  validateMaxPlayers,
+  validateCharacterLimit,
+} from '../utils/fieldValidation';
+import { DurationSelector } from './DurationSelector';
 
 interface TemplateFormProps {
   open: boolean;
@@ -72,7 +77,7 @@ export const TemplateForm: FC<TemplateFormProps> = ({
   const [description, setDescription] = useState('');
   const [channelId, setChannelId] = useState('');
   const [maxPlayers, setMaxPlayers] = useState('');
-  const [expectedDuration, setExpectedDuration] = useState('');
+  const [expectedDuration, setExpectedDuration] = useState<number | null>(null);
   const [reminderMinutes, setReminderMinutes] = useState('');
   const [where, setWhere] = useState('');
   const [signupInstructions, setSignupInstructions] = useState('');
@@ -82,17 +87,20 @@ export const TemplateForm: FC<TemplateFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
+  // Validation error state
+  const [reminderError, setReminderError] = useState('');
+  const [maxPlayersError, setMaxPlayersError] = useState('');
+  const [descriptionError, setDescriptionError] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [signupInstructionsError, setSignupInstructionsError] = useState('');
+
   useEffect(() => {
     if (template) {
       setName(template.name);
       setDescription(template.description || '');
       setChannelId(template.channel_id);
       setMaxPlayers(template.max_players !== null ? String(template.max_players) : '');
-      setExpectedDuration(
-        template.expected_duration_minutes !== null
-          ? formatDurationForDisplay(template.expected_duration_minutes)
-          : ''
-      );
+      setExpectedDuration(template.expected_duration_minutes);
       setReminderMinutes(template.reminder_minutes ? template.reminder_minutes.join(', ') : '');
       setWhere(template.where || '');
       setSignupInstructions(template.signup_instructions || '');
@@ -105,7 +113,7 @@ export const TemplateForm: FC<TemplateFormProps> = ({
       setDescription('');
       setChannelId(channels.length > 0 ? channels[0]!.id : '');
       setMaxPlayers('');
-      setExpectedDuration('');
+      setExpectedDuration(null);
       setReminderMinutes('');
       setWhere('');
       setSignupInstructions('');
@@ -131,8 +139,9 @@ export const TemplateForm: FC<TemplateFormProps> = ({
       newErrors.maxPlayers = `Max players must be between 1 and ${UI.MAX_PLAYERS_LIMIT}`;
     }
 
-    if (expectedDuration && parseDurationString(expectedDuration) === null) {
-      newErrors.expectedDuration = 'Invalid duration format (e.g., 2h, 90m, 1h 30m)';
+    const MAX_DURATION_MINUTES = 1440;
+    if (expectedDuration && (expectedDuration < 1 || expectedDuration > MAX_DURATION_MINUTES)) {
+      newErrors.expectedDuration = `Duration must be between 1 and ${MAX_DURATION_MINUTES} minutes`;
     }
 
     if (reminderMinutes) {
@@ -163,7 +172,7 @@ export const TemplateForm: FC<TemplateFormProps> = ({
         allowed_player_role_ids: allowedPlayerRoleIds.length > 0 ? allowedPlayerRoleIds : null,
         allowed_host_role_ids: allowedHostRoleIds.length > 0 ? allowedHostRoleIds : null,
         max_players: maxPlayers ? parseInt(maxPlayers) : null,
-        expected_duration_minutes: expectedDuration ? parseDurationString(expectedDuration) : null,
+        expected_duration_minutes: expectedDuration,
         reminder_minutes: reminderMinutes
           ? reminderMinutes.split(',').map((m) => parseInt(m.trim()))
           : null,
@@ -193,6 +202,57 @@ export const TemplateForm: FC<TemplateFormProps> = ({
     setter(typeof value === 'string' ? value.split(',') : value);
   };
 
+  // Validation handlers
+  const handleReminderBlur = () => {
+    const result = validateReminderMinutes(reminderMinutes);
+    setReminderError(result.error || '');
+  };
+
+  const handleMaxPlayersBlur = () => {
+    const result = validateMaxPlayers(maxPlayers);
+    setMaxPlayersError(result.error || '');
+  };
+
+  const handleDescriptionBlur = () => {
+    const result = validateCharacterLimit(description, UI.MAX_DESCRIPTION_LENGTH, 'Description');
+    setDescriptionError(result.error || result.warning || '');
+  };
+
+  const handleLocationBlur = () => {
+    const result = validateCharacterLimit(where, UI.MAX_LOCATION_LENGTH, 'Location');
+    setLocationError(result.error || result.warning || '');
+  };
+
+  const handleSignupInstructionsBlur = () => {
+    const result = validateCharacterLimit(
+      signupInstructions,
+      UI.MAX_SIGNUP_INSTRUCTIONS_LENGTH,
+      'Signup Instructions'
+    );
+    setSignupInstructionsError(result.error || result.warning || '');
+  };
+
+  const getDescriptionHelperText = () => {
+    if (descriptionError) return descriptionError;
+    const count = description.length;
+    if (count === 0) return undefined;
+    return `${count} / ${UI.MAX_DESCRIPTION_LENGTH} characters`;
+  };
+
+  const getLocationHelperText = () => {
+    if (locationError) return locationError;
+    const count = where.length;
+    if (count === 0) return 'Default location for games';
+    return `${count} / ${UI.MAX_LOCATION_LENGTH} characters`;
+  };
+
+  const getSignupInstructionsHelperText = () => {
+    if (signupInstructionsError) return signupInstructionsError;
+    const count = signupInstructions.length;
+    if (count === 0) return 'Default instructions for players';
+    return `${count} / ${UI.MAX_SIGNUP_INSTRUCTIONS_LENGTH} characters`;
+  };
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>{template ? 'Edit Template' : 'Create Template'}</DialogTitle>
@@ -218,6 +278,9 @@ export const TemplateForm: FC<TemplateFormProps> = ({
             label="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            onBlur={handleDescriptionBlur}
+            error={!!descriptionError}
+            helperText={getDescriptionHelperText()}
             multiline
             rows={2}
             fullWidth
@@ -332,28 +395,30 @@ export const TemplateForm: FC<TemplateFormProps> = ({
             type="number"
             value={maxPlayers}
             onChange={(e) => setMaxPlayers(e.target.value)}
-            error={!!errors.maxPlayers}
-            helperText={errors.maxPlayers || 'Leave empty for unlimited'}
+            onBlur={handleMaxPlayersBlur}
+            error={!!maxPlayersError || !!errors.maxPlayers}
+            helperText={maxPlayersError || errors.maxPlayers || 'Leave empty for unlimited'}
             fullWidth
             inputProps={{ min: 1, max: 100 }}
           />
 
-          <TextField
-            label="Expected Duration"
+          <DurationSelector
             value={expectedDuration}
-            onChange={(e) => setExpectedDuration(e.target.value)}
+            onChange={setExpectedDuration}
             error={!!errors.expectedDuration}
-            helperText={errors.expectedDuration || 'e.g., 2h, 90m, 1h 30m'}
-            fullWidth
+            helperText={errors.expectedDuration}
           />
 
           <TextField
             label="Reminder Minutes"
             value={reminderMinutes}
             onChange={(e) => setReminderMinutes(e.target.value)}
-            error={!!errors.reminderMinutes}
+            onBlur={handleReminderBlur}
+            error={!!reminderError || !!errors.reminderMinutes}
             helperText={
-              errors.reminderMinutes || 'Comma-separated minutes before game (e.g., 60, 15)'
+              reminderError ||
+              errors.reminderMinutes ||
+              'Comma-separated minutes before game (e.g., 60, 15)'
             }
             fullWidth
           />
@@ -362,7 +427,9 @@ export const TemplateForm: FC<TemplateFormProps> = ({
             label="Location"
             value={where}
             onChange={(e) => setWhere(e.target.value)}
-            helperText="Default location for games"
+            onBlur={handleLocationBlur}
+            error={!!locationError}
+            helperText={getLocationHelperText()}
             fullWidth
           />
 
@@ -370,7 +437,9 @@ export const TemplateForm: FC<TemplateFormProps> = ({
             label="Signup Instructions"
             value={signupInstructions}
             onChange={(e) => setSignupInstructions(e.target.value)}
-            helperText="Default instructions for players"
+            onBlur={handleSignupInstructionsBlur}
+            error={!!signupInstructionsError}
+            helperText={getSignupInstructionsHelperText()}
             multiline
             rows={3}
             fullWidth
