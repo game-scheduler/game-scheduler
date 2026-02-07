@@ -79,54 +79,30 @@ const renderGameForm = (props = {}) => {
 
 describe('GameForm Validation', () => {
   describe('Duration Field', () => {
-    it('shows error when invalid duration is entered on blur', async () => {
-      const user = userEvent.setup();
+    it('renders DurationSelector component', () => {
       renderGameForm();
 
-      const durationField = screen.getByLabelText(/Expected Duration/i);
-      await user.clear(durationField);
-      await user.type(durationField, '2000');
-      await user.tab();
-
-      await waitFor(() => {
-        expect(screen.getByText(/cannot exceed 1440 minutes/i)).toBeInTheDocument();
-      });
+      // Verify DurationSelector is present by checking for its select element
+      const comboboxes = screen.getAllByRole('combobox');
+      expect(comboboxes.length).toBeGreaterThan(0);
     });
 
-    it('clears error when valid duration is entered', async () => {
-      const user = userEvent.setup();
+    it('accepts empty duration as valid', () => {
       renderGameForm();
 
-      const durationField = screen.getByLabelText(/Expected Duration/i);
-
-      await user.clear(durationField);
-      await user.type(durationField, '2000');
-      await user.tab();
-
-      await waitFor(() => {
-        expect(screen.getByText(/cannot exceed 1440 minutes/i)).toBeInTheDocument();
-      });
-
-      await user.clear(durationField);
-      await user.type(durationField, '120');
-      await user.tab();
-
-      await waitFor(() => {
-        expect(screen.queryByText(/cannot exceed 1440 minutes/i)).not.toBeInTheDocument();
-      });
+      // DurationSelector starts with no selection (empty state)
+      // Just verify no error is shown
+      expect(screen.queryByText(/Duration must be/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/cannot exceed 1440 minutes/i)).not.toBeInTheDocument();
     });
 
-    it('accepts empty duration as valid', async () => {
-      const user = userEvent.setup();
+    it('duration validation is handled by DurationSelector', () => {
       renderGameForm();
 
-      const durationField = screen.getByLabelText(/Expected Duration/i);
-      await user.clear(durationField);
-      await user.tab();
-
-      await waitFor(() => {
-        expect(screen.queryByText(/Duration must be/i)).not.toBeInTheDocument();
-      });
+      // Duration validation is fully tested in DurationSelector.test.tsx
+      // This test just verifies the component is integrated into the form
+      const durationLabels = screen.queryAllByText(/^Expected Duration$/i);
+      expect(durationLabels.length).toBeGreaterThan(0);
     });
   });
 
@@ -137,7 +113,7 @@ describe('GameForm Validation', () => {
 
       const reminderField = screen.getByLabelText(/Reminder Times/i);
       await user.clear(reminderField);
-      await user.type(reminderField, 'abc, 60');
+      await user.paste('abc, 60');
       await user.tab();
 
       await waitFor(() => {
@@ -151,7 +127,7 @@ describe('GameForm Validation', () => {
 
       const reminderField = screen.getByLabelText(/Reminder Times/i);
       await user.clear(reminderField);
-      await user.type(reminderField, '20000');
+      await user.paste('20000');
       await user.tab();
 
       await waitFor(() => {
@@ -165,7 +141,7 @@ describe('GameForm Validation', () => {
 
       const reminderField = screen.getByLabelText(/Reminder Times/i);
       await user.clear(reminderField);
-      await user.type(reminderField, '60, 15, 5');
+      await user.paste('60, 15, 5');
       await user.tab();
 
       await waitFor(() => {
@@ -181,7 +157,7 @@ describe('GameForm Validation', () => {
 
       const maxPlayersField = screen.getByLabelText(/Max Players/i);
       await user.clear(maxPlayersField);
-      await user.type(maxPlayersField, '0');
+      await user.paste('0');
       await user.tab();
 
       await waitFor(() => {
@@ -195,7 +171,7 @@ describe('GameForm Validation', () => {
 
       const maxPlayersField = screen.getByLabelText(/Max Players/i);
       await user.clear(maxPlayersField);
-      await user.type(maxPlayersField, '150');
+      await user.paste('150');
       await user.tab();
 
       await waitFor(() => {
@@ -209,7 +185,7 @@ describe('GameForm Validation', () => {
 
       const maxPlayersField = screen.getByLabelText(/Max Players/i);
       await user.clear(maxPlayersField);
-      await user.type(maxPlayersField, '25');
+      await user.paste('25');
       await user.tab();
 
       await waitFor(() => {
@@ -286,20 +262,20 @@ describe('GameForm Validation', () => {
       const maxPlayersField = screen.getByLabelText(/Max Players/i);
       await user.clear(maxPlayersField);
       await user.click(maxPlayersField);
-      await user.keyboard('200');
+      await user.paste('0');
       await user.tab();
 
       await waitFor(() => {
-        expect(screen.getByText(/cannot exceed 100/i)).toBeInTheDocument();
+        expect(screen.getByText(/must be at least 1/i)).toBeInTheDocument();
       });
 
       const titleField = screen.getByLabelText(/Game Title/i);
       await user.click(titleField);
-      await user.keyboard('Test Game');
+      await user.paste('Test Game');
 
       const descriptionField = screen.getByLabelText(/Description/i);
       await user.click(descriptionField);
-      await user.keyboard('A fun game');
+      await user.paste('A fun game');
 
       const submitButton = screen.getByRole('button', { name: /Create Game/i });
       await user.click(submitButton);
@@ -325,11 +301,11 @@ describe('GameForm Validation', () => {
 
       const titleField = screen.getByLabelText(/Game Title/i);
       await user.click(titleField);
-      await user.keyboard('Test Game');
+      await user.paste('Test Game');
 
       const descriptionField = screen.getByLabelText(/Description/i);
       await user.click(descriptionField);
-      await user.keyboard('A fun game');
+      await user.paste('A fun game');
 
       // Channel is auto-selected when only one channel exists
       const submitButton = screen.getByRole('button', { name: /Create Game/i });

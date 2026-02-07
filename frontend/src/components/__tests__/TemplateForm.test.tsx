@@ -100,7 +100,9 @@ describe('TemplateForm', () => {
       />
     );
 
-    await user.type(screen.getByLabelText(/Template Name/i), 'New Template');
+    const nameInput = screen.getByLabelText(/Template Name/i);
+    await user.click(nameInput);
+    await user.paste('New Template');
 
     const comboboxes = screen.getAllByRole('combobox');
     const channelSelect = comboboxes[0];
@@ -173,7 +175,8 @@ describe('TemplateForm', () => {
 
     const descriptionInput = screen.getByLabelText(/Description/i);
     await user.clear(descriptionInput);
-    await user.type(descriptionInput, 'Updated description');
+    await user.click(descriptionInput);
+    await user.paste('Updated description');
 
     await user.click(screen.getByRole('button', { name: /update/i }));
 

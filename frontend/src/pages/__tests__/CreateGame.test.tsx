@@ -344,11 +344,11 @@ describe('CreateGame', () => {
     // Fill in required fields
     const titleInput = screen.getByRole('textbox', { name: /game title/i });
     await user.clear(titleInput);
-    await user.type(titleInput, 'Test Game');
+    await user.paste('Test Game');
 
     const descriptionInput = screen.getByRole('textbox', { name: /description/i });
     await user.clear(descriptionInput);
-    await user.type(descriptionInput, 'Test Description');
+    await user.paste('Test Description');
 
     // Submit the form
     const submitButton = screen.getByRole('button', { name: /create game/i });

@@ -44,6 +44,7 @@ import {
   EditableParticipantList,
   ParticipantInput as EditableParticipantInput,
 } from './EditableParticipantList';
+import { DurationSelector } from './DurationSelector';
 import { useAuth } from '../hooks/useAuth';
 import { Time } from '../constants/time';
 import { UI } from '../constants/ui';
@@ -92,7 +93,7 @@ export interface GameFormData {
   channelId: string;
   maxPlayers: string;
   reminderMinutes: string;
-  expectedDurationMinutes: string;
+  expectedDurationMinutes: number | null;
   participants: EditableParticipantInput[];
   signupMethod: string;
   thumbnailFile: File | null;
@@ -227,9 +228,7 @@ export const GameForm: FC<GameFormProps> = ({
     channelId: initialData?.channel_id || '',
     maxPlayers: initialData?.max_players?.toString() || '8',
     reminderMinutes: initialData?.reminder_minutes?.join(', ') || '',
-    expectedDurationMinutes: formatDurationForDisplay(
-      initialData?.expected_duration_minutes ?? null
-    ),
+    expectedDurationMinutes: initialData?.expected_duration_minutes ?? null,
     participants: initialData?.participants
       ? initialData.participants
           .sort((a, b) => {
@@ -272,9 +271,7 @@ export const GameForm: FC<GameFormProps> = ({
         channelId: initialData.channel_id || '',
         maxPlayers: initialData.max_players?.toString() || '8',
         reminderMinutes: initialData.reminder_minutes?.join(', ') || '',
-        expectedDurationMinutes: formatDurationForDisplay(
-          initialData.expected_duration_minutes ?? null
-        ),
+        expectedDurationMinutes: initialData.expected_duration_minutes ?? null,
         participants: initialData.participants
           ? initialData.participants
               .sort((a, b) => {
@@ -353,8 +350,7 @@ export const GameForm: FC<GameFormProps> = ({
 
   // Validation handler stubs
   const validateDurationField = () => {
-    const parsed = parseDurationString(formData.expectedDurationMinutes);
-    const result = validateDuration(parsed);
+    const result = validateDuration(formData.expectedDurationMinutes);
     setDurationError(result.error || null);
   };
 
@@ -399,6 +395,32 @@ export const GameForm: FC<GameFormProps> = ({
     setScheduledAtError(result.error || null);
   };
 
+  // Helper text generators with character counts
+  const getLocationHelperText = () => {
+    if (locationError) return locationError;
+    const MAX_LOCATION_LENGTH = 500;
+    const count = formData.where.length;
+    if (count === 0) return 'Game location (optional, up to 500 characters)';
+    return `${count}/${MAX_LOCATION_LENGTH} characters`;
+  };
+
+  const getDescriptionHelperText = () => {
+    if (descriptionError) return descriptionError;
+    const MAX_DESCRIPTION_LENGTH = 2000;
+    const count = formData.description.length;
+    if (count === 0) return undefined;
+    return `${count}/${MAX_DESCRIPTION_LENGTH} characters`;
+  };
+
+  const getSignupInstructionsHelperText = () => {
+    if (signupInstructionsError) return signupInstructionsError;
+    const MAX_SIGNUP_INSTRUCTIONS_LENGTH = 1000;
+    const count = formData.signupInstructions.length;
+    if (count === 0)
+      return 'Special requirements or instructions (visible to host only after creation)';
+    return `${count}/${MAX_SIGNUP_INSTRUCTIONS_LENGTH} characters`;
+  };
+
   const handleSelectChange = (event: SelectChangeEvent) => {
     const { name, value } = event.target;
     if (name === 'signupMethod') {
@@ -411,6 +433,11 @@ export const GameForm: FC<GameFormProps> = ({
   const handleDateChange = (date: Date | null) => {
     setFormData((prev) => ({ ...prev, scheduledAt: date }));
     validateScheduledAtField();
+  };
+
+  const handleDurationChange = (minutes: number | null) => {
+    setFormData((prev) => ({ ...prev, expectedDurationMinutes: minutes }));
+    validateDurationField();
   };
 
   const handleParticipantsChange = (participants: EditableParticipantInput[]) => {
@@ -601,7 +628,7 @@ export const GameForm: FC<GameFormProps> = ({
             margin="normal"
             multiline
             rows={2}
-            helperText={locationError || 'Game location (optional, up to 500 characters)'}
+            helperText={getLocationHelperText()}
             error={!!locationError}
             disabled={loading}
             inputProps={{ maxLength: 500 }}
@@ -615,6 +642,7 @@ export const GameForm: FC<GameFormProps> = ({
             label="Scheduled Time *"
             value={formData.scheduledAt}
             onChange={handleDateChange}
+            disablePast
             disabled={loading}
             slotProps={{
               textField: {
@@ -629,18 +657,14 @@ export const GameForm: FC<GameFormProps> = ({
           />
 
           <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 1, mt: 1 }}>
-            <TextField
-              label="Expected Duration"
-              name="expectedDurationMinutes"
-              value={formData.expectedDurationMinutes}
-              onChange={handleChange}
-              onBlur={validateDurationField}
-              helperText={durationError || 'e.g., 2h, 90m, 1h 30m, 1:30 (optional)'}
-              error={!!durationError}
-              disabled={loading}
-              placeholder="2h 30m"
-              sx={{ flex: '1 1 45%', minWidth: '200px' }}
-            />
+            <Box sx={{ flex: '1 1 45%', minWidth: '200px' }}>
+              <DurationSelector
+                value={formData.expectedDurationMinutes}
+                onChange={handleDurationChange}
+                error={!!durationError}
+                helperText={durationError || undefined}
+              />
+            </Box>
 
             <TextField
               label="Reminder Times (minutes)"
@@ -716,7 +740,7 @@ export const GameForm: FC<GameFormProps> = ({
             onBlur={validateDescriptionField}
             margin="normal"
             disabled={loading}
-            helperText={descriptionError}
+            helperText={getDescriptionHelperText()}
             error={!!descriptionError}
             InputLabelProps={{
               sx: { fontSize: '1.1rem' },
@@ -734,10 +758,7 @@ export const GameForm: FC<GameFormProps> = ({
             onChange={handleChange}
             onBlur={validateSignupInstructionsField}
             margin="normal"
-            helperText={
-              signupInstructionsError ||
-              'Special requirements or instructions (visible to host only after creation)'
-            }
+            helperText={getSignupInstructionsHelperText()}
             error={!!signupInstructionsError}
             disabled={loading}
             sx={{ mb: 1 }}

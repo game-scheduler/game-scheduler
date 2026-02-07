@@ -85,24 +85,24 @@ Implement comprehensive frontend validation for game creation forms with reusabl
 - [x] Task 1.8: Refactor and verify full coverage
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 224-243)
 
-### [ ] Phase 2: GameForm Validation Integration with TDD
+### [x] Phase 2: GameForm Validation Integration with TDD
 
 - [x] Task 2.1: Add validation state to GameForm
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 244-259)
 
-- [ ] Task 2.2: Write failing GameForm validation tests
+- [x] Task 2.2: Write failing GameForm validation tests
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 260-277)
 
-- [ ] Task 2.3: Implement GameForm validation handlers
+- [x] Task 2.3: Implement GameForm validation handlers
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 278-296)
 
-- [ ] Task 2.4: Replace duration TextField with DurationSelector
+- [x] Task 2.4: Replace duration TextField with DurationSelector
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 297-315)
 
-- [ ] Task 2.5: Add date validation to DateTimePicker
+- [x] Task 2.5: Add date validation to DateTimePicker
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 316-333)
 
-- [ ] Task 2.6: Add character counters to text fields
+- [x] Task 2.6: Add character counters to text fields
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 334-352)
 
 ### [ ] Phase 3: TemplateForm Validation Integration with TDD

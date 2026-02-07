@@ -24,7 +24,7 @@ import { Container, CircularProgress, Alert } from '@mui/material';
 import { useNavigate, useParams } from 'react-router';
 import { apiClient } from '../api/client';
 import { Channel, DiscordRole, GameSession, Participant } from '../types';
-import { GameForm, GameFormData, parseDurationString } from '../components/GameForm';
+import { GameForm, GameFormData } from '../components/GameForm';
 
 interface EditGameState {
   game: GameSession | null;
@@ -149,9 +149,8 @@ export const EditGame: FC = () => {
       payload.append('reminder_minutes', JSON.stringify(reminderMinutesArray));
 
       // Add expected duration only if provided
-      const expectedDuration = parseDurationString(formData.expectedDurationMinutes);
-      if (expectedDuration !== null) {
-        payload.append('expected_duration_minutes', expectedDuration.toString());
+      if (formData.expectedDurationMinutes !== null) {
+        payload.append('expected_duration_minutes', formData.expectedDurationMinutes.toString());
       }
       // Don't send field at all if null - keeps existing value
 
