@@ -1,5 +1,5 @@
 ---
-applyTo: ".copilot-tracking/changes/20260205-01-web-join-game-ux-changes.md"
+applyTo: '.copilot-tracking/changes/20260205-01-web-join-game-ux-changes.md'
 ---
 
 <!-- markdownlint-disable-file -->
@@ -81,14 +81,14 @@ Enable real-time synchronization of game join/leave actions across web and Disco
 
 ### [ ] Phase 4: Testing and Validation
 
-- [ ] Task 4.1: Create unit tests for SSE endpoint and bridge
-  - Details: .copilot-tracking/details/20260205-01-web-join-game-ux-details.md (Lines 158-172)
+- [ ] Task 4.1: Write integration tests for SSE bridge
+  - Details: .copilot-tracking/details/20260205-01-web-join-game-ux-details.md (Lines 158-185)
 
 - [ ] Task 4.2: Verify cross-platform synchronization (Discord → Web)
-  - Details: .copilot-tracking/details/20260205-01-web-join-game-ux-details.md (Lines 174-186)
+  - Details: .copilot-tracking/details/20260205-01-web-join-game-ux-details.md (Lines 187-199)
 
 - [ ] Task 4.3: Validate guild authorization filtering
-  - Details: .copilot-tracking/details/20260205-01-web-join-game-ux-details.md (Lines 188-200)
+  - Details: .copilot-tracking/details/20260205-01-web-join-game-ux-details.md (Lines 201-213)
 
 ## Dependencies
 

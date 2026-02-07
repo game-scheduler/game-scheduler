@@ -1,14 +1,17 @@
 <!-- markdownlint-disable-file -->
+
 # Task Research Notes: Web Join Game UX with Real-Time Cross-Platform Sync
 
 ## Research Executed
 
 ### Use Case Definition
+
 **Scenario:** Same user views web game listing with "Join" button, then joins via Discord button. Web page should automatically update to show "Leave" button without manual refresh.
 
 **This is NOT a multi-user problem** - it's cross-platform state synchronization for a single user across Discord and web interfaces.
 
 ### File Analysis
+
 - **frontend/src/components/GameCard.tsx** - Only shows "View Details" button, no join/leave actions on card
 - **frontend/src/pages/BrowseGames.tsx** - Renders GameCard components, inherits card-only actions
 - **frontend/src/pages/GameDetails.tsx** - Has join/leave buttons with proper gating logic
@@ -21,6 +24,7 @@
 - **shared/discord/client.py** - get_user_guilds() uses Valkey cache with 5-min TTL
 
 ### Code Search Results
+
 - **Two Independent Write Paths Discovered:**
   - Web join: Browser → API → Database → RabbitMQ → Bot updates Discord
   - Discord join: Discord button → Bot → Database → RabbitMQ → Bot updates Discord
@@ -39,11 +43,13 @@
   - Current routing keys: `game.updated`, `game.created`, etc. (no guild_id)
 
 ### External Research
+
 - **SSE vs WebSocket comparison** - Verified SSE is standard for unidirectional server→client push
 - **FastAPI StreamingResponse** - Native SSE support confirmed, no external libraries needed
 - **EventSource browser API** - Automatic reconnection built-in, widely supported
 
 ### Project Conventions
+
 - Session-based authentication using HTTPOnly cookies (`session_token`)
 - RabbitMQ event-driven architecture for service coordination
 - Valkey/Redis caching layer with defined TTL constants
@@ -56,6 +62,7 @@
 **The system has TWO independent services that can mutate game participation state:**
 
 1. **API Service Path** (Web actions):
+
 ```python
 # services/api/routes/games.py
 POST /api/v1/games/{id}/join
@@ -65,6 +72,7 @@ POST /api/v1/games/{id}/join
 ```
 
 2. **Bot Service Path** (Discord actions):
+
 ```python
 # services/bot/handlers/join_game.py
 Discord Join Button Click
@@ -78,6 +86,7 @@ Discord Join Button Click
 ### RabbitMQ Message Flow Architecture
 
 **Current Event Flow:**
+
 ```
 API/Bot publishes → Exchange: "game_scheduler"
                       ↓ (topic routing)
@@ -87,6 +96,7 @@ API/Bot publishes → Exchange: "game_scheduler"
 ```
 
 **Proposed SSE Flow:**
+
 ```
 API/Bot publishes → Exchange: "game_scheduler"
                       ↓ (topic routing - fanout to multiple queues)
@@ -99,12 +109,14 @@ API/Bot publishes → Exchange: "game_scheduler"
 ### Authentication & Session Management
 
 **How SSE authenticates:**
+
 - Browser automatically sends `session_token` HTTPOnly cookie with EventSource request
 - FastAPI `get_current_user` dependency validates cookie via Valkey lookup
 - No custom headers needed - EventSource doesn't support them anyway
 - Session expiration handled by existing token infrastructure
 
 **Flow:**
+
 ```
 Browser: new EventSource('/api/v1/sse/game-updates', {withCredentials: true})
   → Cookie: session_token=abc123 (automatic)
@@ -118,6 +130,7 @@ Browser: new EventSource('/api/v1/sse/game-updates', {withCredentials: true})
 **CRITICAL SECURITY REQUIREMENT:** Cannot broadcast all game_ids to all SSE connections.
 
 **Must filter server-side:**
+
 ```python
 # INSECURE - DON'T DO THIS:
 for connection in all_connections:
@@ -131,6 +144,7 @@ for connection in all_connections:
 ```
 
 **Why this matters:**
+
 - Information disclosure: Game IDs reveal guild activity to unauthorized users
 - Privacy violation: Private guild events must not leak
 - Authorization bypass risk: Knowing game IDs could enable attacks
@@ -154,12 +168,14 @@ async def _broadcast_to_clients(self, event):
 ```
 
 **Why this works:**
+
 - Cache TTL = 5 minutes (CacheTTL.USER_GUILDS = 300 seconds)
 - User kicked from guild → cache expires within 5 min → stops receiving events
 - Cache hit latency ~0.2ms (Valkey localhost)
 - Performance cost negligible: 100 connections × 10 events/min = 1,000 cache reads/min = 0.3% CPU
 
 **Alternative rejected:** Storing guilds once at connection time
+
 - Pros: Zero cache overhead during events
 - Cons: User continues receiving events after being kicked until browser disconnect
 - Verdict: Not acceptable - kicked users should stop receiving updates promptly
@@ -323,12 +339,14 @@ function BrowseGames() {
 **Proposed routing keys:** `game.updated.{guild_id}` (future-ready)
 
 **Why add guild_id NOW even if not using it:**
+
 - Enables future per-guild subscriptions without republisher changes
 - Better observability in RabbitMQ monitoring
 - Zero performance cost - wildcards work the same
 - No breaking changes later
 
 **Implementation:**
+
 ```python
 # services/api/services/games.py - MODIFY
 await self.publisher.publish(
@@ -350,11 +368,13 @@ await consumer.bind("game.updated.*")  # Matches all guilds
 ### Valkey Cache Hit Performance
 
 **Single-instance Valkey (typical deployment):**
+
 - GET operations: 80,000-100,000 ops/second
 - Latency (localhost): 0.1-0.5ms (sub-millisecond)
 - P99 latency: < 1ms
 
 **Project's cache infrastructure:**
+
 - Valkey 9.0.1 (latest stable)
 - Docker container on typical hardware
 - Expected: 50,000+ ops/sec easily
@@ -364,6 +384,7 @@ await consumer.bind("game.updated.*")  # Matches all guilds
 **Scenario:** 100 concurrent SSE connections, 10 game updates/minute
 
 **Shared queue with application filtering:**
+
 ```
 10 events/min × 100 connections = 1,000 operations/minute
 
@@ -382,6 +403,7 @@ Total CPU: 10 events/min × 20ms = 200ms/minute = 0.3% of one core
 ### Scaling Thresholds
 
 **When would shared queue become a bottleneck?**
+
 - 1,000+ concurrent SSE connections
 - 100+ game updates/second
 - = 100,000+ cache reads/second (approaching Valkey limits)
@@ -391,6 +413,7 @@ Total CPU: 10 events/min × 20ms = 200ms/minute = 0.3% of one core
 ### RabbitMQ Queue Architecture Trade-offs
 
 **Shared Queue (Recommended):**
+
 - 1 queue: `web_sse_events`
 - 1 EventConsumer
 - All events delivered, filtered in Python
@@ -398,6 +421,7 @@ Total CPU: 10 events/min × 20ms = 200ms/minute = 0.3% of one core
 - Cons: Wastes bandwidth (~5% efficiency), small CPU for filtering
 
 **Per-Client Queues (Future Optimization):**
+
 - N queues: `web_sse_user{id}_conn{uuid}` (one per connection)
 - N EventConsumers (one per connection)
 - RabbitMQ routes only relevant events per queue
@@ -411,6 +435,7 @@ Total CPU: 10 events/min × 20ms = 200ms/minute = 0.3% of one core
 ### Solution: SSE with RabbitMQ Bridge and Cache-Based Authorization
 
 **Architecture:**
+
 1. Add SSE endpoint at `/api/v1/sse/game-updates` using FastAPI StreamingResponse
 2. Create SSE bridge service that consumes from new `web_sse_events` RabbitMQ queue
 3. Bridge subscribes to `game.updated.*` routing keys (wildcard for all guilds)
@@ -421,18 +446,21 @@ Total CPU: 10 events/min × 20ms = 200ms/minute = 0.3% of one core
 8. Add optimistic updates for join/leave actions (immediate UI feedback)
 
 **Why SSE over WebSocket:**
+
 - Unidirectional: Server only needs to push updates, client uses REST for commands
 - Simpler: Native EventSource API, automatic reconnection built-in
 - Standard: FastAPI StreamingResponse, no protocol upgrade negotiation
 - Sufficient: Don't need bidirectional for this use case
 
 **Why RabbitMQ Integration:**
+
 - Fits existing event-driven architecture
 - Both Bot and API already publish GAME_UPDATED events
 - Adding another consumer (SSE bridge) is the pattern
 - No duplicate notification paths - single source of truth
 
 **Why Cache-Based Guild Checks:**
+
 - Security: Server-side authorization prevents information disclosure
 - Performance: 0.2ms per check with 99% cache hit rate
 - Timely revocation: Kicked users stop receiving events within 5 minutes
@@ -451,6 +479,7 @@ Total CPU: 10 events/min × 20ms = 200ms/minute = 0.3% of one core
 **Difficulty: 4/10 - Moderate**
 
 **Why not harder:**
+
 - ✅ FastAPI has native SSE support
 - ✅ RabbitMQ infrastructure already exists
 - ✅ EventConsumer pattern established
@@ -458,17 +487,19 @@ Total CPU: 10 events/min × 20ms = 200ms/minute = 0.3% of one core
 - ✅ Join/Leave API endpoints already exist
 
 **Why not easier:**
+
 - ⚠️ New architectural component (SSE bridge)
 - ⚠️ Managing long-lived connections
 - ⚠️ Error handling for connection failures
 - ⚠️ Frontend state management for real-time updates
 
-### Files to Create (4 new files)
+### Files to Create (5 new files)
 
 1. `services/api/routes/sse.py` - SSE endpoint (~50 lines)
 2. `services/api/services/sse_bridge.py` - RabbitMQ consumer (~150 lines)
 3. `frontend/src/hooks/useGameUpdates.ts` - React hook (~40 lines)
-4. `tests/services/api/routes/test_sse.py` - Unit tests (~100 lines)
+4. `tests/integration/test_sse_bridge.py` - Integration tests (~200 lines)
+5. `tests/services/api/routes/test_sse.py` - Unit tests (~100 lines - if needed)
 
 ### Files to Modify (6+ files)
 
@@ -484,6 +515,7 @@ Total CPU: 10 events/min × 20ms = 200ms/minute = 0.3% of one core
 ### Key Implementation Tasks
 
 **Backend:**
+
 1. Create SSE bridge service with EventConsumer for `web_sse_events` queue
 2. Implement server-side guild filtering using cached `get_user_guilds()`
 3. Create SSE endpoint with FastAPI StreamingResponse
@@ -494,6 +526,7 @@ Total CPU: 10 events/min × 20ms = 200ms/minute = 0.3% of one core
 8. Update bot publisher to accept and use guild_id in routing key
 
 **Frontend:**
+
 1. Create useGameUpdates React hook with EventSource
 2. Handle SSE events: parse game_id, refetch updated game
 3. Add Join/Leave buttons to GameCard component
@@ -501,8 +534,411 @@ Total CPU: 10 events/min × 20ms = 200ms/minute = 0.3% of one core
 5. Handle connection errors and automatic reconnection
 
 **Infrastructure:**
+
 1. RabbitMQ queue setup handled by init service (add `web_sse_events` queue)
 2. Binding to `game.updated.*` routing key
+
+### Integration Test Specifications
+
+**Test File:** `tests/integration/test_sse_bridge.py`
+
+**Purpose:** Validate SSE bridge infrastructure without Discord complexity
+
+#### Test 1: SSE Connection + RabbitMQ Message Delivery
+
+**Objective:** Verify that publishing a `game.updated.*` event to RabbitMQ results in SSE clients receiving the event within timeout.
+
+**Implementation Pattern:**
+
+```python
+@pytest.mark.asyncio
+async def test_sse_receives_rabbitmq_game_updated_events(
+    authenticated_client,
+    test_guild_context,
+    rabbitmq_publisher
+):
+    """SSE client receives game.updated events published to RabbitMQ."""
+
+    # Establish SSE connection using httpx streaming
+    async with httpx.AsyncClient() as client:
+        async with client.stream(
+            "GET",
+            f"{API_BASE_URL}/api/v1/sse/game-updates",
+            cookies=authenticated_client.cookies,
+            timeout=30.0
+        ) as response:
+            # Verify connection established (200 OK)
+            assert response.status_code == 200
+
+            # Publish game.updated event to RabbitMQ
+            test_game_id = str(uuid4())
+            await rabbitmq_publisher.publish(
+                event=Event(
+                    type=EventType.GAME_UPDATED,
+                    data={
+                        "game_id": test_game_id,
+                        "guild_id": test_guild_context.discord_id
+                    }
+                ),
+                routing_key=f"game.updated.{test_guild_context.discord_id}"
+            )
+
+            # Read SSE stream with timeout
+            received_event = None
+            async for line in response.aiter_lines():
+                if line.startswith("data: "):
+                    data = json.loads(line[6:])  # Strip "data: " prefix
+                    if data.get("type") == "game_updated":
+                        received_event = data
+                        break
+
+            # Assertions
+            assert received_event is not None, "SSE event not received"
+            assert received_event["game_id"] == test_game_id
+            assert received_event["guild_id"] == test_guild_context.discord_id
+```
+
+**Fixtures Required:**
+
+- `authenticated_client` - HTTP client with valid session cookie (existing in integration conftest)
+- `test_guild_context` - Guild with user membership (existing pattern)
+- `rabbitmq_publisher` - EventPublisher instance (create new fixture)
+
+**Validates:**
+
+- SSE endpoint accepts authenticated connections
+- RabbitMQ → SSE bridge message routing
+- Event data serialization/deserialization
+- Basic authorization (user receives events for their guild)
+
+#### Test 2: Server-Side Guild Authorization Filtering
+
+**Objective:** Verify SSE clients only receive events for guilds they are members of (critical security test).
+
+**Implementation Pattern:**
+
+```python
+@pytest.mark.asyncio
+async def test_sse_filters_events_by_guild_membership(
+    authenticated_client_guild_a,
+    authenticated_client_guild_b,
+    guild_a_context,
+    guild_b_context,
+    rabbitmq_publisher
+):
+    """SSE clients only receive events for guilds they're authorized to access."""
+
+    # Track received events for each client
+    guild_a_events = []
+    guild_b_events = []
+
+    async def consume_sse_events(client, cookies, event_list):
+        """Helper to consume SSE events into list."""
+        async with httpx.AsyncClient() as http_client:
+            async with http_client.stream(
+                "GET",
+                f"{API_BASE_URL}/api/v1/sse/game-updates",
+                cookies=cookies,
+                timeout=10.0
+            ) as response:
+                async for line in response.aiter_lines():
+                    if line.startswith("data: "):
+                        data = json.loads(line[6:])
+                        if data.get("type") == "game_updated":
+                            event_list.append(data)
+                            if len(event_list) >= 2:
+                                return  # Stop after 2 events max
+
+    # Start both SSE consumers
+    consumer_a = asyncio.create_task(
+        consume_sse_events(authenticated_client_guild_a,
+                          authenticated_client_guild_a.cookies,
+                          guild_a_events)
+    )
+    consumer_b = asyncio.create_task(
+        consume_sse_events(authenticated_client_guild_b,
+                          authenticated_client_guild_b.cookies,
+                          guild_b_events)
+    )
+
+    # Wait for connections to establish
+    await asyncio.sleep(0.5)
+
+    # Publish event for Guild A
+    game_id_a = str(uuid4())
+    await rabbitmq_publisher.publish(
+        event=Event(
+            type=EventType.GAME_UPDATED,
+            data={"game_id": game_id_a, "guild_id": guild_a_context.discord_id}
+        ),
+        routing_key=f"game.updated.{guild_a_context.discord_id}"
+    )
+
+    # Publish event for Guild B
+    game_id_b = str(uuid4())
+    await rabbitmq_publisher.publish(
+        event=Event(
+            type=EventType.GAME_UPDATED,
+            data={"game_id": game_id_b, "guild_id": guild_b_context.discord_id}
+        ),
+        routing_key=f"game.updated.{guild_b_context.discord_id}"
+    )
+
+    # Wait for event processing
+    await asyncio.sleep(2.0)
+
+    # Cancel consumers
+    consumer_a.cancel()
+    consumer_b.cancel()
+
+    # Assertions: Each client only received events for their guild
+    assert len(guild_a_events) == 1, "Guild A user should receive exactly 1 event"
+    assert guild_a_events[0]["game_id"] == game_id_a
+    assert guild_a_events[0]["guild_id"] == guild_a_context.discord_id
+
+    assert len(guild_b_events) == 1, "Guild B user should receive exactly 1 event"
+    assert guild_b_events[0]["game_id"] == game_id_b
+    assert guild_b_events[0]["guild_id"] == guild_b_context.discord_id
+
+    # Critical: Verify NO cross-guild leakage
+    guild_a_game_ids = [e["game_id"] for e in guild_a_events]
+    guild_b_game_ids = [e["game_id"] for e in guild_b_events]
+
+    assert game_id_b not in guild_a_game_ids, "Guild A user MUST NOT receive Guild B events"
+    assert game_id_a not in guild_b_game_ids, "Guild B user MUST NOT receive Guild A events"
+```
+
+**Fixtures Required:**
+
+- `authenticated_client_guild_a` - HTTP client for user in Guild A (create new fixture)
+- `authenticated_client_guild_b` - HTTP client for user in Guild B (create new fixture)
+- `guild_a_context` - Guild A configuration with channel and template (existing pattern)
+- `guild_b_context` - Guild B configuration with channel and template (existing pattern)
+- `rabbitmq_publisher` - EventPublisher instance (shared fixture)
+
+**Validates:**
+
+- Server-side authorization filtering works correctly
+- No information disclosure across guilds
+- Events routed to correct clients based on guild membership
+- Critical security boundary enforcement
+
+#### Test 3: Multiple Concurrent SSE Connections
+
+**Objective:** Verify SSE bridge correctly broadcasts events to multiple simultaneous clients for the same guild.
+
+**Implementation Pattern:**
+
+```python
+@pytest.mark.asyncio
+async def test_sse_broadcasts_to_multiple_clients(
+    test_guild_context,
+    rabbitmq_publisher,
+    create_authenticated_client
+):
+    """SSE bridge broadcasts events to all authorized concurrent connections."""
+
+    # Create 5 concurrent SSE connections for same guild
+    num_clients = 5
+    client_events = [[] for _ in range(num_clients)]
+
+    async def consume_sse(client_id, cookies, event_list):
+        """Consumer that collects SSE events."""
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "GET",
+                f"{API_BASE_URL}/api/v1/sse/game-updates",
+                cookies=cookies,
+                timeout=10.0
+            ) as response:
+                async for line in response.aiter_lines():
+                    if line.startswith("data: "):
+                        data = json.loads(line[6:])
+                        if data.get("type") == "game_updated":
+                            event_list.append(data)
+                            return  # Stop after first event
+
+    # Create multiple authenticated clients for same user
+    clients = []
+    for i in range(num_clients):
+        client = await create_authenticated_client(test_guild_context.discord_id)
+        clients.append(client)
+
+    # Start all SSE consumers
+    consumer_tasks = [
+        asyncio.create_task(consume_sse(i, client.cookies, client_events[i]))
+        for i, client in enumerate(clients)
+    ]
+
+    # Wait for connections to establish
+    await asyncio.sleep(0.5)
+
+    # Publish single game.updated event
+    test_game_id = str(uuid4())
+    await rabbitmq_publisher.publish(
+        event=Event(
+            type=EventType.GAME_UPDATED,
+            data={
+                "game_id": test_game_id,
+                "guild_id": test_guild_context.discord_id
+            }
+        ),
+        routing_key=f"game.updated.{test_guild_context.discord_id}"
+    )
+
+    # Wait for all consumers to receive event (or timeout)
+    await asyncio.wait(consumer_tasks, timeout=5.0)
+
+    # Cancel any still-running tasks
+    for task in consumer_tasks:
+        if not task.done():
+            task.cancel()
+
+    # Assertions: All clients received the same event
+    for i, events in enumerate(client_events):
+        assert len(events) == 1, f"Client {i} should receive exactly 1 event"
+        assert events[0]["game_id"] == test_game_id
+        assert events[0]["guild_id"] == test_guild_context.discord_id
+
+    # Verify all clients got same event
+    received_game_ids = [events[0]["game_id"] for events in client_events]
+    assert all(game_id == test_game_id for game_id in received_game_ids)
+```
+
+**Fixtures Required:**
+
+- `test_guild_context` - Guild configuration (existing pattern)
+- `rabbitmq_publisher` - EventPublisher instance (shared fixture)
+- `create_authenticated_client` - Factory fixture to create multiple authenticated clients (create new fixture)
+
+**Validates:**
+
+- SSE bridge broadcasts to multiple concurrent connections
+- Connection management handles multiple simultaneous clients
+- No message loss during fanout
+- Scalability for reasonable concurrent connection counts
+
+#### Shared Test Fixtures
+
+**Create in `tests/integration/conftest.py`:**
+
+```python
+@pytest.fixture
+async def rabbitmq_publisher():
+    """EventPublisher for integration tests."""
+    publisher = EventPublisher()
+    await publisher.connect()
+    yield publisher
+    await publisher.close()
+
+@pytest.fixture
+async def create_authenticated_client(admin_db):
+    """Factory to create authenticated HTTP clients for testing."""
+    created_clients = []
+
+    async def _create_client(guild_id: str) -> httpx.AsyncClient:
+        # Create test user session
+        user = User(
+            discord_id=str(uuid4()),
+            username=f"testuser_{uuid4().hex[:8]}"
+        )
+        session_token = await create_test_session(admin_db, user, [guild_id])
+
+        client = httpx.AsyncClient(base_url=API_BASE_URL)
+        client.cookies.set("session_token", session_token)
+        created_clients.append((client, session_token))
+        return client
+
+    yield _create_client
+
+    # Cleanup
+    for client, session_token in created_clients:
+        await client.aclose()
+        await cleanup_test_session(admin_db, session_token)
+
+@pytest.fixture
+async def authenticated_client_guild_a(
+    admin_db,
+    guild_a_context
+) -> httpx.AsyncClient:
+    """Authenticated client for user in Guild A."""
+    user = User(
+        discord_id=str(uuid4()),
+        username="guild_a_user"
+    )
+    session_token = await create_test_session(
+        admin_db, user, [guild_a_context.discord_id]
+    )
+
+    client = httpx.AsyncClient(base_url=API_BASE_URL)
+    client.cookies.set("session_token", session_token)
+
+    yield client
+
+    await client.aclose()
+    await cleanup_test_session(admin_db, session_token)
+
+@pytest.fixture
+async def authenticated_client_guild_b(
+    admin_db,
+    guild_b_context
+) -> httpx.AsyncClient:
+    """Authenticated client for user in Guild B."""
+    user = User(
+        discord_id=str(uuid4()),
+        username="guild_b_user"
+    )
+    session_token = await create_test_session(
+        admin_db, user, [guild_b_context.discord_id]
+    )
+
+    client = httpx.AsyncClient(base_url=API_BASE_URL)
+    client.cookies.set("session_token", session_token)
+
+    yield client
+
+    await client.aclose()
+    await cleanup_test_session(admin_db, session_token)
+```
+
+#### Test Dependencies
+
+**Required Imports:**
+
+```python
+import asyncio
+import json
+from uuid import uuid4
+
+import httpx
+import pytest
+
+from shared.messaging.events import Event, EventType
+from shared.messaging.publisher import EventPublisher
+from shared.models.user import User
+from tests.shared.auth_helpers import create_test_session, cleanup_test_session
+```
+
+**Environment Requirements:**
+
+- API service must be running (`API_BASE_URL` from environment)
+- RabbitMQ must be running and configured
+- PostgreSQL with test data seeded
+- SSE bridge service must be running (started by API lifespan)
+
+#### Test Execution
+
+**Run all SSE integration tests:**
+
+```bash
+SKIP_CLEANUP=1 scripts/run-integration-tests.sh tests/integration/test_sse_bridge.py
+```
+
+**Run specific test:**
+
+```bash
+SKIP_CLEANUP=1 scripts/run-integration-tests.sh tests/integration/test_sse_bridge.py::test_sse_receives_rabbitmq_game_updated_events
+```
 
 ### Success Criteria
 
@@ -514,3 +950,6 @@ Total CPU: 10 events/min × 20ms = 200ms/minute = 0.3% of one core
 - SSE connections handle disconnect/reconnect gracefully
 - System handles 100 concurrent SSE connections without performance degradation
 - All authentication and authorization checks pass
+- **Integration Test #1:** SSE clients receive RabbitMQ events within 5 seconds
+- **Integration Test #2:** Guild authorization filtering prevents cross-guild information disclosure
+- **Integration Test #3:** Multiple concurrent SSE connections receive same broadcast event

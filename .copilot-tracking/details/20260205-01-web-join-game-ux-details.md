@@ -16,7 +16,7 @@ Create a new SSE bridge service that consumes game update events from RabbitMQ a
   - services/api/services/sse_bridge.py (NEW) - SSE bridge with EventConsumer (~150 lines)
 - **Success**:
   - Bridge service connects to RabbitMQ web_sse_events queue
-  - Consumes game.updated.* events using wildcard binding
+  - Consumes game.updated.\* events using wildcard binding
   - Maintains dictionary of active SSE connections with session tokens
   - Filters events by checking cached user guild memberships
   - Broadcasts only to authorized connections
@@ -75,7 +75,7 @@ Add guild_id to event data and routing keys in both API and Bot publishers to en
 - **Success**:
   - All game.updated events use routing key format: game.updated.{guild_id}
   - Event data includes guild_id field for server-side filtering
-  - Existing consumers using game.updated.* wildcard continue working
+  - Existing consumers using game.updated.\* wildcard continue working
   - No breaking changes to event structure
 - **Research References**:
   - #file:../research/20260205-01-web-join-game-ux-research.md (Lines 237-263) - Routing Key Design: Hybrid Approach
@@ -84,13 +84,13 @@ Add guild_id to event data and routing keys in both API and Bot publishers to en
 
 ### Task 2.2: Add web_sse_events queue to RabbitMQ initialization
 
-Configure new RabbitMQ queue for SSE bridge with binding to game.updated.* routing keys.
+Configure new RabbitMQ queue for SSE bridge with binding to game.updated.\* routing keys.
 
 - **Files**:
   - services/init/rabbitmq_setup.py - Add web_sse_events queue declaration (~5 lines)
 - **Success**:
   - Queue web_sse_events created with durable=True
-  - Bound to game_scheduler exchange with routing key game.updated.*
+  - Bound to game_scheduler exchange with routing key game.updated.\*
   - Multiple consumers can read from different queues (fanout pattern verified)
 - **Research References**:
   - #file:../research/20260205-01-web-join-game-ux-research.md (Lines 46-58) - RabbitMQ Message Flow Architecture
@@ -160,25 +160,25 @@ Add useGameUpdates hook to game listing pages to automatically refetch and updat
 
 ## Phase 4: Testing and Validation
 
-### Task 4.1: Create unit tests for SSE endpoint and bridge
+### Task 4.1: Write integration tests for SSE bridge
 
-Create comprehensive unit tests covering SSE endpoint authentication, connection management, and bridge filtering logic.
+Create integration tests to validate SSE bridge infrastructure without Discord complexity, covering RabbitMQ message delivery, guild authorization filtering, and concurrent connection handling.
 
 - **Files**:
-  - tests/services/api/routes/test_sse.py (NEW) - SSE endpoint tests (~100 lines)
-  - tests/services/api/services/test_sse_bridge.py (NEW) - Bridge service tests (~100 lines)
+  - tests/integration/test_sse_bridge.py (NEW) - SSE bridge integration tests (~200 lines)
+  - tests/integration/conftest.py - Add SSE-specific test fixtures (rabbitmq_publisher, authenticated_client factories)
 - **Success**:
-  - Test SSE endpoint requires authentication (401 without session)
-  - Test connection registration with bridge
-  - Test event filtering by guild membership
-  - Test keepalive pings sent every 30 seconds
-  - Test disconnect cleanup removes connection
-  - Test bridge broadcasts only to authorized users
-  - Test cache-based guild membership checks
+  - **Test 1:** SSE clients receive RabbitMQ game.updated events within 5 seconds
+  - **Test 2:** Guild authorization filtering prevents cross-guild information disclosure
+  - **Test 3:** Multiple concurrent SSE connections receive same broadcast event
+  - All tests use httpx.AsyncClient with streaming for SSE connections
+  - Fixtures handle proper cleanup of connections and sessions
 - **Research References**:
-  - #file:../research/20260205-01-web-join-game-ux-research.md (Lines 80-106) - Security requirements for testing
+  - #file:../research/20260205-01-web-join-game-ux-research.md (Lines 508-887) - Complete integration test specifications with implementation patterns
+  - #file:../research/20260205-01-web-join-game-ux-research.md (Lines 907-909) - Success criteria for integration tests
 - **Dependencies**:
   - Phase 1 completion (SSE infrastructure)
+  - Phase 2 completion (RabbitMQ integration)
 
 ### Task 4.2: Verify cross-platform synchronization (Discord → Web)
 
