@@ -49,15 +49,15 @@ Enable real-time synchronization of game join/leave actions across web and Disco
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Backend SSE Infrastructure
+### [x] Phase 1: Backend SSE Infrastructure
 
-- [ ] Task 1.1: Create SSE bridge service with RabbitMQ consumer
+- [x] Task 1.1: Create SSE bridge service with RabbitMQ consumer
   - Details: .copilot-tracking/details/20260205-01-web-join-game-ux-details.md (Lines 15-34)
 
-- [ ] Task 1.2: Create SSE endpoint with FastAPI StreamingResponse
+- [x] Task 1.2: Create SSE endpoint with FastAPI StreamingResponse
   - Details: .copilot-tracking/details/20260205-01-web-join-game-ux-details.md (Lines 36-52)
 
-- [ ] Task 1.3: Integrate SSE bridge into API service lifespan
+- [x] Task 1.3: Integrate SSE bridge into API service lifespan
   - Details: .copilot-tracking/details/20260205-01-web-join-game-ux-details.md (Lines 54-68)
 
 ### [ ] Phase 2: RabbitMQ Integration and Routing Keys

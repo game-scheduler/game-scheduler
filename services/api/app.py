@@ -26,17 +26,19 @@ Creates and configures the FastAPI application with middleware,
 error handlers, and route registration.
 """
 
+import asyncio
 import logging
 import sys
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from services.api import middleware
 from services.api.config import get_api_config
-from services.api.routes import auth, channels, export, games, guilds, templates
+from services.api.routes import auth, channels, export, games, guilds, sse, templates
+from services.api.services.sse_bridge import get_sse_bridge
 from shared.cache import client as redis_client
 from shared.telemetry import init_telemetry
 from shared.version import get_api_version, get_git_version
@@ -78,9 +80,19 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
     logger.info("Guild isolation middleware registered (event listener active)")
 
+    bridge = get_sse_bridge()
+    bridge_task = asyncio.create_task(bridge.start_consuming())
+    logger.info("SSE bridge started consuming game events")
+
     yield
 
     logger.info("Shutting down API service...")
+
+    bridge_task.cancel()
+    with suppress(asyncio.CancelledError):
+        await bridge_task
+    await bridge.stop_consuming()
+    logger.info("SSE bridge stopped")
 
     await redis_instance.disconnect()
     logger.info("Redis connection closed")
@@ -113,6 +125,7 @@ def create_app() -> FastAPI:
     app.include_router(templates.router)
     app.include_router(games.router)
     app.include_router(export.router)
+    app.include_router(sse.router)
 
     @app.get("/health")
     async def health_check() -> dict[str, str | dict[str, str]]:
