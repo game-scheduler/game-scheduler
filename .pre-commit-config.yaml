@@ -155,7 +155,7 @@ repos:
       # Requires project dependencies: run 'uv sync' before using this hook
       - id: pytest-coverage
         name: Python unit tests with coverage
-        entry: bash -c 'output=$(uv run pytest --cov --cov-report=xml --cov-report= -qq 2>&1); if [ $? -ne 0 ]; then echo "$output"; exit 1; fi'
+        entry: bash -c 'output=$(uv run pytest --timeout=30 --cov --cov-report=xml --cov-report= -qq 2>&1); if [ $? -ne 0 ]; then echo "$output"; exit 1; fi'
         language: system
         pass_filenames: false
         files: ^(services|shared|tests)/.*\.py$
@@ -197,7 +197,7 @@ repos:
       # Requires frontend dependencies: run 'cd frontend && npm install' before using this hook
       - id: vitest-coverage
         name: Frontend unit tests with coverage
-        entry: bash -c 'cd frontend && npm run test:coverage -- --run --reporter=hanging-process 2>&1 | grep -E "(FAIL|Test Files.*failed|Duration)" && sed "s|^SF:src/|SF:frontend/src/|g" coverage/lcov.info > coverage/lcov-fixed.info || (sed "s|^SF:src/|SF:frontend/src/|g" coverage/lcov.info > coverage/lcov-fixed.info && exit 0)'
+        entry: bash -c 'cd frontend && npm run test:coverage -- --run --test-timeout=10000 --reporter=hanging-process 2>&1 | grep -E "(FAIL|Test Files.*failed|Duration)" && sed "s|^SF:src/|SF:frontend/src/|g" coverage/lcov.info > coverage/lcov-fixed.info || (sed "s|^SF:src/|SF:frontend/src/|g" coverage/lcov.info > coverage/lcov-fixed.info && exit 0)'
         language: system
         pass_filenames: false
         files: ^frontend/src/.*\.(ts|tsx|js|jsx)$

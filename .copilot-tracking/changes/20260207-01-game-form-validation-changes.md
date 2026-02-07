@@ -34,6 +34,7 @@ Implementing comprehensive frontend validation for game creation forms with reus
 - frontend/src/components/GameForm.tsx - Extracted magic number 500 to MAX_LOCATION_LENGTH constant for ESLint compliance
 - frontend/src/components/**tests**/GameForm.validation.test.tsx - Adjusted test expectations to match actual validation messages (Task 2.3)
 - frontend/src/components/**tests**/GameForm.validation.test.tsx - Fixed test performance by using user.paste() for long text (480+ chars) and user.keyboard() for shorter inputs
-- frontend/src/contexts/AuthContext.tsx - Exported AuthContextType interface for test mocking
+- frontend/src/contexts/AuthContext.tsx - Exported AuthContextType interface for test mocking- .pre-commit-config.yaml - Added per-test timeout to pytest (30s) and vitest (10s) to prevent indefinite test hangs
+- pyproject.toml - Added pytest-timeout dependency for pytest --timeout support
 
 ### Removed
