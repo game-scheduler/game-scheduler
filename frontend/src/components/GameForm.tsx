@@ -47,6 +47,13 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { Time } from '../constants/time';
 import { UI } from '../constants/ui';
+import {
+  validateDuration,
+  validateReminderMinutes,
+  validateMaxPlayers,
+  validateCharacterLimit,
+  validateFutureDate,
+} from '../utils/fieldValidation';
 
 /**
  * Round time up to the next half hour (e.g., 5:13 -> 5:30, 5:30 -> 5:30, 5:31 -> 6:00)
@@ -188,6 +195,15 @@ export const GameForm: FC<GameFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hostError, setHostError] = useState<string | null>(null);
+
+  // Validation error states
+  const [durationError, setDurationError] = useState<string | null>(null);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+  const [maxPlayersError, setMaxPlayersError] = useState<string | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
+  const [signupInstructionsError, setSignupInstructionsError] = useState<string | null>(null);
+  const [scheduledAtError, setScheduledAtError] = useState<string | null>(null);
 
   // Calculate available signup methods: if empty/null, all methods are available
   const availableSignupMethods =
@@ -335,6 +351,54 @@ export const GameForm: FC<GameFormProps> = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Validation handler stubs
+  const validateDurationField = () => {
+    const parsed = parseDurationString(formData.expectedDurationMinutes);
+    const result = validateDuration(parsed);
+    setDurationError(result.error || null);
+  };
+
+  const validateReminderField = () => {
+    const result = validateReminderMinutes(formData.reminderMinutes);
+    setReminderError(result.error || null);
+  };
+
+  const validateMaxPlayersField = () => {
+    const result = validateMaxPlayers(formData.maxPlayers);
+    setMaxPlayersError(result.error || null);
+  };
+
+  const validateLocationField = () => {
+    const MAX_LOCATION_LENGTH = 500;
+    const result = validateCharacterLimit(formData.where, MAX_LOCATION_LENGTH, 'Location');
+    setLocationError(result.error || result.warning || null);
+  };
+
+  const validateDescriptionField = () => {
+    const MAX_DESCRIPTION_LENGTH = 2000;
+    const result = validateCharacterLimit(
+      formData.description,
+      MAX_DESCRIPTION_LENGTH,
+      'Description'
+    );
+    setDescriptionError(result.error || result.warning || null);
+  };
+
+  const validateSignupInstructionsField = () => {
+    const MAX_SIGNUP_INSTRUCTIONS_LENGTH = 1000;
+    const result = validateCharacterLimit(
+      formData.signupInstructions,
+      MAX_SIGNUP_INSTRUCTIONS_LENGTH,
+      'Signup Instructions'
+    );
+    setSignupInstructionsError(result.error || result.warning || null);
+  };
+
+  const validateScheduledAtField = () => {
+    const result = validateFutureDate(formData.scheduledAt);
+    setScheduledAtError(result.error || null);
+  };
+
   const handleSelectChange = (event: SelectChangeEvent) => {
     const { name, value } = event.target;
     if (name === 'signupMethod') {
@@ -346,6 +410,7 @@ export const GameForm: FC<GameFormProps> = ({
 
   const handleDateChange = (date: Date | null) => {
     setFormData((prev) => ({ ...prev, scheduledAt: date }));
+    validateScheduledAtField();
   };
 
   const handleParticipantsChange = (participants: EditableParticipantInput[]) => {
@@ -439,13 +504,26 @@ export const GameForm: FC<GameFormProps> = ({
       return;
     }
 
+    const hasValidationErrors =
+      !!durationError ||
+      !!reminderError ||
+      !!maxPlayersError ||
+      !!locationError ||
+      !!descriptionError ||
+      !!signupInstructionsError ||
+      !!scheduledAtError;
+
+    if (hasValidationErrors) {
+      setError('Please fix all validation errors before submitting.');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       await onSubmit(formData);
     } catch (err: unknown) {
       console.error('Failed to submit form:', err);
-      // Don't set error here if validation errors exist - parent handles those
       if (!validationErrors) {
         const errorDetail = (err as any).response?.data?.detail;
         const errorMessage =
@@ -519,10 +597,12 @@ export const GameForm: FC<GameFormProps> = ({
             name="where"
             value={formData.where}
             onChange={handleChange}
+            onBlur={validateLocationField}
             margin="normal"
             multiline
             rows={2}
-            helperText="Game location (optional, up to 500 characters)"
+            helperText={locationError || 'Game location (optional, up to 500 characters)'}
+            error={!!locationError}
             disabled={loading}
             inputProps={{ maxLength: 500 }}
             InputLabelProps={{
@@ -538,6 +618,8 @@ export const GameForm: FC<GameFormProps> = ({
             disabled={loading}
             slotProps={{
               textField: {
+                error: !!scheduledAtError,
+                helperText: scheduledAtError,
                 InputLabelProps: {
                   sx: { fontSize: '1.1rem' },
                 },
@@ -552,7 +634,9 @@ export const GameForm: FC<GameFormProps> = ({
               name="expectedDurationMinutes"
               value={formData.expectedDurationMinutes}
               onChange={handleChange}
-              helperText="e.g., 2h, 90m, 1h 30m, 1:30 (optional)"
+              onBlur={validateDurationField}
+              helperText={durationError || 'e.g., 2h, 90m, 1h 30m, 1:30 (optional)'}
+              error={!!durationError}
               disabled={loading}
               placeholder="2h 30m"
               sx={{ flex: '1 1 45%', minWidth: '200px' }}
@@ -563,7 +647,11 @@ export const GameForm: FC<GameFormProps> = ({
               name="reminderMinutes"
               value={formData.reminderMinutes}
               onChange={handleChange}
-              helperText="Comma-separated (e.g., 60, 15). Leave empty for default"
+              onBlur={validateReminderField}
+              helperText={
+                reminderError || 'Comma-separated (e.g., 60, 15). Leave empty for default'
+              }
+              error={!!reminderError}
               disabled={loading}
               sx={{ flex: '1 1 45%', minWidth: '200px' }}
             />
@@ -625,8 +713,11 @@ export const GameForm: FC<GameFormProps> = ({
             name="description"
             value={formData.description}
             onChange={handleChange}
+            onBlur={validateDescriptionField}
             margin="normal"
             disabled={loading}
+            helperText={descriptionError}
+            error={!!descriptionError}
             InputLabelProps={{
               sx: { fontSize: '1.1rem' },
             }}
@@ -641,8 +732,13 @@ export const GameForm: FC<GameFormProps> = ({
             name="signupInstructions"
             value={formData.signupInstructions}
             onChange={handleChange}
+            onBlur={validateSignupInstructionsField}
             margin="normal"
-            helperText="Special requirements or instructions (visible to host only after creation)"
+            helperText={
+              signupInstructionsError ||
+              'Special requirements or instructions (visible to host only after creation)'
+            }
+            error={!!signupInstructionsError}
             disabled={loading}
             sx={{ mb: 1 }}
           />
@@ -656,7 +752,9 @@ export const GameForm: FC<GameFormProps> = ({
                 type="number"
                 value={formData.maxPlayers}
                 onChange={handleChange}
-                helperText="Leave empty to use channel/server default"
+                onBlur={validateMaxPlayersField}
+                helperText={maxPlayersError || 'Leave empty to use channel/server default'}
+                error={!!maxPlayersError}
                 disabled={loading}
                 inputProps={{ min: 1, max: 100 }}
                 InputLabelProps={{

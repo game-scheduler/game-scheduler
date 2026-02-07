@@ -30,6 +30,8 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
 }
 
+export type { AuthContextType };
+
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
