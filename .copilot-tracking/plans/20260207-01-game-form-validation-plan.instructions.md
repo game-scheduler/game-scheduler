@@ -59,30 +59,30 @@ Implement comprehensive frontend validation for game creation forms with reusabl
 - [x] Task 0.5: Refactor and add edge case tests
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 78-93)
 
-### [ ] Phase 1: Shared Validation Utilities with TDD
+### [x] Phase 1: Shared Validation Utilities with TDD
 
-- [ ] Task 1.1: Create validation utilities stub
+- [x] Task 1.1: Create validation utilities stub
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 95-113)
 
-- [ ] Task 1.2: Write failing tests for all validators
+- [x] Task 1.2: Write failing tests for all validators
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 115-140)
 
-- [ ] Task 1.3: Implement validateDuration
+- [x] Task 1.3: Implement validateDuration
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 142-156)
 
-- [ ] Task 1.4: Implement validateReminderMinutes
+- [x] Task 1.4: Implement validateReminderMinutes
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 158-172)
 
-- [ ] Task 1.5: Implement validateMaxPlayers
+- [x] Task 1.5: Implement validateMaxPlayers
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 174-188)
 
-- [ ] Task 1.6: Implement validateCharacterLimit
+- [x] Task 1.6: Implement validateCharacterLimit
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 190-205)
 
-- [ ] Task 1.7: Implement validateFutureDate
+- [x] Task 1.7: Implement validateFutureDate
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 207-222)
 
-- [ ] Task 1.8: Refactor and verify full coverage
+- [x] Task 1.8: Refactor and verify full coverage
   - Details: .copilot-tracking/details/20260207-01-game-form-validation-details.md (Lines 224-238)
 
 ### [ ] Phase 2: GameForm Validation Integration with TDD
