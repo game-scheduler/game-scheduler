@@ -138,7 +138,7 @@ class SSEGameUpdateBridge:
 
         disconnected_clients: list[str] = []
 
-        for client_id, (queue, session_token, discord_id) in self.connections.items():
+        for client_id, (queue, session_token, discord_id) in list(self.connections.items()):
             try:
                 token_data = await tokens.get_user_tokens(session_token)
                 if not token_data:

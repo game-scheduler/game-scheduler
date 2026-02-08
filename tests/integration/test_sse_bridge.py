@@ -186,7 +186,7 @@ async def test_sse_receives_rabbitmq_game_updated_events(
                 event_type=EventType.GAME_UPDATED,
                 data={
                     "game_id": test_game_id,
-                    "guild_id": guild_a["guild_id"],
+                    "guild_id": guild_a["id"],
                 },
             ),
             routing_key=f"game.updated.{guild_a['guild_id']}",
@@ -214,7 +214,7 @@ async def test_sse_receives_rabbitmq_game_updated_events(
 
     assert received_event is not None, "SSE event not received within timeout"
     assert received_event["game_id"] == test_game_id
-    assert received_event["guild_id"] == guild_a["guild_id"]
+    assert received_event["guild_id"] == guild_a["id"]
 
 
 @pytest.mark.asyncio
@@ -257,7 +257,7 @@ async def test_sse_filters_events_by_guild_membership(
     await rabbitmq_publisher.publish(
         event=Event(
             event_type=EventType.GAME_UPDATED,
-            data={"game_id": game_id_a, "guild_id": guild_a["guild_id"]},
+            data={"game_id": game_id_a, "guild_id": guild_a["id"]},
         ),
         routing_key=f"game.updated.{guild_a['guild_id']}",
     )
@@ -267,7 +267,7 @@ async def test_sse_filters_events_by_guild_membership(
     await rabbitmq_publisher.publish(
         event=Event(
             event_type=EventType.GAME_UPDATED,
-            data={"game_id": game_id_b, "guild_id": guild_b["guild_id"]},
+            data={"game_id": game_id_b, "guild_id": guild_b["id"]},
         ),
         routing_key=f"game.updated.{guild_b['guild_id']}",
     )
@@ -284,11 +284,11 @@ async def test_sse_filters_events_by_guild_membership(
     # Assertions: Each client only received events for their guild
     assert len(guild_a_events) == 1, "Guild A user should receive exactly 1 event"
     assert guild_a_events[0]["game_id"] == game_id_a
-    assert guild_a_events[0]["guild_id"] == guild_a["guild_id"]
+    assert guild_a_events[0]["guild_id"] == guild_a["id"]
 
     assert len(guild_b_events) == 1, "Guild B user should receive exactly 1 event"
     assert guild_b_events[0]["game_id"] == game_id_b
-    assert guild_b_events[0]["guild_id"] == guild_b["guild_id"]
+    assert guild_b_events[0]["guild_id"] == guild_b["id"]
 
     # Critical: Verify NO cross-guild leakage
     guild_a_game_ids = [e["game_id"] for e in guild_a_events]
@@ -358,7 +358,7 @@ async def test_sse_broadcasts_to_multiple_clients(
             event_type=EventType.GAME_UPDATED,
             data={
                 "game_id": test_game_id,
-                "guild_id": guild["guild_id"],
+                "guild_id": guild["id"],
             },
         ),
         routing_key=f"game.updated.{guild['guild_id']}",
@@ -375,7 +375,7 @@ async def test_sse_broadcasts_to_multiple_clients(
     for i, events in enumerate(client_events):
         assert len(events) == 1, f"Client {i} should receive exactly 1 event"
         assert events[0]["game_id"] == test_game_id
-        assert events[0]["guild_id"] == guild["guild_id"]
+        assert events[0]["guild_id"] == guild["id"]
 
     # Verify all clients got same event
     received_game_ids = [events[0]["game_id"] for events in client_events]
