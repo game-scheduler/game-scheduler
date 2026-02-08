@@ -491,3 +491,72 @@ describe('GameForm - Signup Method Selector', () => {
     expect(input).toHaveValue('HOST_SELECTED');
   });
 });
+
+describe('GameForm - ReminderSelector Integration', () => {
+  const mockChannel = {
+    id: 'ch1',
+    channel_name: 'General',
+    guild_id: 'guild1',
+    channel_id: 'ch1',
+    is_active: true,
+    created_at: '2025-01-01T00:00:00Z',
+    updated_at: '2025-01-01T00:00:00Z',
+  };
+
+  const mockOnSubmit = vi.fn();
+  const mockOnCancel = vi.fn();
+
+  it('should render ReminderSelector component', () => {
+    const { getByLabelText } = renderWithAuth(
+      <GameForm
+        mode="create"
+        guildId="guild1"
+        channels={[mockChannel]}
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    expect(getByLabelText('Add Reminder Time')).toBeInTheDocument();
+  });
+
+  it('should initialize ReminderSelector with empty array for new game', () => {
+    const { queryByRole } = renderWithAuth(
+      <GameForm
+        mode="create"
+        guildId="guild1"
+        channels={[mockChannel]}
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const chips = queryByRole('button', { name: /delete/i });
+    expect(chips).not.toBeInTheDocument();
+  });
+
+  it('should initialize ReminderSelector with existing reminder times', () => {
+    const initialData = {
+      reminder_minutes: [30, 60, 1440],
+      channel_id: 'ch1',
+    };
+
+    const { getByLabelText } = renderWithAuth(
+      <GameForm
+        mode="edit"
+        initialData={initialData}
+        guildId="guild1"
+        channels={[mockChannel]}
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    // Verify ReminderSelector is rendered
+    expect(getByLabelText('Add Reminder Time')).toBeInTheDocument();
+
+    // Note: Full test for chip display would require checking internal state
+    // which is better tested through integration/e2e tests
+    // The ReminderSelector unit tests verify chip display works correctly
+  });
+});

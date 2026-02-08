@@ -106,50 +106,6 @@ describe('GameForm Validation', () => {
     });
   });
 
-  describe('Reminder Minutes Field', () => {
-    it('shows error when invalid reminder format is entered', async () => {
-      const user = userEvent.setup();
-      renderGameForm();
-
-      const reminderField = screen.getByLabelText(/Reminder Times/i);
-      await user.clear(reminderField);
-      await user.paste('abc, 60');
-      await user.tab();
-
-      await waitFor(() => {
-        expect(screen.getByText(/must be numeric integers/i)).toBeInTheDocument();
-      });
-    });
-
-    it('shows error when reminder value is out of range', async () => {
-      const user = userEvent.setup();
-      renderGameForm();
-
-      const reminderField = screen.getByLabelText(/Reminder Times/i);
-      await user.clear(reminderField);
-      await user.paste('20000');
-      await user.tab();
-
-      await waitFor(() => {
-        expect(screen.getByText(/cannot exceed 10080/i)).toBeInTheDocument();
-      });
-    });
-
-    it('accepts valid comma-separated reminder minutes', async () => {
-      const user = userEvent.setup();
-      renderGameForm();
-
-      const reminderField = screen.getByLabelText(/Reminder Times/i);
-      await user.clear(reminderField);
-      await user.paste('60, 15, 5');
-      await user.tab();
-
-      await waitFor(() => {
-        expect(screen.queryByText(/Invalid reminder/i)).not.toBeInTheDocument();
-      });
-    });
-  });
-
   describe('Max Players Field', () => {
     it('shows error when max players is below 1', async () => {
       const user = userEvent.setup();

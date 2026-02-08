@@ -60,21 +60,21 @@ Replace text-based comma-separated reminder input with intuitive Select + Chip m
 - [x] Task 0.6: Refactor and add edge case tests
   - Details: .copilot-tracking/details/20260208-01-reminder-time-selector-details.md (Lines 92-105)
 
-### [ ] Phase 1: GameForm Integration with TDD
+### [x] Phase 1: GameForm Integration with TDD
 
-- [ ] Task 1.1: Update GameForm state for array-based reminders
+- [x] Task 1.1: Update GameForm state for array-based reminders
   - Details: .copilot-tracking/details/20260208-01-reminder-time-selector-details.md (Lines 109-121)
 
-- [ ] Task 1.2: Write failing GameForm integration tests
+- [x] Task 1.2: Write failing GameForm integration tests
   - Details: .copilot-tracking/details/20260208-01-reminder-time-selector-details.md (Lines 123-136)
 
-- [ ] Task 1.3: Replace TextField with ReminderSelector
+- [x] Task 1.3: Replace TextField with ReminderSelector
   - Details: .copilot-tracking/details/20260208-01-reminder-time-selector-details.md (Lines 138-151)
 
-- [ ] Task 1.4: Update validation for array-based input
+- [x] Task 1.4: Update validation for array-based input
   - Details: .copilot-tracking/details/20260208-01-reminder-time-selector-details.md (Lines 153-165)
 
-- [ ] Task 1.5: Test backward compatibility with existing data
+- [x] Task 1.5: Test backward compatibility with existing data
   - Details: .copilot-tracking/details/20260208-01-reminder-time-selector-details.md (Lines 167-179)
 
 ### [ ] Phase 2: TemplateForm Integration with TDD

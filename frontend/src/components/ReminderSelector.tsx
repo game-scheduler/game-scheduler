@@ -53,6 +53,8 @@ export function ReminderSelector({ value, onChange, error, helperText }: Reminde
   const [showCustom, setShowCustom] = useState(false);
   const [customMinutes, setCustomMinutes] = useState('');
 
+  const safeValue = Array.isArray(value) ? value : [];
+
   const handlePresetAdd = (event: { target: { value: string | number } }) => {
     const selectedValue = event.target.value;
 
@@ -63,13 +65,13 @@ export function ReminderSelector({ value, onChange, error, helperText }: Reminde
 
     const presetValue =
       typeof selectedValue === 'number' ? selectedValue : parseInt(selectedValue, 10);
-    if (!value.includes(presetValue)) {
-      onChange([...value, presetValue].sort((a, b) => a - b));
+    if (!safeValue.includes(presetValue)) {
+      onChange([...safeValue, presetValue].sort((a, b) => a - b));
     }
   };
 
   const handleDelete = (minuteValue: number) => {
-    onChange(value.filter((v) => v !== minuteValue));
+    onChange(safeValue.filter((v) => v !== minuteValue));
   };
 
   const handleCustomAdd = () => {
@@ -78,10 +80,10 @@ export function ReminderSelector({ value, onChange, error, helperText }: Reminde
       !isNaN(num) &&
       num >= MIN_MINUTES &&
       num <= MAX_MINUTES &&
-      !value.includes(num) &&
+      !safeValue.includes(num) &&
       Number.isInteger(parseFloat(customMinutes))
     ) {
-      onChange([...value, num].sort((a, b) => a - b));
+      onChange([...safeValue, num].sort((a, b) => a - b));
       setCustomMinutes('');
       setShowCustom(false);
     }
@@ -112,7 +114,7 @@ export function ReminderSelector({ value, onChange, error, helperText }: Reminde
             <MenuItem
               key={preset.value}
               value={preset.value}
-              disabled={value.includes(preset.value)}
+              disabled={safeValue.includes(preset.value)}
             >
               {preset.label}
             </MenuItem>
@@ -142,9 +144,9 @@ export function ReminderSelector({ value, onChange, error, helperText }: Reminde
         </Box>
       )}
 
-      {value.length > 0 && (
+      {safeValue.length > 0 && (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
-          {value.map((val) => (
+          {safeValue.map((val) => (
             <Chip
               key={val}
               label={getPresetLabel(val)}

@@ -45,12 +45,12 @@ import {
   ParticipantInput as EditableParticipantInput,
 } from './EditableParticipantList';
 import { DurationSelector } from './DurationSelector';
+import { ReminderSelector } from './ReminderSelector';
 import { useAuth } from '../hooks/useAuth';
 import { Time } from '../constants/time';
 import { UI } from '../constants/ui';
 import {
   validateDuration,
-  validateReminderMinutes,
   validateMaxPlayers,
   validateCharacterLimit,
   validateFutureDate,
@@ -93,6 +93,7 @@ export interface GameFormData {
   channelId: string;
   maxPlayers: string;
   reminderMinutes: string;
+  reminderMinutesArray: number[];
   expectedDurationMinutes: number | null;
   participants: EditableParticipantInput[];
   signupMethod: string;
@@ -179,6 +180,10 @@ export const GameForm: FC<GameFormProps> = ({
     channelId: initialData?.channel_id || '',
     maxPlayers: initialData?.max_players?.toString() || '8',
     reminderMinutes: initialData?.reminder_minutes?.join(', ') || '',
+    reminderMinutesArray:
+      initialData?.reminder_minutes && Array.isArray(initialData.reminder_minutes)
+        ? [...initialData.reminder_minutes]
+        : [],
     expectedDurationMinutes: initialData?.expected_duration_minutes ?? null,
     participants: initialData?.participants
       ? initialData.participants
@@ -222,6 +227,10 @@ export const GameForm: FC<GameFormProps> = ({
         channelId: initialData.channel_id || '',
         maxPlayers: initialData.max_players?.toString() || '8',
         reminderMinutes: initialData.reminder_minutes?.join(', ') || '',
+        reminderMinutesArray:
+          initialData.reminder_minutes && Array.isArray(initialData.reminder_minutes)
+            ? [...initialData.reminder_minutes]
+            : [],
         expectedDurationMinutes: initialData.expected_duration_minutes ?? null,
         participants: initialData.participants
           ? initialData.participants
@@ -306,8 +315,20 @@ export const GameForm: FC<GameFormProps> = ({
   };
 
   const validateReminderField = () => {
-    const result = validateReminderMinutes(formData.reminderMinutes);
-    setReminderError(result.error || null);
+    // Validate array directly since ReminderSelector ensures valid input
+    // Still validate range to catch any edge cases
+    const MAX_REMINDER_MINUTES = 10080;
+    const invalidValues = formData.reminderMinutesArray.filter(
+      (val) => val < 1 || val > MAX_REMINDER_MINUTES || !Number.isInteger(val)
+    );
+
+    if (invalidValues.length > 0) {
+      setReminderError(
+        `All reminder values must be integers between 1 and ${MAX_REMINDER_MINUTES} minutes`
+      );
+    } else {
+      setReminderError(null);
+    }
   };
 
   const validateMaxPlayersField = () => {
@@ -389,6 +410,15 @@ export const GameForm: FC<GameFormProps> = ({
   const handleDurationChange = (minutes: number | null) => {
     setFormData((prev) => ({ ...prev, expectedDurationMinutes: minutes }));
     validateDurationField();
+  };
+
+  const handleReminderChange = (minutes: number[]) => {
+    setFormData((prev) => ({
+      ...prev,
+      reminderMinutesArray: minutes,
+      reminderMinutes: minutes.join(', '),
+    }));
+    validateReminderField();
   };
 
   const handleParticipantsChange = (participants: EditableParticipantInput[]) => {
@@ -617,19 +647,14 @@ export const GameForm: FC<GameFormProps> = ({
               />
             </Box>
 
-            <TextField
-              label="Reminder Times (minutes)"
-              name="reminderMinutes"
-              value={formData.reminderMinutes}
-              onChange={handleChange}
-              onBlur={validateReminderField}
-              helperText={
-                reminderError || 'Comma-separated (e.g., 60, 15). Leave empty for default'
-              }
-              error={!!reminderError}
-              disabled={loading}
-              sx={{ flex: '1 1 45%', minWidth: '200px' }}
-            />
+            <Box sx={{ flex: '1 1 45%', minWidth: '200px' }}>
+              <ReminderSelector
+                value={formData.reminderMinutesArray}
+                onChange={handleReminderChange}
+                error={!!reminderError}
+                helperText={reminderError || 'Select one or more reminder times'}
+              />
+            </Box>
           </Box>
 
           {canChangeChannel ? (
