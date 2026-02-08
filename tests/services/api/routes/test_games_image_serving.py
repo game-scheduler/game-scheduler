@@ -39,36 +39,10 @@ def mock_game_service():
     return AsyncMock(spec=games_service.GameService)
 
 
-@pytest.fixture
-def sample_game():
-    """Sample game with images."""
-    game = MagicMock(spec=game_model.GameSession)
-    game.id = "game-123"
-    game.title = "Test Game"
-    game.thumbnail_data = b"fake_png_data"
-    game.thumbnail_mime_type = "image/png"
-    game.image_data = b"fake_jpg_data"
-    game.image_mime_type = "image/jpeg"
-    return game
-
-
-@pytest.fixture
-def sample_game_no_images():
-    """Sample game without images."""
-    game = MagicMock(spec=game_model.GameSession)
-    game.id = "game-456"
-    game.title = "Test Game No Images"
-    game.thumbnail_data = None
-    game.thumbnail_mime_type = None
-    game.image_data = None
-    game.image_mime_type = None
-    return game
-
-
 @pytest.mark.asyncio
-async def test_get_thumbnail_success(mock_game_service, sample_game):
+async def test_get_thumbnail_success(mock_game_service, sample_game_with_images):
     """Test successful thumbnail retrieval."""
-    mock_game_service.get_game.return_value = sample_game
+    mock_game_service.get_game.return_value = sample_game_with_images
 
     response = await games_routes.get_game_thumbnail(
         game_id="game-123", game_service=mock_game_service
@@ -106,13 +80,17 @@ async def test_get_thumbnail_no_thumbnail(mock_game_service, sample_game_no_imag
 
 @pytest.mark.asyncio
 async def test_get_thumbnail_default_mime_type(mock_game_service):
-    """Test thumbnail endpoint with missing MIME type defaults to image/png."""
-    game_no_mime = MagicMock(spec=game_model.GameSession)
-    game_no_mime.id = "game-789"
-    game_no_mime.thumbnail_data = b"fake_png_data"
-    game_no_mime.thumbnail_mime_type = None
+    """Test thumbnail endpoint returns mime type from database."""
+    game_with_mime = MagicMock(spec=game_model.GameSession)
+    game_with_mime.id = "game-789"
 
-    mock_game_service.get_game.return_value = game_no_mime
+    thumbnail = MagicMock()
+    thumbnail.image_data = b"fake_png_data"
+    thumbnail.mime_type = "image/png"
+    game_with_mime.thumbnail = thumbnail
+    game_with_mime.thumbnail_id = "thumb-id"
+
+    mock_game_service.get_game.return_value = game_with_mime
 
     response = await games_routes.get_game_thumbnail(
         game_id="game-789", game_service=mock_game_service
@@ -122,9 +100,9 @@ async def test_get_thumbnail_default_mime_type(mock_game_service):
 
 
 @pytest.mark.asyncio
-async def test_get_image_success(mock_game_service, sample_game):
+async def test_get_image_success(mock_game_service, sample_game_with_images):
     """Test successful banner image retrieval."""
-    mock_game_service.get_game.return_value = sample_game
+    mock_game_service.get_game.return_value = sample_game_with_images
 
     response = await games_routes.get_game_image(game_id="game-123", game_service=mock_game_service)
 
@@ -160,14 +138,18 @@ async def test_get_image_no_image(mock_game_service, sample_game_no_images):
 
 @pytest.mark.asyncio
 async def test_get_image_default_mime_type(mock_game_service):
-    """Test image endpoint with missing MIME type defaults to image/png."""
-    game_no_mime = MagicMock(spec=game_model.GameSession)
-    game_no_mime.id = "game-789"
-    game_no_mime.image_data = b"fake_jpg_data"
-    game_no_mime.image_mime_type = None
+    """Test image endpoint returns mime type from database."""
+    game_with_mime = MagicMock(spec=game_model.GameSession)
+    game_with_mime.id = "game-789"
 
-    mock_game_service.get_game.return_value = game_no_mime
+    banner_image = MagicMock()
+    banner_image.image_data = b"fake_jpg_data"
+    banner_image.mime_type = "image/jpeg"
+    game_with_mime.banner_image = banner_image
+    game_with_mime.banner_image_id = "banner-id"
+
+    mock_game_service.get_game.return_value = game_with_mime
 
     response = await games_routes.get_game_image(game_id="game-789", game_service=mock_game_service)
 
-    assert response.media_type == "image/png"
+    assert response.media_type == "image/jpeg"

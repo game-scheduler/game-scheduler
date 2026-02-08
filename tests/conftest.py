@@ -230,6 +230,8 @@ def admin_db_sync(admin_db_url_sync):
         print("[FIXTURE] admin_db_sync: Cleaning up previous test data")
         cleanup_session.execute(text("DELETE FROM game_sessions"))
         print("[FIXTURE] admin_db_sync: Deleted game_sessions")
+        cleanup_session.execute(text("DELETE FROM game_images"))
+        print("[FIXTURE] admin_db_sync: Deleted game_images")
         cleanup_session.execute(text("DELETE FROM game_templates"))
         print("[FIXTURE] admin_db_sync: Deleted game_templates")
         cleanup_session.execute(text("DELETE FROM channel_configurations"))

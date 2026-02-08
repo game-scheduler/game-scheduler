@@ -55,6 +55,7 @@ from shared.models.participant import ParticipantType
 from shared.models.signup_method import SignupMethod
 from shared.schemas import auth as auth_schemas
 from shared.schemas import game as game_schemas
+from shared.services.image_storage import release_image, store_image
 from shared.utils.games import resolve_max_players
 from shared.utils.participant_sorting import (
     PartitionedParticipants,
@@ -436,7 +437,7 @@ class GameService:
 
         return template, guild_config, channel_config
 
-    def _build_game_session(
+    async def _build_game_session(
         self,
         game_data: game_schemas.GameCreateRequest,
         template: template_model.GameTemplate,
@@ -447,6 +448,8 @@ class GameService:
     ) -> game_model.GameSession:
         """
         Build GameSession instance with normalized data.
+
+        Stores image data in game_images table and links via foreign keys.
 
         Args:
             game_data: Game creation request data
@@ -471,6 +474,26 @@ class GameService:
         else:
             scheduled_at_naive = game_data.scheduled_at
 
+        # Store images and get IDs (handles deduplication automatically)
+        thumbnail_id = None
+        if media.thumbnail_data:
+            logger.info(
+                "_build_game_session: Storing thumbnail, size=%s",
+                len(media.thumbnail_data),
+            )
+            thumbnail_id = await store_image(
+                self.db, media.thumbnail_data, media.thumbnail_mime_type or "image/png"
+            )
+            logger.info("_build_game_session: Thumbnail stored with ID %s", thumbnail_id)
+
+        banner_image_id = None
+        if media.image_data:
+            logger.info("_build_game_session: Storing banner, size=%s", len(media.image_data))
+            banner_image_id = await store_image(
+                self.db, media.image_data, media.image_mime_type or "image/png"
+            )
+            logger.info("_build_game_session: Banner stored with ID %s", banner_image_id)
+
         return game_model.GameSession(
             id=game_model.generate_uuid(),
             title=game_data.title,
@@ -489,10 +512,8 @@ class GameService:
             allowed_player_role_ids=allowed_player_role_ids,
             signup_method=resolved_fields["signup_method"],
             status=game_model.GameStatus.SCHEDULED.value,
-            thumbnail_data=media.thumbnail_data,
-            thumbnail_mime_type=media.thumbnail_mime_type,
-            image_data=media.image_data,
-            image_mime_type=media.image_mime_type,
+            thumbnail_id=thumbnail_id,
+            banner_image_id=banner_image_id,
         )
 
     async def _setup_game_schedules(
@@ -603,7 +624,7 @@ class GameService:
             image_mime_type=image_mime_type,
         )
 
-        game = self._build_game_session(
+        game = await self._build_game_session(
             game_data, template, guild_config, host_user, resolved_fields, media
         )
 
@@ -1207,7 +1228,7 @@ class GameService:
         old_partitioned = partition_participants(old_participants_snapshot, old_max_players)
         return old_max_players, old_participants_snapshot, old_partitioned
 
-    def _update_image_fields(
+    async def _update_image_fields(
         self,
         game: game_model.GameSession,
         thumbnail_data: bytes | None,
@@ -1216,7 +1237,10 @@ class GameService:
         image_mime_type: str | None,
     ) -> None:
         """
-        Update game thumbnail and banner images.
+        Update game thumbnail and banner images with reference counting.
+
+        Releases old images (decrements reference count) before storing new ones.
+        Images are automatically deleted when reference count reaches zero.
 
         Args:
             game: Game session to update
@@ -1227,19 +1251,27 @@ class GameService:
         """
         if thumbnail_data is not None:
             if thumbnail_data == b"":
-                game.thumbnail_data = None
-                game.thumbnail_mime_type = None
+                # Remove thumbnail: release old image
+                await release_image(self.db, game.thumbnail_id)
+                game.thumbnail_id = None
             else:
-                game.thumbnail_data = thumbnail_data
-                game.thumbnail_mime_type = thumbnail_mime_type
+                # Replace thumbnail: release old, store new
+                await release_image(self.db, game.thumbnail_id)
+                game.thumbnail_id = await store_image(
+                    self.db, thumbnail_data, thumbnail_mime_type or "image/png"
+                )
 
         if image_data is not None:
             if image_data == b"":
-                game.image_data = None
-                game.image_mime_type = None
+                # Remove banner: release old image
+                await release_image(self.db, game.banner_image_id)
+                game.banner_image_id = None
             else:
-                game.image_data = image_data
-                game.image_mime_type = image_mime_type
+                # Replace banner: release old, store new
+                await release_image(self.db, game.banner_image_id)
+                game.banner_image_id = await store_image(
+                    self.db, image_data, image_mime_type or "image/png"
+                )
 
     async def _process_game_update_schedules(
         self,
@@ -1357,7 +1389,7 @@ class GameService:
         )
 
         # Update images if provided
-        self._update_image_fields(
+        await self._update_image_fields(
             game, thumbnail_data, thumbnail_mime_type, image_data, image_mime_type
         )
 
@@ -1434,6 +1466,10 @@ class GameService:
                 "Only the host, Bot Managers, or guild admins can cancel games."
             )
             raise ValueError(msg)
+
+        # Release image references (decrements count, deletes if zero)
+        await release_image(self.db, game.thumbnail_id)
+        await release_image(self.db, game.banner_image_id)
 
         # Delete status schedules (CASCADE will handle game deletion)
         status_schedule_result = await self.db.execute(

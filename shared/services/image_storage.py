@@ -27,12 +27,15 @@ counting and deduplication based on SHA256 content hash.
 """
 
 import hashlib
+import logging
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.game_image import GameImage
+
+logger = logging.getLogger(__name__)
 
 
 async def store_image(db: AsyncSession, image_data: bytes, mime_type: str) -> UUID:
@@ -54,14 +57,27 @@ async def store_image(db: AsyncSession, image_data: bytes, mime_type: str) -> UU
         Image ID (UUID) - existing or newly created
     """
     content_hash = hashlib.sha256(image_data).hexdigest()
+    logger.info(
+        "store_image called: hash=%s... mime=%s size=%s",
+        content_hash[:8],
+        mime_type,
+        len(image_data),
+    )
 
     stmt = select(GameImage).where(GameImage.content_hash == content_hash).with_for_update()
     result = await db.execute(stmt)
     existing_image = result.scalar_one_or_none()
 
     if existing_image:
+        old_count = existing_image.reference_count
         existing_image.reference_count += 1
         await db.flush()
+        logger.info(
+            "store_image: Found existing image %s, refs %s -> %s",
+            existing_image.id,
+            old_count,
+            existing_image.reference_count,
+        )
         return existing_image.id
 
     new_image = GameImage(
@@ -72,6 +88,7 @@ async def store_image(db: AsyncSession, image_data: bytes, mime_type: str) -> UU
     )
     db.add(new_image)
     await db.flush()
+    logger.info("store_image: Created new image %s, refs=1", new_image.id)
     return new_image.id
 
 
@@ -86,18 +103,31 @@ async def release_image(db: AsyncSession, image_id: UUID | None) -> None:
         image_id: Image ID to release, or None (no-op)
     """
     if not image_id:
+        logger.info("release_image: Called with None, no-op")
         return
+
+    logger.info("release_image: Called for image %s", image_id)
 
     stmt = select(GameImage).where(GameImage.id == image_id).with_for_update()
     result = await db.execute(stmt)
     image = result.scalar_one_or_none()
 
     if not image:
+        logger.warning("release_image: Image %s not found", image_id)
         return
 
+    old_count = image.reference_count
     image.reference_count -= 1
 
     if image.reference_count <= 0:
         await db.delete(image)
+        logger.info("release_image: Image %s refs %s -> 0, deleted", image_id, old_count)
+    else:
+        logger.info(
+            "release_image: Image %s refs %s -> %s",
+            image_id,
+            old_count,
+            image.reference_count,
+        )
 
     await db.flush()

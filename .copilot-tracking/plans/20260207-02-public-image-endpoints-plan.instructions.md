@@ -70,15 +70,15 @@ Migrate image storage from RLS-protected game_sessions table to separate game_im
 - [x] Task 1.5: Refactor and add edge case tests
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 222-250)
 
-### [ ] Phase 2: Game Service Integration (TDD)
+### [x] Phase 2: Game Service Integration (TDD)
 
-- [ ] Task 2.1: Create failing tests for game-image lifecycle integration
+- [x] Task 2.1: Create failing tests for game-image lifecycle integration
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 252-310)
 
-- [ ] Task 2.2: Update game service methods to use image storage
+- [x] Task 2.2: Update game service methods to use image storage
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 312-360)
 
-- [ ] Task 2.3: Run tests to verify integration works correctly
+- [x] Task 2.3: Run tests to verify integration works correctly
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 362-375)
 
 ### [ ] Phase 3: Public Image Endpoint (TDD)

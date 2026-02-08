@@ -925,7 +925,7 @@ async def test_build_game_session_with_media_attachments(
     sample_template,
     sample_guild,
 ):
-    """Test _build_game_session with media attachments."""
+    """Test _build_game_session with media attachments stores images and returns FK IDs."""
     host_user = user_model.User(
         id=str(uuid.uuid4()),
         discord_id="123456",
@@ -954,9 +954,15 @@ async def test_build_game_session_with_media_attachments(
         image_mime_type="image/jpeg",
     )
 
-    game = game_service._build_game_session(
-        game_data, sample_template, sample_guild, host_user, resolved_fields, media
-    )
+    # Mock store_image to return UUIDs
+    thumbnail_id = uuid.uuid4()
+    banner_id = uuid.uuid4()
+    with patch("services.api.services.games.store_image", new_callable=AsyncMock) as mock_store:
+        mock_store.side_effect = [thumbnail_id, banner_id]
+
+        game = await game_service._build_game_session(
+            game_data, sample_template, sample_guild, host_user, resolved_fields, media
+        )
 
     assert game.title == "Test Game"
     assert game.description == "Test description"
@@ -965,10 +971,9 @@ async def test_build_game_session_with_media_attachments(
     assert game.channel_id == sample_template.channel_id
     assert game.host_id == host_user.id
     assert game.max_players == 5
-    assert game.thumbnail_data == b"thumbnail"
-    assert game.thumbnail_mime_type == "image/png"
-    assert game.image_data == b"image"
-    assert game.image_mime_type == "image/jpeg"
+    assert game.thumbnail_id == thumbnail_id
+    assert game.banner_image_id == banner_id
+    assert mock_store.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -977,7 +982,7 @@ async def test_build_game_session_without_media(
     sample_template,
     sample_guild,
 ):
-    """Test _build_game_session without media attachments."""
+    """Test _build_game_session without media attachments has None FK IDs."""
     host_user = user_model.User(
         id=str(uuid.uuid4()),
         discord_id="123456",
@@ -1001,14 +1006,12 @@ async def test_build_game_session_without_media(
 
     media = GameMediaAttachments()
 
-    game = game_service._build_game_session(
+    game = await game_service._build_game_session(
         game_data, sample_template, sample_guild, host_user, resolved_fields, media
     )
 
-    assert game.thumbnail_data is None
-    assert game.thumbnail_mime_type is None
-    assert game.image_data is None
-    assert game.image_mime_type is None
+    assert game.thumbnail_id is None
+    assert game.banner_image_id is None
 
 
 @pytest.mark.asyncio
@@ -1044,7 +1047,7 @@ async def test_build_game_session_timezone_normalization_aware(
 
     media = GameMediaAttachments()
 
-    game = game_service._build_game_session(
+    game = await game_service._build_game_session(
         game_data, sample_template, sample_guild, host_user, resolved_fields, media
     )
 
@@ -1086,7 +1089,7 @@ async def test_build_game_session_timezone_normalization_naive(
 
     media = GameMediaAttachments()
 
-    game = game_service._build_game_session(
+    game = await game_service._build_game_session(
         game_data, sample_template, sample_guild, host_user, resolved_fields, media
     )
 
@@ -3295,108 +3298,134 @@ def test_capture_old_state_with_unlimited_players(game_service):
     assert len(old_snapshot) == 1
 
 
-def test_update_image_fields_sets_thumbnail(game_service):
+@pytest.mark.asyncio
+async def test_update_image_fields_sets_thumbnail(game_service):
     """Test setting thumbnail data."""
     game = game_model.GameSession(
         id="game1",
-        thumbnail_data=None,
-        thumbnail_mime_type=None,
+        thumbnail_id=None,
     )
 
-    game_service._update_image_fields(
-        game,
-        thumbnail_data=b"thumbnail_bytes",
-        thumbnail_mime_type="image/png",
-        image_data=None,
-        image_mime_type=None,
-    )
+    thumbnail_id = uuid.uuid4()
+    with (
+        patch("services.api.services.games.store_image", new_callable=AsyncMock) as mock_store,
+        patch("services.api.services.games.release_image", new_callable=AsyncMock) as mock_release,
+    ):
+        mock_store.return_value = thumbnail_id
 
-    assert game.thumbnail_data == b"thumbnail_bytes"
-    assert game.thumbnail_mime_type == "image/png"
+        await game_service._update_image_fields(
+            game,
+            thumbnail_data=b"thumbnail_bytes",
+            thumbnail_mime_type="image/png",
+            image_data=None,
+            image_mime_type=None,
+        )
+
+    assert game.thumbnail_id == thumbnail_id
+    mock_store.assert_called_once()
+    mock_release.assert_called_once_with(game_service.db, None)
 
 
-def test_update_image_fields_removes_thumbnail(game_service):
+@pytest.mark.asyncio
+async def test_update_image_fields_removes_thumbnail(game_service):
     """Test removing thumbnail by passing empty bytes."""
+    existing_id = uuid.uuid4()
     game = game_model.GameSession(
         id="game1",
-        thumbnail_data=b"existing",
-        thumbnail_mime_type="image/png",
+        thumbnail_id=existing_id,
     )
 
-    game_service._update_image_fields(
-        game,
-        thumbnail_data=b"",
-        thumbnail_mime_type="",
-        image_data=None,
-        image_mime_type=None,
-    )
+    with patch("services.api.services.games.release_image", new_callable=AsyncMock) as mock_release:
+        await game_service._update_image_fields(
+            game,
+            thumbnail_data=b"",
+            thumbnail_mime_type="",
+            image_data=None,
+            image_mime_type=None,
+        )
 
-    assert game.thumbnail_data is None
-    assert game.thumbnail_mime_type is None
+    assert game.thumbnail_id is None
+    mock_release.assert_called_once_with(game_service.db, existing_id)
 
 
-def test_update_image_fields_sets_banner(game_service):
+@pytest.mark.asyncio
+async def test_update_image_fields_sets_banner(game_service):
     """Test setting banner image data."""
     game = game_model.GameSession(
         id="game1",
-        image_data=None,
-        image_mime_type=None,
+        banner_image_id=None,
     )
 
-    game_service._update_image_fields(
-        game,
-        thumbnail_data=None,
-        thumbnail_mime_type=None,
-        image_data=b"image_bytes",
-        image_mime_type="image/jpeg",
-    )
+    banner_id = uuid.uuid4()
+    with (
+        patch("services.api.services.games.store_image", new_callable=AsyncMock) as mock_store,
+        patch("services.api.services.games.release_image", new_callable=AsyncMock) as mock_release,
+    ):
+        mock_store.return_value = banner_id
 
-    assert game.image_data == b"image_bytes"
-    assert game.image_mime_type == "image/jpeg"
+        await game_service._update_image_fields(
+            game,
+            thumbnail_data=None,
+            thumbnail_mime_type=None,
+            image_data=b"image_bytes",
+            image_mime_type="image/jpeg",
+        )
+
+    assert game.banner_image_id == banner_id
+    mock_store.assert_called_once()
+    mock_release.assert_called_once_with(game_service.db, None)
 
 
-def test_update_image_fields_removes_banner(game_service):
+@pytest.mark.asyncio
+async def test_update_image_fields_removes_banner(game_service):
     """Test removing banner image by passing empty bytes."""
+    existing_id = uuid.uuid4()
     game = game_model.GameSession(
         id="game1",
-        image_data=b"existing",
-        image_mime_type="image/jpeg",
+        banner_image_id=existing_id,
     )
 
-    game_service._update_image_fields(
-        game,
-        thumbnail_data=None,
-        thumbnail_mime_type=None,
-        image_data=b"",
-        image_mime_type="",
-    )
+    with patch("services.api.services.games.release_image", new_callable=AsyncMock) as mock_release:
+        await game_service._update_image_fields(
+            game,
+            thumbnail_data=None,
+            thumbnail_mime_type=None,
+            image_data=b"",
+            image_mime_type="",
+        )
 
-    assert game.image_data is None
-    assert game.image_mime_type is None
+    assert game.banner_image_id is None
+    mock_release.assert_called_once_with(game_service.db, existing_id)
 
 
-def test_update_image_fields_no_changes(game_service):
+@pytest.mark.asyncio
+async def test_update_image_fields_no_changes(game_service):
     """Test that passing None for all images makes no changes."""
+    thumb_id = uuid.uuid4()
+    banner_id = uuid.uuid4()
     game = game_model.GameSession(
         id="game1",
-        thumbnail_data=b"thumb",
-        thumbnail_mime_type="image/png",
-        image_data=b"banner",
-        image_mime_type="image/jpeg",
+        thumbnail_id=thumb_id,
+        banner_image_id=banner_id,
     )
 
-    game_service._update_image_fields(
-        game,
-        thumbnail_data=None,
-        thumbnail_mime_type=None,
-        image_data=None,
-        image_mime_type=None,
-    )
+    with (
+        patch("services.api.services.games.store_image", new_callable=AsyncMock) as mock_store,
+        patch("services.api.services.games.release_image", new_callable=AsyncMock) as mock_release,
+    ):
+        await game_service._update_image_fields(
+            game,
+            thumbnail_data=None,
+            thumbnail_mime_type=None,
+            image_data=None,
+            image_mime_type=None,
+        )
 
-    assert game.thumbnail_data == b"thumb"
-    assert game.thumbnail_mime_type == "image/png"
-    assert game.image_data == b"banner"
-    assert game.image_mime_type == "image/jpeg"
+    # No changes should be made
+    assert game.thumbnail_id == thumb_id
+    assert game.banner_image_id == banner_id
+    mock_store.assert_not_called()
+    mock_release.assert_not_called()
 
 
 @pytest.mark.asyncio

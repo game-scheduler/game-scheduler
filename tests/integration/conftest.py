@@ -27,6 +27,7 @@ import os
 import pika
 import pytest
 
+from shared.cache import client as cache_module
 from shared.data_access.guild_isolation import clear_current_guild_ids
 from shared.database import engine
 
@@ -81,6 +82,35 @@ def purge_queue(channel, queue_name):
     """Purge all messages from a queue."""
     with contextlib.suppress(Exception):
         channel.queue_purge(queue_name)
+
+
+@pytest.fixture(autouse=True)
+async def reset_redis_singleton():
+    """
+    Reset global Redis client singleton between integration tests.
+
+    Autouse fixture that runs for all integration tests to prevent Redis
+    event loop issues by disconnecting/reconnecting between tests and
+    flushing data to ensure test isolation.
+    """
+    # Disconnect and clear singleton before test
+    if cache_module._redis_client is not None:
+        await cache_module._redis_client.disconnect()
+        cache_module._redis_client = None
+
+    yield
+
+    # Disconnect and clear singleton after test
+    if cache_module._redis_client is not None:
+        await cache_module._redis_client.disconnect()
+        cache_module._redis_client = None
+
+    # Flush Redis data after test completes
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    temp_client = cache_module.RedisClient(redis_url=redis_url)
+    await temp_client.connect()
+    await temp_client._client.flushdb()
+    await temp_client.disconnect()
 
 
 @pytest.fixture(autouse=True)

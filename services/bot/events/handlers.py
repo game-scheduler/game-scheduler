@@ -1208,8 +1208,8 @@ class EventHandlers:
             where=game.where,
             host_display_name=host_display_name,
             host_avatar_url=host_avatar_url,
-            has_thumbnail=game.thumbnail_data is not None,
-            has_image=game.image_data is not None,
+            has_thumbnail=game.thumbnail_id is not None,
+            has_image=game.banner_image_id is not None,
             guild_id=game.guild.guild_id if game.guild else None,
         )
 

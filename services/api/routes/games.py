@@ -835,8 +835,8 @@ async def _build_game_response(
         participants=participant_responses,
         created_at=datetime_utils.format_datetime_as_utc(game.created_at),
         updated_at=datetime_utils.format_datetime_as_utc(game.updated_at),
-        has_thumbnail=game.thumbnail_data is not None,
-        has_image=game.image_data is not None,
+        has_thumbnail=game.thumbnail_id is not None,
+        has_image=game.banner_image_id is not None,
     )
 
 
@@ -851,15 +851,15 @@ async def get_game_thumbnail(
     if not game:
         raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Game not found")
 
-    if not game.thumbnail_data:
+    if not game.thumbnail:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail="No thumbnail for this game",
         )
 
     return Response(
-        content=game.thumbnail_data,
-        media_type=game.thumbnail_mime_type or "image/png",
+        content=game.thumbnail.image_data,
+        media_type=game.thumbnail.mime_type,
         headers={
             "Cache-Control": "public, max-age=3600",
         },
@@ -877,15 +877,15 @@ async def get_game_image(
     if not game:
         raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Game not found")
 
-    if not game.image_data:
+    if not game.banner_image:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail="No banner image for this game",
         )
 
     return Response(
-        content=game.image_data,
-        media_type=game.image_mime_type or "image/png",
+        content=game.banner_image.image_data,
+        media_type=game.banner_image.mime_type,
         headers={
             "Cache-Control": "public, max-age=3600",
         },

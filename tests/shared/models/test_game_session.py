@@ -27,51 +27,44 @@ from shared.models.game import GameSession
 
 
 def test_game_session_has_image_columns():
-    """Verify GameSession model has image storage columns."""
+    """Verify GameSession model has image FK columns."""
     mapper = inspect(GameSession)
     column_names = {col.key for col in mapper.columns}
 
-    image_columns = {
-        "thumbnail_data",
-        "thumbnail_mime_type",
-        "image_data",
-        "image_mime_type",
+    image_fk_columns = {
+        "thumbnail_id",
+        "banner_image_id",
     }
 
-    assert image_columns.issubset(column_names), (
-        f"Missing image columns: {image_columns - column_names}"
+    assert image_fk_columns.issubset(column_names), (
+        f"Missing image FK columns: {image_fk_columns - column_names}"
     )
 
 
 def test_game_session_image_columns_nullable():
-    """Verify image columns are nullable."""
+    """Verify image FK columns are nullable."""
     mapper = inspect(GameSession)
     columns = {col.key: col for col in mapper.columns}
 
-    assert columns["thumbnail_data"].nullable, "thumbnail_data should be nullable"
-    assert columns["thumbnail_mime_type"].nullable, "thumbnail_mime_type should be nullable"
-    assert columns["image_data"].nullable, "image_data should be nullable"
-    assert columns["image_mime_type"].nullable, "image_mime_type should be nullable"
+    assert columns["thumbnail_id"].nullable, "thumbnail_id should be nullable"
+    assert columns["banner_image_id"].nullable, "banner_image_id should be nullable"
 
 
-def test_game_session_mime_type_columns_are_strings():
-    """Verify MIME type columns are string type."""
+def test_game_session_image_fk_columns_are_uuid():
+    """Verify image FK columns are UUID type."""
     mapper = inspect(GameSession)
     columns = {col.key: col for col in mapper.columns}
 
-    assert str(columns["thumbnail_mime_type"].type) == "VARCHAR(50)"
-    assert str(columns["image_mime_type"].type) == "VARCHAR(50)"
+    # UUID type shows as CHAR(32) in SQLite, UUID in PostgreSQL
+    thumb_type = str(columns["thumbnail_id"].type)
+    banner_type = str(columns["banner_image_id"].type)
 
-
-def test_game_session_data_columns_are_binary():
-    """Verify data columns are binary type."""
-    mapper = inspect(GameSession)
-    columns = {col.key: col for col in mapper.columns}
-
-    assert "BYTEA" in str(columns["thumbnail_data"].type) or "BLOB" in str(
-        columns["thumbnail_data"].type
+    assert "UUID" in thumb_type or "CHAR(32)" in thumb_type, (
+        f"thumbnail_id should be UUID type, got {thumb_type}"
     )
-    assert "BYTEA" in str(columns["image_data"].type) or "BLOB" in str(columns["image_data"].type)
+    assert "UUID" in banner_type or "CHAR(32)" in banner_type, (
+        f"banner_image_id should be UUID type, got {banner_type}"
+    )
 
 
 def test_game_session_has_signup_method_column():
