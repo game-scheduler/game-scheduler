@@ -62,30 +62,6 @@ describe('TemplateForm Validation', () => {
     expect(screen.getAllByText('Expected Duration').length).toBeGreaterThan(0);
   });
 
-  it('validates reminder minutes on blur', async () => {
-    const user = userEvent.setup();
-    render(
-      <TemplateForm
-        open={true}
-        template={null}
-        guildId="guild-1"
-        channels={mockChannels}
-        roles={mockRoles}
-        onClose={mockOnClose}
-        onSubmit={mockOnSubmit}
-      />
-    );
-
-    const reminderInput = screen.getByLabelText(/Reminder Minutes/i);
-    await user.click(reminderInput);
-    await user.keyboard('invalid,60');
-    await user.tab();
-
-    await waitFor(() => {
-      expect(screen.getByText(/All reminder values must be numeric integers/i)).toBeInTheDocument();
-    });
-  });
-
   it('validates max players on blur', async () => {
     const user = userEvent.setup();
     render(

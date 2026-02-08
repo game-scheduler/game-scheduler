@@ -30,7 +30,18 @@ Implementation of ReminderSelector component to replace text-based comma-separat
 - frontend/src/components/GameForm.tsx - Updated validateReminderField to validate reminderMinutesArray directly instead of parsing string
 - frontend/src/components/**tests**/GameForm.error-handling.test.tsx - Updated test to reflect ReminderSelector's internal validation
 - frontend/src/pages/**tests**/EditGame.test.tsx - Updated reminder time assertions to check for ReminderSelector presence instead of TextField value
+- frontend/src/components/TemplateForm.tsx - Added reminderMinutesArray state field and initialized from template.reminder_minutes
+- frontend/src/components/TemplateForm.tsx - Imported ReminderSelector component and replaced TextField with ReminderSelector for reminder time input
+- frontend/src/components/TemplateForm.tsx - Added handleReminderChange handler to sync reminderMinutesArray and reminderMinutes string state
+- frontend/src/components/TemplateForm.tsx - Updated validation logic to use reminderMinutesArray with range checking (1-10080 minutes)
+- frontend/src/components/TemplateForm.tsx - Updated handleSubmit to use reminderMinutesArray directly instead of parsing string
+- frontend/src/components/TemplateForm.tsx - Removed unused reminderMinutes string state and reminderError state
+- frontend/src/components/TemplateForm.tsx - Simplified handleReminderChange to only update reminderMinutesArray
+- frontend/src/components/TemplateForm.tsx - Removed unused handleReminderBlur handler and validateReminderMinutes import
+- frontend/src/components/**tests**/TemplateForm.test.tsx - Added comprehensive ReminderSelector integration tests (preset selection, chip deletion, custom value addition, form submission)
 
 ### Removed
 
 - frontend/src/components/**tests**/GameForm.validation.test.tsx - Removed 3 obsolete TextField-based reminder validation tests (functionality now tested in ReminderSelector.test.tsx)
+- frontend/src/components/**tests**/TemplateForm.validation.test.tsx - Removed obsolete TextField-based reminder validation test
+- frontend/src/components/TemplateForm.tsx - Removed string-based comma-parsing validation logic

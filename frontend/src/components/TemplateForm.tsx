@@ -47,12 +47,9 @@ import {
   TemplateUpdateRequest,
 } from '../types';
 import { UI } from '../constants/ui';
-import {
-  validateReminderMinutes,
-  validateMaxPlayers,
-  validateCharacterLimit,
-} from '../utils/fieldValidation';
+import { validateMaxPlayers, validateCharacterLimit } from '../utils/fieldValidation';
 import { DurationSelector } from './DurationSelector';
+import { ReminderSelector } from './ReminderSelector';
 
 interface TemplateFormProps {
   open: boolean;
@@ -78,7 +75,7 @@ export const TemplateForm: FC<TemplateFormProps> = ({
   const [channelId, setChannelId] = useState('');
   const [maxPlayers, setMaxPlayers] = useState('');
   const [expectedDuration, setExpectedDuration] = useState<number | null>(null);
-  const [reminderMinutes, setReminderMinutes] = useState('');
+  const [reminderMinutesArray, setReminderMinutesArray] = useState<number[]>([]);
   const [where, setWhere] = useState('');
   const [signupInstructions, setSignupInstructions] = useState('');
   const [notifyRoleIds, setNotifyRoleIds] = useState<string[]>([]);
@@ -88,7 +85,6 @@ export const TemplateForm: FC<TemplateFormProps> = ({
   const [submitting, setSubmitting] = useState(false);
 
   // Validation error state
-  const [reminderError, setReminderError] = useState('');
   const [maxPlayersError, setMaxPlayersError] = useState('');
   const [descriptionError, setDescriptionError] = useState('');
   const [locationError, setLocationError] = useState('');
@@ -101,7 +97,8 @@ export const TemplateForm: FC<TemplateFormProps> = ({
       setChannelId(template.channel_id);
       setMaxPlayers(template.max_players !== null ? String(template.max_players) : '');
       setExpectedDuration(template.expected_duration_minutes);
-      setReminderMinutes(template.reminder_minutes ? template.reminder_minutes.join(', ') : '');
+
+      setReminderMinutesArray(template.reminder_minutes || []);
       setWhere(template.where || '');
       setSignupInstructions(template.signup_instructions || '');
       setNotifyRoleIds(template.notify_role_ids || []);
@@ -114,7 +111,8 @@ export const TemplateForm: FC<TemplateFormProps> = ({
       setChannelId(channels.length > 0 ? channels[0]!.id : '');
       setMaxPlayers('');
       setExpectedDuration(null);
-      setReminderMinutes('');
+
+      setReminderMinutesArray([]);
       setWhere('');
       setSignupInstructions('');
       setNotifyRoleIds([]);
@@ -144,15 +142,12 @@ export const TemplateForm: FC<TemplateFormProps> = ({
       newErrors.expectedDuration = `Duration must be between 1 and ${MAX_DURATION_MINUTES} minutes`;
     }
 
-    if (reminderMinutes) {
-      const minutes = reminderMinutes.split(',').map((m) => m.trim());
-      for (const m of minutes) {
-        if (isNaN(parseInt(m)) || parseInt(m) < 1) {
-          newErrors.reminderMinutes =
-            'Reminder minutes must be positive numbers separated by commas';
-          break;
-        }
-      }
+    const MAX_REMINDER_MINUTES = 10080;
+    const invalidReminderValues = reminderMinutesArray.filter(
+      (val) => val < 1 || val > MAX_REMINDER_MINUTES || !Number.isInteger(val)
+    );
+    if (invalidReminderValues.length > 0) {
+      newErrors.reminderMinutes = `All reminder values must be integers between 1 and ${MAX_REMINDER_MINUTES} minutes`;
     }
 
     setErrors(newErrors);
@@ -173,9 +168,7 @@ export const TemplateForm: FC<TemplateFormProps> = ({
         allowed_host_role_ids: allowedHostRoleIds.length > 0 ? allowedHostRoleIds : null,
         max_players: maxPlayers ? parseInt(maxPlayers) : null,
         expected_duration_minutes: expectedDuration,
-        reminder_minutes: reminderMinutes
-          ? reminderMinutes.split(',').map((m) => parseInt(m.trim()))
-          : null,
+        reminder_minutes: reminderMinutesArray.length > 0 ? reminderMinutesArray : null,
         where: where.trim() || null,
         signup_instructions: signupInstructions.trim() || null,
       };
@@ -194,18 +187,16 @@ export const TemplateForm: FC<TemplateFormProps> = ({
     }
   };
 
+  const handleReminderChange = (minutes: number[]) => {
+    setReminderMinutesArray(minutes);
+  };
+
   const handleRoleChange = (
     event: SelectChangeEvent<string[]>,
     setter: (value: string[]) => void
   ) => {
     const value = event.target.value;
     setter(typeof value === 'string' ? value.split(',') : value);
-  };
-
-  // Validation handlers
-  const handleReminderBlur = () => {
-    const result = validateReminderMinutes(reminderMinutes);
-    setReminderError(result.error || '');
   };
 
   const handleMaxPlayersBlur = () => {
@@ -409,18 +400,11 @@ export const TemplateForm: FC<TemplateFormProps> = ({
             helperText={errors.expectedDuration}
           />
 
-          <TextField
-            label="Reminder Minutes"
-            value={reminderMinutes}
-            onChange={(e) => setReminderMinutes(e.target.value)}
-            onBlur={handleReminderBlur}
-            error={!!reminderError || !!errors.reminderMinutes}
-            helperText={
-              reminderError ||
-              errors.reminderMinutes ||
-              'Comma-separated minutes before game (e.g., 60, 15)'
-            }
-            fullWidth
+          <ReminderSelector
+            value={reminderMinutesArray}
+            onChange={handleReminderChange}
+            error={!!errors.reminderMinutes}
+            helperText={errors.reminderMinutes || 'Select one or more reminder times'}
           />
 
           <TextField

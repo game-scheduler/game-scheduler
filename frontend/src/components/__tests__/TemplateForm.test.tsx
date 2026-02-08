@@ -263,3 +263,255 @@ describe('TemplateForm', () => {
     });
   });
 });
+
+describe('TemplateForm - ReminderSelector Integration', () => {
+  const mockOnClose = vi.fn();
+  const mockOnSubmit = vi.fn();
+
+  const mockChannels: Channel[] = [
+    {
+      id: 'channel-1',
+      guild_id: 'guild-1',
+      channel_id: '123456',
+      channel_name: 'general',
+      is_active: true,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    },
+  ];
+
+  const mockRoles: DiscordRole[] = [];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockOnSubmit.mockResolvedValue(undefined);
+  });
+
+  it('should render ReminderSelector component', () => {
+    render(
+      <TemplateForm
+        open={true}
+        template={null}
+        guildId="guild-1"
+        channels={mockChannels}
+        roles={mockRoles}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    expect(screen.getByLabelText('Add Reminder Time')).toBeInTheDocument();
+  });
+
+  it('should initialize ReminderSelector with empty array for new template', () => {
+    render(
+      <TemplateForm
+        open={true}
+        template={null}
+        guildId="guild-1"
+        channels={mockChannels}
+        roles={mockRoles}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    const chips = screen.queryByRole('button', { name: /delete/i });
+    expect(chips).not.toBeInTheDocument();
+  });
+
+  it('should initialize ReminderSelector with existing reminder times', () => {
+    const mockTemplate: GameTemplate = {
+      id: 'template-1',
+      guild_id: 'guild-1',
+      name: 'Test Template',
+      description: 'Test',
+      channel_id: 'channel-1',
+      channel_name: 'general',
+      order: 1,
+      is_default: false,
+      where: null,
+      signup_instructions: null,
+      max_players: null,
+      expected_duration_minutes: null,
+      reminder_minutes: [30, 60, 1440],
+      notify_role_ids: null,
+      allowed_player_role_ids: null,
+      allowed_host_role_ids: null,
+      allowed_signup_methods: ['BUTTON', 'EMOJI'],
+      default_signup_method: 'BUTTON',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    };
+
+    render(
+      <TemplateForm
+        open={true}
+        template={mockTemplate}
+        guildId="guild-1"
+        channels={mockChannels}
+        roles={mockRoles}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    expect(screen.getByLabelText('Add Reminder Time')).toBeInTheDocument();
+  });
+
+  it('should update state when preset is selected', async () => {
+    const user = userEvent.setup();
+    render(
+      <TemplateForm
+        open={true}
+        template={null}
+        guildId="guild-1"
+        channels={mockChannels}
+        roles={mockRoles}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    const select = screen.getByLabelText('Add Reminder Time');
+    await user.click(select);
+
+    const option = screen.getByRole('option', { name: '30 minutes' });
+    await user.click(option);
+
+    await waitFor(() => {
+      expect(screen.getByText('30 minutes')).toBeInTheDocument();
+    });
+  });
+
+  it('should allow chip deletion', async () => {
+    const user = userEvent.setup();
+    const mockTemplate: GameTemplate = {
+      id: 'template-1',
+      guild_id: 'guild-1',
+      name: 'Test Template',
+      description: 'Test',
+      channel_id: 'channel-1',
+      channel_name: 'general',
+      order: 1,
+      is_default: false,
+      where: null,
+      signup_instructions: null,
+      max_players: null,
+      expected_duration_minutes: null,
+      reminder_minutes: [30, 60],
+      notify_role_ids: null,
+      allowed_player_role_ids: null,
+      allowed_host_role_ids: null,
+      allowed_signup_methods: ['BUTTON', 'EMOJI'],
+      default_signup_method: 'BUTTON',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    };
+
+    render(
+      <TemplateForm
+        open={true}
+        template={mockTemplate}
+        guildId="guild-1"
+        channels={mockChannels}
+        roles={mockRoles}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('30 minutes')).toBeInTheDocument();
+      expect(screen.getByText('1 hour')).toBeInTheDocument();
+    });
+
+    // Find chip with delete button by finding the chip button role
+    const chipButtons = screen.getAllByRole('button');
+    const thirtyMinChip = chipButtons.find((button) => button.textContent === '30 minutes');
+    expect(thirtyMinChip).toBeDefined();
+
+    // Click the delete icon within the chip
+    const deleteIcon = thirtyMinChip?.querySelector('[data-testid="CancelIcon"]');
+    if (deleteIcon) {
+      await user.click(deleteIcon as Element);
+    }
+
+    await waitFor(() => {
+      expect(screen.queryByText('30 minutes')).not.toBeInTheDocument();
+      expect(screen.getByText('1 hour')).toBeInTheDocument();
+    });
+  });
+
+  it('should allow custom value addition', async () => {
+    const user = userEvent.setup();
+    render(
+      <TemplateForm
+        open={true}
+        template={null}
+        guildId="guild-1"
+        channels={mockChannels}
+        roles={mockRoles}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    const select = screen.getByLabelText('Add Reminder Time');
+    await user.click(select);
+
+    const customOption = screen.getByRole('option', { name: /custom/i });
+    await user.click(customOption);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/custom minutes/i)).toBeInTheDocument();
+    });
+
+    const input = screen.getByLabelText(/custom minutes/i);
+    await user.type(input, '45');
+
+    const addButton = screen.getByRole('button', { name: /add/i });
+    await user.click(addButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('45 minutes')).toBeInTheDocument();
+    });
+  });
+
+  it('should include reminder times in template submission', async () => {
+    const user = userEvent.setup();
+    render(
+      <TemplateForm
+        open={true}
+        template={null}
+        guildId="guild-1"
+        channels={mockChannels}
+        roles={mockRoles}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    await user.type(screen.getByLabelText(/template name/i), 'Test Template');
+
+    const select = screen.getByLabelText('Add Reminder Time');
+    await user.click(select);
+    const option = screen.getByRole('option', { name: '1 hour' });
+    await user.click(option);
+
+    await waitFor(() => {
+      expect(screen.getByText('1 hour')).toBeInTheDocument();
+    });
+
+    const createButton = screen.getByRole('button', { name: /create/i });
+    await user.click(createButton);
+
+    await waitFor(() => {
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reminder_minutes: [60],
+        })
+      );
+    });
+  });
+});
