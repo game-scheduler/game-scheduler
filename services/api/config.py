@@ -82,12 +82,39 @@ def _get_cookie_domain(frontend_url: str, backend_url: str) -> str | None:
     return None
 
 
+def get_rate_limits() -> list[str]:
+    """Parse rate limit configuration from environment variables.
+
+    Reads RATE_LIMIT_COUNT to determine number of rules, then reads
+    RATE_LIMIT_N_COUNT and RATE_LIMIT_N_TIME for each rule N.
+
+    Returns:
+        List of rate limit strings in slowapi format (e.g., ["60/10seconds", "100/20seconds"])
+
+    Examples:
+        With RATE_LIMIT_COUNT=2, RATE_LIMIT_1_COUNT=60, RATE_LIMIT_1_TIME=10,
+        RATE_LIMIT_2_COUNT=100, RATE_LIMIT_2_TIME=20:
+        >>> get_rate_limits()
+        ['60/10seconds', '100/20seconds']
+    """
+    rate_limit_count = int(os.getenv("RATE_LIMIT_COUNT", "2"))
+    limits = []
+
+    for i in range(1, rate_limit_count + 1):
+        count = int(os.getenv(f"RATE_LIMIT_{i}_COUNT", "60" if i == 1 else "100"))
+        time_seconds = int(os.getenv(f"RATE_LIMIT_{i}_TIME", "60" if i == 1 else "300"))
+        limits.append(f"{count}/{time_seconds}seconds")
+
+    return limits
+
+
 class APIConfig:
     """API service configuration from environment variables."""
 
     def __init__(self) -> None:
         """Load configuration from environment variables."""
         self.discord_client_id = os.getenv("DISCORD_BOT_CLIENT_ID", "")
+        self.rate_limits = get_rate_limits()
         self.discord_client_secret = os.getenv("DISCORD_BOT_CLIENT_SECRET", "")
         self.discord_bot_token = os.getenv("DISCORD_BOT_TOKEN", "")
 

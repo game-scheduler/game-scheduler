@@ -81,33 +81,33 @@ Migrate image storage from RLS-protected game_sessions table to separate game_im
 - [x] Task 2.3: Run tests to verify integration works correctly
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 362-375)
 
-### [ ] Phase 3: Public Image Endpoint (TDD)
+### [x] Phase 3: Public Image Endpoint (TDD)
 
-- [ ] Task 3.1: Create endpoint stub returning NotImplementedError
+- [x] Task 3.1: Create endpoint stub returning NotImplementedError
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 377-395)
 
-- [ ] Task 3.2: Write failing integration tests for public endpoint
+- [x] Task 3.2: Write failing integration tests for public endpoint
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 397-450)
 
-- [ ] Task 3.3: Run tests to verify RED phase
+- [x] Task 3.3: Run tests to verify RED phase
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 452-460)
 
-- [ ] Task 3.4: Implement public endpoint with proper headers
+- [x] Task 3.4: Implement public endpoint with proper headers
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 462-500)
 
-- [ ] Task 3.5: Register router in main.py
+- [x] Task 3.5: Register router in main.py
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 502-515)
 
-- [ ] Task 3.6: Run tests to verify GREEN phase
+- [x] Task 3.6: Run tests to verify GREEN phase
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 517-525)
 
-- [ ] Task 3.7: Add rate limiting tests
+- [x] Task 3.7: Add rate limiting tests
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 527-560)
 
-- [ ] Task 3.8: Implement rate limiting with slowapi
+- [x] Task 3.8: Implement rate limiting with slowapi
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 562-590)
 
-- [ ] Task 3.9: Run full test suite to verify REFACTOR phase
+- [x] Task 3.9: Run full test suite to verify REFACTOR phase
   - Details: .copilot-tracking/details/20260207-02-public-image-endpoints-details.md (Lines 592-605)
 
 ### [ ] Phase 4: Consumer Updates

@@ -34,10 +34,23 @@ from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from slowapi import Limiter, _rate_limit_exceeded_handler  # noqa: PLC2701
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
 from services.api import middleware
 from services.api.config import get_api_config
-from services.api.routes import auth, channels, export, games, guilds, sse, templates
+from services.api.routes import (
+    auth,
+    channels,
+    export,
+    games,
+    guilds,
+    public,
+    sse,
+    templates,
+)
 from services.api.services.sse_bridge import get_sse_bridge
 from shared.cache import client as redis_client
 from shared.telemetry import init_telemetry
@@ -57,6 +70,10 @@ logging.getLogger("uvicorn.error").setLevel(logging.INFO)
 logging.getLogger("services.api").setLevel(logging.INFO)
 
 logger = logging.getLogger(__name__)
+
+# Initialize rate limiter for public endpoints
+# Note: slowapi 0.1.9 uses in-memory storage regardless of storage_uri
+limiter = Limiter(key_func=get_remote_address)
 
 # Initialize OpenTelemetry instrumentation
 init_telemetry("api-service")
@@ -116,6 +133,11 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Configure rate limiting
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
+    app.add_middleware(SlowAPIMiddleware)
+
     middleware.cors.configure_cors(app, config)
     middleware.error_handler.configure_error_handlers(app)
 
@@ -125,6 +147,7 @@ def create_app() -> FastAPI:
     app.include_router(templates.router)
     app.include_router(games.router)
     app.include_router(export.router)
+    app.include_router(public.router)
     app.include_router(sse.router)
 
     @app.get("/health")

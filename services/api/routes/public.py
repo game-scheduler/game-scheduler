@@ -1,0 +1,150 @@
+# Copyright 2025-2026 Bret McKee
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+"""Public API endpoints that do not require authentication."""
+
+import logging
+from collections.abc import Callable
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from services.api.config import APIConfig
+from shared.database import get_db
+from shared.models.game_image import GameImage
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api/v1/public/images", tags=["public"])
+
+# Create limiter instance for decorators
+limiter = Limiter(key_func=get_remote_address)
+config = APIConfig()
+
+
+def get_limiter(request: Request) -> Limiter:
+    """Get the limiter from app state."""
+    return request.app.state.limiter
+
+
+def _apply_rate_limits(func: Callable) -> Callable:
+    """Apply all configured rate limits to an endpoint."""
+    for rate_limit in reversed(config.rate_limits):
+        func = limiter.limit(rate_limit)(func)
+    return func
+
+
+@router.get("/{image_id}")
+@_apply_rate_limits
+async def get_image(
+    request: Request,
+    image_id: Annotated[UUID, Path(description="UUID of the image to retrieve")],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    """
+    Serve image by ID without authentication.
+
+    This endpoint is publicly accessible to enable Discord embeds and
+    external image references. Images are served from the game_images table
+    which has no RLS policies.
+
+    Args:
+        image_id: UUID of the image to retrieve
+        db: Database session
+
+    Returns:
+        Image binary data with appropriate content-type and cache headers
+
+    Raises:
+        HTTPException: 404 if image not found
+    """
+    try:
+        logger.info("GET image request for %s from %s", image_id, get_remote_address(request))
+
+        stmt = select(GameImage).where(GameImage.id == image_id)
+        result = await db.execute(stmt)
+        image = result.scalar_one_or_none()
+
+        if not image:
+            logger.warning("Image %s not found", image_id)
+            raise HTTPException(status_code=404, detail="Image not found")
+
+        logger.debug(
+            "Serving image %s, mime_type=%s, size=%d",
+            image_id,
+            image.mime_type,
+            len(image.image_data),
+        )
+        return Response(
+            content=image.image_data,
+            media_type=image.mime_type,
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "Access-Control-Allow-Origin": "*",
+            },
+        )
+    except Exception as e:
+        logger.exception("Error serving image %s: %s", image_id, e)
+        raise
+
+
+@router.head("/{image_id}")
+@_apply_rate_limits
+async def head_image(
+    request: Request,  # Required by slowapi for rate limiting  # noqa: ARG001
+    image_id: Annotated[UUID, Path(description="UUID of the image to retrieve")],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    """
+    Get image metadata without downloading the full image.
+
+    Returns the same headers as GET but without the body, useful for
+    checking if an image exists and getting its content-type.
+
+    Args:
+        image_id: UUID of the image to retrieve
+        db: Database session
+
+    Returns:
+        Headers only, no body
+
+    Raises:
+        HTTPException: 404 if image not found
+    """
+    stmt = select(GameImage).where(GameImage.id == image_id)
+    result = await db.execute(stmt)
+    image = result.scalar_one_or_none()
+
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    return Response(
+        content=b"",
+        media_type=image.mime_type,
+        headers={
+            "Cache-Control": "public, max-age=3600",
+            "Access-Control-Allow-Origin": "*",
+        },
+    )

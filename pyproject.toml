@@ -16,6 +16,7 @@ dependencies = [
     "discord.py~=2.6.0",
     "audioop-lts~=0.2.0",  # Python 3.13+ compatibility for discord.py voice support
     "fastapi~=0.115.0",
+    "slowapi~=0.1.9",
     "uvicorn[standard]~=0.34.0",
     # Database
     "sqlalchemy[asyncio]~=2.0.36",

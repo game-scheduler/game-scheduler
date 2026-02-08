@@ -24,6 +24,7 @@
 import contextlib
 import os
 
+import httpx
 import pika
 import pytest
 
@@ -36,6 +37,19 @@ from shared.database import engine
 def rabbitmq_url():
     """Get RabbitMQ URL from environment."""
     return os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
+
+
+@pytest.fixture
+async def async_client(api_base_url):
+    """
+    HTTP client for public endpoints without authentication.
+
+    For testing public endpoints that don't require authentication.
+    Uses the API base URL from environment.
+    """
+    client = httpx.AsyncClient(base_url=api_base_url, timeout=30.0)
+    yield client
+    await client.aclose()
 
 
 @pytest.fixture
