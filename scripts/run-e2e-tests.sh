@@ -41,6 +41,11 @@ fi
 # Source env file to check required variables
 source "$ENV_FILE"
 
+# Export COMPOSE_PROFILES if set in env file so docker compose recognizes it
+if [ -n "$COMPOSE_PROFILES" ]; then
+  export COMPOSE_PROFILES
+fi
+
 # Check for required test Discord credentials
 if [ -z "$DISCORD_BOT_TOKEN" ]; then
   echo "ERROR: DISCORD_BOT_TOKEN environment variable is required in $ENV_FILE"

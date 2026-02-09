@@ -101,6 +101,9 @@ services:
         condition: service_started
       retry-daemon:
         condition: service_started
+      cloudflared:
+        condition: service_started
+        required: false
     networks:
       - app-network
     restart: "no"

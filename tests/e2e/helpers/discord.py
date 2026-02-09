@@ -621,3 +621,74 @@ class DiscordTestHelper:
             interval=interval,
             description=f"{dm_type.value} DM for '{game_title}'",
         )
+
+    def verify_embed_images(
+        self,
+        embed: discord.Embed,
+        expect_thumbnail: bool = False,
+        expect_image: bool = False,
+        expected_thumbnail_url_fragment: str | None = None,
+        expected_image_url_fragment: str | None = None,
+    ) -> None:
+        """
+        Verify embed has expected thumbnail and/or image with Discord-validated dimensions.
+
+        Checks that Discord successfully fetched and rendered the images by validating
+        that width and height are set (Discord sets these after fetching the image).
+
+        Args:
+            embed: Discord embed object to verify
+            expect_thumbnail: Whether thumbnail should be present
+            expect_image: Whether image should be present
+            expected_thumbnail_url_fragment: Optional URL fragment to verify in thumbnail URL
+            expected_image_url_fragment: Optional URL fragment to verify in image URL
+
+        Raises:
+            AssertionError: If embed images don't match expectations
+        """
+        if expect_thumbnail:
+            assert embed.thumbnail is not None, "Expected embed to have thumbnail"
+            assert embed.thumbnail.url is not None, "Thumbnail should have URL"
+            assert embed.thumbnail.width is not None, (
+                "Thumbnail width should be set (proves Discord fetched image)"
+            )
+            assert embed.thumbnail.height is not None, (
+                "Thumbnail height should be set (proves Discord fetched image)"
+            )
+            assert embed.thumbnail.width > 0, (
+                f"Thumbnail width should be > 0: {embed.thumbnail.width}"
+            )
+            assert embed.thumbnail.height > 0, (
+                f"Thumbnail height should be > 0: {embed.thumbnail.height}"
+            )
+
+            if expected_thumbnail_url_fragment:
+                assert expected_thumbnail_url_fragment in embed.thumbnail.url, (
+                    f"Thumbnail URL should contain '{expected_thumbnail_url_fragment}': "
+                    f"{embed.thumbnail.url}"
+                )
+        else:
+            assert embed.thumbnail is None or embed.thumbnail.url is None, (
+                "Expected embed to NOT have thumbnail"
+            )
+
+        if expect_image:
+            assert embed.image is not None, "Expected embed to have image"
+            assert embed.image.url is not None, "Image should have URL"
+            assert embed.image.width is not None, (
+                "Image width should be set (proves Discord fetched image)"
+            )
+            assert embed.image.height is not None, (
+                "Image height should be set (proves Discord fetched image)"
+            )
+            assert embed.image.width > 0, f"Image width should be > 0: {embed.image.width}"
+            assert embed.image.height > 0, f"Image height should be > 0: {embed.image.height}"
+
+            if expected_image_url_fragment:
+                assert expected_image_url_fragment in embed.image.url, (
+                    f"Image URL should contain '{expected_image_url_fragment}': {embed.image.url}"
+                )
+        else:
+            assert embed.image is None or embed.image.url is None, (
+                "Expected embed to NOT have image"
+            )
