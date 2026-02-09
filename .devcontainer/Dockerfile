@@ -59,9 +59,14 @@ RUN mkdir -p \
     chown -R vscode:vscode /home/vscode && \
     chmod -R 755 /home/vscode
 
-# Configure bash to start in workspace directory
+# Configure bash to start in workspace directory and enable git wrapper
 RUN echo 'if [ -n "$REMOTE_CONTAINERS" ] && [ -d "/workspaces" ]; then' >> /home/vscode/.bashrc_devcontainer && \
     echo '    cd /workspaces/game-scheduler 2>/dev/null || cd $(find /workspaces -maxdepth 1 -type d | tail -1) 2>/dev/null || true' >> /home/vscode/.bashrc_devcontainer && \
+    echo 'fi' >> /home/vscode/.bashrc_devcontainer && \
+    echo '' >> /home/vscode/.bashrc_devcontainer && \
+    echo '# Enable git wrapper for quality check enforcement' >> /home/vscode/.bashrc_devcontainer && \
+    echo 'if [ -d "${WORKSPACE_ROOT:-/workspaces/game-scheduler}/scripts/wrappers" ]; then' >> /home/vscode/.bashrc_devcontainer && \
+    echo '    export PATH="${WORKSPACE_ROOT:-/workspaces/game-scheduler}/scripts/wrappers:$PATH"' >> /home/vscode/.bashrc_devcontainer && \
     echo 'fi' >> /home/vscode/.bashrc_devcontainer && \
     chown vscode:vscode /home/vscode/.bashrc_devcontainer
 

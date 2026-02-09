@@ -19,6 +19,7 @@ The project includes a VS Code Dev Container with all tools pre-installed. This 
    - Visual Studio Code with "Dev Containers" extension
 
 2. **Open in container**:
+
    ```bash
    # Clone and open in VS Code
    git clone <repository-url>
@@ -35,12 +36,14 @@ The project includes a VS Code Dev Container with all tools pre-installed. This 
    - Ready to develop immediately!
 
 4. **Start infrastructure**:
+
    ```bash
    # Inside dev container terminal
    docker compose up postgres redis rabbitmq -d
    ```
 
 5. **Run services** (choose one):
+
    ```bash
    # Option A: Run in containers
    docker compose up api bot notification-daemon status-transition-daemon -d
@@ -54,6 +57,7 @@ The project includes a VS Code Dev Container with all tools pre-installed. This 
 ### Dev Container Features
 
 The dev container includes:
+
 - Python 3.13 with all project dependencies (including dev group)
 - Node.js 24 with frontend dependencies
 - Docker CLI for managing containers
@@ -94,6 +98,7 @@ ls -la .env
 ```
 
 The `.env` symlink is pre-configured to point to `config/env/env.dev`, which contains:
+
 - `COMPOSE_FILE=compose.yaml:compose.override.yaml` - Loads development compose files
 - Development-specific configuration (DEBUG logging, all ports exposed)
 
@@ -116,6 +121,7 @@ docker compose up
 ```
 
 That's it! The development environment will:
+
 - Mount your source code as volumes (no rebuilds needed for code changes)
 - Enable hot-reload for instant feedback
 - Expose all service ports including management UIs
@@ -235,11 +241,13 @@ The project uses pre-commit hooks to automatically validate code quality before 
 ### Dev Container Users (Everything Pre-Installed)
 
 If you're using the dev container, **all hooks work immediately** - no additional setup needed! The container includes:
+
 - All Python dependencies installed system-wide
 - All frontend dependencies installed in `frontend/node_modules`
 - Pre-commit hooks automatically installed on container creation
 
 Just commit normally:
+
 ```bash
 git add modified_file.py
 git commit -m "Your changes"
@@ -294,16 +302,16 @@ cd frontend && npm install
 
 These require project setup:
 
-| Hook | Requires | Purpose |
-|------|----------|---------|
-| `mypy` | `uv sync` | Python type checking with project dependencies |
-| `python-compile` | `uv sync` | Python compilation validation |
-| `pytest-coverage` | `uv sync` | Python unit tests with coverage |
-| `diff-coverage` | `uv sync` | Python diff coverage check |
-| `frontend-build` | `cd frontend && npm install` | Frontend build validation |
-| `vitest-coverage` | `cd frontend && npm install` | Frontend unit tests with coverage |
-| `diff-coverage-frontend` | `cd frontend && npm install` | Frontend diff coverage check |
-| `ci-cd-workflow` (manual) | Docker | Run GitHub Actions locally with `act` |
+| Hook                      | Requires                     | Purpose                                        |
+| ------------------------- | ---------------------------- | ---------------------------------------------- |
+| `mypy`                    | `uv sync`                    | Python type checking with project dependencies |
+| `python-compile`          | `uv sync`                    | Python compilation validation                  |
+| `pytest-coverage`         | `uv sync`                    | Python unit tests with coverage                |
+| `diff-coverage`           | `uv sync`                    | Python diff coverage check                     |
+| `frontend-build`          | `cd frontend && npm install` | Frontend build validation                      |
+| `vitest-coverage`         | `cd frontend && npm install` | Frontend unit tests with coverage              |
+| `diff-coverage-frontend`  | `cd frontend && npm install` | Frontend diff coverage check                   |
+| `ci-cd-workflow` (manual) | Docker                       | Run GitHub Actions locally with `act`          |
 
 ### Normal Usage
 
@@ -316,6 +324,7 @@ git commit -m "Your commit message"
 ```
 
 What runs automatically on every commit:
+
 - All standalone hooks (linting, formatting, type checking, complexity)
 - System-dependent hooks (tests for new/modified files only)
   - **Dev container**: All system hooks work (dependencies pre-installed)
@@ -339,15 +348,17 @@ pre-commit run --all-files
 
 ### Emergency Skip (Use Sparingly)
 
-```bash
-# Skip ALL hooks for urgent commits
-git commit -m "WIP: urgent hotfix" --no-verify
+The project enforces a quality check override policy through a git wrapper that prevents accidental bypasses. Direct use of `--no-verify` or `SKIP=` environment variables will be blocked with an error message.
 
-# Skip specific hooks
-SKIP=pytest-changed git commit -m "Skip tests temporarily"
-```
+**Policy Enforcement:**
 
-**Note:** Skipping hooks locally doesn't skip CI/CD checks. All validations still run in the GitHub Actions pipeline.
+- `git commit --no-verify` → Blocked with error
+- `SKIP=hook git commit` → Blocked with error
+- See [.github/instructions/quality-check-overrides.instructions.md](../../.github/instructions/quality-check-overrides.instructions.md) for the complete policy
+
+**Important:** If you have a legitimate need to bypass quality checks (rare cases like urgent production hotfixes), contact the project maintainer for guidance on approved bypass mechanisms. Bypasses require explicit approval and documentation of the reason.
+
+**Note:** Even if you bypass hooks locally, all validations still run in the GitHub Actions CI/CD pipeline.
 
 ### Architecture Notes
 
@@ -357,6 +368,7 @@ SKIP=pytest-changed git commit -m "Skip tests temporarily"
 - **System hooks**: Complex tools requiring full project context use `language: system`
 
 **Performance expectations:**
+
 - Most commits: 15-45 seconds (depending on files changed)
 - Tests run ONLY on new/modified files for efficiency
 - Full test suite still runs in CI/CD for comprehensive validation
@@ -370,11 +382,13 @@ The project enforces comprehensive code quality standards through automated lint
 Ruff enforces 33 rule categories covering security, correctness, performance, and style:
 
 **Security & Correctness:**
+
 - **S** (flake8-bandit): Security vulnerability detection (SQL injection, subprocess security, hardcoded secrets)
 - **ASYNC** (flake8-async): Async/await best practices
 - **FAST** (FastAPI): FastAPI-specific patterns (Annotated dependencies)
 
 **Code Quality & Maintainability:**
+
 - **E/W** (pycodestyle): PEP 8 style enforcement
 - **F** (Pyflakes): Logical errors and undefined names
 - **N** (pep8-naming): Naming convention enforcement
@@ -392,10 +406,12 @@ Ruff enforces 33 rule categories covering security, correctness, performance, an
 - **PT** (flake8-pytest-style): Pytest best practices
 
 **Performance:**
+
 - **PERF** (Perflint): Performance anti-patterns
 - **G004** (flake8-logging-format): Lazy logging (no f-strings in logging)
 
 **Polish & Documentation:**
+
 - **T20** (flake8-print): No print statements in production code (use logging)
 - **EM** (flake8-errmsg): Exception message extraction
 - **G/LOG** (flake8-logging-format): Logging best practices
@@ -529,6 +545,7 @@ docker compose --env-file config/env/env.prod up -d
 ```
 
 Production builds:
+
 - Target `production` stage in Dockerfiles
 - Copy all source code into images (no volume mounts)
 - Use optimized production commands
@@ -644,6 +661,7 @@ docker compose logs <service-name>
 ```
 
 Common issues:
+
 - Missing environment variables (check `config/env/env.dev`)
 - Database not ready (wait for postgres container to be healthy)
 - Dependency changes (rebuild container)

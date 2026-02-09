@@ -1,0 +1,82 @@
+#!/bin/bash
+# Copyright 2026 Bret McKee
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+# Git wrapper to enforce quality check policy
+# Prevents --no-verify and SKIP= without explicit approval
+
+# Find real git binary (next in PATH after this wrapper)
+REAL_GIT=$(which -a git | grep -v "$(readlink -f "$0")" | head -1)
+
+if [[ -z "$REAL_GIT" ]]; then
+    echo "ERROR: Could not find real git binary" >&2
+    exit 1
+fi
+
+# Flag to track if we need approval
+NEEDS_APPROVAL=false
+ERROR_MESSAGE=""
+
+# Parse command line for prohibited patterns
+args=("$@")
+new_args=()
+
+# Check for environment variable SKIP=
+if [[ -n "$SKIP" ]]; then
+    NEEDS_APPROVAL=true
+    ERROR_MESSAGE+="ERROR: SKIP environment variable detected.\n"
+    ERROR_MESSAGE+="Pre-commit hook bypass requires explicit user approval.\n\n"
+fi
+
+# Check for APPROVED_SKIP and convert to SKIP
+if [[ -n "$APPROVED_SKIP" ]]; then
+    export SKIP="$APPROVED_SKIP"
+    unset APPROVED_SKIP
+fi
+
+# Scan arguments for problematic flags
+for i in "${!args[@]}"; do
+    arg="${args[$i]}"
+
+    case "$arg" in
+        --no-verify|-n)
+            NEEDS_APPROVAL=true
+            ERROR_MESSAGE+="ERROR: $arg flag detected.\n"
+            ERROR_MESSAGE+="Pre-commit hook bypass requires explicit user approval.\n\n"
+            ;;
+        --approved-no-verify)
+            new_args+=("--no-verify")
+            ;;
+        *)
+            new_args+=("$arg")
+            ;;
+    esac
+done
+
+# If approval needed, show error and exit
+if [[ "$NEEDS_APPROVAL" == "true" ]]; then
+    echo -e "$ERROR_MESSAGE" >&2
+    echo "See .github/instructions/quality-check-overrides.instructions.md for policy details." >&2
+    exit 1
+fi
+
+# Execute real git with processed arguments
+exec "$REAL_GIT" "${new_args[@]}"
