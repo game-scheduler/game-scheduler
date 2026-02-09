@@ -463,7 +463,7 @@ services:
       environment: "${ENVIRONMENT:-production}"
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2026.2.0
     container_name: ${CONTAINER_PREFIX:-gamebot}-cloudflared
     restart: always
     command: tunnel --no-autoupdate run
