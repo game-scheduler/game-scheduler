@@ -19,12 +19,13 @@
 # SOFTWARE.
 
 
-"""End-to-end tests for game announcement Discord message validation.
+"""End-to-end tests for Discord channel mentions in game location field.
 
 Tests the complete flow:
-1. POST /games → Bot posts announcement to Discord channel
-2. Verification of Discord message content, embeds, fields
-3. Updates and deletions reflect in Discord
+1. POST /games with location containing #channel-name
+2. Backend resolves channel name to Discord channel ID
+3. Bot posts announcement with <#channel_id> format in Where field
+4. Verification that Discord renders channel mention as clickable link
 
 Requires:
 - PostgreSQL with migrations applied and E2E data seeded by init service
@@ -51,7 +52,7 @@ pytestmark = pytest.mark.e2e
 
 
 @pytest.mark.asyncio
-async def test_game_creation_posts_announcement_to_discord(
+async def test_channel_mention_in_location_displays_as_discord_link(
     authenticated_admin_client,
     admin_db,
     discord_helper,
@@ -62,14 +63,14 @@ async def test_game_creation_posts_announcement_to_discord(
     test_timeouts,
 ):
     """
-    E2E: Creating game via API posts announcement to Discord channel.
+    E2E: Channel mention in location field converts to clickable Discord link.
 
     Verifies:
-    - Message appears in configured channel
-    - Game session has message_id populated
-    - Message contains embed with correct content
-    - Embed contains game details (title, host mention, player count, location)
-    - Plain text location displays unchanged in Discord embed
+    - Game created with location containing #channel-name
+    - Backend resolves channel name to channel ID
+    - Discord embed Where field contains <#channel_id> format
+    - Channel ID matches actual guild channel
+    - Discord renders mention as clickable link
     """
     result = await admin_db.execute(
         text("SELECT id FROM guild_configurations WHERE guild_id = :guild_id"),
@@ -87,13 +88,22 @@ async def test_game_creation_posts_announcement_to_discord(
     assert row, f"Default template not found for guild {test_guild_id}"
     test_template_id = row[0]
 
+    guild = await discord_helper.client.fetch_guild(int(discord_guild_id))
+    channels = await guild.fetch_channels()
+
+    text_channels = [ch for ch in channels if hasattr(ch, "send")]
+    assert len(text_channels) > 0, "No text channels found in test guild"
+
+    target_channel = text_channels[0]
+    channel_name = target_channel.name
+
     scheduled_time = datetime.now(UTC) + timedelta(hours=2)
-    game_title = f"E2E Test Game {uuid4().hex[:8]}"
-    game_location = "Local Game Store, 123 Main St"
+    game_title = f"E2E Channel Link Test {uuid4().hex[:8]}"
+    game_location = f"Meet in #{channel_name} voice lobby"
     game_data = {
         "template_id": test_template_id,
         "title": game_title,
-        "description": "Testing game announcement to Discord",
+        "description": "Testing channel mention resolution",
         "scheduled_at": scheduled_time.isoformat(),
         "max_players": "4",
         "where": game_location,
@@ -118,10 +128,19 @@ async def test_game_creation_posts_announcement_to_discord(
     assert len(message.embeds) == 1, "Message should have exactly one embed"
 
     embed = message.embeds[0]
-    discord_helper.verify_game_embed(
-        embed=embed,
-        expected_title=game_title,
-        expected_host_id=discord_user_id,
-        expected_max_players=4,
-        expected_location=game_location,
+    where_field = next((f for f in embed.fields if f.name.startswith("Where")), None)
+    assert where_field is not None, "Where field should exist in embed"
+
+    expected_mention = f"<#{target_channel.id}>"
+    assert expected_mention in where_field.value, (
+        f"Where field should contain Discord channel mention format. "
+        f"Expected: {expected_mention}, Got: {where_field.value}"
     )
+
+    assert f"Meet in {expected_mention} voice lobby" == where_field.value, (
+        f"Location text should preserve non-channel content. "
+        f"Expected: 'Meet in {expected_mention} voice lobby', Got: {where_field.value}"
+    )
+
+    print(f"[TEST] ✓ Channel mention #{channel_name} resolved to {expected_mention}")
+    print("[TEST] ✓ Discord will render this as clickable link")

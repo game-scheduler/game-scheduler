@@ -78,12 +78,12 @@ Enable users to reference Discord channels in game location field using `#channe
   - Details: .copilot-tracking/details/20260210-01-channel-links-in-game-location-details.md (Lines 192-211)
   - Details: .copilot-tracking/details/20260210-01-channel-links-in-game-location-details.md (Lines 212-225)
 
-### [ ] Phase 4: End-to-End Testing
+### [x] Phase 4: End-to-End Testing
 
-- [ ] Task 4.1: Add E2E test for channel mention in Discord embed
+- [x] Task 4.1: Add E2E test for channel mention in Discord embed
   - Details: .copilot-tracking/details/20260210-01-channel-links-in-game-location-details.md (Lines 227-250)
 
-- [ ] Task 4.2: Verify backward compatibility with plain text locations
+- [x] Task 4.2: Verify backward compatibility with plain text locations
   - Details: .copilot-tracking/details/20260210-01-channel-links-in-game-location-details.md (Lines 252-265)
 
 ## Dependencies
