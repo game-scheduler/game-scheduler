@@ -1,4 +1,5 @@
 ---
+description: "Comprehensive code verification and quality assurance for all changes"
 agent: agent
 model: Claude Sonnet 4.5
 ---

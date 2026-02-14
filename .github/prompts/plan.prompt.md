@@ -1,6 +1,6 @@
 ---
-mode: task-planner
-title: Plan the discord game scheduling system
+description: "Plan implementation for discord game scheduling system based on research"
+agent: task-planner
 ---
 
 #file: .copilot-tracking/research/\*discord-game-scheduling-system-research.md

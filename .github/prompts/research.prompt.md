@@ -1,4 +1,5 @@
 ---
+description: "Research implementation for discord game scheduling system based on research"
 agent: task-researcher
 ---
 

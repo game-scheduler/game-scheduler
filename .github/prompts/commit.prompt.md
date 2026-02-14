@@ -1,4 +1,5 @@
 ---
+description: "Commit changes with pre-commit validation and code quality checks"
 agent: agent
 model: Claude Sonnet 4.5
 ---
