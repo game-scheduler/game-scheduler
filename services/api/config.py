@@ -117,6 +117,7 @@ class APIConfig:
         self.rate_limits = get_rate_limits()
         self.discord_client_secret = os.getenv("DISCORD_BOT_CLIENT_SECRET", "")
         self.discord_bot_token = os.getenv("DISCORD_BOT_TOKEN", "")
+        self.discord_public_key = os.getenv("DISCORD_PUBLIC_KEY", "")
 
         self.database_url = os.getenv(
             "DATABASE_URL",

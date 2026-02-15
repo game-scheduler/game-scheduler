@@ -41,15 +41,15 @@ Implement Discord webhook endpoint with Ed25519 signature validation to automati
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Environment and Dependencies Setup
+### [x] Phase 1: Environment and Dependencies Setup
 
-- [ ] Task 1.1: Add DISCORD_PUBLIC_KEY environment variable to all env files
+- [x] Task 1.1: Add DISCORD_PUBLIC_KEY environment variable to all env files
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 15-27)
 
-- [ ] Task 1.2: Add PyNaCl dependency to pyproject.toml
+- [x] Task 1.2: Add PyNaCl dependency to pyproject.toml
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 29-39)
 
-- [ ] Task 1.3: Update APIConfig to include discord_public_key
+- [x] Task 1.3: Update APIConfig to include discord_public_key
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 41-51)
 
 ### [ ] Phase 2: Webhook Signature Validation (TDD)
