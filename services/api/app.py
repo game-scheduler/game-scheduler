@@ -50,6 +50,7 @@ from services.api.routes import (
     public,
     sse,
     templates,
+    webhooks,
 )
 from services.api.services.sse_bridge import get_sse_bridge
 from shared.cache import client as redis_client
@@ -149,6 +150,7 @@ def create_app() -> FastAPI:
     app.include_router(export.router)
     app.include_router(public.router)
     app.include_router(sse.router)
+    app.include_router(webhooks.router)
 
     @app.get("/health")
     async def health_check() -> dict[str, str | dict[str, str]]:

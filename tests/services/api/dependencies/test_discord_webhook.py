@@ -96,7 +96,7 @@ async def test_invalid_signature_raises_401(mock_request, test_keypair, monkeypa
         )
 
     assert exc_info.value.status_code == 401
-    assert "Invalid signature" in str(exc_info.value.detail)
+    assert "Invalid webhook signature" in str(exc_info.value.detail)
 
 
 @pytest.mark.asyncio

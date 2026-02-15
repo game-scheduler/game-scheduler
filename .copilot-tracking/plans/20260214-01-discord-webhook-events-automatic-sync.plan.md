@@ -69,21 +69,21 @@ Implement Discord webhook endpoint with Ed25519 signature validation to automati
 - [x] Task 2.5: Refactor validation with comprehensive edge case tests
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 109-120)
 
-### [ ] Phase 3: Webhook Endpoint Implementation (TDD)
+### [x] Phase 3: Webhook Endpoint Implementation (TDD)
 
-- [ ] Task 3.1: Create webhook endpoint stub returning 501
+- [x] Task 3.1: Create webhook endpoint stub returning 501
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 122-132)
 
-- [ ] Task 3.2: Write failing integration tests for webhook endpoint
+- [x] Task 3.2: Write failing integration tests for webhook endpoint
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 134-150)
 
-- [ ] Task 3.3: Implement PING handling (type 0 → 204)
+- [x] Task 3.3: Implement PING handling (type 0 → 204)
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 152-162)
 
-- [ ] Task 3.4: Implement APPLICATION_AUTHORIZED webhook handling with stub sync
+- [x] Task 3.4: Implement APPLICATION_AUTHORIZED webhook handling with stub sync
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 164-178)
 
-- [ ] Task 3.5: Update integration tests and add comprehensive edge cases
+- [x] Task 3.5: Update integration tests and add comprehensive edge cases
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 180-192)
 
 ### [ ] Phase 4: Bot Guild Sync Service (TDD)

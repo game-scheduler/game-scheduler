@@ -75,4 +75,4 @@ async def validate_discord_webhook(
 
         return body
     except (ValueError, BadSignatureError):
-        raise HTTPException(status_code=401, detail="Invalid signature") from None
+        raise HTTPException(status_code=401, detail="Invalid webhook signature") from None

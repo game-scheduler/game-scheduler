@@ -175,7 +175,112 @@ Implementing Discord webhook endpoint with Ed25519 signature validation to autom
 
 ### Phase 3: Webhook Endpoint Implementation (TDD)
 
-**Status**: Not Started
+**Status**: ✅ Completed
+
+#### Task 3.1: Create webhook endpoint stub
+
+**Status**: ✅ Completed
+
+**Files Created**:
+
+- [services/api/routes/webhooks.py](../../services/api/routes/webhooks.py) - New Discord webhook endpoint
+
+**Files Modified**:
+
+- [services/api/app.py](../../services/api/app.py) - Registered webhooks router
+
+**Changes**:
+
+- Created `/api/v1/webhooks/discord` POST endpoint with signature validation dependency
+- Initially raised NotImplementedError as per TDD methodology (stub phase)
+- Registered webhooks router in FastAPI app with `/api/v1` prefix
+
+#### Task 3.2: Write failing integration tests
+
+**Status**: ✅ Completed
+
+**Files Created**:
+
+- [tests/integration/test_webhooks.py](../../tests/integration/test_webhooks.py) - Integration tests with real signature validation
+
+**Changes**:
+
+- Generated fixed Ed25519 keypair for integration tests
+  - Private key: `4c480d86c13f3e142aca79d54cdd2a173eaf484cb4fd44e61790fa5386501b83`
+  - Public key: `bfdab846fefce17aaaa92860e42a70c61d2d40c95b1ebbcbe4087a505f66b8fe`
+- Added DISCORD_PUBLIC_KEY to [config/env.int](../../config/env.int)
+- Added DISCORD_PUBLIC_KEY passthrough to [compose.yaml](../../compose.yaml) api service
+- Added DISCORD_PUBLIC_KEY passthrough to [compose.int.yaml](../../compose.int.yaml) integration-tests service
+- Created 4 integration tests:
+  - `test_webhook_ping_returns_204` - PING handling
+  - `test_webhook_application_authorized_returns_204` - Guild install handling
+  - `test_webhook_invalid_signature_rejected` - Signature rejection (401)
+  - `test_webhook_missing_headers_rejected` - Missing headers (422)
+- Tests initially expected NotImplementedError (RED phase)
+
+#### Task 3.3: Implement PING handling
+
+**Status**: ✅ Completed
+
+**Files Modified**:
+
+- [services/api/routes/webhooks.py](../../services/api/routes/webhooks.py) - Implemented PING response
+
+**Changes**:
+
+- Implemented type=0 (PING) webhook handling returning 204 No Content
+- Parse JSON payload from validated body bytes
+- Log PING webhook receipt at INFO level
+- Tests transition from RED → GREEN (PING test passes)
+
+#### Task 3.4: Implement APPLICATION_AUTHORIZED handling
+
+**Status**: ✅ Completed
+
+**Files Modified**:
+
+- [services/api/routes/webhooks.py](../../services/api/routes/webhooks.py) - Implemented APPLICATION_AUTHORIZED handling
+
+**Changes**:
+
+- Implemented type=1 (APPLICATION_AUTHORIZED) webhook handling
+- Extract guild info from event.data for guild installs (integration_type=0)
+- Log guild ID and name at INFO level when present
+- Return 204 No Content for both guild and user installs
+- All 4 integration tests now pass (GREEN phase)
+
+#### Task 3.5: Add comprehensive edge case tests
+
+**Status**: ✅ Completed
+
+**Files Created**:
+
+- [tests/services/api/routes/test_webhooks.py](../../tests/services/api/routes/test_webhooks.py) - Unit tests for edge cases
+
+**Changes**:
+
+- Created 12 comprehensive unit tests following project pattern (direct function call):
+  - `test_webhook_ping_returns_204` - PING handling
+  - `test_webhook_application_authorized_guild_install_returns_204` - Guild install
+  - `test_webhook_application_authorized_user_install_returns_204` - User install
+  - `test_webhook_application_authorized_missing_guild_returns_204` - Missing guild field
+  - `test_webhook_application_authorized_empty_guild_returns_204` - Empty guild object
+  - `test_webhook_unknown_event_type_returns_204` - Unknown event type
+  - `test_webhook_missing_event_field_returns_204` - Missing event field
+  - `test_webhook_unknown_type_returns_204` - Unknown webhook type
+  - `test_webhook_missing_type_field_returns_204` - Missing type field
+  - `test_webhook_application_authorized_missing_integration_type` - Missing integration_type
+  - `test_webhook_application_authorized_missing_data` - Missing data field
+  - `test_webhook_idempotency_multiple_same_guild` - Idempotent behavior
+- Tests call `discord_webhook()` function directly with mocked validated body bytes
+- Avoids TestClient pattern that triggers full application lifecycle
+- All 12 tests pass in 0.09s without infrastructure startup
+
+**Test Results**:
+
+- Integration tests: 4 passing (signature validation, PING, APPLICATION_AUTHORIZED, error cases)
+- Unit tests: 12 passing (comprehensive edge case coverage)
+- Updated error message assertion in [tests/services/api/dependencies/test_discord_webhook.py](../../tests/services/api/dependencies/test_discord_webhook.py) to match actual implementation text
 
 ---
 
