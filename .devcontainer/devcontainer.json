@@ -6,6 +6,9 @@
   },
   "workspaceFolder": "${localWorkspaceFolder}",
   "workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind,consistency=cached",
+  "containerEnv": {
+    "WORKSPACE_ROOT": "${containerWorkspaceFolder}"
+  },
   "mounts": [
     "source=${localWorkspaceFolderBasename}-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume",
     "source=/etc/timezone,target=/etc/timezone,type=bind,readonly",
@@ -57,7 +60,7 @@
   "initializeCommand": "docker network create gamebot-dev-network 2>/dev/null || true",
   "runArgs": ["--network=gamebot-dev-network"],
   "postCreateCommand": "python --version && uv --version && node --version && npm --version && npm install -g prettier && cd frontend && npm install && cd .. && pre-commit install && echo 'Dev container ready! Pre-commit hooks installed. Start infrastructure with: docker compose up postgres redis rabbitmq -d'",
-  "postStartCommand": "sudo chown -R vscode:vscode /home/vscode/.vscode-server 2>/dev/null || true; if [ -f /home/vscode/.bashrc_devcontainer ]; then cat /home/vscode/.bashrc_devcontainer >> /home/vscode/.bashrc; fi",
+  "postStartCommand": "sudo chown -R vscode:vscode /home/vscode/.vscode-server 2>/dev/null || true",
   "remoteUser": "vscode",
   "updateRemoteUserUID": true
 }
