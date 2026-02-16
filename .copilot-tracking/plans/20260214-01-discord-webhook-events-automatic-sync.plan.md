@@ -86,18 +86,18 @@ Implement Discord webhook endpoint with Ed25519 signature validation to automati
 - [x] Task 3.5: Update integration tests and add comprehensive edge cases
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 180-192)
 
-### [ ] Phase 4: Bot Guild Sync Service (TDD)
+### [x] Phase 4: Bot Guild Sync Service (TDD)
 
-- [ ] Task 4.1: Create sync_all_bot_guilds stub in guild_service
+- [x] Task 4.1: Create sync_all_bot_guilds stub in guild_service
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 211-223)
 
-- [ ] Task 4.2: Write tests with real assertions marked as expected failures
+- [x] Task 4.2: Write tests with real assertions marked as expected failures
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 224-242)
 
-- [ ] Task 4.3: Implement bot guild sync and remove xfail markers
+- [x] Task 4.3: Implement bot guild sync and remove xfail markers
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 243-266)
 
-- [ ] Task 4.4: Refactor and add comprehensive edge case tests
+- [x] Task 4.4: Refactor and add comprehensive edge case tests
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 267-285)
 
 ### [ ] Phase 5: RabbitMQ Integration for Webhook

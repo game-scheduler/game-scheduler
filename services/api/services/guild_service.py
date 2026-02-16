@@ -250,11 +250,15 @@ async def _create_guild_with_channels_and_template(
     # Fetch guild channels using bot token
     guild_channels = await client.get_guild_channels(guild_discord_id)
 
-    # Create channel configs for text channels
+    # Create channel configs for text, voice, and announcement channels
     text_channel = 0
+    voice_channel = 2
+    announcement_channel = 5
+    valid_channel_types = {text_channel, voice_channel, announcement_channel}
+
     channels_created = 0
     for channel in guild_channels:
-        if channel.get("type") == text_channel:
+        if channel.get("type") in valid_channel_types:
             await channel_service.create_channel_config(
                 db, guild_config.id, channel["id"], is_active=True
             )
@@ -337,4 +341,55 @@ async def sync_user_guilds(db: AsyncSession, access_token: str, user_id: str) ->
         "new_guilds": new_guilds_count,
         "new_channels": new_channels_count,
         "updated_channels": updated_channels_count,
+    }
+
+
+async def sync_all_bot_guilds(db: AsyncSession, bot_token: str) -> dict[str, int]:
+    """
+    Sync all bot guilds using bot token (no user authentication required).
+
+    Fetches all guilds the bot is present in and creates new guild configurations
+    with channels and default templates. Does not update existing guilds (lazy loading).
+
+    Does not commit. Caller must commit transaction.
+
+    Args:
+        db: Database session
+        bot_token: Discord bot token
+
+    Returns:
+        Dictionary with counts: {
+            "new_guilds": number of new guilds created,
+            "new_channels": number of new channels created
+        }
+    """
+    discord_client = get_discord_client()
+
+    # Fetch all bot guilds using bot token
+    bot_guilds = await discord_client.get_guilds(token=bot_token)
+    bot_guild_ids = {guild["id"] for guild in bot_guilds}
+
+    # Expand RLS context to include all bot guild IDs
+    await _expand_rls_context_for_guilds(db, bot_guild_ids)
+
+    # Query existing guild IDs from database
+    existing_guild_ids = await _get_existing_guild_ids(db)
+
+    # Compute new guilds (bot guilds - existing guilds)
+    new_guild_ids = bot_guild_ids - existing_guild_ids
+
+    new_guilds_count = 0
+    new_channels_count = 0
+
+    # Create guild and channel configs for new guilds
+    for guild_id in new_guild_ids:
+        guilds_created, channels_created = await _create_guild_with_channels_and_template(
+            db, discord_client, guild_id
+        )
+        new_guilds_count += guilds_created
+        new_channels_count += channels_created
+
+    return {
+        "new_guilds": new_guilds_count,
+        "new_channels": new_channels_count,
     }

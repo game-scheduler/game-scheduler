@@ -489,13 +489,13 @@ class TestSyncUserGuildsHelpers:
 
         # Verify results
         assert guilds_created == 1
-        assert channels_created == 2  # Only text channels
+        assert channels_created == 3  # Text and voice channels supported
 
         # Verify guild was created
         mock_db.add.assert_called()
 
-        # Verify channel configs were created (2 text channels)
-        assert mock_create_channel.call_count == 2
+        # Verify channel configs were created (2 text + 1 voice)
+        assert mock_create_channel.call_count == 3
 
         # Verify template was created for first text channel
         mock_template_service.create_default_template.assert_awaited_once()
@@ -549,10 +549,10 @@ class TestSyncUserGuildsHelpers:
 
         # Verify results
         assert guilds_created == 1
-        assert channels_created == 0  # No text channels
+        assert channels_created == 2  # Voice channels now supported
 
-        # Verify channel creation was never called
-        mock_create_channel.assert_not_called()
+        # Verify channel creation was called for both voice channels
+        assert mock_create_channel.call_count == 2
 
     @pytest.mark.asyncio
     @patch("services.api.services.guild_service.channel_service.create_channel_config")
