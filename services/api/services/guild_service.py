@@ -24,16 +24,16 @@
 import asyncio
 from typing import Any
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api.database import queries
 from services.api.dependencies.discord import get_discord_client
 from services.api.services import channel_service
-from services.api.services import template_service as template_service_module
-from shared.data_access.guild_isolation import (
-    get_current_guild_ids,
-    set_current_guild_ids,
+from services.bot.guild_sync import (
+    _create_guild_with_channels_and_template,
+    _expand_rls_context_for_guilds,
+    _get_existing_guild_ids,
 )
 from shared.discord.client import DiscordAPIClient
 from shared.models.channel import ChannelConfiguration
@@ -48,6 +48,10 @@ async def create_guild_config(
     """
     Create new guild configuration.
 
+    TODO: Migrate to bot service (Phase 6).
+    This function is being moved to services/bot/guild_sync.py.
+    API route will publish RabbitMQ message for bot to handle guild creation.
+
     Does not commit. Caller must commit transaction.
 
     Args:
@@ -58,10 +62,8 @@ async def create_guild_config(
     Returns:
         Created guild configuration
     """
-    guild_config = GuildConfiguration(guild_id=guild_discord_id, **settings)
-    db.add(guild_config)
-    await db.flush()
-    return guild_config
+    msg = "Guild creation moved to bot service. Use RabbitMQ message pattern."
+    raise NotImplementedError(msg)
 
 
 async def update_guild_config(
@@ -74,7 +76,6 @@ async def update_guild_config(
     Does not commit. Caller must commit transaction.
 
     Args:
-        db: Database session
         guild_config: Existing guild configuration
         **updates: Fields to update
 
@@ -119,36 +120,6 @@ async def _compute_candidate_guild_ids(
 
     # Compute candidate guilds: (bot guilds ∩ user admin guilds)
     return admin_guild_ids & bot_guild_ids
-
-
-async def _expand_rls_context_for_guilds(db: AsyncSession, candidate_guild_ids: set[str]) -> None:
-    """
-    Expand RLS context to include candidate guilds for query and insert operations.
-
-    Args:
-        db: Database session
-        candidate_guild_ids: Set of guild IDs to include in RLS context
-    """
-    current_guild_ids = get_current_guild_ids() or []
-    expanded_guild_ids = list(set(current_guild_ids) | candidate_guild_ids)
-    expanded_ids_csv = ",".join(expanded_guild_ids)
-    await db.execute(text(f"SET LOCAL app.current_guild_ids = '{expanded_ids_csv}'"))
-    set_current_guild_ids(expanded_guild_ids)
-
-
-async def _get_existing_guild_ids(db: AsyncSession) -> set[str]:
-    """
-    Query existing guild IDs from database.
-
-    Args:
-        db: Database session
-
-    Returns:
-        Set of guild IDs that already exist in database
-    """
-    result = await db.execute(select(GuildConfiguration))
-    existing_guilds = result.scalars().all()
-    return {guild.guild_id for guild in existing_guilds}
 
 
 async def _sync_guild_channels(
@@ -214,69 +185,6 @@ async def _sync_guild_channels(
     return channels_updated
 
 
-async def _create_guild_with_channels_and_template(
-    db: AsyncSession,
-    client: DiscordAPIClient,
-    guild_discord_id: str,
-) -> tuple[int, int]:
-    """
-    Create guild configuration, channel configurations, and default template.
-
-    Args:
-        db: Database session
-        client: Discord API client
-        guild_discord_id: Discord guild snowflake ID
-
-    Returns:
-        Tuple of (guilds_created, channels_created) counts
-    """
-    # Set RLS context to Discord snowflake ID for guild creation
-    current_guild_ids = get_current_guild_ids() or []
-    initial_guild_ids = list(set(current_guild_ids) | {guild_discord_id})
-    initial_ids_csv = ",".join(initial_guild_ids)
-    await db.execute(text(f"SET LOCAL app.current_guild_ids = '{initial_ids_csv}'"))
-    set_current_guild_ids(initial_guild_ids)
-
-    # Create guild config
-    guild_config = await create_guild_config(db, guild_discord_id)
-
-    # Update RLS context to include the new guild UUID (for template creation)
-    current_guild_ids = get_current_guild_ids() or []
-    updated_guild_ids = list(set(current_guild_ids) | {str(guild_config.id)})
-    updated_ids_csv = ",".join(updated_guild_ids)
-    await db.execute(text(f"SET LOCAL app.current_guild_ids = '{updated_ids_csv}'"))
-    set_current_guild_ids(updated_guild_ids)
-
-    # Fetch guild channels using bot token
-    guild_channels = await client.get_guild_channels(guild_discord_id)
-
-    # Create channel configs for text, voice, and announcement channels
-    text_channel = 0
-    voice_channel = 2
-    announcement_channel = 5
-    valid_channel_types = {text_channel, voice_channel, announcement_channel}
-
-    channels_created = 0
-    for channel in guild_channels:
-        if channel.get("type") in valid_channel_types:
-            await channel_service.create_channel_config(
-                db, guild_config.id, channel["id"], is_active=True
-            )
-            channels_created += 1
-
-    # Create default template for the guild using first text channel
-    if guild_channels:
-        first_channel = next((ch for ch in guild_channels if ch.get("type") == text_channel), None)
-        if first_channel:
-            # Get the created channel config UUID
-            channel_config = await queries.get_channel_by_discord_id(db, first_channel["id"])
-            if channel_config:
-                template_svc = template_service_module.TemplateService(db)
-                await template_svc.create_default_template(guild_config.id, channel_config.id)
-
-    return (1, channels_created)
-
-
 async def sync_user_guilds(db: AsyncSession, access_token: str, user_id: str) -> dict[str, int]:
     """
     Sync user's Discord guilds with database.
@@ -288,6 +196,11 @@ async def sync_user_guilds(db: AsyncSession, access_token: str, user_id: str) ->
     and deleted channels as inactive.
 
     Does not commit. Caller must commit transaction.
+
+    TODO: Migrate to RabbitMQ message pattern (Phase 6, Task 6.1).
+    This function will be removed and replaced with publishing GUILD_SYNC_REQUESTED
+    event for bot service to handle. Currently imports helpers from bot service
+    temporarily during migration.
 
     Args:
         db: Database session
@@ -341,55 +254,4 @@ async def sync_user_guilds(db: AsyncSession, access_token: str, user_id: str) ->
         "new_guilds": new_guilds_count,
         "new_channels": new_channels_count,
         "updated_channels": updated_channels_count,
-    }
-
-
-async def sync_all_bot_guilds(db: AsyncSession, bot_token: str) -> dict[str, int]:
-    """
-    Sync all bot guilds using bot token (no user authentication required).
-
-    Fetches all guilds the bot is present in and creates new guild configurations
-    with channels and default templates. Does not update existing guilds (lazy loading).
-
-    Does not commit. Caller must commit transaction.
-
-    Args:
-        db: Database session
-        bot_token: Discord bot token
-
-    Returns:
-        Dictionary with counts: {
-            "new_guilds": number of new guilds created,
-            "new_channels": number of new channels created
-        }
-    """
-    discord_client = get_discord_client()
-
-    # Fetch all bot guilds using bot token
-    bot_guilds = await discord_client.get_guilds(token=bot_token)
-    bot_guild_ids = {guild["id"] for guild in bot_guilds}
-
-    # Expand RLS context to include all bot guild IDs
-    await _expand_rls_context_for_guilds(db, bot_guild_ids)
-
-    # Query existing guild IDs from database
-    existing_guild_ids = await _get_existing_guild_ids(db)
-
-    # Compute new guilds (bot guilds - existing guilds)
-    new_guild_ids = bot_guild_ids - existing_guild_ids
-
-    new_guilds_count = 0
-    new_channels_count = 0
-
-    # Create guild and channel configs for new guilds
-    for guild_id in new_guild_ids:
-        guilds_created, channels_created = await _create_guild_with_channels_and_template(
-            db, discord_client, guild_id
-        )
-        new_guilds_count += guilds_created
-        new_channels_count += channels_created
-
-    return {
-        "new_guilds": new_guilds_count,
-        "new_channels": new_channels_count,
     }

@@ -302,6 +302,10 @@ async def sync_guilds(
     - Marks deleted Discord channels as inactive
 
     Returns count of new guilds, new channels, and updated channels.
+
+    TODO: Migrate to RabbitMQ message pattern (Phase 6, Task 6.1).
+    This endpoint will publish GUILD_SYNC_REQUESTED event instead of calling
+    guild_service.sync_user_guilds() directly. Bot service will handle sync.
     """
     access_token = current_user.access_token
     user_discord_id = current_user.user.discord_id

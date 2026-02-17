@@ -102,13 +102,13 @@ Implement Discord webhook endpoint with Ed25519 signature validation to automati
 
 ### [ ] Phase 5: Move Sync Logic to Bot Service (Architecture Refactoring)
 
-- [ ] Task 5.1: Move sync_all_bot_guilds() from API to bot service
+- [x] Task 5.1: Move sync_all_bot_guilds() from API to bot service
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 288-306)
 
-- [ ] Task 5.2: Move and update unit tests to bot service
+- [x] Task 5.2: Move and update unit tests to bot service
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 308-322)
 
-- [ ] Task 5.3: Verify all tests pass after relocation
+- [x] Task 5.3: Verify all tests pass after relocation
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 324-338)
 
 - [ ] Task 5.4: Add guild sync to bot service startup

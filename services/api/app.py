@@ -52,10 +52,8 @@ from services.api.routes import (
     templates,
     webhooks,
 )
-from services.api.services.guild_service import sync_all_bot_guilds
 from services.api.services.sse_bridge import get_sse_bridge
 from shared.cache import client as redis_client
-from shared.database import get_db_session
 from shared.telemetry import init_telemetry
 from shared.version import get_api_version, get_git_version
 
@@ -100,23 +98,8 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
     logger.info("Guild isolation middleware registered (event listener active)")
 
-    # Sync all bot guilds on startup
-    config = get_api_config()
-    if config.discord_bot_token:
-        try:
-            async with get_db_session() as db:
-                result = await sync_all_bot_guilds(db, config.discord_bot_token)
-                await db.commit()
-                logger.info(
-                    "Startup guild sync completed: %d new guilds, %d new channels",
-                    result["new_guilds"],
-                    result["new_channels"],
-                )
-        except Exception as e:
-            logger.exception("Failed to sync guilds on startup: %s", e)
-            # Don't fail startup if guild sync fails
-    else:
-        logger.warning("Discord bot token not configured, skipping startup guild sync")
+    # Guild sync now handled by bot service on its startup (see services/bot/main.py)
+    # API will trigger on-demand syncs via RabbitMQ events (Phase 6)
 
     bridge = get_sse_bridge()
     bridge_task = asyncio.create_task(bridge.start_consuming())

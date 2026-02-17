@@ -442,19 +442,92 @@ Implementing Discord webhook endpoint with Ed25519 signature validation to autom
 
 ---
 
-### Phase 5: RabbitMQ Integration for Webhook
+### Phase 5: Move Sync Logic to Bot Service (Architecture Refactoring)
+
+**Status**: ✅ Completed
+
+#### Task 5.1: Move sync_all_bot_guilds() from API to bot service
+
+**Status**: ✅ Completed
+
+**Files Created**:
+
+- [services/bot/guild_sync.py](../../services/bot/guild_sync.py) - Consolidated guild sync logic in bot service
+
+**Files Modified**:
+
+- [services/api/services/guild_service.py](../../services/api/services/guild_service.py) - Removed bot sync functions, added TODO comments
+
+**Changes**:
+
+- Moved `sync_all_bot_guilds()` from API service to new bot service module
+- Moved helper functions to bot service: `_expand_rls_context_for_guilds()`, `_get_existing_guild_ids()`, `_create_guild_with_channels_and_template()`
+- Moved `create_guild_config()` and `update_guild_config()` to bot service
+- Stubbed out API service functions (`create_guild_config()`, `sync_user_guilds()`) with `NotImplementedError` and TODO comments
+- Added TODO comments indicating migration to RabbitMQ message pattern in Phase 6
+- Bot service now owns all guild creation and sync logic
+- API service functions will be replaced with RabbitMQ event publishing
+
+#### Task 5.2: Move and update unit tests to bot service
+
+**Status**: ✅ Completed
+
+**Files Created**:
+
+- [tests/services/bot/test_guild_sync.py](../../tests/services/bot/test_guild_sync.py) - Bot guild sync tests
+
+**Files Removed**:
+
+- tests/unit/services/api/services/test_guild_service_bot_sync.py - Moved to bot service tests
+
+**Changes**:
+
+- Relocated 11 unit tests from tests/unit/services/api/services/ to tests/services/bot/
+- Updated imports to reference `services.bot.guild_sync` instead of `services.api.services.guild_service`
+- Updated function calls to pass `discord_client` as first parameter (new signature)
+- Removed `@patch("services.api.services.guild_service.get_discord_client")` decorators (no longer needed)
+- All tests updated to match bot service structure and conventions
+
+#### Task 5.3: Verify all tests pass after relocation
+
+**Status**: ✅ Completed
+
+**Test Results**:
+
+- All 11 bot guild sync tests passing: ✅
+  - `test_sync_all_bot_guilds_creates_new_guilds`
+  - `test_sync_all_bot_guilds_skip_existing_guilds`
+  - `test_sync_all_bot_guilds_creates_default_template`
+  - `test_sync_all_bot_guilds_filters_channel_types`
+  - `test_sync_all_bot_guilds_empty_guild_list`
+  - `test_sync_all_bot_guilds_sets_is_active_true`
+  - `test_sync_all_bot_guilds_idempotency`
+  - `test_sync_all_bot_guilds_handles_discord_api_error_on_get_guilds`
+  - `test_sync_all_bot_guilds_handles_discord_api_error_on_get_channels`
+  - `test_sync_all_bot_guilds_verifies_existing_guilds_unchanged`
+  - `test_sync_all_bot_guilds_handles_multiple_new_guilds`
+- No import errors or circular dependencies
+- All existing functionality preserved in bot service
+- API service functions properly stubbed for future RabbitMQ migration
+
+**Phase 5 Complete**: ✅
+**All Tasks (5.1-5.3) Completed**
+
+---
+
+### Phase 6: RabbitMQ Integration for Webhook
 
 **Status**: Not Started
 
 ---
 
-### Phase 6: Lazy Channel Loading (TDD)
+### Phase 7: Lazy Channel Loading (TDD)
 
 **Status**: Not Started
 
 ---
 
-### Phase 7: Manual Discord Portal Configuration
+### Phase 8: Manual Discord Portal Configuration
 
 **Status**: Not Started
 
@@ -462,5 +535,5 @@ Implementing Discord webhook endpoint with Ed25519 signature validation to autom
 
 ## Summary
 
-**Total Tasks Completed**: 20 / 27
-**Current Phase**: 4 - Bot Guild Sync Service (TDD) ✅ COMPLETE (all 5 tasks)
+**Total Tasks Completed**: 23 / 32
+**Current Phase**: 5 - Move Sync Logic to Bot Service ✅ COMPLETE (all 3 tasks)
