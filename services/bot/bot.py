@@ -29,6 +29,9 @@ from discord.ext import commands
 from opentelemetry import trace
 
 from services.bot.config import BotConfig
+from services.bot.dependencies.discord_client import get_discord_client
+from services.bot.guild_sync import sync_all_bot_guilds
+from shared.database import get_db_session
 
 if TYPE_CHECKING:
     from services.bot.events.handlers import EventHandlers
@@ -99,6 +102,22 @@ class GameSchedulerBot(commands.Bot):
         # Initialize button handler with publisher
         self.button_handler = ButtonHandler(self.event_publisher)
         logger.info("Button handler initialized")
+
+        # Sync all bot guilds on startup (automatic guild sync)
+        try:
+            discord_client = get_discord_client()
+            async with get_db_session() as db:
+                sync_results = await sync_all_bot_guilds(
+                    discord_client, db, self.config.discord_bot_token
+                )
+                await db.commit()
+                logger.info(
+                    "Guild sync on startup: %d new guilds, %d new channels",
+                    sync_results["new_guilds"],
+                    sync_results["new_channels"],
+                )
+        except Exception as e:
+            logger.exception("Failed to sync guilds on startup: %s", e)
 
         # Initialize event handlers for consuming messages
         self.event_handlers = EventHandlers(self)

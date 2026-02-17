@@ -800,3 +800,240 @@ if config.environment not in ["test", "e2e"]:
 - No duplicate key violations in e2e test runs
 - Startup sync still works in all environments (dev, staging, production)
 - Clear separation: internal operations self-managed, external events use message bus
+
+## Alternative Solution: pytest-order for Random Test Ordering (2026-02-17)
+
+### Problem: Session Fixture + pytest-randomly Conflict
+
+The session-scoped autouse fixture in [tests/e2e/conftest.py](tests/e2e/conftest.py) (lines 58-143) has an event loop scope mismatch issue:
+
+```
+ScopeMismatch: You tried to access the function scoped fixture event_loop with a
+session scoped request object, involved factories:
+tests/e2e/conftest.py:58: def verify_and_cleanup_startup_sync()
+```
+
+**Root Cause**: Session-scoped async fixtures require a session-scoped `event_loop` fixture, but pytest-asyncio provides only function-scoped event loops by default.
+
+**Additional Challenge**: Project uses `pytest-randomly>=4.0.1` which randomizes test order, making test*00*\* naming unreliable.
+
+### Research Executed
+
+- #fetch:https://github.com/pytest-dev/pytest-randomly
+  - pytest-randomly automatically shuffles test order (modules, classes, functions)
+  - Recommends pytest-order plugin for fixing order of specific tests
+  - pytest-order executes after pytest-randomly, preserving order markers
+
+- #fetch:https://pytest-order.readthedocs.io/en/latest/other_plugins.html#pytest-randomly
+  - pytest-order works correctly with pytest-randomly
+  - Marked tests execute in correct order; unmarked tests remain randomized
+  - pytest-order uses `@pytest.mark.order()` marker
+
+- #fetch:https://pytest-order.readthedocs.io/en/latest/usage.html
+  - Order by index: `@pytest.mark.order(0)` or `@pytest.mark.order("first")`
+  - Order numbers: 0, 1, 2... or "first", "second", "third"...
+  - Negative numbers: -1, -2... or "last", "second_to_last"...
+  - Scope: Global by default (cross-file ordering)
+
+### Recommended Solution: pytest-order Plugin
+
+**Architecture**: Convert session fixture to ordered test + cleanup fixture using pytest-order
+
+**Step 1: Install pytest-order**
+
+Add to [pyproject.toml](pyproject.toml) dev dependencies:
+
+```toml
+[dependency-groups]
+dev = [
+    # ... existing deps
+    "pytest-order>=1.4.0",
+]
+```
+
+**Step 2: Create Ordered Test**
+
+Create [tests/e2e/test_00_bot_startup_sync.py](tests/e2e/test_00_bot_startup_sync.py):
+
+```python
+import asyncio
+import os
+
+import pytest
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from shared.models.channel import ChannelConfiguration
+from shared.models.guild import GuildConfiguration
+from shared.models.template import GameTemplate
+
+pytestmark = [pytest.mark.e2e, pytest.mark.order(0)]
+
+
+async def test_bot_startup_sync_creates_guilds(admin_db: AsyncSession) -> None:
+    """
+    Verify bot startup sync creates guilds automatically.
+
+    This test MUST run first (pytest.mark.order(0)) before other E2E tests.
+    Verifies automatic guild sync feature works on bot startup.
+    """
+    # Wait for bot startup sync to complete
+    await asyncio.sleep(2)
+
+    # Get Discord guild IDs from environment
+    guild_a_id = os.getenv("DISCORD_GUILD_A_ID", "")
+    guild_b_id = os.getenv("DISCORD_GUILD_B_ID", "")
+
+    # Verify expected guilds were created by startup sync
+    result = await admin_db.execute(
+        select(GuildConfiguration).where(
+            GuildConfiguration.guild_id.in_([guild_a_id, guild_b_id])
+        )
+    )
+    guilds = result.scalars().all()
+    assert len(guilds) == 2, f"Startup sync should create 2 guilds, found {len(guilds)}"
+
+    # Verify channels and templates created for each guild
+    for guild in guilds:
+        channels_result = await admin_db.execute(
+            select(ChannelConfiguration).where(
+                ChannelConfiguration.guild_id == guild.guild_id
+            )
+        )
+        channels = channels_result.scalars().all()
+        assert len(channels) > 0, f"Guild {guild.guild_id} missing channels"
+
+        templates_result = await admin_db.execute(
+            select(GameTemplate).where(
+                GameTemplate.guild_id == guild.guild_id
+            )
+        )
+        templates = templates_result.scalars().all()
+        assert len(templates) > 0, f"Guild {guild.guild_id} missing default template"
+```
+
+**Step 3: Add Cleanup Fixture**
+
+Update [tests/e2e/conftest.py](tests/e2e/conftest.py) to replace async session fixture with cleanup:
+
+```python
+@pytest.fixture(scope="function", autouse=True)
+async def cleanup_startup_sync_guilds(request, admin_db: AsyncSession) -> None:
+    """
+    Clean up startup-created guilds after first test runs.
+
+    Executes after test_bot_startup_sync_creates_guilds to ensure
+    hermetic test execution for remaining E2E tests.
+    """
+    yield  # Let test run first
+
+    # Only cleanup after the bot startup sync test
+    if request.node.name == "test_bot_startup_sync_creates_guilds":
+        guild_a_id = os.getenv("DISCORD_GUILD_A_ID", "")
+        guild_b_id = os.getenv("DISCORD_GUILD_B_ID", "")
+
+        # Delete in correct order to respect foreign key constraints
+        from sqlalchemy import delete
+        await admin_db.execute(
+            delete(GameTemplate).where(
+                GameTemplate.guild_id.in_([guild_a_id, guild_b_id])
+            )
+        )
+        await admin_db.execute(
+            delete(ChannelConfiguration).where(
+                ChannelConfiguration.guild_id.in_([guild_a_id, guild_b_id])
+            )
+        )
+        await admin_db.execute(
+            delete(GuildConfiguration).where(
+                GuildConfiguration.guild_id.in_([guild_a_id, guild_b_id])
+            )
+        )
+        await admin_db.commit()
+```
+
+**Step 4: Remove Session Fixture**
+
+Delete the async `verify_and_cleanup_startup_sync` fixture from [tests/e2e/conftest.py](tests/e2e/conftest.py) lines 58-143.
+
+### Key Benefits
+
+**Solves Event Loop Issue**:
+
+- Function-scoped test uses function-scoped event_loop (no scope mismatch)
+- Function-scoped cleanup fixture reuses same event loop
+- No need for session-scoped event_loop configuration
+
+**Works with pytest-randomly**:
+
+- pytest-order executes after pytest-randomly
+- `@pytest.mark.order(0)` ensures test runs first despite randomization
+- Other E2E tests remain randomized (good for finding dependencies)
+- Module-level `pytestmark` applies order to entire file
+
+**Proper Test Reporting**:
+
+- Test appears in pytest output with PASS/FAIL status
+- Counts toward test coverage metrics
+- Failures properly reported with stack traces
+- Cleanup happens in fixture, separate from verification logic
+
+**Maintains Hermetic Tests**:
+
+- First test verifies startup sync feature
+- Cleanup removes startup-created data before other tests
+- Other E2E tests create their own guilds via fixtures
+- No duplicate key violations
+
+### Implementation Dependencies
+
+**Files to Modify**:
+
+- [pyproject.toml](pyproject.toml) - Add pytest-order dependency
+- [tests/e2e/conftest.py](tests/e2e/conftest.py) - Remove async session fixture, add cleanup fixture
+
+**Files to Create**:
+
+- [tests/e2e/test_00_bot_startup_sync.py](tests/e2e/test_00_bot_startup_sync.py) - New ordered test
+
+**Files to Remove**:
+
+- None (replace fixture with test)
+
+### Alternative Approaches Considered
+
+**Option 1: Session-scoped event_loop** (Rejected)
+
+- Add session-scoped event_loop fixture to pytest-asyncio config
+- Risk: Historical issues with wrong event loop problems in project
+- Risk: Single event loop for entire test session increases coupling
+
+**Option 2: asyncio.run() wrapper** (Considered)
+
+- Use `asyncio.run()` in session fixture to create isolated event loop
+- Works but doesn't provide test reporting
+- Fixture assertions don't appear in pytest output
+
+**Option 3: Disable randomization** (Rejected)
+
+- Use `pytest -p no:randomly` to disable plugin
+- Loses benefit of random test order finding dependencies
+- Would need test*00*\* naming convention (alphabetically first)
+
+**Option 4: Session fixture with global state** (Rejected)
+
+- Session fixture sets global variable, test checks it
+- Overcomplicated; splits verification from execution
+- Still has event loop scope mismatch issue
+
+### Success Criteria
+
+**Solution Complete When**:
+
+- pytest-order installed and available
+- test_bot_startup_sync_creates_guilds runs first despite pytest-randomly
+- Test verifies guilds/channels/templates created by bot startup
+- Cleanup fixture removes data after first test
+- All 71 E2E tests pass without ScopeMismatch errors
+- Test appears in pytest output with proper PASS/FAIL reporting
+- Random test order maintained for unmarked tests (finding dependencies)
