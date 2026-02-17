@@ -353,23 +353,28 @@ Add automatic guild sync to bot service startup lifecycle.
   - #file:../research/20260214-01-discord-webhook-events-automatic-sync-research.md (Lines 628-641) - Startup sync implementation
 - **Dependencies**: Task 5.3 completion
 
-### Task 5.5: Add E2E session fixture for bot startup sync verification
+### Task 5.5: Add E2E ordered test for bot startup sync verification using pytest-order
 
-Create session-scoped autouse fixture to verify bot startup sync works and clean up for hermetic tests.
+Create ordered test using pytest-order plugin to verify bot startup sync works, avoiding session-scoped fixture event loop issues.
 
 - **Files**:
-  - tests/e2e/conftest.py - Add verify_and_cleanup_startup_sync fixture
+  - pyproject.toml - Add pytest-order>=1.4.0 to dev dependencies
+  - tests/e2e/test_00_bot_startup_sync.py - Create ordered test with @pytest.mark.order(0)
+  - tests/e2e/conftest.py - Add cleanup_startup_sync_guilds fixture
 - **Success**:
-  - @pytest.fixture(scope="session", autouse=True) added
-  - Fixture waits for bot startup sync to complete (asyncio.sleep(2))
+  - pytest-order plugin added to development dependencies
+  - test_00_bot_startup_sync.py created with @pytest.mark.order(0) ensuring it runs first
+  - Test waits for bot startup sync to complete (asyncio.sleep(2))
   - Verifies test guilds (111, 222) were created with channels and templates
-  - Cleans up startup-created data for hermetic test execution
+  - cleanup_startup_sync_guilds fixture (scope="function", autouse=True) added to conftest.py
+  - Cleanup runs after each test to delete startup-created data for hermetic execution
   - Deletes GameTemplate, ChannelConfiguration, GuildConfiguration in correct order
-  - Runs before pytest-randomly (session scope executes first)
-  - E2E tests pass without duplicate key violations
+  - pytest-order executes after pytest-randomly, preserving order markers
+  - E2E tests pass without duplicate key violations or event loop scope errors
 - **Research References**:
-  - #file:../research/20260214-01-discord-webhook-events-automatic-sync-research.md (Lines 659-735) - E2E fixture implementation and rationale
-  - #file:../research/20260214-01-discord-webhook-events-automatic-sync-research.md (Lines 737-758) - Alternative approaches considered
+  - #file:../research/20260214-01-discord-webhook-events-automatic-sync-research.md (Lines 801-931) - pytest-order solution for random test ordering
+  - #file:../research/20260214-01-discord-webhook-events-automatic-sync-research.md (Lines 807-821) - Problem analysis (session fixture + pytest-randomly conflict)
+  - #file:../research/20260214-01-discord-webhook-events-automatic-sync-research.md (Lines 823-842) - pytest-order and pytest-randomly compatibility research
 - **Dependencies**: Task 5.4 completion
 
 ### Task 5.6: Verify all tests pass with startup sync
