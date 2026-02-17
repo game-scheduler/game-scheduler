@@ -24,6 +24,10 @@
 # These tests verify the complete notification flow including Discord bot interactions
 #
 # REQUIRED: Set up test Discord bot and guild first (see docs/developer/TESTING.md)
+#
+# Environment variables:
+#   SKIP_STARTUP=1   - Skip building and starting the test environment (use existing)
+#   SKIP_CLEANUP=1   - Skip cleanup after tests (leave environment running)
 
 set -e
 
@@ -58,20 +62,24 @@ if [ -z "$DISCORD_GUILD_A_ID" ] || [ -z "$DISCORD_GUILD_A_CHANNEL_ID" ]; then
   echo "Tests may fail without these. See docs/developer/TESTING.md for setup instructions"
 fi
 
-cleanup() {
-  if [ -n "$SKIP_CLEANUP" ]; then
-    echo "Skipping e2e test environment cleanup (SKIP_CLEANUP is set)"
-    return
-  fi
-  echo "Cleaning up e2e test environment..."
-  docker compose --env-file "$ENV_FILE" down -v
-}
-
-trap cleanup EXIT
+if [ -n "$SKIP_CLEANUP" ]; then
+  echo "Skipping e2e test environment cleanup (SKIP_CLEANUP is set)"
+else
+  cleanup() {
+    echo "Cleaning up e2e test environment..."
+    docker compose --env-file "$ENV_FILE" down -v
+  }
+  trap cleanup EXIT
+fi
 
 echo "Running e2e tests..."
-# Ensure full stack (including bot) is healthy before running tests
-docker compose --env-file "$ENV_FILE" up -d --build system-ready
+
+if [ -n "$SKIP_STARTUP" ]; then
+  echo "Skipping e2e test environment startup (SKIP_STARTUP is set)"
+else
+  # Ensure full stack (including bot) is healthy before running tests
+  docker compose --env-file "$ENV_FILE" up -d --build
+fi
 
 # Build if needed, then run tests without restarting dependencies
 # When $@ is empty, compose uses command field; when present, it overrides

@@ -148,7 +148,7 @@ services:
     networks:
       - app-network
     entrypoint: ["pytest", "-m", "e2e"]
-    command: --cov=shared --cov=services --cov-report= -q --tb=line
+    command: --cov=shared --cov=services --cov-report= -v --tb=line
 
 # Use tmpfs for test volumes (in-memory, fast, auto-cleanup)
 volumes:
