@@ -582,6 +582,67 @@ Implementing Discord webhook endpoint with Ed25519 signature validation to autom
 **Phase 5 Complete**: ✅
 **All Tasks (5.1-5.6) Completed**
 
+#### Task 5.7: Add GUILD_SYNC_REQUESTED event type
+
+**Status**: ✅ Completed
+
+**Files Modified**:
+
+- [shared/messaging/events.py](../../shared/messaging/events.py) - Added GUILD_SYNC_REQUESTED event type
+
+**Changes**:
+
+- Added `GUILD_SYNC_REQUESTED = "guild.sync_requested"` to EventType enum
+- Placed in new "Bot synchronization events" section after configuration events
+- Event used to trigger webhook-based guild sync operations
+
+#### Task 5.8: Add bot event handler for webhook-triggered guild sync
+
+**Status**: ✅ Completed
+
+**Files Modified**:
+
+- [services/bot/events/handlers.py](../../services/bot/events/handlers.py) - Added guild sync handler
+
+**Files Created**:
+
+- None (added tests to existing test file)
+
+**Files Modified for Tests**:
+
+- [tests/services/bot/events/test_handlers.py](../../tests/services/bot/events/test_handlers.py) - Added comprehensive tests
+
+**Changes**:
+
+- Added `sync_all_bot_guilds` import to handlers.py
+- Registered `GUILD_SYNC_REQUESTED` handler in EventHandlers.**init**()
+- Added `guild.#` binding in start_consuming() method
+- Registered handler in start_consuming() with lambda
+- Implemented `_handle_guild_sync_requested()` async method:
+  - Validates bot config is available before processing
+  - Gets Discord client and database session
+  - Calls sync_all_bot_guilds() with bot token
+  - Commits transaction after successful sync
+  - Logs results (new guilds and channels counts)
+  - Graceful error handling with logging
+- Updated test_event_handlers_initialization to verify GUILD_SYNC_REQUESTED is registered
+- Updated test_start_consuming to expect 3 bindings (game.#, notification.\*, guild.#) and 8 handlers
+- Added 4 comprehensive tests for guild sync handler:
+  - test_handle_guild_sync_requested_success: Verifies successful sync
+  - test_handle_guild_sync_requested_no_config: Validates graceful handling of missing config
+  - test_handle_guild_sync_requested_sync_failure: Tests error handling during sync
+  - test_handle_guild_sync_requested_empty_results: Verifies behavior when no new guilds found
+
+**Test Results**:
+
+- All 105 event handler tests passing: ✅
+- All 4 new guild sync tests passing: ✅
+- No linting or type errors: ✅
+- Comprehensive edge case coverage: ✅
+
+**Phase 5 Complete**: ✅
+**All Tasks (5.1-5.8) Completed**
+
 ---
 
 ### Phase 6: RabbitMQ Integration for Webhook
@@ -604,5 +665,5 @@ Implementing Discord webhook endpoint with Ed25519 signature validation to autom
 
 ## Summary
 
-**Total Tasks Completed**: 25 / 32
-**Current Phase**: 5 - Move Sync Logic to Bot Service ✅ COMPLETE (all 6 tasks)
+**Total Tasks Completed**: 27 / 32
+**Current Phase**: 5 - Move Sync Logic to Bot Service ✅ COMPLETE (all 8 tasks)

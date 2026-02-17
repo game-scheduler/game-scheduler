@@ -100,7 +100,7 @@ Implement Discord webhook endpoint with Ed25519 signature validation to automati
 - [x] Task 4.4: Refactor and add comprehensive edge case tests
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 267-285)
 
-### [ ] Phase 5: Move Sync Logic to Bot Service (Architecture Refactoring)
+### [x] Phase 5: Move Sync Logic to Bot Service (Architecture Refactoring)
 
 - [x] Task 5.1: Move sync_all_bot_guilds() from API to bot service
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 288-306)
@@ -120,10 +120,10 @@ Implement Discord webhook endpoint with Ed25519 signature validation to automati
 - [x] Task 5.6: Verify all tests pass with startup sync
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 375-391)
 
-- [ ] Task 5.7: Add GUILD_SYNC_REQUESTED event type
+- [x] Task 5.7: Add GUILD_SYNC_REQUESTED event type
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 393-404)
 
-- [ ] Task 5.8: Add bot event handler for webhook-triggered guild sync
+- [x] Task 5.8: Add bot event handler for webhook-triggered guild sync
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 406-420)
 
 ### [ ] Phase 6: RabbitMQ Integration for Webhook
