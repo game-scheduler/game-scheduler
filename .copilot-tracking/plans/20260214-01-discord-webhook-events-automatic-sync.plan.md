@@ -126,12 +126,12 @@ Implement Discord webhook endpoint with Ed25519 signature validation to automati
 - [x] Task 5.8: Add bot event handler for webhook-triggered guild sync
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 406-420)
 
-### [ ] Phase 6: RabbitMQ Integration for Webhook
+### [x] Phase 6: RabbitMQ Integration for Webhook
 
-- [ ] Task 6.1: Update webhook endpoint to publish GUILD_SYNC_REQUESTED event
+- [x] Task 6.1: Update webhook endpoint to publish GUILD_SYNC_REQUESTED event
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 424-439)
 
-- [ ] Task 6.2: Add integration tests for RabbitMQ message publishing
+- [x] Task 6.2: Add integration tests for RabbitMQ message publishing
   - Details: .copilot-tracking/details/20260214-01-discord-webhook-events-automatic-sync-details.md (Lines 441-454)
 
 ### [ ] Phase 7: Lazy Channel Loading (TDD)

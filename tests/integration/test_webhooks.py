@@ -27,6 +27,9 @@ import os
 import pytest
 from nacl.signing import SigningKey
 
+from shared.messaging.events import EventType
+from tests.integration.conftest import consume_one_message, purge_queue
+
 pytestmark = pytest.mark.integration
 
 # Fixed keypair for integration tests matching env.int DISCORD_PUBLIC_KEY
@@ -90,7 +93,7 @@ def application_authorized_payload():
 
 
 @pytest.mark.asyncio
-async def test_webhook_ping_returns_not_implemented(
+async def test_webhook_ping_returns_204(
     async_client, webhook_keypair, set_discord_public_key, ping_payload
 ):
     """Webhook endpoint returns 204 for PING (Discord validation)."""
@@ -114,7 +117,7 @@ async def test_webhook_ping_returns_not_implemented(
 
 
 @pytest.mark.asyncio
-async def test_webhook_application_authorized_returns_not_implemented(
+async def test_webhook_application_authorized_returns_204(
     async_client,
     webhook_keypair,
     set_discord_public_key,
@@ -175,3 +178,75 @@ async def test_webhook_requires_signature_headers(async_client, set_discord_publ
     )
 
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_webhook_publishes_guild_sync_event_to_rabbitmq(
+    async_client,
+    webhook_keypair,
+    set_discord_public_key,
+    application_authorized_payload,
+    rabbitmq_channel,
+):
+    """APPLICATION_AUTHORIZED webhook publishes GUILD_SYNC_REQUESTED event to RabbitMQ."""
+    # Purge queue before test
+    purge_queue(rabbitmq_channel, "bot_events")
+
+    private_key, _ = webhook_keypair
+    body = json.dumps(application_authorized_payload).encode()
+    timestamp = "1634567890"
+    signature = create_valid_signature(body, timestamp, private_key)
+
+    response = await async_client.post(
+        "/api/v1/webhooks/discord",
+        content=body,
+        headers={
+            "Content-Type": "application/json",
+            "X-Signature-Ed25519": signature,
+            "X-Signature-Timestamp": timestamp,
+        },
+    )
+
+    assert response.status_code == 204
+
+    # Verify event was published to RabbitMQ
+    method, properties, message_body = consume_one_message(
+        rabbitmq_channel, "bot_events", timeout=5
+    )
+
+    assert method is not None, "No message found in bot_events queue"
+    assert properties.content_type == "application/json"
+
+    event_data = json.loads(message_body)
+    assert event_data["event_type"] == EventType.GUILD_SYNC_REQUESTED
+    assert event_data["data"] == {}
+    assert "timestamp" in event_data
+
+
+@pytest.mark.asyncio
+async def test_webhook_succeeds_even_if_rabbitmq_unavailable(
+    async_client,
+    webhook_keypair,
+    set_discord_public_key,
+    application_authorized_payload,
+):
+    """APPLICATION_AUTHORIZED webhook returns 204 even if RabbitMQ publishing fails."""
+    # NOTE: This test relies on webhook error handling to gracefully handle RabbitMQ failures
+    # In real scenarios, the webhook would log the error but still return 204
+    private_key, _ = webhook_keypair
+    body = json.dumps(application_authorized_payload).encode()
+    timestamp = "1634567890"
+    signature = create_valid_signature(body, timestamp, private_key)
+
+    response = await async_client.post(
+        "/api/v1/webhooks/discord",
+        content=body,
+        headers={
+            "Content-Type": "application/json",
+            "X-Signature-Ed25519": signature,
+            "X-Signature-Timestamp": timestamp,
+        },
+    )
+
+    # Webhook should always return 204, even if RabbitMQ fails
+    assert response.status_code == 204

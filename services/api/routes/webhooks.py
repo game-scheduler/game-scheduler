@@ -23,19 +23,33 @@
 
 import json
 import logging
+from collections.abc import AsyncGenerator
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response
 
 from services.api.dependencies.discord_webhook import validate_discord_webhook
+from shared.messaging.events import Event, EventType
+from shared.messaging.publisher import EventPublisher
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])
 
 
+async def _get_event_publisher() -> AsyncGenerator[EventPublisher]:
+    """Get EventPublisher instance for webhook events."""
+    publisher = EventPublisher()
+    try:
+        await publisher.connect()
+        yield publisher
+    finally:
+        await publisher.close()
+
+
 @router.post("/discord")
 async def discord_webhook(
     validated: Annotated[bytes, Depends(validate_discord_webhook)],
+    publisher: Annotated[EventPublisher, Depends(_get_event_publisher)],
 ) -> Response:
     """
     Discord webhook endpoint for APPLICATION_AUTHORIZED events.
@@ -71,7 +85,23 @@ async def discord_webhook(
                     guild_id,
                     guild_name,
                 )
-                # TODO: Publish sync_guild message to RabbitMQ
+
+                try:
+                    event = Event(
+                        event_type=EventType.GUILD_SYNC_REQUESTED,
+                        data={},
+                    )
+                    await publisher.publish(event)
+                    logger.info(
+                        "Published GUILD_SYNC_REQUESTED event for guild %s",
+                        guild_id,
+                    )
+                except Exception as e:
+                    logger.exception(
+                        "Failed to publish GUILD_SYNC_REQUESTED event: %s",
+                        e,
+                    )
+
                 return Response(status_code=204)
 
             logger.debug(

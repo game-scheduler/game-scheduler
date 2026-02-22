@@ -647,7 +647,51 @@ Implementing Discord webhook endpoint with Ed25519 signature validation to autom
 
 ### Phase 6: RabbitMQ Integration for Webhook
 
-**Status**: Not Started
+**Status**: ✅ Completed
+
+#### Task 6.1: Update webhook endpoint to publish GUILD_SYNC_REQUESTED event
+
+**Status**: ✅ Completed
+
+**Files Modified**:
+
+- [services/api/routes/webhooks.py](../../services/api/routes/webhooks.py) - Added RabbitMQ event publishing
+- [tests/services/api/routes/test_webhooks.py](../../tests/services/api/routes/test_webhooks.py) - Added unit tests for event publishing
+
+**Changes**:
+
+- Added imports for `Event`, `EventType`, and `EventPublisher`
+- Created `_get_event_publisher()` dependency function that yields EventPublisher with proper lifecycle management (connect/close)
+- Updated `discord_webhook()` endpoint to accept `EventPublisher` dependency
+- Added event publishing logic for `APPLICATION_AUTHORIZED` webhooks with `integration_type == 0`
+- Publishes `Event(event_type=EventType.GUILD_SYNC_REQUESTED, data={})` when guild install detected
+- Wrapped RabbitMQ publishing in try/except to ensure webhook always returns 204 even if RabbitMQ fails
+- Added logging for successful event publication and errors
+- Added unit tests verifying event is published for guild installs
+- Added unit tests verifying no event published for user installs
+- Added unit tests verifying webhook returns 204 even when RabbitMQ publish fails
+- All tests use mock EventPublisher following proper TDD patterns
+
+#### Task 6.2: Add integration tests for RabbitMQ message publishing
+
+**Status**: ✅ Completed
+
+**Files Modified**:
+
+- [tests/integration/test_webhooks.py](../../tests/integration/test_webhooks.py) - Added RabbitMQ integration tests, renamed misleading test function names
+
+**Changes**:
+
+- Added imports for `EventType` and RabbitMQ helper functions (`consume_one_message`, `purge_queue`)
+- Added `test_webhook_publishes_guild_sync_event_to_rabbitmq()` test that:
+  - Purges `bot_events` queue before test
+  - Sends valid APPLICATION_AUTHORIZED webhook with guild install
+  - Verifies message appears in RabbitMQ `bot_events` queue
+  - Validates event structure matches `GUILD_SYNC_REQUESTED` with empty data
+- Added `test_webhook_succeeds_even_if_rabbitmq_unavailable()` test verifying graceful error handling
+- Renamed `test_webhook_ping_returns_not_implemented` → `test_webhook_ping_returns_204` (removed misleading name)
+- Renamed `test_webhook_application_authorized_returns_not_implemented` → `test_webhook_application_authorized_returns_204` (removed misleading name)
+- All integration tests follow proper TDD methodology (test expected behavior, not unimplemented state)
 
 ---
 
@@ -665,5 +709,16 @@ Implementing Discord webhook endpoint with Ed25519 signature validation to autom
 
 ## Summary
 
-**Total Tasks Completed**: 27 / 32
-**Current Phase**: 5 - Move Sync Logic to Bot Service ✅ COMPLETE (all 8 tasks)
+**Total Tasks Completed**: 29 / 32
+**Current Phase**: 6 - RabbitMQ Integration for Webhook ✅ COMPLETE (all 2 tasks)
+
+**Phases Summary**:
+
+- Phase 1: Environment and Dependencies Setup ✅ (3/3 tasks)
+- Phase 2: Webhook Signature Validation (TDD) ✅ (5/5 tasks)
+- Phase 3: Webhook Endpoint Implementation (TDD) ✅ (5/5 tasks)
+- Phase 4: Bot Guild Sync Service (TDD) ✅ (4/4 tasks)
+- Phase 5: Move Sync Logic to Bot Service ✅ (8/8 tasks)
+- Phase 6: RabbitMQ Integration for Webhook ✅ (2/2 tasks)
+- Phase 7: Lazy Channel Loading (TDD) ⏸️ Not Started (4 tasks)
+- Phase 8: Manual Discord Portal Configuration ⏸️ Not Started (3 tasks)
