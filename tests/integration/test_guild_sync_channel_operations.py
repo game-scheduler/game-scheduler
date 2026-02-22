@@ -269,15 +269,10 @@ async def test_multiple_guild_sync_returns_accurate_counts(
         {"id": "500002", "name": "Guild B", "permissions": "32"},
     ]
 
-    with (
-        patch(
-            "services.api.services.guild_service.get_discord_client",
-            return_value=mock_client,
-        ),
-        patch("services.api.services.guild_service.channel_service") as mock_channel_svc,
+    with patch(
+        "services.api.services.guild_service.get_discord_client",
+        return_value=mock_client,
     ):
-        mock_channel_svc.create_channel_config = AsyncMock()
-
         result = await sync_user_guilds(
             admin_db,
             access_token="test-token",
