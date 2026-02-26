@@ -255,3 +255,80 @@ async def sync_user_guilds(db: AsyncSession, access_token: str, user_id: str) ->
         "new_channels": new_channels_count,
         "updated_channels": updated_channels_count,
     }
+
+
+async def refresh_guild_channels(
+    db: AsyncSession,
+    guild_id: str,
+) -> list[dict[str, Any]]:
+    """
+    Refresh channels for a specific guild from Discord.
+
+    Fetches channels from Discord API and updates database:
+    - Creates new ChannelConfiguration records for new channels
+    - Marks deleted channels as inactive
+    - Reactivates previously inactive channels that reappear
+
+    Does not commit. Caller must commit transaction.
+
+    Args:
+        db: Database session
+        guild_id: Guild UUID in database
+
+    Returns:
+        List of updated channel dictionaries
+    """
+    # Get guild configuration to find Discord guild ID
+    guild_result = await db.execute(
+        select(GuildConfiguration).where(GuildConfiguration.id == guild_id)
+    )
+    guild = guild_result.scalar_one_or_none()
+    if not guild:
+        return []
+
+    # Fetch channels from Discord
+    discord_client = get_discord_client()
+    discord_channels = await discord_client.get_guild_channels(guild.guild_id)
+
+    # Filter for text channels only (type 0)
+    text_channel_type = 0
+    discord_text_channel_ids = {
+        ch["id"] for ch in discord_channels if ch.get("type") == text_channel_type
+    }
+
+    # Get existing channels from database
+    channels_result = await db.execute(
+        select(ChannelConfiguration).where(ChannelConfiguration.guild_id == guild_id)
+    )
+    existing_channels = {ch.channel_id: ch for ch in channels_result.scalars().all()}
+
+    # Add new channels or reactivate existing ones
+    for channel_discord_id in discord_text_channel_ids:
+        if channel_discord_id in existing_channels:
+            channel = existing_channels[channel_discord_id]
+            if not channel.is_active:
+                channel.is_active = True
+        else:
+            await guild_queries.create_channel_config(
+                db, guild_id, channel_discord_id, is_active=True
+            )
+
+    # Mark missing channels as inactive
+    for channel_discord_id, channel in existing_channels.items():
+        if channel_discord_id not in discord_text_channel_ids and channel.is_active:
+            channel.is_active = False
+
+    # Fetch updated channel list
+    updated_channels_result = await db.execute(
+        select(ChannelConfiguration).where(ChannelConfiguration.guild_id == guild_id)
+    )
+    updated_channels = updated_channels_result.scalars().all()
+
+    return [
+        {
+            "id": ch.id,
+            "channel_id": ch.channel_id,
+            "is_active": ch.is_active,
+        }
+        for ch in updated_channels
+    ]

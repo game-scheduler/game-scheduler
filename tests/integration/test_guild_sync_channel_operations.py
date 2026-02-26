@@ -43,8 +43,12 @@ from services.api.database import queries
 from services.api.services.guild_service import _sync_guild_channels, sync_user_guilds
 from shared.models.channel import ChannelConfiguration
 from shared.models.game import GameSession
+from shared.utils.discord_tokens import extract_bot_discord_id
 
 pytestmark = pytest.mark.integration
+
+TEST_DISCORD_TOKEN = "MTQ0NDA3ODM4NjM4MDAxMzY0OA.GvmbbW.fake_token_for_integration_tests"
+TEST_BOT_DISCORD_ID = extract_bot_discord_id(TEST_DISCORD_TOKEN)
 
 
 @pytest.mark.asyncio

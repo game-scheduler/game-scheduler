@@ -64,7 +64,7 @@ async def discord_webhook(
     webhook_type = payload.get("type")
 
     if webhook_type == 0:
-        logger.debug("Received Discord PING webhook")
+        logger.info("Received Discord PING webhook")
         return Response(status_code=204)
 
     if webhook_type == 1:

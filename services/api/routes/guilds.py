@@ -24,7 +24,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api import dependencies
@@ -204,11 +204,15 @@ async def list_guild_channels(
     guild_id: str,
     current_user: Annotated[auth_schemas.CurrentUser, Depends(dependencies.auth.get_current_user)],
     db: Annotated[AsyncSession, Depends(database.get_db)],
+    refresh: Annotated[bool, Query(description="Refresh channels from Discord API")] = False,
 ) -> list[channel_schemas.ChannelConfigResponse]:
     """
     List active channels for a guild by UUID.
 
     Only returns channels with is_active=True to hide deleted Discord channels.
+
+    Optional refresh parameter forces channel sync from Discord API to update
+    the database with any new or deleted channels.
     """
     guild_config = await queries.require_guild_by_id(
         db, guild_id, current_user.access_token, current_user.user.discord_id
@@ -216,6 +220,11 @@ async def list_guild_channels(
 
     # Verify guild membership, returns 404 if not member to prevent information disclosure
     await permissions.verify_guild_membership(guild_config.guild_id, current_user, db)
+
+    # Refresh channels from Discord if requested
+    if refresh:
+        await guild_service.refresh_guild_channels(db, guild_config.id)
+        await db.commit()
 
     channels = await queries.get_channels_by_guild(db, guild_config.id)
 

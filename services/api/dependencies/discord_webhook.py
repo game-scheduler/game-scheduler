@@ -24,11 +24,17 @@
 Provides Ed25519 signature validation for Discord webhook events.
 """
 
+import logging
 import os
 
 from fastapi import Header, HTTPException, Request
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
+
+logger = logging.getLogger(__name__)
+
+# Length to truncate signature in log messages for security
+_SIGNATURE_LOG_LENGTH = 16
 
 
 async def validate_discord_webhook(
@@ -59,8 +65,15 @@ async def validate_discord_webhook(
         HTTPException: 500 if DISCORD_PUBLIC_KEY is not configured
         HTTPException: 401 if signature validation fails
     """
+    logger.info(
+        "Discord webhook validation starting: %s %s",
+        request.method,
+        request.url.path,
+    )
+
     public_key_hex = os.getenv("DISCORD_PUBLIC_KEY", "")
     if not public_key_hex:
+        logger.error("Discord webhook validation failed: DISCORD_PUBLIC_KEY not configured")
         raise HTTPException(status_code=500, detail="Discord public key not configured")
 
     body = await request.body()
@@ -73,6 +86,18 @@ async def validate_discord_webhook(
 
         verify_key.verify(message, signature_bytes)
 
+        logger.debug(
+            "Discord webhook signature validated successfully (timestamp: %s)",
+            x_signature_timestamp,
+        )
         return body
-    except (ValueError, BadSignatureError):
+    except (ValueError, BadSignatureError) as e:
+        logger.warning(
+            "Discord webhook signature validation failed: %s (timestamp: %s, signature: %s...)",
+            type(e).__name__,
+            x_signature_timestamp,
+            x_signature_ed25519[:_SIGNATURE_LOG_LENGTH]
+            if len(x_signature_ed25519) > _SIGNATURE_LOG_LENGTH
+            else x_signature_ed25519,
+        )
         raise HTTPException(status_code=401, detail="Invalid webhook signature") from None
