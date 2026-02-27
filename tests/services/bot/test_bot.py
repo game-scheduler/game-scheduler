@@ -217,18 +217,137 @@ class TestGameSchedulerBot:
 
     @pytest.mark.asyncio
     async def test_on_guild_join_event(self, bot_config: BotConfig) -> None:
-        """Test on_guild_join event handler logs guild information."""
+        """Test on_guild_join event handler syncs guild to database."""
         bot = GameSchedulerBot(bot_config)
         mock_guild = MagicMock(spec=discord.Guild)
         mock_guild.name = "Test Guild"
         mock_guild.id = 987654321
 
-        with patch("services.bot.bot.logger") as mock_logger:
+        mock_db = AsyncMock()
+        mock_db.commit = AsyncMock()
+        mock_db_session_cm = MagicMock()
+        mock_db_session_cm.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_db_session_cm.__aexit__ = AsyncMock(return_value=None)
+
+        mock_discord_client = MagicMock()
+        mock_sync_results = {"new_guilds": 1, "new_channels": 5}
+
+        with (
+            patch("services.bot.bot.logger") as mock_logger,
+            patch("services.bot.bot.get_db_session", return_value=mock_db_session_cm),
+            patch("services.bot.bot.get_discord_client", return_value=mock_discord_client),
+            patch(
+                "services.bot.bot.sync_all_bot_guilds",
+                new_callable=AsyncMock,
+                return_value=mock_sync_results,
+            ) as mock_sync,
+        ):
             await bot.on_guild_join(mock_guild)
 
-            mock_logger.info.assert_called_once_with(
+            mock_logger.info.assert_any_call(
                 "Bot added to guild: %s (ID: %s)", "Test Guild", 987654321
             )
+            mock_sync.assert_awaited_once_with(
+                mock_discord_client, mock_db, bot_config.discord_bot_token
+            )
+            mock_db.commit.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_on_guild_join_sync_failure(self, bot_config: BotConfig) -> None:
+        """Test on_guild_join handles sync failures gracefully."""
+        bot = GameSchedulerBot(bot_config)
+        mock_guild = MagicMock(spec=discord.Guild)
+        mock_guild.name = "Test Guild"
+        mock_guild.id = 987654321
+
+        mock_db = AsyncMock()
+        mock_db_session_cm = MagicMock()
+        mock_db_session_cm.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_db_session_cm.__aexit__ = AsyncMock(return_value=None)
+
+        mock_discord_client = MagicMock()
+
+        with (
+            patch("services.bot.bot.logger") as mock_logger,
+            patch("services.bot.bot.get_db_session", return_value=mock_db_session_cm),
+            patch("services.bot.bot.get_discord_client", return_value=mock_discord_client),
+            patch(
+                "services.bot.bot.sync_all_bot_guilds",
+                new_callable=AsyncMock,
+                side_effect=Exception("Sync failed"),
+            ),
+        ):
+            await bot.on_guild_join(mock_guild)
+
+            mock_logger.error.assert_called_once()
+            assert "failed" in mock_logger.error.call_args[0][0].lower()
+
+    @pytest.mark.asyncio
+    async def test_on_guild_join_commit_failure(self, bot_config: BotConfig) -> None:
+        """Test on_guild_join handles database commit failures gracefully."""
+        bot = GameSchedulerBot(bot_config)
+        mock_guild = MagicMock(spec=discord.Guild)
+        mock_guild.name = "Test Guild"
+        mock_guild.id = 987654321
+
+        mock_db = AsyncMock()
+        mock_db.commit = AsyncMock(side_effect=Exception("Commit failed"))
+        mock_db_session_cm = MagicMock()
+        mock_db_session_cm.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_db_session_cm.__aexit__ = AsyncMock(return_value=None)
+
+        mock_discord_client = MagicMock()
+        mock_sync_results = {"new_guilds": 1, "new_channels": 5}
+
+        with (
+            patch("services.bot.bot.logger") as mock_logger,
+            patch("services.bot.bot.get_db_session", return_value=mock_db_session_cm),
+            patch("services.bot.bot.get_discord_client", return_value=mock_discord_client),
+            patch(
+                "services.bot.bot.sync_all_bot_guilds",
+                new_callable=AsyncMock,
+                return_value=mock_sync_results,
+            ),
+        ):
+            await bot.on_guild_join(mock_guild)
+
+            mock_logger.error.assert_called_once()
+            assert "failed" in mock_logger.error.call_args[0][0].lower()
+
+    @pytest.mark.asyncio
+    async def test_on_guild_join_empty_results(self, bot_config: BotConfig) -> None:
+        """Test on_guild_join handles empty sync results (guild already exists)."""
+        bot = GameSchedulerBot(bot_config)
+        mock_guild = MagicMock(spec=discord.Guild)
+        mock_guild.name = "Existing Guild"
+        mock_guild.id = 111222333
+
+        mock_db = AsyncMock()
+        mock_db.commit = AsyncMock()
+        mock_db_session_cm = MagicMock()
+        mock_db_session_cm.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_db_session_cm.__aexit__ = AsyncMock(return_value=None)
+
+        mock_discord_client = MagicMock()
+        mock_sync_results = {"new_guilds": 0, "new_channels": 0}
+
+        with (
+            patch("services.bot.bot.logger") as mock_logger,
+            patch("services.bot.bot.get_db_session", return_value=mock_db_session_cm),
+            patch("services.bot.bot.get_discord_client", return_value=mock_discord_client),
+            patch(
+                "services.bot.bot.sync_all_bot_guilds",
+                new_callable=AsyncMock,
+                return_value=mock_sync_results,
+            ) as mock_sync,
+        ):
+            await bot.on_guild_join(mock_guild)
+
+            mock_sync.assert_awaited_once_with(
+                mock_discord_client, mock_db, bot_config.discord_bot_token
+            )
+            mock_db.commit.assert_awaited_once()
+            mock_logger.error.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_on_guild_remove_event(self, bot_config: BotConfig) -> None:

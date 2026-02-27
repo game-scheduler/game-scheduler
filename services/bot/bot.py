@@ -200,6 +200,8 @@ class GameSchedulerBot(commands.Bot):
         """
         Handle bot being added to a new guild.
 
+        Automatically syncs the new guild to the database using sync_all_bot_guilds.
+
         Args:
             guild: The guild that was joined
         """
@@ -211,6 +213,24 @@ class GameSchedulerBot(commands.Bot):
             },
         ):
             logger.info("Bot added to guild: %s (ID: %s)", guild.name, guild.id)
+
+            try:
+                async with get_db_session() as db:
+                    discord_client = get_discord_client()
+                    results = await sync_all_bot_guilds(
+                        discord_client, db, self.config.discord_bot_token
+                    )
+                    await db.commit()
+
+                logger.info(
+                    "Successfully synced guild %s (ID: %s): %d new guilds, %d new channels",
+                    guild.name,
+                    guild.id,
+                    results["new_guilds"],
+                    results["new_channels"],
+                )
+            except Exception as e:
+                logger.error("Failed to sync guild %s (ID: %s): %s", guild.name, guild.id, e)
 
     async def on_guild_remove(self, guild: discord.Guild) -> None:
         """

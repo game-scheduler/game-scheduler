@@ -69,18 +69,18 @@ Simplify architecture by removing unnecessary HTTP webhook infrastructure and us
 - [x] Task 2.3: Remove event handler tests
   - Details: .copilot-tracking/details/20260226-01-remove-webhooks-use-gateway-events-details.md (Lines 135-152)
 
-### [ ] Phase 3: Update Bot on_guild_join Event (TDD)
+### [x] Phase 3: Update Bot on_guild_join Event (TDD)
 
-- [ ] Task 3.1: Create stub for enhanced on_guild_join (RED phase)
+- [x] Task 3.1: Create stub for enhanced on_guild_join (RED phase)
   - Details: .copilot-tracking/details/20260226-01-remove-webhooks-use-gateway-events-details.md (Lines 156-174)
 
-- [ ] Task 3.2: Write tests for on_guild_join sync behavior (RED phase)
+- [x] Task 3.2: Write tests for on_guild_join sync behavior (RED phase)
   - Details: .copilot-tracking/details/20260226-01-remove-webhooks-use-gateway-events-details.md (Lines 176-195)
 
-- [ ] Task 3.3: Implement on_guild_join to call sync_all_bot_guilds (GREEN phase)
+- [x] Task 3.3: Implement on_guild_join to call sync_all_bot_guilds (GREEN phase)
   - Details: .copilot-tracking/details/20260226-01-remove-webhooks-use-gateway-events-details.md (Lines 197-216)
 
-- [ ] Task 3.4: Refactor and add edge case tests (REFACTOR phase)
+- [x] Task 3.4: Refactor and add edge case tests (REFACTOR phase)
   - Details: .copilot-tracking/details/20260226-01-remove-webhooks-use-gateway-events-details.md (Lines 218-236)
 
 ### [ ] Phase 4: Simplify GUI Sync Endpoint with Rate Limiting (TDD)

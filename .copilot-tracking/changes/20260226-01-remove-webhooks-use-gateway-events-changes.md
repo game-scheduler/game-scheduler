@@ -14,13 +14,13 @@ This document tracks all changes made during the implementation of removing Disc
 
 **Status**: In Progress
 **Started**: 2026-02-26
-**Phases Completed**: 2/6
+**Phases Completed**: 3/6
 
 ## Changes Summary
 
 ### Added
 
-_List of new files and functionality added during implementation_
+- New test cases in [tests/services/bot/test_bot.py](../../tests/services/bot/test_bot.py) for on_guild_join sync behavior
 
 ### Modified
 
@@ -36,7 +36,9 @@ _List of new files and functionality added during implementation_
 - [pyproject.toml](../../pyproject.toml) - Removed pynacl~=1.5.0 dependency
 - [shared/messaging/events.py](../../shared/messaging/events.py) - Removed GUILD_SYNC_REQUESTED event definition
 - [services/bot/events/handlers.py](../../services/bot/events/handlers.py) - Removed guild sync event handler registration and implementation
+- [services/bot/bot.py](../../services/bot/bot.py) - Enhanced on_guild_join to automatically sync guilds to database
 - [tests/services/bot/events/test_handlers.py](../../tests/services/bot/events/test_handlers.py) - Removed all test*handle_guild_sync_requested*\* tests
+- [tests/services/bot/test_bot.py](../../tests/services/bot/test_bot.py) - Updated and added tests for on_guild_join sync behavior
 
 ### Removed
 
@@ -107,8 +109,43 @@ _List of new files and functionality added during implementation_
 
 ### Phase 3: Update Bot on_guild_join Event (TDD)
 
-**Status**: Not Started
-**Tasks Completed**: 0/4
+**Status**: Completed
+**Tasks Completed**: 4/4
+
+#### Task 3.1: Create stub for enhanced on_guild_join (RED phase) ✓
+
+- Updated on_guild_join in [services/bot/bot.py](../../services/bot/bot.py) to raise NotImplementedError
+- Added docstring noting automatic guild sync functionality
+- Added temporary stub with NotImplementedError message
+
+#### Task 3.2: Write tests for on_guild_join sync behavior (RED phase) ✓
+
+- Updated test_on_guild_join_event in [tests/services/bot/test_bot.py](../../tests/services/bot/test_bot.py)
+- Added test mocks for database session, Discord client, and sync_all_bot_guilds
+- Added @pytest.mark.xfail markers expecting real behavior
+- Added test_on_guild_join_sync_failure to verify exception handling
+- Added test_on_guild_join_commit_failure to verify database commit error handling
+- All tests properly mock async context manager for database session
+
+#### Task 3.3: Implement on_guild_join to call sync_all_bot_guilds (GREEN phase) ✓
+
+- Implemented real functionality in [services/bot/bot.py](../../services/bot/bot.py)
+- on_guild_join now calls sync_all_bot_guilds with discord_client, db, and bot_token
+- Database session obtained via async context manager (get_db_session)
+- Discord client obtained via get_discord_client
+- Transaction committed after successful sync
+- Success logging includes guild name, ID, and sync results (new_guilds, new_channels)
+- Exception handling logs errors without crashing bot
+- Removed @pytest.mark.xfail markers from all tests
+- All tests pass without modifications to assertions
+
+#### Task 3.4: Refactor and add edge case tests (REFACTOR phase) ✓
+
+- Added test_on_guild_join_empty_results to verify handling of existing guilds (0 new guilds/channels)
+- Verified all edge cases covered: success, sync failure, commit failure, empty results
+- No refactoring needed - implementation is clean and follows best practices
+- All 4 on_guild_join tests pass
+- Full bot test suite passes (17 tests total)
 
 ### Phase 4: Simplify GUI Sync Endpoint with Rate Limiting (TDD)
 
