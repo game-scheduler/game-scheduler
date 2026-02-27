@@ -44,29 +44,29 @@ Simplify architecture by removing unnecessary HTTP webhook infrastructure and us
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Remove Webhook Infrastructure
+### [x] Phase 1: Remove Webhook Infrastructure
 
-- [ ] Task 1.1: Delete webhook files
+- [x] Task 1.1: Delete webhook files
   - Details: .copilot-tracking/details/20260226-01-remove-webhooks-use-gateway-events-details.md (Lines 16-32)
 
-- [ ] Task 1.2: Remove webhook router registration from API app
+- [x] Task 1.2: Remove webhook router registration from API app
   - Details: .copilot-tracking/details/20260226-01-remove-webhooks-use-gateway-events-details.md (Lines 34-50)
 
-- [ ] Task 1.3: Remove DISCORD_PUBLIC_KEY configuration
+- [x] Task 1.3: Remove DISCORD_PUBLIC_KEY configuration
   - Details: .copilot-tracking/details/20260226-01-remove-webhooks-use-gateway-events-details.md (Lines 52-71)
 
-- [ ] Task 1.4: Remove PyNaCl dependency
+- [x] Task 1.4: Remove PyNaCl dependency
   - Details: .copilot-tracking/details/20260226-01-remove-webhooks-use-gateway-events-details.md (Lines 73-92)
 
-### [ ] Phase 2: Remove RabbitMQ Guild Sync Event
+### [x] Phase 2: Remove RabbitMQ Guild Sync Event
 
-- [ ] Task 2.1: Remove GUILD_SYNC_REQUESTED event definition
+- [x] Task 2.1: Remove GUILD_SYNC_REQUESTED event definition
   - Details: .copilot-tracking/details/20260226-01-remove-webhooks-use-gateway-events-details.md (Lines 96-113)
 
-- [ ] Task 2.2: Remove guild sync event handler from bot
+- [x] Task 2.2: Remove guild sync event handler from bot
   - Details: .copilot-tracking/details/20260226-01-remove-webhooks-use-gateway-events-details.md (Lines 115-133)
 
-- [ ] Task 2.3: Remove event handler tests
+- [x] Task 2.3: Remove event handler tests
   - Details: .copilot-tracking/details/20260226-01-remove-webhooks-use-gateway-events-details.md (Lines 135-152)
 
 ### [ ] Phase 3: Update Bot on_guild_join Event (TDD)

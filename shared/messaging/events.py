@@ -62,9 +62,6 @@ class EventType(StrEnum):
     GUILD_CONFIG_UPDATED = "guild.config_updated"
     CHANNEL_CONFIG_UPDATED = "channel.config_updated"
 
-    # Bot synchronization events
-    GUILD_SYNC_REQUESTED = "guild.sync_requested"
-
 
 class Event(BaseModel):
     """

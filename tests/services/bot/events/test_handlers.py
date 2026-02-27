@@ -85,7 +85,6 @@ def test_event_handlers_initialization(event_handlers, mock_bot):
     assert EventType.GAME_STATUS_TRANSITION_DUE in event_handlers._handlers
     assert EventType.NOTIFICATION_SEND_DM in event_handlers._handlers
     assert EventType.GAME_CREATED in event_handlers._handlers
-    assert EventType.GUILD_SYNC_REQUESTED in event_handlers._handlers
     assert EventType.PLAYER_JOINED not in event_handlers._handlers
     assert EventType.PLAYER_LEFT not in event_handlers._handlers
 
@@ -110,9 +109,8 @@ async def test_start_consuming(event_handlers):
         mock_consumer.bind.assert_any_await("notification.*")
         mock_consumer.bind.assert_any_await("guild.#")
         # GAME_CREATED, GAME_UPDATED, GAME_CANCELLED, GAME_STATUS_CHANGED,
-        # GAME_PARTICIPANT_JOINED, GAME_PARTICIPANT_LEFT, GAME_PARTICIPANT_PROMOTED,
-        # GUILD_SYNC_REQUESTED
-        assert mock_consumer.register_handler.call_count == 8
+        # GAME_PARTICIPANT_JOINED, GAME_PARTICIPANT_LEFT, GAME_PARTICIPANT_PROMOTED
+        assert mock_consumer.register_handler.call_count == 7
         mock_consumer.start_consuming.assert_awaited_once()
 
 
@@ -2420,116 +2418,3 @@ async def test_refresh_game_message_handles_exception(event_handlers, sample_gam
         mock_db.return_value.__aexit__.return_value = None
 
         await event_handlers._refresh_game_message(sample_game.id)
-
-
-@pytest.mark.asyncio
-async def test_handle_guild_sync_requested_success(event_handlers):
-    """Test successful handling of guild.sync_requested event."""
-    data = {}
-
-    mock_config = MagicMock()
-    mock_config.discord_bot_token = "bot_token_123"
-    event_handlers.bot.config = mock_config
-
-    mock_db = MagicMock()
-    mock_db.commit = AsyncMock()
-
-    mock_discord_client = MagicMock()
-
-    sync_results = {"new_guilds": 2, "new_channels": 5}
-
-    with (
-        patch("services.bot.events.handlers.get_discord_client", return_value=mock_discord_client),
-        patch("services.bot.events.handlers.get_db_session") as mock_db_context,
-        patch(
-            "services.bot.events.handlers.sync_all_bot_guilds",
-            new=AsyncMock(return_value=sync_results),
-        ) as mock_sync,
-    ):
-        mock_db_context.return_value.__aenter__ = AsyncMock(return_value=mock_db)
-        mock_db_context.return_value.__aexit__ = AsyncMock()
-
-        await event_handlers._handle_guild_sync_requested(data)
-
-        mock_sync.assert_awaited_once_with(mock_discord_client, mock_db, "bot_token_123")
-        mock_db.commit.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-async def test_handle_guild_sync_requested_no_config(event_handlers):
-    """Test guild sync handles missing bot config gracefully."""
-    data = {}
-
-    # Remove config attribute to simulate missing config
-    if hasattr(event_handlers.bot, "config"):
-        delattr(event_handlers.bot, "config")
-
-    with (
-        patch("services.bot.events.handlers.get_discord_client") as mock_client,
-        patch("services.bot.events.handlers.sync_all_bot_guilds") as mock_sync,
-    ):
-        await event_handlers._handle_guild_sync_requested(data)
-
-        mock_client.assert_not_called()
-        mock_sync.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_handle_guild_sync_requested_sync_failure(event_handlers):
-    """Test guild sync handles sync failures gracefully."""
-    data = {}
-
-    mock_config = MagicMock()
-    mock_config.discord_bot_token = "bot_token_123"
-    event_handlers.bot.config = mock_config
-
-    mock_db = MagicMock()
-    mock_discord_client = MagicMock()
-
-    with (
-        patch("services.bot.events.handlers.get_discord_client", return_value=mock_discord_client),
-        patch("services.bot.events.handlers.get_db_session") as mock_db_context,
-        patch(
-            "services.bot.events.handlers.sync_all_bot_guilds",
-            new=AsyncMock(side_effect=Exception("Sync failed")),
-        ) as mock_sync,
-    ):
-        mock_db_context.return_value.__aenter__ = AsyncMock(return_value=mock_db)
-        mock_db_context.return_value.__aexit__ = AsyncMock()
-
-        await event_handlers._handle_guild_sync_requested(data)
-
-        mock_sync.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-async def test_handle_guild_sync_requested_empty_results(event_handlers):
-    """Test guild sync when no new guilds or channels are found."""
-    data = {}
-
-    mock_config = MagicMock()
-    mock_config.discord_bot_token = "bot_token_123"
-    event_handlers.bot.config = mock_config
-
-    mock_db = MagicMock()
-    mock_db.commit = AsyncMock()
-
-    mock_discord_client = MagicMock()
-
-    sync_results = {"new_guilds": 0, "new_channels": 0}
-
-    with (
-        patch("services.bot.events.handlers.get_discord_client", return_value=mock_discord_client),
-        patch("services.bot.events.handlers.get_db_session") as mock_db_context,
-        patch(
-            "services.bot.events.handlers.sync_all_bot_guilds",
-            new=AsyncMock(return_value=sync_results),
-        ) as mock_sync,
-    ):
-        mock_db_context.return_value.__aenter__ = AsyncMock(return_value=mock_db)
-        mock_db_context.return_value.__aexit__ = AsyncMock()
-
-        await event_handlers._handle_guild_sync_requested(data)
-
-        mock_sync.assert_awaited_once()
-        mock_db.commit.assert_awaited_once()

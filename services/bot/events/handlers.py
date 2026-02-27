@@ -32,7 +32,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.bot.dependencies.discord_client import get_discord_client
 from services.bot.formatters.game_message import format_game_announcement
-from services.bot.guild_sync import sync_all_bot_guilds
 from services.bot.utils.discord_format import get_member_display_info
 from shared.cache.client import get_redis_client
 from shared.cache.keys import CacheKeys
@@ -88,7 +87,6 @@ class EventHandlers:
             EventType.GAME_CREATED: self._handle_game_created,
             EventType.PLAYER_REMOVED: self._handle_player_removed,
             EventType.GAME_CANCELLED: self._handle_game_cancelled,
-            EventType.GUILD_SYNC_REQUESTED: self._handle_guild_sync_requested,
         }
         # Track pending refreshes to ensure final state is always applied
         self._pending_refreshes: set[str] = set()
@@ -134,10 +132,6 @@ class EventHandlers:
         )
         self.consumer.register_handler(
             EventType.GAME_CANCELLED, lambda e: self._handle_game_cancelled(e.data)
-        )
-        self.consumer.register_handler(
-            EventType.GUILD_SYNC_REQUESTED,
-            lambda e: self._handle_guild_sync_requested(e.data),
         )
 
         logger.info("Started consuming events from queue: %s", queue_name)
@@ -1076,39 +1070,6 @@ class EventHandlers:
 
         except Exception as e:
             logger.exception("Failed to handle game.cancelled event: %s", e)
-
-    async def _handle_guild_sync_requested(self, data: dict[str, Any]) -> None:  # noqa: ARG002
-        """
-        Handle guild.sync_requested event by syncing all bot guilds.
-
-        This handler is triggered by Discord webhook events (APPLICATION_AUTHORIZED)
-        to automatically sync guild data when the bot joins a new server.
-
-        Args:
-            data: Event payload (currently unused)
-        """
-        logger.info("Received guild.sync_requested event, starting guild sync")
-
-        try:
-            # Use bot's configuration to get bot token
-            if not hasattr(self.bot, "config"):
-                logger.error("Bot config not available for guild sync")
-                return
-
-            discord_client = get_discord_client()
-            async with get_db_session() as db:
-                bot_token = self.bot.config.discord_bot_token
-                sync_results = await sync_all_bot_guilds(discord_client, db, bot_token)
-                await db.commit()
-
-                logger.info(
-                    "Webhook-triggered guild sync completed: %d new guilds, %d new channels",
-                    sync_results["new_guilds"],
-                    sync_results["new_channels"],
-                )
-
-        except Exception as e:
-            logger.exception("Failed to handle guild.sync_requested event: %s", e)
 
     async def _handle_status_transition_due(self, data: dict[str, Any]) -> None:
         """
