@@ -80,3 +80,4 @@ alembic/versions/*.pyc
 .secrets
 .env.act
 .artifacts/
+complexipy.json
