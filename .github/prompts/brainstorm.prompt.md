@@ -1,7 +1,7 @@
 ---
 description: 'Interactive brainstorming session using task-researcher capabilities'
 agent: task-researcher
-model: Claude Sonnet 4.5
+model: Claude Sonnet 4.6
 ---
 
 <!-- markdownlint-disable-file -->

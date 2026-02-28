@@ -1,7 +1,7 @@
 ---
-description: "Comprehensive code verification and quality assurance for all changes"
+description: 'Comprehensive code verification and quality assurance for all changes'
 agent: agent
-model: Claude Sonnet 4.5
+model: Claude Sonnet 4.6
 ---
 
 <!-- markdownlint-disable-file -->
@@ -20,7 +20,6 @@ conventions, and quality requirements before finalizing changes.
 **MANDATORY before verification:**
 
 1. **Identify scope of changes:**
-
    - Use `get_changed_files` to identify all modified, added, and deleted files.
      If that does not find any, use `git show --name-only HEAD`.
    - Review git diff to understand extent of changes
@@ -28,7 +27,6 @@ conventions, and quality requirements before finalizing changes.
      Docker, etc.)
 
 2. **Load applicable coding standards:**
-
    - #file:../../.github/instructions/coding-best-practices.instructions.md for
      all code
    - #file:../../.github/instructions/python.instructions.md for Python files
@@ -59,7 +57,6 @@ before proceeding.
 **For each modified/new file:**
 
 - [ ] **Python files (.py):**
-
   - Functions use type hints (Python 3.11+)
   - Imports follow Google Style Guide conventions (modules only, at top of file)
   - Naming: `snake_case` for functions/variables, `PascalCase` for classes,
@@ -69,7 +66,6 @@ before proceeding.
   - Uses `uv` for dependency management where applicable
 
 - [ ] **React/TypeScript files (.tsx, .ts, .jsx, .js):**
-
   - TypeScript interfaces defined for props and state
   - Functional components with hooks (no class components)
   - Proper hook dependency arrays
@@ -86,13 +82,11 @@ before proceeding.
 ### 2. Code Quality and Best Practices
 
 - [ ] **Modularity and DRY:**
-
   - No duplicate code patterns
   - Functions follow Single Responsibility Principle
   - Common patterns extracted to reusable functions
 
 - [ ] **Error Handling:**
-
   - Specific exception types used (not generic)
   - Error messages provide context
   - Resources cleaned up properly (try-finally, context managers)
@@ -110,7 +104,6 @@ before proceeding.
 - [ ] **Unit tests exist for new/modified code:**
 
   **CRITICAL: For EACH modified file with code changes, verify:**
-
   - [ ] If new functions/methods were added, corresponding test functions exist
   - [ ] If existing functions were modified to add new logic, tests were updated/added
   - [ ] If new external dependencies were added (API calls, database queries, etc.), they are mocked in tests
@@ -122,7 +115,6 @@ before proceeding.
   - [ ] Error conditions tested
 
 - [ ] **Test quality checks:**
-
   - Tests focus on behavior, not implementation
   - Test names clearly describe what is being tested
   - No vacuous tests (tests that just call code without assertions)
@@ -132,17 +124,17 @@ before proceeding.
 - [ ] **Coverage verification:**
 
   **MANDATORY: Run coverage on EACH modified file individually:**
-
   - [ ] Identify all Python files with code changes (not just imports/formatting)
   - [ ] Run `uv run pytest --cov=<module_path> --cov-report=term-missing tests/path/to/test_file.py` for each
   - [ ] Verify coverage is >= 80% for the modified file
   - [ ] **If coverage dropped or new lines are uncovered, ADD TESTS before proceeding**
   - [ ] To run coverage on individual functions, use dot notation not slashes (i.e.
-    services.scheduler.generic_scheduler_daemon not
-    services/scheduler/generic_scheduler_daemon)
+        services.scheduler.generic_scheduler_daemon not
+        services/scheduler/generic_scheduler_daemon)
   - [ ] **Document coverage numbers in changes file**
 
   **Example:**
+
   ```bash
   # For modified file: services/api/services/calendar_export.py
   uv run pytest --cov=services.api.services.calendar_export --cov-report=term-missing tests/services/api/services/test_calendar_export.py
@@ -161,7 +153,6 @@ before proceeding.
 **Verify system-level integration:**
 
 - [ ] **Docker containers build successfully:**
-
   - Identify affected containers from changes
   - Run `docker compose build [service-name]` for each affected service
   - Fix build errors before proceeding
@@ -181,7 +172,6 @@ before proceeding.
 **MUST be performed last** (after all other fixes):
 
 - [ ] **Run linters and type checkers:**
-
   - Python: `uv run ruff check .` and `uv run ruff format --check .`
   - TypeScript: Check for compilation errors in IDE
   - Fix all errors and warnings

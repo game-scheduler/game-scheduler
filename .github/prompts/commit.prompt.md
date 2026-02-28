@@ -1,7 +1,7 @@
 ---
-description: "Commit changes with pre-commit validation and code quality checks"
+description: 'Commit changes with pre-commit validation and code quality checks'
 agent: agent
-model: Claude Sonnet 4.5
+model: Claude Sonnet 4.6
 ---
 
 <!-- markdownlint-disable-file -->

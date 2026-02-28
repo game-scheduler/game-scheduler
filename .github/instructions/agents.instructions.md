@@ -25,7 +25,7 @@ Every agent file must include YAML frontmatter with the following fields:
 description: 'Brief description of the agent purpose and capabilities'
 name: 'Agent Display Name'
 tools: ['read', 'edit', 'search']
-model: 'Claude Sonnet 4.5'
+model: 'Claude Sonnet 4.6'
 target: 'vscode'
 infer: true
 ---
@@ -57,7 +57,7 @@ infer: true
 
 - Specifies which AI model the agent should use
 - Supported in VS Code, JetBrains IDEs, Eclipse, and Xcode
-- Example: `'Claude Sonnet 4.5'`, `'gpt-4'`, `'gpt-4o'`
+- Example: `'Claude Sonnet 4.6'`, `'gpt-4'`, `'gpt-4o'`
 - Choose based on agent complexity and required capabilities
 
 #### **target** (OPTIONAL)

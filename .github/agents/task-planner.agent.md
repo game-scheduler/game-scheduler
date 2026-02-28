@@ -353,7 +353,7 @@ applyTo: '.copilot-tracking/changes/{{date}}-{{sequence}}-{{task_description}}-c
 ```markdown
 ---
 mode: agent
-model: Claude Sonnet 4.5
+model: Claude Sonnet 4.6
 ---
 
 <!-- markdownlint-disable-file -->
