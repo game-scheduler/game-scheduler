@@ -21,41 +21,60 @@ This guide is for Discord server administrators who want to add the Game Schedul
 
 The bot will join your server immediately and be ready for configuration.
 
-### Required Bot Permissions
+### Bot Permissions
 
-The bot requires these Discord permissions to function properly:
+When you open the invitation URL, Discord will display the list of permissions the bot is requesting and ask you to approve them before it joins your server. The requested permissions are:
 
 - **View Channels** - Read channel list for game announcements
 - **Send Messages** - Post game announcements and updates
-- **Send Messages in Threads** - Post updates in thread discussions
-- **Embed Links** - Display rich game information embeds
-- **Attach Files** - Upload game images and attachments
-- **Use External Emojis** - Enhanced message formatting (optional)
-- **Add Reactions** - React to messages (optional)
+- **Embed Links** - Display game announcements as rich Discord embeds with formatted details, images, and signup buttons
+
+For information on what data the bot stores, see [Data Privacy](#data-privacy).
 
 **Note**: If you're self-hosting or developing, see the [Developer Guide](developer/README.md) for instructions on generating invite URLs from the Discord Developer Portal.
 
-## Step 2: Configure Bot Manager Roles
+## Step 2: Roles
 
-Bot manager roles determine who can create and manage games beyond Discord's built-in permissions. By default, users with `MANAGE_GUILD` or `ADMINISTRATOR` permissions can configure the bot.
+The bot defines four roles that control what members can do. Each bot role can be mapped to one or more Discord roles via the Web Dashboard, allowing you to align bot permissions with your existing guild structure.
 
-### Setting Bot Manager Roles
+### Management Roles
 
-1. Log into the [Game Scheduler Web Dashboard](https://your-dashboard-url.com)
-2. Select your guild from the guild list
-3. Navigate to "Guild Settings"
-4. In the "Bot Manager Roles" section:
-   - Add Discord roles that should have host permissions
-   - These roles allow users to create and manage games
-   - Users with these roles can also manage game templates
+#### Bot Manager Role
 
-### Permission Model
+The bot manager role allows a guild owner to share bot management responsibility with trusted members, without granting them full Discord administrator access. Bot managers can create and manage templates, configure guild settings, and create or manage any game regardless of other role restrictions.
 
-The system uses a per-template host role model:
+**Note**: Discord guild administrators and the guild owner automatically have bot manager access without needing an explicit role assignment.
 
-- By default, only users with assigned bot manager roles (or `MANAGE_GUILD` permission) can create games from a template.
-- To allow all server members to host games from a specific template, add the `@everyone` role to that template's **Allowed Host Roles**. Discord's `@everyone` role is automatically included in every member's effective role set, so this grants open access without altering any other permissions.
-- Bot manager roles always retain full game management permissions regardless of template settings.
+### Game Roles
+
+Game roles allow bot managers to control who gets notified about new games, who can join them, and who can host them. These roles are configured per template, giving you fine-grained control over each game type.
+
+#### Notify Role
+
+Members with a notify role are pinged when a new game is created. This lets interested players hear about new games without having to monitor channels manually.
+
+#### Player Role
+
+Members with a player role can sign up for games. When no player roles are assigned to a template, any guild member can join.
+
+#### Host Role
+
+Members with a host role can create games from a specific template. Host roles are configured per template, so you can control who can run which types of games. Bot managers always retain host permissions regardless of template host role settings. When no host roles are assigned to a template, only bot managers can create games from it.
+
+#### Note
+
+The same Discord role can be assigned to multiple game bot roles — for example, a small home game group that rotates hosts could map a single "Sunday Players" Discord role to the notify, player, and host bot roles at once. If your server exists solely for one game, you could simply use `@everyone` for these three.
+
+### Creating Discord Roles
+
+Before mapping Discord roles to bot roles, you need to have the appropriate Discord roles created in your guild. If you need to create new roles:
+
+1. Open your Discord server and go to **Server Settings**
+2. Select **Roles** from the left sidebar
+3. Click **Create Role** and configure the role name and color — the bot only uses role membership to identify users, so the role does not need any Discord permissions enabled
+4. Assign the role to the appropriate members
+
+For detailed instructions, see the [Discord Roles documentation](https://support.discord.com/hc/en-us/articles/214836687-Role-Management-101).
 
 ## Step 3: Configure Channels for Game Announcements
 
@@ -75,46 +94,44 @@ The bot posts game announcements in specific channels you designate.
 - Bot must have "Embed Links" permission to display rich game cards
 - Bot must have "Attach Files" permission if games include images
 
+**Note**: The bot is granted these permissions by default when it joins your server. You only need to take action if these permissions have been explicitly removed or overridden for a specific channel.
+
 ### Managing Multiple Channels
 
-You can configure multiple announcement channels:
+You can configure multiple announcement channels. This is useful when your server hosts different types of games and you want members to only see announcements relevant to them — for example, if your server runs both tabletop RPG sessions and board game nights, separate channels let members opt in to just the games they care about.
 
-- Each game is posted to ONE channel (selected by the host)
-- Hosts choose the channel when creating a game
-- Different channels can be used for different game types (e.g., #board-games, #rpg-sessions)
+- Each game is posted to ONE channel, determined by the template
+- Hosts select a template when creating a game, which determines the channel
 
-## Step 4: Create Game Templates (Optional)
+## Step 4: Templates
 
-Game templates provide pre-filled defaults for common game types, making it faster for hosts to create games.
+Templates serve two purposes. First, they let bot managers lock in parameters that define a game type — such as the announcement channel, notification roles, and which Discord roles can host or join — which game hosts cannot change. Second, they let bot managers set convenient defaults for host-editable fields like max players, expected duration, location, and reminder times, saving hosts from filling in the same values every time.
 
-### Why Use Templates?
+Each template defines the announcement channel, the roles used for notifications, player eligibility, and host permissions, as well as default values for new games like max players and reminder times.
 
-- Pre-set max players for specific game types (e.g., "D&D Session" defaults to 5 players)
-- Default reminder times (e.g., 24 hours before)
-- Pre-configured notification roles
-- Consistent signup instructions across similar games
-- Restrict which roles can host specific game types
+When the bot joins your guild, one template is created automatically. However, it needs to be customized before it is useful — at minimum, you must set the announcement channel and adjust any role assignments.
+
+If your server hosts different types of games, create a separate template for each game type. This lets you set different channels, roles, and defaults per game type, and gives hosts a clear starting point when scheduling a game.
 
 ### Creating Templates
 
 1. In the Web Dashboard, navigate to "Templates" under your guild
 2. Click "Create Template"
-3. Configure template settings:
+3. Fill in the general fields:
    - **Name**: Template identifier (e.g., "D&D Session", "Board Game Night")
    - **Description**: What this template is for
-   - **Default Channel**: Where games using this template will be announced
-   - **Max Players**: Default participant limit
-   - **Expected Duration**: How long games typically last (minutes)
-   - **Reminder Time**: When to send reminder notifications (minutes before start)
-   - **Notification Roles**: Discord roles to ping when games are created
+4. Configure the locked settings (hosts cannot change these):
+   - **Channel**: Where games using this template will be announced
+   - **Notify Roles**: Discord roles to ping when a game is created
    - **Allowed Player Roles**: Roles that can join games (empty = everyone)
    - **Allowed Host Roles**: Roles that can create games from this template (empty = all bot managers)
-   - **Where**: Default location (e.g., "Discord Voice", "Local Game Store")
+5. Optionally, configure the pre-populated defaults (hosts can override these):
+   - **Max Players**: Default participant limit
+   - **Expected Duration**: How long games typically last
+   - **Reminder Times**: When to send reminder notifications (minutes before start)
+   - **Location**: Default location (e.g., "Discord Voice", "Local Game Store")
    - **Signup Instructions**: Instructions displayed to players
-   - **Allowed Signup Methods**: Which methods players can use (Discord buttons, web dashboard, react with emoji)
-   - **Default Signup Method**: Preferred signup method for this template
-
-4. Click "Create Template"
+6. Click "Create"
 
 ### Template Management
 
@@ -127,7 +144,7 @@ Game templates provide pre-filled defaults for common game types, making it fast
 
 ### Verify Bot Functionality
 
-1. Create a test game using the web dashboard or `/create-game` slash command
+1. Create a test game using the web dashboard
 2. Check that the game announcement appears in the designated channel
 3. Try joining/leaving the game using Discord buttons
 4. Verify that notifications are sent at the configured reminder time
@@ -136,8 +153,7 @@ Game templates provide pre-filled defaults for common game types, making it fast
 
 - **Bot can't see channels**: Verify "View Channels" permission is granted
 - **Can't post announcements**: Verify "Send Messages" and "Embed Links" permissions in the target channel
-- **Slash commands don't appear**: Re-invite bot with `applications.commands` scope
-- **Users can't create games**: Verify bot manager roles are configured correctly
+- **Users can't create games**: Verify host roles are configured correctly on the relevant template
 
 ## Security Considerations
 
@@ -152,8 +168,9 @@ Game templates provide pre-filled defaults for common game types, making it fast
 
 - Bot only stores game scheduling data (titles, descriptions, participants)
 - User Discord IDs are stored for participant management
-- No message content is read or stored
+- The bot does not have the "Read Message History" or "Message Content Intent" permissions and cannot read messages it did not post
 - Bot uses Discord API to verify permissions in real-time
+- **Reminder**: The person or organization hosting the bot instance has access to all data stored by the bot. Do not enter any information you would not trust them to see.
 
 ## Next Steps
 
