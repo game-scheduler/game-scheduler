@@ -24,7 +24,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, Boolean, String, func, text
+from sqlalchemy import JSON, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, generate_uuid, utc_now
@@ -47,9 +47,6 @@ class GuildConfiguration(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     guild_id: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     bot_manager_role_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
-    require_host_role: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default=text("false")
-    )
     created_at: Mapped[datetime] = mapped_column(default=utc_now, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         default=utc_now, onupdate=utc_now, server_default=func.now()

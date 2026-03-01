@@ -68,7 +68,6 @@ async def _build_guild_config_response(
         id=guild_config.id,
         guild_name=guild_name,
         bot_manager_role_ids=guild_config.bot_manager_role_ids,
-        require_host_role=guild_config.require_host_role,
         created_at=guild_config.created_at.isoformat(),
         updated_at=guild_config.updated_at.isoformat(),
     )
@@ -184,7 +183,6 @@ async def create_guild_config(
     guild_config = await guild_service.create_guild_config(
         db,
         guild_discord_id=request.guild_id,
-        require_host_role=request.require_host_role,
     )
 
     return await _build_guild_config_response(guild_config, current_user, db)

@@ -64,7 +64,6 @@ export interface Guild {
 
 export interface GuildConfigData extends Guild {
   bot_manager_role_ids: string[] | null;
-  require_host_role: boolean;
 }
 
 export interface Channel {

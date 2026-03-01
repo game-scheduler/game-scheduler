@@ -458,7 +458,6 @@ async def test_sync_all_bot_guilds_verifies_existing_guilds_unchanged():
     existing_guild = MagicMock(spec=GuildConfiguration)
     existing_guild.guild_id = "guild_existing"
     existing_guild.bot_manager_role_ids = ["role1", "role2"]
-    existing_guild.require_host_role = True
 
     mock_execute_result = MagicMock()
     mock_execute_result.scalars.return_value.all.return_value = [existing_guild]
@@ -477,7 +476,6 @@ async def test_sync_all_bot_guilds_verifies_existing_guilds_unchanged():
 
     # Verify existing guild properties unchanged
     assert existing_guild.bot_manager_role_ids == ["role1", "role2"]
-    assert existing_guild.require_host_role is True
 
     # Verify no database adds occurred
     mock_db.add.assert_not_called()

@@ -46,7 +46,6 @@ def mock_guild_config():
     config.id = str(uuid.uuid4())
     config.guild_id = "987654321"
     config.bot_manager_role_ids = None
-    config.require_host_role = False
     config.created_at = datetime(2024, 1, 1, 12, 0, 0)
     config.updated_at = datetime(2024, 1, 1, 12, 0, 0)
     return config
@@ -226,7 +225,6 @@ class TestCreateGuildConfig:
             new_config = MagicMock()
             new_config.id = str(uuid.uuid4())
             new_config.guild_id = "987654321"
-            new_config.require_host_role = False
             new_config.created_at = datetime.now(tz=UTC)
             new_config.updated_at = datetime.now(tz=UTC)
 
@@ -234,7 +232,6 @@ class TestCreateGuildConfig:
 
             request = guild_schemas.GuildConfigCreateRequest(
                 guild_id="987654321",
-                require_host_role=False,
             )
 
             result = await guilds.create_guild_config(
@@ -292,24 +289,20 @@ class TestUpdateGuildConfig:
             updated_config = MagicMock()
             updated_config.id = mock_guild_config.id
             updated_config.guild_id = "987654321"
-            updated_config.require_host_role = True
             updated_config.created_at = datetime.now(tz=UTC)
             updated_config.updated_at = datetime.now(tz=UTC)
 
             mock_update.return_value = updated_config
 
-            request = guild_schemas.GuildConfigUpdateRequest(
-                require_host_role=True,
-            )
+            request = guild_schemas.GuildConfigUpdateRequest()
 
-            result = await guilds.update_guild_config(
+            await guilds.update_guild_config(
                 guild_id=mock_guild_config.id,
                 request=request,
                 current_user=mock_current_user_unit,
                 db=mock_db,
             )
 
-            assert result.require_host_role is True
             mock_update.assert_called_once()
 
     @pytest.mark.asyncio
@@ -429,7 +422,6 @@ class TestBuildGuildConfigResponse:
     ):
         """Test building response with all fields populated."""
         mock_guild_config.bot_manager_role_ids = ["role1", "role2"]
-        mock_guild_config.require_host_role = True
 
         with patch("services.api.dependencies.permissions.get_guild_name") as mock_get_name:
             mock_get_name.return_value = "Test Guild"
@@ -441,7 +433,6 @@ class TestBuildGuildConfigResponse:
             assert result.id == mock_guild_config.id
             assert result.guild_name == "Test Guild"
             assert result.bot_manager_role_ids == ["role1", "role2"]
-            assert result.require_host_role is True
             assert result.created_at == "2024-01-01T12:00:00"
             assert result.updated_at == "2024-01-01T12:00:00"
 
@@ -455,7 +446,6 @@ class TestBuildGuildConfigResponse:
     ):
         """Test building response when bot_manager_role_ids is None."""
         mock_guild_config.bot_manager_role_ids = None
-        mock_guild_config.require_host_role = False
 
         with patch("services.api.dependencies.permissions.get_guild_name") as mock_get_name:
             mock_get_name.return_value = "Test Guild"
@@ -465,7 +455,6 @@ class TestBuildGuildConfigResponse:
             )
 
             assert result.bot_manager_role_ids is None
-            assert result.require_host_role is False
 
     @pytest.mark.asyncio
     async def test_build_response_timestamp_formatting(

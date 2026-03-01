@@ -24,6 +24,7 @@ The bot will join your server immediately and be ready for configuration.
 ### Required Bot Permissions
 
 The bot requires these Discord permissions to function properly:
+
 - **View Channels** - Read channel list for game announcements
 - **Send Messages** - Post game announcements and updates
 - **Send Messages in Threads** - Post updates in thread discussions
@@ -50,12 +51,11 @@ Bot manager roles determine who can create and manage games beyond Discord's bui
 
 ### Permission Model
 
-The system supports two permission modes:
+The system uses a per-template host role model:
 
-- **Require Host Role** (Recommended): Only users with assigned bot manager roles can create games
-- **Open Hosting**: Any guild member can create games (bot manager roles still get additional management permissions)
-
-You can toggle this setting in Guild Settings.
+- By default, only users with assigned bot manager roles (or `MANAGE_GUILD` permission) can create games from a template.
+- To allow all server members to host games from a specific template, add the `@everyone` role to that template's **Allowed Host Roles**. Discord's `@everyone` role is automatically included in every member's effective role set, so this grants open access without altering any other permissions.
+- Bot manager roles always retain full game management permissions regardless of template settings.
 
 ## Step 3: Configure Channels for Game Announcements
 

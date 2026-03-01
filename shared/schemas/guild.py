@@ -28,17 +28,12 @@ class GuildConfigCreateRequest(BaseModel):
     """Create guild configuration."""
 
     guild_id: str = Field(..., description="Discord guild snowflake ID")
-    require_host_role: bool = Field(
-        default=False,
-        description="If true, users must have allowed host role to create games",
-    )
 
 
 class GuildConfigUpdateRequest(BaseModel):
     """Update guild configuration (all fields optional)."""
 
     bot_manager_role_ids: list[str] | None = None
-    require_host_role: bool | None = None
 
 
 class GuildBasicInfoResponse(BaseModel):
@@ -58,7 +53,6 @@ class GuildConfigResponse(BaseModel):
     bot_manager_role_ids: list[str] | None = Field(
         None, description="Role IDs with Bot Manager permissions (can edit/delete any game)"
     )
-    require_host_role: bool = Field(..., description="Whether host role is required")
     created_at: str = Field(..., description="When guild was added to database")
     updated_at: str = Field(..., description="When guild config was last updated")
 

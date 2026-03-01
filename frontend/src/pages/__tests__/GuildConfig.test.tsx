@@ -70,7 +70,7 @@ describe('GuildConfig', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('checkbox', { name: /Require Host Role/i })).toBeInTheDocument();
+      expect(screen.getByText('Server Configuration')).toBeInTheDocument();
     });
   });
 
@@ -104,7 +104,7 @@ describe('GuildConfig', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('checkbox', { name: /Require Host Role/i })).toBeInTheDocument();
+      expect(screen.getByText('Save Configuration')).toBeInTheDocument();
     });
 
     const saveButton = screen.getByText('Save Configuration');
@@ -121,7 +121,6 @@ describe('GuildConfig', () => {
       expect(lastCall[1]).toMatchObject({
         bot_manager_role_ids: null,
       });
-      // require_host_role may be true or undefined depending on form state
     });
   });
 
@@ -145,23 +144,5 @@ describe('GuildConfig', () => {
     await waitFor(() => {
       expect(screen.getByText(/Guild not found/)).toBeInTheDocument();
     });
-  });
-
-  it('renders form fields with initial values', async () => {
-    render(
-      <BrowserRouter>
-        <GuildConfig />
-      </BrowserRouter>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByRole('checkbox', { name: /Require Host Role/i })).toBeInTheDocument();
-    });
-
-    const requireHostRoleCheckbox = screen.getByRole('checkbox', {
-      name: /Require Host Role/i,
-    }) as HTMLInputElement;
-    // Checkbox exists and can be checked
-    expect(requireHostRoleCheckbox).toBeInTheDocument();
   });
 });

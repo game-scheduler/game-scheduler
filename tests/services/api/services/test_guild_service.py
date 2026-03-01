@@ -46,7 +46,6 @@ async def test_create_guild_config():
     guild_discord_id = "123456789012345678"
     settings = {
         "bot_manager_role_ids": ["role1", "role2"],
-        "require_host_role": True,
     }
 
     await guild_service.create_guild_config(mock_db, guild_discord_id, **settings)
@@ -58,7 +57,6 @@ async def test_create_guild_config():
     assert isinstance(added_guild, GuildConfiguration)
     assert added_guild.guild_id == guild_discord_id
     assert added_guild.bot_manager_role_ids == ["role1", "role2"]
-    assert added_guild.require_host_role is True
 
 
 @pytest.mark.asyncio
@@ -67,18 +65,15 @@ async def test_update_guild_config():
     guild_config = GuildConfiguration(
         guild_id="123456789012345678",
         bot_manager_role_ids=["role1"],
-        require_host_role=False,
     )
 
     updates = {
         "bot_manager_role_ids": ["role1", "role2", "role3"],
-        "require_host_role": True,
     }
 
     await guild_service.update_guild_config(guild_config, **updates)
 
     assert guild_config.bot_manager_role_ids == ["role1", "role2", "role3"]
-    assert guild_config.require_host_role is True
 
 
 @pytest.mark.asyncio
@@ -87,15 +82,12 @@ async def test_update_guild_config_ignores_none_values():
     guild_config = GuildConfiguration(
         guild_id="123456789012345678",
         bot_manager_role_ids=["role1"],
-        require_host_role=False,
     )
 
     updates = {
         "bot_manager_role_ids": ["role2"],
-        "require_host_role": None,  # Will be set to None
     }
 
     await guild_service.update_guild_config(guild_config, **updates)
 
     assert guild_config.bot_manager_role_ids == ["role2"]
-    assert guild_config.require_host_role is None  # Updated to None

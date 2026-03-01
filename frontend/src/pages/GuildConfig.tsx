@@ -30,8 +30,6 @@ import {
   Box,
   CircularProgress,
   Alert,
-  FormControlLabel,
-  Checkbox,
   Autocomplete,
   Chip,
 } from '@mui/material';
@@ -54,7 +52,6 @@ export const GuildConfig: FC = () => {
   const [guild, setGuild] = useState<GuildConfigData | null>(null);
   const [formData, setFormData] = useState({
     botManagerRoleIds: [] as string[],
-    requireHostRole: false,
   });
 
   useEffect(() => {
@@ -71,7 +68,6 @@ export const GuildConfig: FC = () => {
         setGuild(guildData);
         setFormData({
           botManagerRoleIds: guildData.bot_manager_role_ids || [],
-          requireHostRole: guildData.require_host_role,
         });
       } catch (err: unknown) {
         console.error('Failed to fetch guild:', err);
@@ -113,7 +109,6 @@ export const GuildConfig: FC = () => {
       await apiClient.put(`/api/v1/guilds/${guildId}`, {
         bot_manager_role_ids:
           formData.botManagerRoleIds.length > 0 ? formData.botManagerRoleIds : null,
-        require_host_role: formData.requireHostRole,
       });
 
       setSuccess(true);
@@ -218,16 +213,6 @@ export const GuildConfig: FC = () => {
                 })
               }
               fullWidth
-            />
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.requireHostRole}
-                  onChange={(e) => setFormData({ ...formData, requireHostRole: e.target.checked })}
-                />
-              }
-              label="Require host role to create games"
             />
           </Box>
 

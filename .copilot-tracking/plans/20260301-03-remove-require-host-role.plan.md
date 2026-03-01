@@ -37,41 +37,41 @@ Eliminate the dead `require_host_role` field from the database, ORM model, schem
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Database Migration
+### [x] Phase 1: Database Migration
 
-- [ ] Task 1.1: Generate new Alembic migration to drop `require_host_role` from `guild_configurations`
+- [x] Task 1.1: Generate new Alembic migration to drop `require_host_role` from `guild_configurations`
   - Details: .copilot-tracking/details/20260301-03-remove-require-host-role-details.md (Lines 18-42)
 
-### [ ] Phase 2: Backend Removal
+### [x] Phase 2: Backend Removal
 
-- [ ] Task 2.1: Remove `require_host_role` column mapping from `shared/models/guild.py`
+- [x] Task 2.1: Remove `require_host_role` column mapping from `shared/models/guild.py`
   - Details: .copilot-tracking/details/20260301-03-remove-require-host-role-details.md (Lines 45-64)
 
-- [ ] Task 2.2: Remove `require_host_role` from all three schema classes in `shared/schemas/guild.py`
+- [x] Task 2.2: Remove `require_host_role` from all three schema classes in `shared/schemas/guild.py`
   - Details: .copilot-tracking/details/20260301-03-remove-require-host-role-details.md (Lines 67-90)
 
-- [ ] Task 2.3: Remove `require_host_role` from `services/api/routes/guilds.py`
+- [x] Task 2.3: Remove `require_host_role` from `services/api/routes/guilds.py`
   - Details: .copilot-tracking/details/20260301-03-remove-require-host-role-details.md (Lines 93-112)
 
-### [ ] Phase 3: Backend Test Cleanup
+### [x] Phase 3: Backend Test Cleanup
 
-- [ ] Task 3.1: Remove all `require_host_role` references from `tests/services/api/routes/test_guilds.py` and fix mocks
+- [x] Task 3.1: Remove all `require_host_role` references from `tests/services/api/routes/test_guilds.py` and fix mocks
   - Details: .copilot-tracking/details/20260301-03-remove-require-host-role-details.md (Lines 115-149)
 
-- [ ] Task 3.2: Remove `require_host_role` attribute assignments from `tests/services/bot/test_guild_sync.py`
+- [x] Task 3.2: Remove `require_host_role` attribute assignments from `tests/services/bot/test_guild_sync.py`
   - Details: .copilot-tracking/details/20260301-03-remove-require-host-role-details.md (Lines 152-168)
 
-### [ ] Phase 4: Frontend Removal
+### [x] Phase 4: Frontend Removal
 
-- [ ] Task 4.1: Remove form state, API payload field, and checkbox UI from `frontend/src/pages/GuildConfig.tsx`
+- [x] Task 4.1: Remove form state, API payload field, and checkbox UI from `frontend/src/pages/GuildConfig.tsx`
   - Details: .copilot-tracking/details/20260301-03-remove-require-host-role-details.md (Lines 171-202)
 
-- [ ] Task 4.2: Remove checkbox assertion and comment from `frontend/src/pages/__tests__/GuildConfig.test.tsx`
+- [x] Task 4.2: Remove checkbox assertion and comment from `frontend/src/pages/__tests__/GuildConfig.test.tsx`
   - Details: .copilot-tracking/details/20260301-03-remove-require-host-role-details.md (Lines 205-225)
 
-### [ ] Phase 5: Documentation
+### [x] Phase 5: Documentation
 
-- [ ] Task 5.1: Update `docs/GUILD-ADMIN.md` to replace `require_host_role` guidance with `@everyone` template role instructions
+- [x] Task 5.1: Update `docs/GUILD-ADMIN.md` to replace `require_host_role` guidance with `@everyone` template role instructions
   - Details: .copilot-tracking/details/20260301-03-remove-require-host-role-details.md (Lines 228-248)
 
 ## Dependencies

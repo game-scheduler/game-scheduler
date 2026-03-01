@@ -94,7 +94,6 @@ async def test_get_guild_config_returns_configuration(
     assert response.status_code == 200, f"Failed to get guild config: {response.text}"
     config = response.json()
     assert config["id"] == guild_a_db_id
-    assert "require_host_role" in config
     assert "bot_manager_role_ids" in config
 
 
@@ -131,7 +130,7 @@ async def test_update_guild_config_enforces_authorization(
     Expected behavior:
     - User A tries to update Guild B config → 404 (not authorized - prevents info disclosure)
     """
-    update_data = {"require_host_role": True}
+    update_data = {"bot_manager_role_ids": None}
     response = await authenticated_admin_client.put(
         f"/api/v1/guilds/{guild_b_db_id}", json=update_data
     )
