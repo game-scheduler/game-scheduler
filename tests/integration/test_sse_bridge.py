@@ -217,6 +217,22 @@ async def test_sse_receives_rabbitmq_game_updated_events(
     assert received_event["guild_id"] == guild_a["id"]
 
 
+async def _consume_sse_events(
+    client: httpx.AsyncClient, event_list: list[dict], max_events: int = 2
+) -> None:
+    """Consume SSE game_updated events into event_list up to max_events."""
+    async with client.stream("GET", "/api/v1/sse/game-updates", timeout=10.0) as response:
+        async for line in response.aiter_lines():
+            if not line.startswith("data: "):
+                continue
+            data = json.loads(line[6:])
+            if data.get("type") != "game_updated":
+                continue
+            event_list.append(data)
+            if len(event_list) >= max_events:
+                return
+
+
 @pytest.mark.asyncio
 async def test_sse_filters_events_by_guild_membership(
     authenticated_client_guild_a,
@@ -230,24 +246,9 @@ async def test_sse_filters_events_by_guild_membership(
     guild_a_events: list[dict] = []
     guild_b_events: list[dict] = []
 
-    async def consume_sse_events(client, event_list, max_events=2):
-        """Helper to consume SSE events into list."""
-        async with client.stream(
-            "GET",
-            "/api/v1/sse/game-updates",
-            timeout=10.0,
-        ) as response:
-            async for line in response.aiter_lines():
-                if line.startswith("data: "):
-                    data = json.loads(line[6:])
-                    if data.get("type") == "game_updated":
-                        event_list.append(data)
-                        if len(event_list) >= max_events:
-                            return
-
     # Start both SSE consumers
-    consumer_a = asyncio.create_task(consume_sse_events(client_a, guild_a_events))
-    consumer_b = asyncio.create_task(consume_sse_events(client_b, guild_b_events))
+    consumer_a = asyncio.create_task(_consume_sse_events(client_a, guild_a_events))
+    consumer_b = asyncio.create_task(_consume_sse_events(client_b, guild_b_events))
 
     # Wait for connections to establish
     await asyncio.sleep(0.5)
@@ -298,6 +299,28 @@ async def test_sse_filters_events_by_guild_membership(
     assert game_id_a not in guild_b_game_ids, "Guild B user MUST NOT receive Guild A events"
 
 
+async def _consume_sse_single_event(
+    client: httpx.AsyncClient, event_list: list[dict], ready_event: asyncio.Event
+) -> None:
+    """Consume a single SSE game_updated event, signalling ready_event when connected."""
+    try:
+        async with client.stream("GET", "/api/v1/sse/game-updates", timeout=10.0) as response:
+            ready_event.set()
+            await asyncio.sleep(0.1)
+            async for line in response.aiter_lines():
+                if line.startswith(":") or not line.startswith("data:"):
+                    continue
+                try:
+                    data = json.loads(line[5:].strip())
+                except json.JSONDecodeError:
+                    continue
+                if data.get("type") == "game_updated":
+                    event_list.append(data)
+                    return
+    except Exception:
+        pass
+
+
 @pytest.mark.asyncio
 async def test_sse_broadcasts_to_multiple_clients(
     create_authenticated_client_factory,
@@ -314,39 +337,13 @@ async def test_sse_broadcasts_to_multiple_clients(
     client_events: list[list[dict]] = [[] for _ in range(num_clients)]
     ready_events = [asyncio.Event() for _ in range(num_clients)]
 
-    async def consume_sse(client, event_list, ready_event, client_num):
-        """Consumer that collects SSE events, signals when ready."""
-        try:
-            async with client.stream(
-                "GET",
-                "/api/v1/sse/game-updates",
-                timeout=10.0,
-            ) as response:
-                ready_event.set()
-                await asyncio.sleep(0.1)
-
-                async for line in response.aiter_lines():
-                    if line.startswith(":"):
-                        continue
-                    if line.startswith("data:"):
-                        data_json = line[5:].strip()
-                        try:
-                            data = json.loads(data_json)
-                            if data.get("type") == "game_updated":
-                                event_list.append(data)
-                                return
-                        except json.JSONDecodeError:
-                            pass
-        except Exception:
-            pass
-
     clients = []
     for _ in range(num_clients):
         client = await create_authenticated_client_factory(guild["guild_id"])
         clients.append(client)
 
     consumer_tasks = [
-        asyncio.create_task(consume_sse(client, client_events[i], ready_events[i], i))
+        asyncio.create_task(_consume_sse_single_event(client, client_events[i], ready_events[i]))
         for i, client in enumerate(clients)
     ]
 
@@ -364,7 +361,7 @@ async def test_sse_broadcasts_to_multiple_clients(
         routing_key=f"game.updated.{guild['guild_id']}",
     )
 
-    done, pending = await asyncio.wait(consumer_tasks, timeout=5.0)
+    await asyncio.wait(consumer_tasks, timeout=5.0)
 
     for task in consumer_tasks:
         if not task.done():
