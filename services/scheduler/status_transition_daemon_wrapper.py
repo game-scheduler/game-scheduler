@@ -28,27 +28,16 @@ to handle automatic game status transitions.
 
 import logging
 import os
-import signal
-from typing import Any
 
 from shared.database import BASE_DATABASE_URL
 from shared.models import GameStatusSchedule
-from shared.telemetry import flush_telemetry, init_telemetry
+from shared.telemetry import init_telemetry
 
+from .daemon_runner import run_daemon
 from .event_builders import build_status_transition_event
 from .generic_scheduler_daemon import SchedulerDaemon
 
 logger = logging.getLogger(__name__)
-
-# Global flag for graceful shutdown
-shutdown_requested = False
-
-
-def signal_handler(_signum: int, _frame: Any) -> None:  # noqa: ANN401
-    """Handle shutdown signals gracefully."""
-    global shutdown_requested  # noqa: PLW0603 - Required for signal handler communication
-    logger.info("Received signal %s, initiating graceful shutdown", _signum)
-    shutdown_requested = True
 
 
 def main() -> None:
@@ -61,26 +50,20 @@ def main() -> None:
 
     init_telemetry("status-transition-daemon")
 
-    signal.signal(signal.SIGTERM, signal_handler)
-    signal.signal(signal.SIGINT, signal_handler)
-
     rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
 
-    try:
-        daemon = SchedulerDaemon(
-            database_url=BASE_DATABASE_URL,
-            rabbitmq_url=rabbitmq_url,
-            notify_channel="game_status_schedule_changed",
-            model_class=GameStatusSchedule,
-            time_field="transition_time",
-            status_field="executed",
-            event_builder=build_status_transition_event,
-            _process_dlq=False,
-        )
+    daemon = SchedulerDaemon(
+        database_url=BASE_DATABASE_URL,
+        rabbitmq_url=rabbitmq_url,
+        notify_channel="game_status_schedule_changed",
+        model_class=GameStatusSchedule,
+        time_field="transition_time",
+        status_field="executed",
+        event_builder=build_status_transition_event,
+        _process_dlq=False,
+    )
 
-        daemon.run(lambda: shutdown_requested)
-    finally:
-        flush_telemetry()
+    run_daemon(daemon)
 
 
 if __name__ == "__main__":

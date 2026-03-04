@@ -49,6 +49,11 @@ services:
       LOG_LEVEL: DEBUG
       PYTEST_RUNNING: "1"
 
+  participant-action-daemon:
+    environment:
+      LOG_LEVEL: DEBUG
+      PYTEST_RUNNING: "1"
+
   postgres:
     command: [
       "postgres",
@@ -82,6 +87,8 @@ services:
       notification-daemon:
         condition: service_started
       status-transition-daemon:
+        condition: service_started
+      participant-action-daemon:
         condition: service_started
     networks:
       - app-network

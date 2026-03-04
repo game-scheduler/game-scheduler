@@ -150,9 +150,40 @@ with optional participant carry-over and deadline-based auto-drop confirmation.
 
 - [tests/unit/bot/handlers/test_participant_drop_handler.py](tests/unit/bot/handlers/test_participant_drop_handler.py) — MODIFIED: added `test_handler_skips_when_participant_not_found` (participant not in DB → no delete/DM/publish), `test_handler_drops_participant_from_cancelled_game` (cancelled game → participant still removed); all 5 unit tests pass
 
+## Phase 6: Participant action daemon (COMPLETE)
+
+### Task 6.1: Create `participant_action_daemon_wrapper.py` stub + Docker compose service entry
+
+**Files Changed**:
+
+- [services/scheduler/participant_action_daemon_wrapper.py](services/scheduler/participant_action_daemon_wrapper.py) — NEW: daemon wrapper module stub; constructs `SchedulerDaemon` with `notify_channel="participant_action_schedule_changed"`, `model_class=ParticipantActionSchedule`, `time_field="action_time"`, `status_field="processed"`, `event_builder=build_participant_action_event`; stub did NOT call `daemon.run()` (implemented in Task 6.3)
+- [docker/participant-action-daemon.Dockerfile](docker/participant-action-daemon.Dockerfile) — NEW: multi-stage (base/development/production) Dockerfile mirroring notification-daemon.Dockerfile; CMD runs `services.scheduler.participant_action_daemon_wrapper`; copies `participant_action_event_builder.py` and `participant_action_daemon_wrapper.py`
+- [compose.yaml](compose.yaml) — MODIFIED: added `participant-action-daemon` service entry (commented out in stub; enabled in Task 6.3)
+
+### Task 6.2: Write xfail integration tests for participant action daemon
+
+**Files Changed**:
+
+- [tests/integration/test_participant_action_daemon.py](tests/integration/test_participant_action_daemon.py) — NEW: `TestParticipantActionDaemonIntegration` class with `test_daemon_processes_overdue_action` (inserts past-dated record, sends pg_notify, waits for `processed=True`, asserts `PARTICIPANT_DROP_DUE` published to `QUEUE_BOT_EVENTS`) and `test_daemon_waits_for_future_action` (future-dated record stays unprocessed); both tests marked `xfail` in stub (removed in Task 6.3)
+
+- [compose.int.yaml](compose.int.yaml) — MODIFIED: added `participant-action-daemon` service override (`LOG_LEVEL: DEBUG`, `PYTEST_RUNNING: "1"`) and added it to `system-ready` `depends_on` block so integration test environment includes the running daemon
+
+### Task 6.3: Implement daemon wrapper; enable Docker service; remove xfail
+
+**Files Changed**:
+
+- [services/scheduler/participant_action_daemon_wrapper.py](services/scheduler/participant_action_daemon_wrapper.py) — MODIFIED: replaced stub no-op with `daemon.run(lambda: shutdown_requested)`; full implementation follows identical pattern to `notification_daemon_wrapper.py`
+- [compose.yaml](compose.yaml) — MODIFIED: uncommented `participant-action-daemon` service block; service fully enabled with `DATABASE_URL`, `RABBITMQ_URL`, telemetry env vars, `depends_on: init + grafana-alloy`, healthcheck, logging, and labels
+- [tests/integration/test_participant_action_daemon.py](tests/integration/test_participant_action_daemon.py) — MODIFIED: removed both `@pytest.mark.xfail` decorators
+
+## Test Results (Phase 6)
+
+- Unit tests: 125 passed (0 failed)
+- New integration tests: 2 (`test_daemon_processes_overdue_action`, `test_daemon_waits_for_future_action`) — require Docker compose environment to run
+- Lint: all Phase 6 Python files pass `ruff check`
+
 ## Pending Phases
 
-- Phase 6: Participant action daemon
 - Phase 7: Frontend YES_WITH_DEADLINE + remove 422 guard
 
 ## Phase 5: clone_confirmation notification type wired into notification daemon (COMPLETE)

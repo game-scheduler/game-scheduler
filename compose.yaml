@@ -357,6 +357,55 @@ services:
       service: "status-transition-daemon"
       environment: "${ENVIRONMENT:-production}"
 
+  participant-action-daemon:
+    build:
+      context: .
+      dockerfile: docker/participant-action-daemon.Dockerfile
+      args:
+        CACHE_SHARING_MODE: ${CACHE_SHARING_MODE:-private}
+      tags:
+        - ${IMAGE_REGISTRY:-}game-scheduler-participant-action-daemon:${IMAGE_TAG:-latest}
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    image: ${IMAGE_REGISTRY:-}game-scheduler-participant-action-daemon:${IMAGE_TAG:-latest}
+    container_name: ${CONTAINER_PREFIX:-gamebot}-participant-action-daemon
+    restart: always
+    environment:
+      # Bot user for daemon service (system-wide queries, bypasses RLS)
+      DATABASE_URL: ${BOT_DATABASE_URL}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      LOG_LEVEL: ${PARTICIPANT_ACTION_DAEMON_LOG_LEVEL:-INFO}
+      OTEL_SERVICE_NAME: participant-action-daemon
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://grafana-alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+    depends_on:
+      init:
+        condition: service_healthy
+      grafana-alloy:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import sys; sys.exit(0)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app-network
+    logging: *logging-default
+    labels:
+      service: "participant-action-daemon"
+      environment: "${ENVIRONMENT:-production}"
+
   retry-daemon:
     build:
       context: .
