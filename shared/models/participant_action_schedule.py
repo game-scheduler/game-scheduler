@@ -1,4 +1,4 @@
-# Copyright 2025-2026 Bret McKee
+# Copyright 2026 Bret McKee
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,41 +19,45 @@
 # SOFTWARE.
 
 
-"""Game status schedule model for database-backed status transition system."""
+"""Participant action schedule model for deadline-based participant actions."""
 
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint, text
+from sqlalchemy import Boolean, ForeignKey, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, CreatedAtMixin, generate_uuid
 
 if TYPE_CHECKING:
     from .game import GameSession
+    from .participant import GameParticipant
 
 
-class GameStatusSchedule(CreatedAtMixin, Base):
+class ParticipantActionSchedule(CreatedAtMixin, Base):
     """
-    Scheduled status transitions for games.
+    Scheduled actions for individual participants.
 
-    Each record represents one status transition to be executed at a specific time.
-    The status_transition_daemon queries MIN(transition_time) to determine when
-    to wake up next.
+    Each record represents one pending action (e.g., "drop") to be executed
+    at a specific time if not cleared beforehand. The participant_action_daemon
+    queries MIN(action_time) to determine when to wake up next.
+
+    A UNIQUE constraint on participant_id ensures at most one pending action
+    per participant at a time.
     """
 
-    __tablename__ = "game_status_schedule"
+    __tablename__ = "participant_action_schedule"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     game_id: Mapped[str] = mapped_column(ForeignKey("game_sessions.id", ondelete="CASCADE"))
-    target_status: Mapped[str] = mapped_column(String(20), nullable=False)
-    transition_time: Mapped[datetime] = mapped_column(nullable=False)
-    executed: Mapped[bool] = mapped_column(
+    participant_id: Mapped[str] = mapped_column(
+        ForeignKey("game_participants.id", ondelete="CASCADE"), unique=True
+    )
+    action: Mapped[str] = mapped_column(String(50), nullable=False)
+    action_time: Mapped[datetime] = mapped_column(nullable=False, index=True)
+    processed: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, server_default=text("false")
     )
 
     game: Mapped["GameSession"] = relationship("GameSession")
-
-    __table_args__ = (
-        UniqueConstraint("game_id", "target_status", name="uq_game_status_schedule_game_target"),
-    )
+    participant: Mapped["GameParticipant"] = relationship("GameParticipant")

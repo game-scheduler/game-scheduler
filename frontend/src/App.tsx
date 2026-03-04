@@ -33,6 +33,7 @@ import { BrowseGames } from './pages/BrowseGames';
 import { GameDetails } from './pages/GameDetails';
 import { CreateGame } from './pages/CreateGame';
 import { EditGame } from './pages/EditGame';
+import { CloneGame } from './pages/CloneGame';
 import { TemplateManagement } from './pages/TemplateManagement';
 import { DownloadCalendar } from './pages/DownloadCalendar';
 import { About } from './pages/About';
@@ -64,6 +65,7 @@ function App() {
                 <Route path="/games/new" element={<CreateGame />} />
                 <Route path="/games/:gameId" element={<GameDetails />} />
                 <Route path="/games/:gameId/edit" element={<EditGame />} />
+                <Route path="/games/:gameId/clone" element={<CloneGame />} />
                 <Route path="/my-games" element={<MyGames />} />
               </Route>
               <Route path="/about" element={<About />} />

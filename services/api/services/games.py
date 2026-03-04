@@ -37,6 +37,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from services.api.auth import roles as roles_module
+from services.api.schemas.clone_game import CarryoverOption, CloneGameRequest
 from services.api.services import channel_resolver as channel_resolver_module
 from services.api.services import notification_schedule as notification_schedule_service
 from services.api.services import participant_resolver as resolver_module
@@ -650,15 +651,38 @@ class GameService:
             game_data, template, guild_config, host_user, resolved_fields, media
         )
 
+        return await self._persist_and_publish(
+            game, valid_participants, resolved_fields, channel_config
+        )
+
+    async def _persist_and_publish(
+        self,
+        game: game_model.GameSession,
+        participants: list[dict[str, Any]],
+        resolved_fields: dict[str, Any],
+        channel_config: channel_model.ChannelConfiguration,
+    ) -> game_model.GameSession:
+        """
+        Persist a new game session with participants and fire the GAME_CREATED event.
+
+        Extracted from create_game steps 5-8 so clone_game can reuse the same
+        persistence and publishing logic.
+
+        Args:
+            game: Constructed but not yet added GameSession instance
+            participants: Validated participant data dicts (same format as create_game uses)
+            resolved_fields: Dict containing reminder_minutes and expected_duration_minutes
+            channel_config: Channel configuration for the event payload
+
+        Returns:
+            Reloaded game session with all relationships loaded
+        """
         self.db.add(game)
         await self.db.flush()
 
-        # Create participant records for pre-filled participants
-        await self._create_participant_records(game.id, valid_participants)
+        await self._create_participant_records(game.id, participants)
 
-        # Reload game with participants to check confirmed vs waitlisted
-        # Use selectinload to eager load participants AND their nested user relationships
-        # to prevent lazy loading errors in partition_participants()
+        # Reload with participants before schedule setup to avoid lazy-load errors
         result = await self.db.execute(
             select(game_model.GameSession)
             .where(game_model.GameSession.id == game.id)
@@ -670,20 +694,17 @@ class GameService:
         )
         game = result.scalar_one()
 
-        # Set up all game schedules (join notifications, reminders, status transitions)
         await self._setup_game_schedules(
             game,
             resolved_fields["reminder_minutes"],
             resolved_fields["expected_duration_minutes"],
         )
 
-        # Reload game with relationships
         game = await self.get_game(game.id)
         if game is None:
             msg = "Failed to reload created game"
             raise ValueError(msg)
 
-        # Publish game.created event
         await self._publish_game_created(game, channel_config)
 
         return game
@@ -711,6 +732,135 @@ class GameService:
             .where(game_model.GameSession.id == game_id)
         )
         return result.scalar_one_or_none()
+
+    async def clone_game(
+        self,
+        source_game_id: str,
+        clone_data: CloneGameRequest,
+        current_user: auth_schemas.CurrentUser,
+        role_service: roles_module.RoleVerificationService,
+    ) -> game_model.GameSession:
+        """
+        Clone an existing game session with optional participant carry-over.
+
+        Args:
+            source_game_id: ID of the game to clone
+            clone_data: Clone request with scheduled_at and carryover options
+            current_user: Authenticated user making the request
+            role_service: Role verification service for permission check
+
+        Returns:
+            New game session
+
+        Raises:
+            ValueError: If source game not found, user lacks permission, or
+                YES_WITH_DEADLINE carryover is requested (not yet supported)
+        """
+        source_game = await self.get_game(source_game_id)
+        if source_game is None:
+            msg = f"Game {source_game_id!r} not found"
+            raise ValueError(msg)
+
+        from services.api.dependencies import (  # noqa: PLC0415
+            permissions as permissions_deps,
+        )
+
+        can_manage = await permissions_deps.can_manage_game(
+            game_host_id=source_game.host.discord_id,
+            guild_id=source_game.guild.guild_id,
+            current_user=current_user,
+            role_service=role_service,
+            db=self.db,
+        )
+        if not can_manage:
+            msg = (
+                "You don't have permission to clone this game. "
+                "Only the host, Bot Managers, or guild admins can clone games."
+            )
+            raise ValueError(msg)
+
+        if (
+            clone_data.player_carryover == CarryoverOption.YES_WITH_DEADLINE
+            or clone_data.waitlist_carryover == CarryoverOption.YES_WITH_DEADLINE
+        ):
+            msg = "YES_WITH_DEADLINE carryover is not yet supported"
+            raise ValueError(msg)
+
+        scheduled_at_naive = clone_data.scheduled_at.replace(tzinfo=None)
+
+        new_game = game_model.GameSession(
+            id=game_model.generate_uuid(),
+            title=source_game.title,
+            description=source_game.description,
+            signup_instructions=source_game.signup_instructions,
+            scheduled_at=scheduled_at_naive,
+            where=source_game.where,
+            template_id=source_game.template_id,
+            guild_id=source_game.guild_id,
+            channel_id=source_game.channel_id,
+            host_id=source_game.host_id,
+            max_players=source_game.max_players,
+            reminder_minutes=source_game.reminder_minutes,
+            expected_duration_minutes=source_game.expected_duration_minutes,
+            notify_role_ids=source_game.notify_role_ids,
+            allowed_player_role_ids=source_game.allowed_player_role_ids,
+            signup_method=source_game.signup_method,
+            status=game_model.GameStatus.SCHEDULED.value,
+            message_id=None,
+            thumbnail_id=source_game.thumbnail_id,
+            banner_image_id=source_game.banner_image_id,
+        )
+        self.db.add(new_game)
+        await self.db.flush()
+
+        partitioned = partition_participants(source_game.participants, source_game.max_players)
+
+        players_to_carry = (
+            partitioned.confirmed if clone_data.player_carryover == CarryoverOption.YES else []
+        )
+        waitlist_to_carry = (
+            partitioned.overflow if clone_data.waitlist_carryover == CarryoverOption.YES else []
+        )
+
+        for position, source_participant in enumerate(
+            players_to_carry + waitlist_to_carry, start=1
+        ):
+            new_participant = participant_model.GameParticipant(
+                game_session_id=new_game.id,
+                user_id=source_participant.user_id,
+                display_name=source_participant.display_name,
+                position_type=source_participant.position_type,
+                position=position,
+            )
+            self.db.add(new_participant)
+
+        await self.db.flush()
+
+        result = await self.db.execute(
+            select(game_model.GameSession)
+            .where(game_model.GameSession.id == new_game.id)
+            .options(
+                selectinload(game_model.GameSession.participants).selectinload(
+                    participant_model.GameParticipant.user
+                )
+            )
+        )
+        new_game = result.scalar_one()
+
+        await self._setup_game_schedules(
+            new_game,
+            source_game.reminder_minutes,
+            source_game.expected_duration_minutes,
+        )
+
+        new_game = await self.get_game(new_game.id)
+        if new_game is None:
+            msg = "Failed to reload cloned game"
+            raise ValueError(msg)
+
+        await self._publish_game_created(new_game, source_game.channel)
+
+        return new_game
 
     async def list_games(
         self,

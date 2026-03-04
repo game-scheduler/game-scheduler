@@ -421,6 +421,13 @@ export const GameDetails: FC = () => {
               >
                 Edit Game
               </Button>
+              <Button
+                variant="outlined"
+                onClick={() => navigate(`/games/${gameId}/clone`)}
+                disabled={actionLoading}
+              >
+                Clone Game
+              </Button>
               {(game.status === 'SCHEDULED' || game.status === 'IN_PROGRESS') && (
                 <Button
                   variant="outlined"

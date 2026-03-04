@@ -38,6 +38,7 @@ from services.api.auth import roles as roles_module
 from services.api.dependencies import auth as auth_deps
 from services.api.dependencies import permissions as permissions_deps
 from services.api.dependencies.discord import get_discord_client
+from services.api.schemas.clone_game import CloneGameRequest
 from services.api.services import channel_resolver as channel_resolver_module
 from services.api.services import display_names as display_names_module
 from services.api.services import games as games_service
@@ -111,6 +112,13 @@ async def _get_game_service(
         participant_resolver=participant_resolver,
         channel_resolver=channel_resolver,
     )
+
+
+_CurrentUserDep = Annotated[auth_schemas.CurrentUser, Depends(auth_deps.get_current_user)]
+_GameServiceDep = Annotated[games_service.GameService, Depends(_get_game_service)]
+_RoleServiceDep = Annotated[
+    roles_module.RoleVerificationService, Depends(permissions_deps.get_role_service)
+]
 
 
 def _parse_update_form_data(
@@ -565,6 +573,36 @@ async def delete_game(
         if "not found" in str(e).lower():
             raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e)) from None
         raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail=str(e)) from None
+
+
+@router.post(
+    "/{game_id}/clone",
+    response_model=game_schemas.GameResponse,
+    status_code=http_status.HTTP_201_CREATED,
+)
+async def clone_game(
+    game_id: str,
+    clone_data: CloneGameRequest,
+    *,
+    current_user: _CurrentUserDep,
+    game_service: _GameServiceDep,
+    role_service: _RoleServiceDep,
+) -> game_schemas.GameResponse:
+    """
+    Clone an existing game session.
+
+    Authorization:
+    - Game host can clone their own game
+    - Bot Managers can clone any game in the guild
+    - Maintainers can clone any game
+    """
+    try:
+        game = await game_service.clone_game(game_id, clone_data, current_user, role_service)
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail=str(e)) from None
+    return await _build_game_response(game)
 
 
 @router.post("/{game_id}/join", response_model=participant_schemas.ParticipantResponse)

@@ -29,6 +29,7 @@ from .game_status_schedule import GameStatusSchedule
 from .guild import GuildConfiguration
 from .notification_schedule import NotificationSchedule
 from .participant import GameParticipant
+from .participant_action_schedule import ParticipantActionSchedule
 from .signup_method import SignupMethod
 from .template import GameTemplate
 from .user import User
@@ -44,6 +45,7 @@ __all__ = [
     "GameTemplate",
     "GuildConfiguration",
     "NotificationSchedule",
+    "ParticipantActionSchedule",
     "SignupMethod",
     "User",
 ]

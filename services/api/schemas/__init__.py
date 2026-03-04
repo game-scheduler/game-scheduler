@@ -1,4 +1,4 @@
-# Copyright 2025-2026 Bret McKee
+# Copyright 2026 Bret McKee
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,33 +19,4 @@
 # SOFTWARE.
 
 
-"""Base SQLAlchemy model configuration."""
-
-from datetime import UTC, datetime
-from uuid import uuid4
-
-from sqlalchemy import func
-from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
-
-class Base(AsyncAttrs, DeclarativeBase):
-    """Base class for all database models with common fields."""
-
-    pass
-
-
-def utc_now() -> datetime:
-    """Return current UTC datetime (timezone-naive)."""
-    return datetime.now(UTC).replace(tzinfo=None)
-
-
-def generate_uuid() -> str:
-    """Generate UUID string for primary keys."""
-    return str(uuid4())
-
-
-class CreatedAtMixin:
-    """Mixin providing a created_at timestamp column."""
-
-    created_at: Mapped[datetime] = mapped_column(default=utc_now, server_default=func.now())
+"""API-specific schemas for the services/api layer."""
