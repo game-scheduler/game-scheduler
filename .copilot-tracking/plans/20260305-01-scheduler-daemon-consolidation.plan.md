@@ -91,8 +91,14 @@ Consolidate three separate scheduler daemon containers (`notification-daemon`, `
 
 ### [ ] Phase 6: Update Documentation
 
-- [ ] Task 6.1: Update docs and config templates to remove old service names and env vars
-  - Details: .copilot-tracking/details/20260305-01-scheduler-daemon-consolidation-details.md (Lines 218-235)
+- [ ] Task 6.1: Update CI/CD workflow — replace `notification-daemon` with `scheduler` in the service build matrix
+  - Details: .copilot-tracking/details/20260305-01-scheduler-daemon-consolidation-details.md (Lines 216-228)
+
+- [ ] Task 6.2: Update `docs/` and `config/` env var references — replace per-daemon log level vars with `SCHEDULER_LOG_LEVEL`
+  - Details: .copilot-tracking/details/20260305-01-scheduler-daemon-consolidation-details.md (Lines 229-243)
+
+- [ ] Task 6.3: Update in-code comments and docstrings across `services/`, `shared/`, and `tests/`
+  - Details: .copilot-tracking/details/20260305-01-scheduler-daemon-consolidation-details.md (Lines 244-277)
 
 ## Dependencies
 
@@ -105,4 +111,7 @@ Consolidate three separate scheduler daemon containers (`notification-daemon`, `
 - All three scheduling behaviours pass integration tests against a single `scheduler` container
 - Old service names (`notification-daemon`, `status-transition-daemon`, `participant-action-daemon`) absent from all compose files and Dockerfiles
 - `docker compose up` starts one `scheduler` container, not three
+- CI/CD workflow references `scheduler` service, not `notification-daemon`
+- Per-daemon log level env vars replaced by `SCHEDULER_LOG_LEVEL` in all config files
+- In-code comments and docstrings updated across `services/`, `shared/`, and `tests/`
 - Full `pytest` suite passes with no regressions

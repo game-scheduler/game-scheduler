@@ -194,3 +194,40 @@ Single `scheduler` container running three `SchedulerDaemon` instances in thread
   - All three scheduling behaviors work end-to-end in integration tests against a single `scheduler` container
   - Old service names (`notification-daemon`, `status-transition-daemon`, `participant-action-daemon`) no longer appear in compose files or Dockerfiles
   - `docker compose up` starts one scheduler container, not three
+
+---
+
+## Update: Full Old-Name Surface Audit (2026-03-05)
+
+A follow-up grep audit across all source files revealed the complete set of locations where old daemon names surface. The original Implementation Guidance item 7 ("Update any CI scripts or documentation") was underspecified. The full scope is:
+
+### CI/CD Workflow (functional — breaks CI if missed)
+
+- `.github/workflows/ci-cd.yml` line 201 — `notification-daemon` appears in the service build matrix; must be replaced with `scheduler`
+
+### Compose Files (covered by Phase 4)
+
+All six compose files (`compose.yaml`, `compose.prod.yaml`, `compose.int.yaml`, `compose.e2e.yaml`, `compose.staging.yaml`, `compose.override.yaml`) — covered by Phase 4 tasks.
+
+### Python `init_telemetry()` calls (covered by Phase 5 deletions)
+
+- `services/scheduler/notification_daemon_wrapper.py` — `init_telemetry("notification-daemon")`
+- `services/scheduler/status_transition_daemon_wrapper.py` — `init_telemetry("status-transition-daemon")`
+- `services/scheduler/participant_action_daemon_wrapper.py` — `init_telemetry("participant-action-daemon")`
+
+These are eliminated when the wrapper files are deleted in Phase 5. The new `scheduler_daemon_wrapper.py` calls `init_telemetry("scheduler-daemon")`.
+
+### Config and Docs (accuracy — no test failures)
+
+- `config/` and `config.template/` env files — `NOTIFICATION_DAEMON_LOG_LEVEL`, `STATUS_TRANSITION_DAEMON_LOG_LEVEL`, `PARTICIPANT_ACTION_DAEMON_LOG_LEVEL`; replace with `SCHEDULER_LOG_LEVEL`
+- `docs/` — any service name references
+
+### In-Code Comments and Docstrings (accuracy — no test failures)
+
+- `shared/schemas/events.py` — docstrings on `GameStatusChangedEvent` and `ParticipantDroppedEvent`
+- `shared/models/participant_action_schedule.py` — model docstring references `participant_action_daemon`
+- `shared/models/game_status_schedule.py` — model docstring references `status_transition_daemon`
+- `services/api/services/games.py` — comment about `participant_action_daemon` pg_notify wake-up
+- `services/retry/__init__.py` — module comment referencing "notification and status transition daemons"
+- `services/scheduler/generic_scheduler_daemon.py` — module docstring references "notification and status transition daemon implementations"
+- `tests/integration/test_notification_daemon.py`, `tests/integration/test_status_transitions.py`, `tests/integration/test_participant_action_daemon.py`, `tests/integration/test_clone_confirmation_notification.py`, `tests/conftest.py` — class/method docstrings referencing old container names

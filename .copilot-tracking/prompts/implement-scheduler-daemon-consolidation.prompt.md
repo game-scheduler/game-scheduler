@@ -50,6 +50,9 @@ When ALL Phases are checked off (`[x]`) and completed you WILL do the following:
 - [ ] `docker/scheduler.Dockerfile` builds successfully
 - [ ] All compose files updated; old three service names absent
 - [ ] Old wrapper files and Dockerfiles deleted
+- [ ] CI/CD workflow references `scheduler`, not `notification-daemon`
+- [ ] Per-daemon log level env vars replaced by `SCHEDULER_LOG_LEVEL`
+- [ ] In-code comments and docstrings updated (`services/`, `shared/`, `tests/`)
 - [ ] All tests pass with no regressions
 - [ ] Changes file updated continuously
 - [ ] Line numbers updated if any referenced files changed
