@@ -33,6 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.bot.dependencies.discord_client import get_discord_client
 from services.bot.events.publisher import get_bot_publisher
 from services.bot.formatters.game_message import format_game_announcement
+from services.bot.handlers.participant_drop import handle_participant_drop_due
 from services.bot.utils.discord_format import get_member_display_info
 from services.bot.views.clone_confirmation_view import CloneConfirmationView
 from shared.cache.client import get_redis_client
@@ -88,6 +89,7 @@ class EventHandlers:
             EventType.GAME_STATUS_TRANSITION_DUE: self._handle_status_transition_due,
             EventType.NOTIFICATION_SEND_DM: self._handle_send_notification,
             EventType.GAME_CREATED: self._handle_game_created,
+            EventType.PARTICIPANT_DROP_DUE: self._handle_participant_drop_due,
             EventType.PLAYER_REMOVED: self._handle_player_removed,
             EventType.GAME_CANCELLED: self._handle_game_cancelled,
         }
@@ -128,6 +130,10 @@ class EventHandlers:
         )
         self.consumer.register_handler(
             EventType.PLAYER_REMOVED, lambda e: self._handle_player_removed(e.data)
+        )
+        self.consumer.register_handler(
+            EventType.PARTICIPANT_DROP_DUE,
+            lambda e: self._handle_participant_drop_due(e.data),
         )
         self.consumer.register_handler(
             EventType.GAME_STATUS_TRANSITION_DUE,
@@ -1081,6 +1087,11 @@ class EventHandlers:
 
         except Exception as e:
             logger.exception("Failed to handle participant removal: %s", e)
+
+    async def _handle_participant_drop_due(self, data: dict[str, Any]) -> None:
+        """Handle game.participant_drop_due by dropping participant and sending removal DM."""
+        publisher = get_bot_publisher()
+        await handle_participant_drop_due(data, self.bot, publisher)
 
     def _validate_cancellation_event_data(
         self, data: dict[str, Any]

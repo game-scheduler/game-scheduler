@@ -197,7 +197,7 @@ async def test_decline_path_removes_participant_and_publishes_game_updated(
     mock_interaction.client.fetch_user = AsyncMock(return_value=discord_user)
 
     with patch(
-        "services.bot.handlers.participant_drop.get_db_session",
+        "services.bot.handlers.participant_drop.get_bypass_db_session",
         return_value=drop_db_ctx,
     ):
         await view._decline_callback(mock_interaction)

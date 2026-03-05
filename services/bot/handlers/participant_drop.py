@@ -29,7 +29,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from services.bot.events.publisher import BotEventPublisher
-from shared.database import get_db_session
+from shared.database import get_bypass_db_session
 from shared.message_formats import DMFormats
 from shared.models.participant import GameParticipant
 
@@ -57,7 +57,7 @@ async def handle_participant_drop_due(
         logger.error("Missing game_id or participant_id in PARTICIPANT_DROP_DUE event")
         return
 
-    async with get_db_session() as db:
+    async with get_bypass_db_session() as db:
         result = await db.execute(
             select(GameParticipant)
             .options(

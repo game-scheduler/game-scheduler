@@ -31,9 +31,11 @@ from uuid import uuid4
 import discord
 import pytest
 
+from services.bot.events.handlers import EventHandlers
 from services.bot.events.publisher import BotEventPublisher
 from services.bot.handlers.participant_drop import handle_participant_drop_due
 from shared.message_formats import DMFormats
+from shared.messaging.events import EventType
 from shared.models.game import GameSession, GameStatus
 from shared.models.participant import GameParticipant
 from shared.models.user import User
@@ -111,7 +113,7 @@ def _patch_db(mock_db):
     ctx = MagicMock()
     ctx.__aenter__ = AsyncMock(return_value=mock_db)
     ctx.__aexit__ = AsyncMock(return_value=False)
-    return patch("services.bot.handlers.participant_drop.get_db_session", return_value=ctx)
+    return patch("services.bot.handlers.participant_drop.get_bypass_db_session", return_value=ctx)
 
 
 @pytest.mark.asyncio
@@ -205,3 +207,18 @@ async def test_handler_drops_participant_from_cancelled_game(
     mock_db.delete.assert_called_once_with(participant)
     mock_db.commit.assert_called_once()
     mock_publisher.publish_game_updated.assert_called_once()
+
+
+def test_participant_drop_due_is_registered_in_event_handlers():
+    """EventHandlers must register PARTICIPANT_DROP_DUE or events are silently dropped.
+
+    This test guards against the class of bug where a handler function exists but is
+    never wired into start_consuming, which cannot be caught by direct-call handler tests.
+    """
+    bot = MagicMock(spec=discord.Client)
+    handlers = EventHandlers(bot)
+
+    assert EventType.PARTICIPANT_DROP_DUE in handlers._handlers, (
+        "PARTICIPANT_DROP_DUE must be in EventHandlers._handlers — "
+        "also verify it is passed to consumer.register_handler in start_consuming"
+    )

@@ -37,6 +37,7 @@ class DMType(StrEnum):
     JOIN = "join"
     REMOVAL = "removal"
     PROMOTION = "promotion"
+    CLONE_CONFIRMATION = "clone_confirmation"
 
 
 async def wait_for_condition[T](
@@ -612,6 +613,7 @@ class DiscordTestHelper:
             DMType.JOIN: DMPredicates.join(game_title),
             DMType.REMOVAL: DMPredicates.removal(game_title),
             DMType.PROMOTION: DMPredicates.promotion(game_title),
+            DMType.CLONE_CONFIRMATION: DMPredicates.clone_confirmation(game_title),
         }
 
         return await self.wait_for_dm_matching(

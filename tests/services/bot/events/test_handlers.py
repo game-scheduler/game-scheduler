@@ -109,8 +109,9 @@ async def test_start_consuming(event_handlers):
         mock_consumer.bind.assert_any_await("notification.*")
         mock_consumer.bind.assert_any_await("guild.#")
         # GAME_CREATED, GAME_UPDATED, GAME_CANCELLED, GAME_STATUS_CHANGED,
-        # GAME_PARTICIPANT_JOINED, GAME_PARTICIPANT_LEFT, GAME_PARTICIPANT_PROMOTED
-        assert mock_consumer.register_handler.call_count == 7
+        # GAME_PARTICIPANT_JOINED, GAME_PARTICIPANT_LEFT, GAME_PARTICIPANT_PROMOTED,
+        # PARTICIPANT_DROP_DUE
+        assert mock_consumer.register_handler.call_count == 8
         mock_consumer.start_consuming.assert_awaited_once()
 
 

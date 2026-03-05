@@ -4,494 +4,529 @@ Cleaning up old coverage data...
 Running unit tests with coverage...
 ====================================
 ........................................................................ [  4%]
-........................................................................ [  9%]
+........................................................................ [  8%]
 ........................................................................ [ 13%]
-........................................................................ [ 18%]
-........................................................................ [ 23%]
-.................x...................................................... [ 27%]
-.....................................................xxx................ [ 32%]
-........................................................................ [ 36%]
-........................................................................ [ 41%]
-........................................................................ [ 46%]
-........................................................................ [ 50%]
-........................................................................ [ 55%]
-........................................................................ [ 59%]
-........................................................................ [ 64%]
-........................................................................ [ 69%]
-........................................................................ [ 73%]
-........................................................................ [ 78%]
-........................................................................ [ 82%]
-........................................................................ [ 87%]
-........................................................................ [ 92%]
-........................................................................ [ 96%]
-.....................................................                    [100%]
-1561 passed, 261 deselected, 4 xfailed in 49.59s
-Unit tests completed with 83.90% coverage
+........................................................................ [ 17%]
+........................................................................ [ 22%]
+........................................................................ [ 26%]
+........................................................................ [ 31%]
+........................................................................ [ 35%]
+........................................................................ [ 40%]
+........................................................................ [ 44%]
+........................................................................ [ 48%]
+........................................................................ [ 53%]
+........................................................................ [ 57%]
+.........................................................x.............. [ 62%]
+........................................................................ [ 66%]
+........................................................................ [ 71%]
+........................................................................ [ 75%]
+........................................................................ [ 80%]
+........................................................................ [ 84%]
+........................................................................ [ 89%]
+......................................................xxx............... [ 93%]
+........................................................................ [ 97%]
+.................................                                        [100%]
+1613 passed, 277 deselected, 4 xfailed in 51.49s
+Unit tests completed with 84.49% coverage
 
 Running integration tests with coverage...
 ==========================================
 Running integration tests...
-time="2026-03-01T11:13:37-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_ID\" variable is not set. Defaulting to a blank string."
-time="2026-03-01T11:13:37-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_SECRET\" variable is not set. Defaulting to a blank string."
-time="2026-03-01T11:13:37-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" variable is not set. Defaulting to a blank string."
+time="2026-03-04T20:40:34-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" variable is not set. Defaulting to a blank string."
+time="2026-03-04T20:40:34-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_ID\" variable is not set. Defaulting to a blank string."
+time="2026-03-04T20:40:34-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_SECRET\" variable is not set. Defaulting to a blank string."
 #1 [internal] load local bake definitions
-#1 reading from stdin 3.34kB done
+#1 reading from stdin 4.06kB done
 #1 DONE 0.0s
 
-#2 [notification-daemon internal] load build definition from notification-daemon.Dockerfile
-#2 transferring dockerfile: 3.03kB done
+#2 [init internal] load build definition from init.Dockerfile
+#2 transferring dockerfile: 1.24kB done
 #2 DONE 0.0s
 
-#3 [retry-daemon internal] load build definition from retry.Dockerfile
-#3 transferring dockerfile: 2.55kB done
+#3 [notification-daemon internal] load build definition from notification-daemon.Dockerfile
+#3 transferring dockerfile: 3.11kB done
 #3 DONE 0.0s
 
-#4 [init internal] load build definition from init.Dockerfile
-#4 transferring dockerfile: 1.24kB done
+#4 [status-transition-daemon internal] load build definition from status-transition-daemon.Dockerfile
+#4 transferring dockerfile: 3.14kB done
 #4 DONE 0.0s
 
 #5 [api internal] load build definition from api.Dockerfile
 #5 transferring dockerfile: 3.89kB done
 #5 DONE 0.0s
 
-#6 [status-transition-daemon internal] load build definition from status-transition-daemon.Dockerfile
-#6 transferring dockerfile: 3.06kB done
+#6 [retry-daemon internal] load build definition from retry.Dockerfile
+#6 transferring dockerfile: 2.55kB done
 #6 DONE 0.0s
 
-#7 [api] resolve image config for docker-image://docker.io/docker/dockerfile:1
-#7 ...
+#7 [participant-action-daemon internal] load build definition from participant-action-daemon.Dockerfile
+#7 transferring dockerfile: 3.27kB done
+#7 DONE 0.0s
 
-#8 [auth] docker/dockerfile:pull token for registry-1.docker.io
-#8 DONE 0.0s
+#8 [participant-action-daemon] resolve image config for docker-image://docker.io/docker/dockerfile:1
+#8 ...
 
-#7 [api] resolve image config for docker-image://docker.io/docker/dockerfile:1
-#7 DONE 2.4s
+#9 [auth] docker/dockerfile:pull token for registry-1.docker.io
+#9 DONE 0.0s
 
-#9 [init] docker-image://docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6
-#9 resolve docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6 0.0s done
-#9 CACHED
+#8 [participant-action-daemon] resolve image config for docker-image://docker.io/docker/dockerfile:1
+#8 DONE 0.9s
 
-#10 [init internal] load metadata for docker.io/library/python:3.13-slim
-#10 ...
+#10 [init] docker-image://docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6
+#10 resolve docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6 0.0s done
+#10 CACHED
 
-#11 [auth] library/python:pull token for registry-1.docker.io
-#11 DONE 0.0s
+#11 [status-transition-daemon internal] load metadata for docker.io/library/python:3.13-slim
+#11 ...
 
-#10 [api internal] load metadata for docker.io/library/python:3.13-slim
-#10 DONE 0.6s
-
-#12 [notification-daemon internal] load .dockerignore
-#12 transferring context: 943B done
+#12 [auth] library/python:pull token for registry-1.docker.io
 #12 DONE 0.0s
 
-#13 [retry-daemon base 1/7] FROM docker.io/library/python:3.13-slim@sha256:8bc60ca09afaa8ea0d6d1220bde073bacfedd66a4bf8129cbdc8ef0e16c8a952
-#13 resolve docker.io/library/python:3.13-slim@sha256:8bc60ca09afaa8ea0d6d1220bde073bacfedd66a4bf8129cbdc8ef0e16c8a952 0.0s done
+#11 [init internal] load metadata for docker.io/library/python:3.13-slim
+#11 DONE 0.8s
+
+#13 [participant-action-daemon internal] load .dockerignore
+#13 transferring context: 943B done
 #13 DONE 0.0s
 
-#14 [init internal] load build context
-#14 transferring context: 78.44kB 0.1s done
-#14 DONE 0.1s
+#14 [participant-action-daemon stage-0  1/11] FROM docker.io/library/python:3.13-slim@sha256:8bc60ca09afaa8ea0d6d1220bde073bacfedd66a4bf8129cbdc8ef0e16c8a952
+#14 resolve docker.io/library/python:3.13-slim@sha256:8bc60ca09afaa8ea0d6d1220bde073bacfedd66a4bf8129cbdc8ef0e16c8a952 0.0s done
+#14 DONE 0.0s
 
-#15 [retry-daemon internal] load build context
-#15 transferring context: 20.62kB 0.0s done
-#15 DONE 0.0s
+#15 [api internal] load build context
+#15 ...
 
-#16 [init stage-0  5/11] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
-#16 CACHED
+#16 [retry-daemon internal] load build context
+#16 transferring context: 8.33kB 0.1s done
+#16 DONE 0.1s
 
-#17 [init stage-0  8/11] COPY shared/ ./shared/
-#17 CACHED
+#17 [participant-action-daemon internal] load build context
+#17 transferring context: 11.64kB 0.1s done
+#17 DONE 0.1s
 
-#18 [init stage-0  4/11] WORKDIR /app
-#18 CACHED
+#18 [init internal] load build context
+#18 transferring context: 12.15kB 0.1s done
+#18 DONE 0.1s
 
-#19 [init stage-0  7/11] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system -e .
-#19 CACHED
+#19 [notification-daemon internal] load build context
+#19 transferring context: 11.56kB 0.1s done
+#19 DONE 0.1s
 
-#20 [init stage-0  3/11] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     libpq-dev     && rm -rf /var/lib/apt/lists/*
-#20 CACHED
+#20 [status-transition-daemon internal] load build context
+#20 transferring context: 140.46kB 0.1s done
+#20 DONE 0.1s
 
-#21 [init base 2/7] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+#15 [api internal] load build context
+#15 ...
+
+#21 [retry-daemon production 3/9] WORKDIR /app
 #21 CACHED
 
-#22 [init stage-0  6/11] COPY pyproject.toml ./
+#22 [retry-daemon base 6/7] COPY pyproject.toml ./
 #22 CACHED
 
-#23 [init stage-0  9/11] COPY alembic/ ./alembic/
+#23 [retry-daemon production 7/9] COPY services/retry/ ./services/retry/
 #23 CACHED
 
-#24 [init stage-0 10/11] COPY alembic.ini ./
+#24 [retry-daemon base 5/7] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
 #24 CACHED
 
-#25 [init stage-0 11/11] COPY services/init/ ./services/init/
+#25 [retry-daemon production 5/9] COPY --from=base /usr/local/bin /usr/local/bin
 #25 CACHED
 
-#26 [notification-daemon internal] load build context
-#26 transferring context: 170.35kB 0.0s done
-#26 DONE 0.1s
+#26 [retry-daemon production 2/9] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     procps     && rm -rf /var/lib/apt/lists/*
+#26 CACHED
 
-#27 [init] exporting to image
-#27 exporting layers 0.0s done
-#27 ...
+#27 [retry-daemon production 6/9] COPY shared/ ./shared/
+#27 CACHED
 
-#28 [retry-daemon production 2/9] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     procps     && rm -rf /var/lib/apt/lists/*
+#28 [retry-daemon production 4/9] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 #28 CACHED
 
-#29 [retry-daemon production 7/9] COPY services/retry/ ./services/retry/
+#29 [retry-daemon base 4/7] WORKDIR /app
 #29 CACHED
 
-#30 [retry-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
+#30 [retry-daemon production 8/9] RUN addgroup --system appgroup && adduser --system --group appuser
 #30 CACHED
 
-#31 [retry-daemon production 6/9] COPY shared/ ./shared/
+#31 [retry-daemon stage-0  2/11] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 #31 CACHED
 
-#32 [retry-daemon production 8/9] RUN addgroup --system appgroup && adduser --system --group appuser
+#32 [retry-daemon base 3/7] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     && rm -rf /var/lib/apt/lists/*
 #32 CACHED
 
-#33 [retry-daemon base 3/7] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     && rm -rf /var/lib/apt/lists/*
+#33 [retry-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
 #33 CACHED
 
-#34 [retry-daemon base 5/7] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
+#34 [retry-daemon production 9/9] RUN chown -R appuser:appgroup /app
 #34 CACHED
 
-#35 [retry-daemon base 4/7] WORKDIR /app
+#15 [api internal] load build context
+#15 ...
+
+#35 [init stage-0  9/11] COPY alembic/ ./alembic/
 #35 CACHED
 
-#36 [retry-daemon production 3/9] WORKDIR /app
+#36 [init stage-0  3/11] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     libpq-dev     && rm -rf /var/lib/apt/lists/*
 #36 CACHED
 
-#37 [retry-daemon base 6/7] COPY pyproject.toml ./
+#37 [init stage-0  5/11] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
 #37 CACHED
 
-#38 [retry-daemon production 4/9] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#38 [init stage-0  6/11] COPY pyproject.toml ./
 #38 CACHED
 
-#39 [retry-daemon production 5/9] COPY --from=base /usr/local/bin /usr/local/bin
+#39 [init stage-0 10/11] COPY alembic.ini ./
 #39 CACHED
 
-#40 [retry-daemon production 9/9] RUN chown -R appuser:appgroup /app
+#31 [init stage-0  2/11] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+#31 CACHED
+
+#40 [init stage-0  8/11] COPY shared/ ./shared/
 #40 CACHED
 
-#41 [notification-daemon production  4/16] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#41 [init stage-0  4/11] WORKDIR /app
 #41 CACHED
 
-#42 [notification-daemon base 3/7] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     && rm -rf /var/lib/apt/lists/*
+#42 [init stage-0  7/11] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system -e .
 #42 CACHED
 
-#43 [notification-daemon base 4/7] WORKDIR /app
+#43 [init stage-0 11/11] COPY services/init/ ./services/init/
 #43 CACHED
 
-#21 [notification-daemon base 2/7] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
-#21 CACHED
+#15 [api internal] load build context
+#15 transferring context: 12.02MB 0.5s done
+#15 DONE 0.5s
 
-#44 [notification-daemon production  2/16] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     postgresql-client     procps     && rm -rf /var/lib/apt/lists/*
+#44 [notification-daemon production  8/17] COPY services/scheduler/generic_scheduler_daemon.py ./services/scheduler/generic_scheduler_daemon.py
 #44 CACHED
 
-#45 [notification-daemon base 5/7] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
+#45 [notification-daemon production 10/17] COPY services/scheduler/event_builders.py ./services/scheduler/event_builders.py
 #45 CACHED
 
-#46 [notification-daemon base 6/7] COPY pyproject.toml ./
+#46 [notification-daemon production 15/17] COPY alembic.ini ./
 #46 CACHED
 
 #47 [notification-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
 #47 CACHED
 
-#48 [notification-daemon production  3/16] WORKDIR /app
+#48 [notification-daemon production  4/17] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 #48 CACHED
 
-#49 [notification-daemon production  5/16] COPY --from=base /usr/local/bin /usr/local/bin
+#49 [notification-daemon production  9/17] COPY services/scheduler/daemon_runner.py ./services/scheduler/daemon_runner.py
 #49 CACHED
 
-#27 [init] exporting to image
-#27 exporting manifest sha256:9822b7e0f4305b8352ffa9052d7cb827ac31447837b6edc6dbb547399c2596d9 done
-#27 exporting config sha256:ea508f40c172b33c805e8914c1aa6ffae55e9fc6e161d89f58c74392e5f75709 0.0s done
-#27 exporting attestation manifest sha256:654caec8cbbeae8f8911c7737f00e738c16fc65c30a447d44e9cf09a32ece2c8 0.0s done
-#27 exporting manifest list sha256:3109d6f4daa36a3e75bc9483ca2a68623de4c4c8a35e5b6c986bc01753d94a53 done
-#27 naming to docker.io/library/game-scheduler-init:latest done
-#27 unpacking to docker.io/library/game-scheduler-init:latest 0.0s done
-#27 DONE 0.1s
+#50 [notification-daemon production  5/17] COPY --from=base /usr/local/bin /usr/local/bin
+#50 CACHED
 
-#50 [notification-daemon production  6/16] COPY shared/ ./shared/
-#50 DONE 0.1s
+#51 [notification-daemon production 13/17] COPY services/scheduler/__init__.py ./services/scheduler/__init__.py
+#51 CACHED
 
-#51 [notification-daemon production  7/16] COPY services/__init__.py ./services/__init__.py
-#51 DONE 0.1s
+#52 [notification-daemon production  6/17] COPY shared/ ./shared/
+#52 CACHED
 
-#52 [retry-daemon] exporting to image
-#52 exporting layers done
-#52 exporting manifest sha256:b0f0ff577f107237c51a088756ba41f38213419c90a1d05bd60554d3fab4367a done
-#52 exporting config sha256:860580ceefa28f0b4e3f1b260c9134d4639641f937fe5684f326c068689de0a9 0.0s done
-#52 exporting attestation manifest sha256:96136ef3a59b8c93d896bd3668e577c4100e82610294b4a4103c45ddf3da7f25 0.0s done
-#52 exporting manifest list sha256:643648632f8450c8a818fdff153eeefc51d8939e97574e5ecd3f6108ac9f21a0 0.0s done
-#52 naming to docker.io/library/game-scheduler-retry-daemon:latest done
-#52 unpacking to docker.io/library/game-scheduler-retry-daemon:latest 0.0s done
-#52 DONE 0.2s
+#53 [notification-daemon production 12/17] COPY services/scheduler/postgres_listener.py ./services/scheduler/postgres_listener.py
+#53 CACHED
 
-#49 [status-transition-daemon production  5/16] COPY --from=base /usr/local/bin /usr/local/bin
-#49 CACHED
+#54 [notification-daemon production 11/17] COPY services/scheduler/notification_daemon_wrapper.py ./services/scheduler/notification_daemon_wrapper.py
+#54 CACHED
 
-#50 [status-transition-daemon production  6/16] COPY shared/ ./shared/
-#50 DONE 0.1s
+#55 [notification-daemon production  7/17] COPY services/__init__.py ./services/__init__.py
+#55 CACHED
 
-#51 [status-transition-daemon production  7/16] COPY services/__init__.py ./services/__init__.py
-#51 DONE 0.1s
-
-#53 [status-transition-daemon production  8/16] COPY services/scheduler/generic_scheduler_daemon.py ./services/scheduler/generic_scheduler_daemon.py
-#53 DONE 0.0s
-
-#54 [status-transition-daemon internal] load build context
-#54 transferring context: 145.67kB 0.3s done
-#54 DONE 0.3s
-
-#55 [status-transition-daemon production  9/16] COPY services/scheduler/event_builders.py ./services/scheduler/event_builders.py
-#55 DONE 0.0s
-
-#44 [status-transition-daemon production  2/16] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     postgresql-client     procps     && rm -rf /var/lib/apt/lists/*
-#44 CACHED
-
-#56 [status-transition-daemon production  6/16] COPY shared/ ./shared/
+#56 [notification-daemon production 16/17] RUN addgroup --system appgroup && adduser --system --group appuser
 #56 CACHED
 
-#57 [status-transition-daemon production  7/16] COPY services/__init__.py ./services/__init__.py
+#57 [notification-daemon production 14/17] COPY alembic/ ./alembic/
 #57 CACHED
 
-#21 [status-transition-daemon base 2/7] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
-#21 CACHED
-
-#58 [status-transition-daemon production  4/16] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#58 [notification-daemon base 6/7] COPY pyproject.toml ./
 #58 CACHED
 
-#48 [status-transition-daemon production  3/16] WORKDIR /app
-#48 CACHED
-
-#59 [status-transition-daemon production  9/16] COPY services/scheduler/event_builders.py ./services/scheduler/event_builders.py
+#59 [notification-daemon production 17/17] RUN chown -R appuser:appgroup /app
 #59 CACHED
 
-#42 [status-transition-daemon base 3/7] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     && rm -rf /var/lib/apt/lists/*
-#42 CACHED
-
-#60 [status-transition-daemon production  5/16] COPY --from=base /usr/local/bin /usr/local/bin
+#60 [participant-action-daemon production  6/18] COPY shared/ ./shared/
 #60 CACHED
 
-#61 [status-transition-daemon base 6/7] COPY pyproject.toml ./
+#61 [participant-action-daemon production  7/18] COPY services/__init__.py ./services/__init__.py
 #61 CACHED
 
-#62 [status-transition-daemon production  8/16] COPY services/scheduler/generic_scheduler_daemon.py ./services/scheduler/generic_scheduler_daemon.py
+#62 [participant-action-daemon production  5/18] COPY --from=base /usr/local/bin /usr/local/bin
 #62 CACHED
 
-#45 [status-transition-daemon base 5/7] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
-#45 CACHED
-
-#43 [status-transition-daemon base 4/7] WORKDIR /app
-#43 CACHED
-
-#63 [status-transition-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
+#63 [participant-action-daemon production 12/18] COPY services/scheduler/participant_action_daemon_wrapper.py ./services/scheduler/participant_action_daemon_wrapper.py
 #63 CACHED
 
-#64 [init] resolving provenance for metadata file
-#64 DONE 0.0s
+#64 [participant-action-daemon production 16/18] COPY alembic.ini ./
+#64 CACHED
 
-#65 [notification-daemon production 10/16] COPY services/scheduler/notification_daemon_wrapper.py ./services/scheduler/notification_daemon_wrapper.py
-#65 DONE 0.1s
+#65 [participant-action-daemon production 14/18] COPY services/scheduler/__init__.py ./services/scheduler/__init__.py
+#65 CACHED
 
-#66 [status-transition-daemon production 10/16] COPY services/scheduler/status_transition_daemon_wrapper.py ./services/scheduler/status_transition_daemon_wrapper.py
-#66 DONE 0.1s
+#66 [participant-action-daemon production  4/18] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#66 CACHED
 
-#67 [notification-daemon production 11/16] COPY services/scheduler/postgres_listener.py ./services/scheduler/postgres_listener.py
-#67 DONE 0.0s
+#67 [participant-action-daemon base 6/7] COPY pyproject.toml ./
+#67 CACHED
 
-#68 [status-transition-daemon production 11/16] COPY services/scheduler/postgres_listener.py ./services/scheduler/postgres_listener.py
-#68 DONE 0.0s
+#68 [participant-action-daemon production  9/18] COPY services/scheduler/daemon_runner.py ./services/scheduler/daemon_runner.py
+#68 CACHED
 
-#69 [retry-daemon] resolving provenance for metadata file
-#69 DONE 0.0s
+#69 [participant-action-daemon production 10/18] COPY services/scheduler/event_builders.py ./services/scheduler/event_builders.py
+#69 CACHED
 
-#70 [notification-daemon production 12/16] COPY services/scheduler/__init__.py ./services/scheduler/__init__.py
-#70 DONE 0.0s
+#70 [participant-action-daemon production  8/18] COPY services/scheduler/generic_scheduler_daemon.py ./services/scheduler/generic_scheduler_daemon.py
+#70 CACHED
 
-#71 [status-transition-daemon production 12/16] COPY services/scheduler/__init__.py ./services/scheduler/__init__.py
-#71 DONE 0.0s
+#71 [participant-action-daemon production 11/18] COPY services/scheduler/participant_action_event_builder.py ./services/scheduler/participant_action_event_builder.py
+#71 CACHED
 
-#72 [notification-daemon production 13/16] COPY alembic/ ./alembic/
-#72 DONE 0.0s
+#72 [participant-action-daemon production 17/18] RUN addgroup --system appgroup && adduser --system --group appuser
+#72 CACHED
 
-#73 [status-transition-daemon production 13/16] COPY alembic/ ./alembic/
-#73 DONE 0.0s
+#73 [participant-action-daemon production 15/18] COPY alembic/ ./alembic/
+#73 CACHED
 
-#74 [notification-daemon production 14/16] COPY alembic.ini ./
-#74 DONE 0.0s
+#74 [participant-action-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
+#74 CACHED
 
-#75 [status-transition-daemon production 14/16] COPY alembic.ini ./
-#75 DONE 0.0s
+#75 [participant-action-daemon production 13/18] COPY services/scheduler/postgres_listener.py ./services/scheduler/postgres_listener.py
+#75 CACHED
 
-#76 [status-transition-daemon production 15/16] RUN addgroup --system appgroup && adduser --system --group appuser
-#76 ...
+#76 [status-transition-daemon base 5/7] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
+#76 CACHED
 
-#77 [notification-daemon production 15/16] RUN addgroup --system appgroup && adduser --system --group appuser
-#77 DONE 0.5s
+#77 [status-transition-daemon production 12/17] COPY services/scheduler/postgres_listener.py ./services/scheduler/postgres_listener.py
+#77 CACHED
 
-#76 [status-transition-daemon production 15/16] RUN addgroup --system appgroup && adduser --system --group appuser
-#76 DONE 0.5s
+#78 [status-transition-daemon production  2/17] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     postgresql-client     procps     && rm -rf /var/lib/apt/lists/*
+#78 CACHED
 
-#78 [api internal] load build context
-#78 ...
+#79 [status-transition-daemon production  4/17] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#79 CACHED
 
-#79 [notification-daemon production 16/16] RUN chown -R appuser:appgroup /app
-#79 DONE 0.6s
+#80 [status-transition-daemon production  8/17] COPY services/scheduler/generic_scheduler_daemon.py ./services/scheduler/generic_scheduler_daemon.py
+#80 CACHED
 
-#80 [status-transition-daemon production 16/16] RUN chown -R appuser:appgroup /app
-#80 DONE 0.7s
-
-#78 [api internal] load build context
-#78 transferring context: 21.91MB 1.8s done
-#78 DONE 1.8s
-
-#81 [api base  8/10] COPY shared/ ./shared/
+#81 [status-transition-daemon production  7/17] COPY services/__init__.py ./services/__init__.py
 #81 CACHED
 
-#82 [api base  9/10] COPY services/ ./services/
+#82 [status-transition-daemon production  5/17] COPY --from=base /usr/local/bin /usr/local/bin
 #82 CACHED
 
-#83 [api base  6/10] COPY pyproject.toml ./
+#83 [status-transition-daemon base 3/7] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     && rm -rf /var/lib/apt/lists/*
 #83 CACHED
 
-#84 [api base  4/10] WORKDIR /app
+#84 [status-transition-daemon production 14/17] COPY alembic/ ./alembic/
 #84 CACHED
 
-#85 [api base  3/10] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     curl     git     && rm -rf /var/lib/apt/lists/*
+#85 [status-transition-daemon production  3/17] WORKDIR /app
 #85 CACHED
 
-#86 [api base  5/10] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
+#86 [status-transition-daemon base 4/7] WORKDIR /app
 #86 CACHED
 
-#21 [api base 2/7] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
-#21 CACHED
-
-#87 [api base  7/10] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
+#87 [status-transition-daemon production  9/17] COPY services/scheduler/daemon_runner.py ./services/scheduler/daemon_runner.py
 #87 CACHED
 
-#88 [api base 10/10] RUN --mount=source=.git,target=.git,type=bind     export GIT_VERSION=$(git describe --tags --always) &&     export PEP440_VERSION=$(echo "$GIT_VERSION" | sed -E 's/^v//; s/-([0-9]+)-g/.post\1+g/') &&     SETUPTOOLS_SCM_PRETEND_VERSION="$PEP440_VERSION" uv pip install --system --no-deps . &&     python -c "import importlib.metadata; print(importlib.metadata.version('game-scheduler'), end='')" > /app/.build_version
+#88 [status-transition-daemon production 16/17] RUN addgroup --system appgroup && adduser --system --group appuser
 #88 CACHED
 
-#89 [notification-daemon] exporting to image
-#89 exporting layers 0.3s done
-#89 exporting manifest sha256:e61c1b6a1c2521bb4d1ce7e7c2e307409696ff2abe7fc7d5a169e49339d8a2f2 0.0s done
-#89 exporting config sha256:f8894b79d13551208e8f69824fd9f9e449fbc43ad5f9a1bde293dc35e9542fc7 done
-#89 exporting attestation manifest sha256:43853529fa06aeef1f733b5998959d70e09d2f0111bafd1d4bd74b9b304e495f 0.0s done
-#89 exporting manifest list sha256:0337fd74d27ad1d26e508dd81d03f01fecb787cd8c8c576b9a446339785a529e done
-#89 naming to docker.io/library/game-scheduler-notification-daemon:latest done
-#89 unpacking to docker.io/library/game-scheduler-notification-daemon:latest
-#89 ...
+#89 [status-transition-daemon production 11/17] COPY services/scheduler/status_transition_daemon_wrapper.py ./services/scheduler/status_transition_daemon_wrapper.py
+#89 CACHED
 
-#90 [api production 2/9] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     postgresql-client     curl     && rm -rf /var/lib/apt/lists/*
+#90 [status-transition-daemon base 6/7] COPY pyproject.toml ./
 #90 CACHED
 
-#91 [api production 3/9] WORKDIR /app
+#91 [status-transition-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
 #91 CACHED
 
-#92 [status-transition-daemon] exporting to image
-#92 exporting layers 0.3s done
-#92 exporting manifest sha256:227547ca41c1a9a390eb648eff726f13c5a1e602288103f3e0f9cce9e048ab22 done
-#92 exporting config sha256:ff9191ee10156409d3619c4c45233d2d91f38e97ca04030777de18e0ac695f56 done
-#92 exporting attestation manifest sha256:8716b9afc30fb5e37dfa73441d361d410deecd425094dfc9bd1e377ef74d689b 0.0s done
-#92 exporting manifest list sha256:3a6ec3b5ecca47c950f67b7f5847b07f94068bb996fde9dfdb64f2eb8c180ee5 done
-#92 naming to docker.io/library/game-scheduler-status-transition-daemon:latest done
-#92 unpacking to docker.io/library/game-scheduler-status-transition-daemon:latest
-#92 ...
+#92 [status-transition-daemon production 10/17] COPY services/scheduler/event_builders.py ./services/scheduler/event_builders.py
+#92 CACHED
 
-#93 [api production 4/9] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-#93 DONE 1.4s
+#93 [status-transition-daemon production  6/17] COPY shared/ ./shared/
+#93 CACHED
 
-#94 [api production 5/9] COPY --from=base /usr/local/bin /usr/local/bin
-#94 DONE 0.2s
+#94 [status-transition-daemon production 13/17] COPY services/scheduler/__init__.py ./services/scheduler/__init__.py
+#94 CACHED
 
-#92 [status-transition-daemon] exporting to image
-#92 ...
+#95 [status-transition-daemon production 15/17] COPY alembic.ini ./
+#95 CACHED
 
-#95 [api production 6/9] COPY shared/ ./shared/
-#95 DONE 0.1s
+#31 [status-transition-daemon stage-0  2/11] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+#31 CACHED
 
-#96 [api production 7/9] COPY services/api/ ./services/api/
-#96 DONE 0.0s
+#96 [participant-action-daemon production 18/18] RUN chown -R appuser:appgroup /app
+#96 CACHED
 
-#97 [api production 8/9] RUN addgroup --system appgroup && adduser --system --group appuser
-#97 ...
+#97 [status-transition-daemon production 17/17] RUN chown -R appuser:appgroup /app
+#97 CACHED
 
-#92 [status-transition-daemon] exporting to image
-#92 unpacking to docker.io/library/game-scheduler-status-transition-daemon:latest 3.3s done
-#92 DONE 3.6s
+#98 [init] exporting to image
+#98 exporting layers 0.0s done
+#98 exporting manifest sha256:0d3616fb6c57430b7f9465b1c2f17c4a08dd089fd1d58a5950fa284bd7eaabd1 done
+#98 exporting config sha256:9b45236816fcbec5e56abc978df5bee67d0c7ec5bf1b623f385c6f7f1907a423 done
+#98 exporting attestation manifest sha256:4d00df81bee40ffb0c16b0e770437861b194d1c261a169b5bffdefa000d92f30 0.0s done
+#98 exporting manifest list sha256:c7cf9892201e279d2bb41abc386f2b5f456fef2be79fd748440dd2e13d86ba76 0.0s done
+#98 naming to docker.io/library/game-scheduler-init:latest
+#98 naming to docker.io/library/game-scheduler-init:latest done
+#98 unpacking to docker.io/library/game-scheduler-init:latest 0.0s done
+#98 DONE 0.2s
 
-#89 [notification-daemon] exporting to image
-#89 unpacking to docker.io/library/game-scheduler-notification-daemon:latest 3.4s done
-#89 DONE 3.7s
+#99 [api base  7/10] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
+#99 CACHED
 
-#97 [api production 8/9] RUN addgroup --system appgroup && adduser --system --group appuser
-#97 DONE 0.4s
+#100 [api base  3/10] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     curl     git     && rm -rf /var/lib/apt/lists/*
+#100 CACHED
 
-#98 [notification-daemon] resolving provenance for metadata file
-#98 DONE 0.1s
+#101 [api base  5/10] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
+#101 CACHED
 
-#99 [status-transition-daemon] resolving provenance for metadata file
-#99 DONE 0.0s
+#102 [api base  4/10] WORKDIR /app
+#102 CACHED
 
-#100 [api production 9/9] RUN chown -R appuser:appgroup /app
-#100 DONE 0.6s
+#31 [api stage-0  2/11] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+#31 CACHED
 
-#101 [api] exporting to image
-#101 exporting layers 6.7s done
-#101 exporting manifest sha256:a7c535acb8d1e1c8cf29a8e273e1a08dc34bc14a594fb4fb07cce4589ec48615 done
-#101 exporting config sha256:cbb1801faf88610783615c6681b30f4499b7c687d4d8c9ca0146b4555ed15370 done
-#101 exporting attestation manifest sha256:271d1ed5194be870d69820a0dbb36c9a7882ce29a21fad125a67f582231a6b87 0.0s done
-#101 exporting manifest list sha256:45118682270a338571a2cebcbfdbaf631763df352be42fe41253673ca2d5e6cf done
-#101 naming to docker.io/library/game-scheduler-api:latest done
-#101 unpacking to docker.io/library/game-scheduler-api:latest
-#101 unpacking to docker.io/library/game-scheduler-api:latest 2.7s done
-#101 DONE 9.5s
+#103 [api base  6/10] COPY pyproject.toml ./
+#103 CACHED
 
-#102 [api] resolving provenance for metadata file
-#102 DONE 0.0s
+#104 [api base  8/10] COPY shared/ ./shared/
+#104 CACHED
+
+#105 [retry-daemon] exporting to image
+#105 exporting layers 0.0s done
+#105 exporting manifest sha256:3127676ece0da549ed9666aaaacd8a1703d97f81ea7bf05ce3834e3219b9e3f1 done
+#105 exporting config sha256:812499b8875b8215cd0fae34515dfc7143b99cf326dba67b559f343d8cb4ec42 done
+#105 exporting attestation manifest sha256:1e30aac42741df194dd0c467b710e88839dbac80a9d3c72011154ad188474282 0.0s done
+#105 exporting manifest list sha256:f51b1ef29a42479dc95e87cadd8a41e3161d1e9f08bf3506773fff8ebe3fb4b4 0.0s done
+#105 naming to docker.io/library/game-scheduler-retry-daemon:latest done
+#105 unpacking to docker.io/library/game-scheduler-retry-daemon:latest 0.0s done
+#105 DONE 0.2s
+
+#106 [api base  9/10] COPY services/ ./services/
+#106 DONE 0.1s
+
+#107 [participant-action-daemon] exporting to image
+#107 exporting layers 0.0s done
+#107 exporting manifest sha256:9580265910e9a4a30ad023479e6ecbc2ed16f436265816f00f30f9073c63571a done
+#107 exporting config sha256:dc27299495120c535d486fd3b2bf86d7adfd97a3bfab4dbb5a570f9ff4f93c52 done
+#107 exporting attestation manifest sha256:e6293fdcf8d037263dc24113953dbc4b361b4831c151a11d0038d100478d80f0 0.0s done
+#107 exporting manifest list sha256:3dc413c1f0ffe4d3bafc9c09fdf5ba547993cd9cc65207cae70634d9902d31fb 0.0s done
+#107 naming to docker.io/library/game-scheduler-participant-action-daemon:latest done
+#107 unpacking to docker.io/library/game-scheduler-participant-action-daemon:latest 0.0s done
+#107 DONE 0.2s
+
+#108 [status-transition-daemon] exporting to image
+#108 exporting layers 0.0s done
+#108 exporting manifest sha256:0ac1094195e74392d85124b2ab745f706dd20b84a9b9a3830c8808581273211d done
+#108 exporting config sha256:78d996ff40e9fc7932569f3f92fbf1c3a51939894904a831c867658d9bd98a3c done
+#108 exporting attestation manifest sha256:0d808fd69c1382b383031f7c4e6a33692d236ff75afa1520dbc2bafaa1b5b286 0.0s done
+#108 exporting manifest list sha256:cb7f64f7c12e57e07e2d965479f7bc0f1886ae199ac62f5818049605ca549f90 0.0s done
+#108 naming to docker.io/library/game-scheduler-status-transition-daemon:latest done
+#108 unpacking to docker.io/library/game-scheduler-status-transition-daemon:latest 0.0s done
+#108 DONE 0.2s
+
+#109 [notification-daemon] exporting to image
+#109 exporting layers 0.0s done
+#109 exporting manifest sha256:5f9cd7bf9140785acb791886c17e3e1b02913ad136b5bbaf5ba00c401c8af7ba done
+#109 exporting config sha256:b3b47b84fad7415021ffc6ca28fd04007a5abac21ffc2c2dfe3ccad34314763d done
+#109 exporting attestation manifest sha256:4e99c1a3435c4b11eb1930dac8c519d3e543125d758bf1d55a4bc4dd2da61d15 0.0s done
+#109 exporting manifest list sha256:bd8cfb3e686afdf4bcef592f9c385913fcf08187efabc9d2eec7202d73671120 0.0s done
+#109 naming to docker.io/library/game-scheduler-notification-daemon:latest done
+#109 unpacking to docker.io/library/game-scheduler-notification-daemon:latest 0.0s done
+#109 DONE 0.2s
+
+#110 [retry-daemon] resolving provenance for metadata file
+#110 DONE 0.0s
+
+#111 [init] resolving provenance for metadata file
+#111 DONE 0.0s
+
+#112 [status-transition-daemon] resolving provenance for metadata file
+#112 DONE 0.0s
+
+#113 [notification-daemon] resolving provenance for metadata file
+#113 DONE 0.0s
+
+#114 [participant-action-daemon] resolving provenance for metadata file
+#114 DONE 0.0s
+
+#115 [api base 10/10] RUN --mount=source=.git,target=.git,type=bind     export GIT_VERSION=$(git describe --tags --always) &&     export PEP440_VERSION=$(echo "$GIT_VERSION" | sed -E 's/^v//; s/-([0-9]+)-g/.post\1+g/') &&     SETUPTOOLS_SCM_PRETEND_VERSION="$PEP440_VERSION" uv pip install --system --no-deps . &&     python -c "import importlib.metadata; print(importlib.metadata.version('game-scheduler'), end='')" > /app/.build_version
+#115 0.300 Using Python 3.13.12 environment at: /usr/local
+#115 1.855 Resolved 1 package in 1.54s
+#115 1.855    Building game-scheduler @ file:///app
+#115 2.590       Built game-scheduler @ file:///app
+#115 2.597 Prepared 1 package in 742ms
+#115 2.602 Uninstalled 1 package in 4ms
+#115 2.609 Installed 1 package in 6ms
+#115 2.609  - game-scheduler==0.0.0+unknown (from file:///app)
+#115 2.609  + game-scheduler==0.6.0rc2.post6+g186a4a18 (from file:///app)
+#115 DONE 2.7s
+
+#116 [api production 2/9] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     postgresql-client     curl     && rm -rf /var/lib/apt/lists/*
+#116 CACHED
+
+#117 [api production 3/9] WORKDIR /app
+#117 CACHED
+
+#118 [api production 4/9] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#118 DONE 0.9s
+
+#119 [api production 5/9] COPY --from=base /usr/local/bin /usr/local/bin
+#119 DONE 0.1s
+
+#120 [api production 6/9] COPY shared/ ./shared/
+#120 DONE 0.0s
+
+#121 [api production 7/9] COPY services/api/ ./services/api/
+#121 DONE 0.0s
+
+#122 [api production 8/9] RUN addgroup --system appgroup && adduser --system --group appuser
+#122 DONE 0.3s
+
+#123 [api production 9/9] RUN chown -R appuser:appgroup /app
+#123 DONE 0.5s
+
+#124 [api] exporting to image
+#124 exporting layers
+#124 exporting layers 7.2s done
+#124 exporting manifest sha256:7439e2f4980fef754bfd90912e41ba5b1fbc1ce6dfe6a3f0eed46438f5df0211 done
+#124 exporting config sha256:bb9fd50fd4052b38623cf15e328e33690c4731ab37eb041397948fa8590a8c1c done
+#124 exporting attestation manifest sha256:71e24fbcbf196099e54a8744027eaef6ff7d350c5b329deccf7cd15ae715860c 0.0s done
+#124 exporting manifest list sha256:0231bf7e8d1e83bfbf9e50bdbd71b6ff5a42d0555e36c179f41fd17717eca57a done
+#124 naming to docker.io/library/game-scheduler-api:latest done
+#124 unpacking to docker.io/library/game-scheduler-api:latest
+#124 unpacking to docker.io/library/game-scheduler-api:latest 2.0s done
+#124 DONE 9.3s
+
+#125 [api] resolving provenance for metadata file
+#125 DONE 0.0s
+ game-scheduler-participant-action-daemon:latest  Built
  game-scheduler-retry-daemon:latest  Built
  game-scheduler-status-transition-daemon:latest  Built
- game-scheduler-init:latest  Built
  game-scheduler-api:latest  Built
  game-scheduler-notification-daemon:latest  Built
- Network gamebot-integration-test-network  Creating
- Network gamebot-integration-test-network  Created
- Volume gamebot-integration-rabbitmq-data  Creating
- Volume gamebot-integration-rabbitmq-data  Created
- Volume gamebot-integration-redis-data  Creating
- Volume gamebot-integration-redis-data  Created
- Volume gamebot-integration-postgres-data  Creating
- Volume gamebot-integration-postgres-data  Created
- Container gamebot-integration-rabbitmq  Creating
- Container gamebot-integration-postgres  Creating
- Container gamebot-integration-redis  Creating
- Container gamebot-integration-grafana-alloy  Creating
- Container gamebot-integration-rabbitmq  Created
- Container gamebot-integration-postgres  Created
- Container gamebot-integration-redis  Created
- Container gamebot-integration-grafana-alloy  Created
- Container gamebot-integration-init  Creating
- Container gamebot-integration-init  Created
- Container gamebot-integration-retry-daemon  Creating
- Container gamebot-integration-api  Creating
- Container gamebot-integration-notification-daemon  Creating
- Container gamebot-integration-status-transition-daemon  Creating
- Container gamebot-integration-api  Created
- Container gamebot-integration-retry-daemon  Created
- Container gamebot-integration-status-transition-daemon  Created
- Container gamebot-integration-notification-daemon  Created
- Container gamebot-integration-system-ready  Creating
- Container gamebot-integration-system-ready  Created
+ game-scheduler-init:latest  Built
+ Container gamebot-integration-rabbitmq  Running
+ Container gamebot-integration-redis  Running
+ Container gamebot-integration-postgres  Running
+ Container gamebot-integration-init  Recreate
+ Container gamebot-integration-init  Recreated
+ Container gamebot-integration-status-transition-daemon  Recreate
+ Container gamebot-integration-notification-daemon  Recreate
+ Container gamebot-integration-api  Recreate
+ Container gamebot-integration-participant-action-daemon  Recreate
+ Container gamebot-integration-retry-daemon  Recreate
+ Container gamebot-integration-api  Recreated
+ Container gamebot-integration-retry-daemon  Recreated
+ Container gamebot-integration-status-transition-daemon  Recreated
+ Container gamebot-integration-participant-action-daemon  Recreated
+ Container gamebot-integration-notification-daemon  Recreated
+ Container gamebot-integration-system-ready  Running
  Container gamebot-integration-grafana-alloy  Starting
- Container gamebot-integration-postgres  Starting
- Container gamebot-integration-redis  Starting
- Container gamebot-integration-rabbitmq  Starting
- Container gamebot-integration-postgres  Started
  Container gamebot-integration-grafana-alloy  Started
- Container gamebot-integration-redis  Started
- Container gamebot-integration-rabbitmq  Started
  Container gamebot-integration-postgres  Waiting
  Container gamebot-integration-rabbitmq  Waiting
  Container gamebot-integration-rabbitmq  Healthy
@@ -502,33 +537,35 @@ time="2026-03-01T11:13:37-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" va
  Container gamebot-integration-init  Waiting
  Container gamebot-integration-init  Waiting
  Container gamebot-integration-init  Waiting
+ Container gamebot-integration-init  Waiting
  Container gamebot-integration-init  Healthy
  Container gamebot-integration-retry-daemon  Starting
  Container gamebot-integration-init  Healthy
+ Container gamebot-integration-status-transition-daemon  Starting
+ Container gamebot-integration-init  Healthy
  Container gamebot-integration-notification-daemon  Starting
  Container gamebot-integration-init  Healthy
- Container gamebot-integration-init  Healthy
- Container gamebot-integration-status-transition-daemon  Starting
  Container gamebot-integration-api  Starting
- Container gamebot-integration-api  Started
- Container gamebot-integration-notification-daemon  Started
- Container gamebot-integration-status-transition-daemon  Started
- Container gamebot-integration-retry-daemon  Started
- Container gamebot-integration-redis  Waiting
- Container gamebot-integration-api  Waiting
- Container gamebot-integration-postgres  Waiting
- Container gamebot-integration-rabbitmq  Waiting
- Container gamebot-integration-init  Waiting
  Container gamebot-integration-init  Healthy
- Container gamebot-integration-redis  Healthy
+ Container gamebot-integration-participant-action-daemon  Starting
+ Container gamebot-integration-retry-daemon  Started
+ Container gamebot-integration-notification-daemon  Started
+ Container gamebot-integration-api  Started
+ Container gamebot-integration-status-transition-daemon  Started
+ Container gamebot-integration-participant-action-daemon  Started
+ Container gamebot-integration-postgres  Waiting
+ Container gamebot-integration-api  Waiting
+ Container gamebot-integration-redis  Waiting
+ Container gamebot-integration-init  Waiting
+ Container gamebot-integration-rabbitmq  Waiting
+ Container gamebot-integration-init  Healthy
  Container gamebot-integration-postgres  Healthy
  Container gamebot-integration-rabbitmq  Healthy
+ Container gamebot-integration-redis  Healthy
  Container gamebot-integration-api  Healthy
- Container gamebot-integration-system-ready  Starting
- Container gamebot-integration-system-ready  Started
-time="2026-03-01T11:14:20-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" variable is not set. Defaulting to a blank string."
-time="2026-03-01T11:14:20-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_ID\" variable is not set. Defaulting to a blank string."
-time="2026-03-01T11:14:20-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_SECRET\" variable is not set. Defaulting to a blank string."
+time="2026-03-04T20:41:32-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_ID\" variable is not set. Defaulting to a blank string."
+time="2026-03-04T20:41:32-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_SECRET\" variable is not set. Defaulting to a blank string."
+time="2026-03-04T20:41:32-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" variable is not set. Defaulting to a blank string."
 #1 [internal] load local bake definitions
 #1 reading from stdin 700B done
 #1 DONE 0.0s
@@ -556,32 +593,32 @@ time="2026-03-01T11:14:20-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_SEC
 #7 DONE 0.0s
 
 #8 [internal] load build context
-#8 transferring context: 10.30MB 0.2s done
+#8 transferring context: 10.82MB 0.2s done
 #8 DONE 0.2s
 
-#9 [stage-0  5/16] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
+#9 [stage-0  3/16] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     curl     && rm -rf /var/lib/apt/lists/*
 #9 CACHED
 
-#10 [stage-0  7/16] COPY pyproject.toml uv.lock ./
+#10 [stage-0  4/16] WORKDIR /app
 #10 CACHED
 
-#11 [stage-0  2/16] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+#11 [stage-0  6/16] RUN mkdir -p /app/coverage
 #11 CACHED
 
-#12 [stage-0  4/16] WORKDIR /app
+#12 [stage-0  2/16] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 #12 CACHED
 
-#13 [stage-0  3/16] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     curl     && rm -rf /var/lib/apt/lists/*
+#13 [stage-0  5/16] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
 #13 CACHED
 
-#14 [stage-0  6/16] RUN mkdir -p /app/coverage
+#14 [stage-0  7/16] COPY pyproject.toml uv.lock ./
 #14 CACHED
 
 #15 [stage-0  8/16] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system -e . && uv pip install --system --group dev
 #15 CACHED
 
 #16 [stage-0  9/16] COPY shared/ ./shared/
-#16 DONE 0.0s
+#16 CACHED
 
 #17 [stage-0 10/16] COPY services/ ./services/
 #17 DONE 0.1s
@@ -599,18 +636,18 @@ time="2026-03-01T11:14:20-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_SEC
 #21 DONE 0.1s
 
 #22 [stage-0 15/16] RUN addgroup --system testgroup && adduser --system --group testuser
-#22 DONE 0.3s
+#22 DONE 0.4s
 
 #23 [stage-0 16/16] RUN chown -R testuser:testgroup /app
-#23 DONE 1.2s
+#23 DONE 1.4s
 
 #24 exporting to image
 #24 exporting layers
 #24 exporting layers 0.5s done
-#24 exporting manifest sha256:5ae70bcc31504248defd1ebc3ce45cc96fca36e3a2120483de71e428ac0475d1 done
-#24 exporting config sha256:d77c349065e3f0af0fe04d0f28e2557e9755e6b47e9710072457e9c90e4a34fb done
-#24 exporting attestation manifest sha256:b7c05a7b7e22301428df38240fc97d5b7f902df8713823d2ac9a939b59870aea 0.0s done
-#24 exporting manifest list sha256:045f8cd140b7fcf5e23428483c80ae4ba01556ad3ec57870f894ae414a1abfb6 done
+#24 exporting manifest sha256:5f01478c4e02d95ffda79bdd57a9041a6e1f805cb3ca9f84a44cafef33f2c5db done
+#24 exporting config sha256:35b4d0dd1657acfe67621211fc420855ee3ec19d3be0e0e30a26f11facce479c done
+#24 exporting attestation manifest sha256:50fc5794c61e95dd0a09f2346fca187f9388ec82c4563f4754096ab4e6810d35 0.0s done
+#24 exporting manifest list sha256:a889098af975ba86eea3a714040675c35922b17bb46395c6160ecd7fdd2da390 done
 #24 naming to docker.io/library/gamebot-integration-integration-tests:latest done
 #24 unpacking to docker.io/library/gamebot-integration-integration-tests:latest
 #24 unpacking to docker.io/library/gamebot-integration-integration-tests:latest 0.5s done
@@ -618,24 +655,25 @@ time="2026-03-01T11:14:20-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_SEC
 
 #25 resolving provenance for metadata file
 #25 DONE 0.0s
-...........................X............................................ [ 38%]
-........................................................................ [ 76%]
-............................................                             [100%]
-187 passed, 1638 deselected, 1 xpassed in 172.87s (0:02:52)
+.......................................X................................ [ 35%]
+........................................................................ [ 70%]
+...........................................................              [100%]
+202 passed, 1691 deselected, 1 xpassed in 182.59s (0:03:02)
 Integration tests passed!
 Cleaning up integration test environment...
-time="2026-03-01T11:17:23-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" variable is not set. Defaulting to a blank string."
-time="2026-03-01T11:17:23-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_ID\" variable is not set. Defaulting to a blank string."
-time="2026-03-01T11:17:23-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_SECRET\" variable is not set. Defaulting to a blank string."
+time="2026-03-04T20:44:45-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" variable is not set. Defaulting to a blank string."
+time="2026-03-04T20:44:45-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_ID\" variable is not set. Defaulting to a blank string."
+time="2026-03-04T20:44:45-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_SECRET\" variable is not set. Defaulting to a blank string."
  Container gamebot-integration-system-ready  Stopping
  Container gamebot-integration-system-ready  Stopped
  Container gamebot-integration-system-ready  Removing
  Container gamebot-integration-system-ready  Removed
  Container gamebot-integration-redis  Stopping
- Container gamebot-integration-notification-daemon  Stopping
- Container gamebot-integration-api  Stopping
  Container gamebot-integration-retry-daemon  Stopping
  Container gamebot-integration-status-transition-daemon  Stopping
+ Container gamebot-integration-notification-daemon  Stopping
+ Container gamebot-integration-api  Stopping
+ Container gamebot-integration-participant-action-daemon  Stopping
  Container gamebot-integration-redis  Stopped
  Container gamebot-integration-redis  Removing
  Container gamebot-integration-redis  Removed
@@ -647,17 +685,20 @@ time="2026-03-01T11:17:23-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_SEC
  Container gamebot-integration-retry-daemon  Removed
  Container gamebot-integration-notification-daemon  Stopped
  Container gamebot-integration-notification-daemon  Removing
+ Container gamebot-integration-participant-action-daemon  Stopped
+ Container gamebot-integration-participant-action-daemon  Removing
  Container gamebot-integration-status-transition-daemon  Stopped
  Container gamebot-integration-status-transition-daemon  Removing
  Container gamebot-integration-notification-daemon  Removed
  Container gamebot-integration-status-transition-daemon  Removed
+ Container gamebot-integration-participant-action-daemon  Removed
  Container gamebot-integration-init  Stopping
  Container gamebot-integration-init  Stopped
  Container gamebot-integration-init  Removing
  Container gamebot-integration-init  Removed
+ Container gamebot-integration-postgres  Stopping
  Container gamebot-integration-rabbitmq  Stopping
  Container gamebot-integration-grafana-alloy  Stopping
- Container gamebot-integration-postgres  Stopping
  Container gamebot-integration-grafana-alloy  Stopped
  Container gamebot-integration-grafana-alloy  Removing
  Container gamebot-integration-grafana-alloy  Removed
@@ -667,538 +708,590 @@ time="2026-03-01T11:17:23-08:00" level=warning msg="The \"DISCORD_BOT_CLIENT_SEC
  Container gamebot-integration-rabbitmq  Stopped
  Container gamebot-integration-rabbitmq  Removing
  Container gamebot-integration-rabbitmq  Removed
+ Volume gamebot-integration-rabbitmq-data  Removing
  Volume gamebot-integration-postgres-data  Removing
  Volume gamebot-integration-redis-data  Removing
- Volume gamebot-integration-rabbitmq-data  Removing
  Network gamebot-integration-test-network  Removing
- Volume gamebot-integration-redis-data  Removed
  Volume gamebot-integration-rabbitmq-data  Removed
  Volume gamebot-integration-postgres-data  Removed
+ Volume gamebot-integration-redis-data  Removed
  Network gamebot-integration-test-network  Removed
-Integration tests completed with 43.73% coverage
+Integration tests completed with 44.26% coverage
 
 Running e2e tests with coverage...
 ==================================
 Running e2e tests...
-time="2026-03-01T11:17:57-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" variable is not set. Defaulting to a blank string."
+time="2026-03-04T20:45:20-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" variable is not set. Defaulting to a blank string."
 #1 [internal] load local bake definitions
-#1 reading from stdin 4.00kB done
+#1 reading from stdin 4.75kB done
 #1 DONE 0.0s
 
 #2 [status-transition-daemon internal] load build definition from status-transition-daemon.Dockerfile
-#2 transferring dockerfile: 3.06kB done
+#2 transferring dockerfile: 3.14kB done
 #2 DONE 0.0s
 
-#3 [init internal] load build definition from init.Dockerfile
-#3 transferring dockerfile: 1.24kB done
+#3 [notification-daemon internal] load build definition from notification-daemon.Dockerfile
+#3 transferring dockerfile: 3.11kB done
 #3 DONE 0.0s
 
-#4 [notification-daemon internal] load build definition from notification-daemon.Dockerfile
-#4 transferring dockerfile: 3.03kB done
+#4 [init internal] load build definition from init.Dockerfile
+#4 transferring dockerfile: 1.24kB done
 #4 DONE 0.0s
 
-#5 [retry-daemon internal] load build definition from retry.Dockerfile
-#5 transferring dockerfile: 2.55kB done
+#5 [participant-action-daemon internal] load build definition from participant-action-daemon.Dockerfile
+#5 transferring dockerfile: 3.27kB done
 #5 DONE 0.0s
 
 #6 [api internal] load build definition from api.Dockerfile
 #6 transferring dockerfile: 3.89kB done
 #6 DONE 0.0s
 
-#7 [bot internal] load build definition from bot.Dockerfile
-#7 transferring dockerfile: 2.85kB done
+#7 [retry-daemon internal] load build definition from retry.Dockerfile
+#7 transferring dockerfile: 2.55kB done
 #7 DONE 0.0s
 
-#8 [bot] resolve image config for docker-image://docker.io/docker/dockerfile:1
-#8 DONE 0.6s
+#8 [bot internal] load build definition from bot.Dockerfile
+#8 transferring dockerfile: 2.85kB done
+#8 DONE 0.0s
 
-#9 [notification-daemon] docker-image://docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6
-#9 resolve docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6 0.0s done
-#9 CACHED
+#9 [bot] resolve image config for docker-image://docker.io/docker/dockerfile:1
+#9 ...
 
-#10 [api internal] load metadata for docker.io/library/python:3.13-slim
-#10 DONE 0.3s
+#10 [auth] docker/dockerfile:pull token for registry-1.docker.io
+#10 DONE 0.0s
 
-#11 [notification-daemon internal] load .dockerignore
-#11 transferring context: 943B done
-#11 DONE 0.0s
+#9 [bot] resolve image config for docker-image://docker.io/docker/dockerfile:1
+#9 DONE 0.8s
 
-#12 [status-transition-daemon internal] load build context
-#12 DONE 0.0s
+#11 [notification-daemon] docker-image://docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6
+#11 resolve docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6 0.0s done
+#11 CACHED
 
-#13 [init internal] load build context
-#13 transferring context: 11.71kB 0.1s done
-#13 DONE 0.1s
+#12 [status-transition-daemon internal] load metadata for docker.io/library/python:3.13-slim
+#12 ...
 
-#14 [notification-daemon base 1/7] FROM docker.io/library/python:3.13-slim@sha256:8bc60ca09afaa8ea0d6d1220bde073bacfedd66a4bf8129cbdc8ef0e16c8a952
-#14 resolve docker.io/library/python:3.13-slim@sha256:8bc60ca09afaa8ea0d6d1220bde073bacfedd66a4bf8129cbdc8ef0e16c8a952 0.0s done
+#13 [auth] library/python:pull token for registry-1.docker.io
+#13 DONE 0.0s
+
+#12 [retry-daemon internal] load metadata for docker.io/library/python:3.13-slim
+#12 DONE 0.6s
+
+#14 [notification-daemon internal] load .dockerignore
+#14 transferring context: 943B done
 #14 DONE 0.0s
 
-#15 [init base 2/7] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
-#15 CACHED
+#15 [bot base 1/7] FROM docker.io/library/python:3.13-slim@sha256:8bc60ca09afaa8ea0d6d1220bde073bacfedd66a4bf8129cbdc8ef0e16c8a952
+#15 resolve docker.io/library/python:3.13-slim@sha256:8bc60ca09afaa8ea0d6d1220bde073bacfedd66a4bf8129cbdc8ef0e16c8a952 0.0s done
+#15 DONE 0.0s
 
-#16 [init stage-0  3/11] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     libpq-dev     && rm -rf /var/lib/apt/lists/*
-#16 CACHED
+#16 [notification-daemon internal] load build context
+#16 transferring context: 140.46kB 0.1s done
+#16 DONE 0.1s
 
-#17 [init stage-0  9/11] COPY alembic/ ./alembic/
-#17 CACHED
+#17 [init internal] load build context
+#17 transferring context: 12.15kB 0.1s done
+#17 DONE 0.1s
 
-#18 [init stage-0  4/11] WORKDIR /app
-#18 CACHED
+#18 [retry-daemon internal] load build context
+#18 transferring context: 45.88kB 0.1s done
+#18 DONE 0.1s
 
-#19 [init stage-0  5/11] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
-#19 CACHED
+#19 [status-transition-daemon internal] load build context
+#19 transferring context: 14.03kB 0.1s done
+#19 DONE 0.1s
 
-#20 [init stage-0  6/11] COPY pyproject.toml ./
-#20 CACHED
+#20 [participant-action-daemon internal] load build context
+#20 transferring context: 16.11kB 0.1s done
+#20 DONE 0.1s
 
-#21 [init stage-0  7/11] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system -e .
-#21 CACHED
+#21 [bot internal] load build context
+#21 transferring context: 403.51kB 0.0s done
+#21 DONE 0.1s
 
-#22 [init stage-0  8/11] COPY shared/ ./shared/
+#22 [init base 2/7] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 #22 CACHED
 
-#23 [init stage-0 10/11] COPY alembic.ini ./
+#23 [init stage-0  7/11] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system -e .
 #23 CACHED
 
-#24 [init stage-0 11/11] COPY services/init/ ./services/init/
+#24 [init stage-0 10/11] COPY alembic.ini ./
 #24 CACHED
 
-#12 [status-transition-daemon internal] load build context
-#12 transferring context: 11.06kB 0.1s done
-#12 DONE 0.1s
+#25 [init stage-0  4/11] WORKDIR /app
+#25 CACHED
 
-#25 [bot internal] load build context
-#25 transferring context: 374.89kB 0.1s done
-#25 DONE 0.1s
+#26 [init stage-0  8/11] COPY shared/ ./shared/
+#26 CACHED
 
-#26 [init] exporting to image
-#26 exporting layers 0.0s done
-#26 exporting manifest sha256:eababf3890e93df461ad48cd5d2e5745139789ed9d49a171653ded2eb537a213
-#26 exporting manifest sha256:eababf3890e93df461ad48cd5d2e5745139789ed9d49a171653ded2eb537a213 0.0s done
-#26 exporting config sha256:1f57f5ad50f6593015ed59e1427b989e39377e0de33bb8948dd97c948b25047b done
-#26 exporting attestation manifest sha256:1d63a27ce1c20ea8a69681cba5388b43ad4092f92b96e095e0be973bd99497d8 0.0s done
-#26 exporting manifest list sha256:2a0d83fd8257e5fc28ad86141f059ac2dac93f993c12d0f0c8baeb2d16378c5d 0.0s done
-#26 naming to docker.io/library/game-scheduler-init:latest done
-#26 unpacking to docker.io/library/game-scheduler-init:latest 0.0s done
-#26 DONE 0.2s
+#27 [init stage-0  9/11] COPY alembic/ ./alembic/
+#27 CACHED
 
-#27 [notification-daemon internal] load build context
-#27 transferring context: 77.79kB 0.0s done
-#27 DONE 0.2s
+#28 [init stage-0  5/11] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
+#28 CACHED
 
-#28 [retry-daemon internal] load build context
-#28 transferring context: 8.18kB 0.3s done
-#28 DONE 0.3s
+#29 [init stage-0  6/11] COPY pyproject.toml ./
+#29 CACHED
 
-#29 [api internal] load build context
-#29 ...
-
-#30 [status-transition-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
+#30 [init stage-0  3/11] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     libpq-dev     && rm -rf /var/lib/apt/lists/*
 #30 CACHED
 
-#31 [status-transition-daemon production  7/16] COPY services/__init__.py ./services/__init__.py
+#31 [init stage-0 11/11] COPY services/init/ ./services/init/
 #31 CACHED
 
-#32 [status-transition-daemon production  4/16] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-#32 CACHED
+#32 [init] exporting to image
+#32 exporting layers
+#32 exporting layers 0.0s done
+#32 exporting manifest sha256:bea37e116a6942020aa592e946e910384a21b61ed653316df52c7881080e571f done
+#32 exporting config sha256:243d5b576e50186569c38afff8b89b6328a8dcefb22500caad9b8ffe0db8354f done
+#32 exporting attestation manifest sha256:141988fabca451d0166aadbe5a7a8dcff01ec69c560dcfcf83b70cf35a5d4ba5 0.0s done
+#32 exporting manifest list sha256:d73fa60e7253c956311236a1d9c6bd4d7a4c27b358c74e5701a68fe819b3c58a done
+#32 naming to docker.io/library/game-scheduler-init:latest done
+#32 unpacking to docker.io/library/game-scheduler-init:latest 0.0s done
+#32 DONE 0.1s
 
-#33 [status-transition-daemon production 10/16] COPY services/scheduler/status_transition_daemon_wrapper.py ./services/scheduler/status_transition_daemon_wrapper.py
-#33 CACHED
+#33 [api internal] load build context
+#33 ...
 
-#34 [status-transition-daemon production 14/16] COPY alembic.ini ./
+#34 [retry-daemon base 3/7] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     && rm -rf /var/lib/apt/lists/*
 #34 CACHED
 
-#35 [status-transition-daemon production 15/16] RUN addgroup --system appgroup && adduser --system --group appuser
+#35 [retry-daemon production 2/9] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     procps     && rm -rf /var/lib/apt/lists/*
 #35 CACHED
 
-#36 [status-transition-daemon production  8/16] COPY services/scheduler/generic_scheduler_daemon.py ./services/scheduler/generic_scheduler_daemon.py
+#36 [retry-daemon production 3/9] WORKDIR /app
 #36 CACHED
 
-#37 [status-transition-daemon production 13/16] COPY alembic/ ./alembic/
+#37 [retry-daemon production 8/9] RUN addgroup --system appgroup && adduser --system --group appuser
 #37 CACHED
 
-#38 [status-transition-daemon production  5/16] COPY --from=base /usr/local/bin /usr/local/bin
+#38 [retry-daemon production 6/9] COPY shared/ ./shared/
 #38 CACHED
 
-#39 [status-transition-daemon production 12/16] COPY services/scheduler/__init__.py ./services/scheduler/__init__.py
+#39 [retry-daemon production 4/9] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 #39 CACHED
 
-#40 [status-transition-daemon production  9/16] COPY services/scheduler/event_builders.py ./services/scheduler/event_builders.py
+#40 [retry-daemon base 4/7] WORKDIR /app
 #40 CACHED
 
-#41 [status-transition-daemon base 6/7] COPY pyproject.toml ./
+#41 [retry-daemon base 5/7] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
 #41 CACHED
 
-#42 [status-transition-daemon production  6/16] COPY shared/ ./shared/
+#42 [retry-daemon base 6/7] COPY pyproject.toml ./
 #42 CACHED
 
-#43 [status-transition-daemon production 11/16] COPY services/scheduler/postgres_listener.py ./services/scheduler/postgres_listener.py
+#43 [retry-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
 #43 CACHED
 
-#44 [status-transition-daemon production 16/16] RUN chown -R appuser:appgroup /app
+#44 [retry-daemon production 7/9] COPY services/retry/ ./services/retry/
 #44 CACHED
 
-#45 [bot production  3/10] WORKDIR /app
+#45 [retry-daemon production 5/9] COPY --from=base /usr/local/bin /usr/local/bin
 #45 CACHED
 
-#46 [bot base 6/7] COPY pyproject.toml ./
+#46 [retry-daemon production 9/9] RUN chown -R appuser:appgroup /app
 #46 CACHED
 
-#47 [bot production  2/10] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     postgresql-client     && rm -rf /var/lib/apt/lists/*
+#47 [bot base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
 #47 CACHED
 
-#48 [bot production  4/10] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#48 [bot production  2/10] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     postgresql-client     && rm -rf /var/lib/apt/lists/*
 #48 CACHED
 
-#49 [bot base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
+#49 [bot base 6/7] COPY pyproject.toml ./
 #49 CACHED
 
-#50 [retry-daemon base 5/7] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
+#50 [bot production  3/10] WORKDIR /app
 #50 CACHED
 
-#51 [retry-daemon production 2/9] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     procps     && rm -rf /var/lib/apt/lists/*
+#51 [bot production  5/10] COPY --from=base /usr/local/bin /usr/local/bin
 #51 CACHED
 
-#52 [retry-daemon production 6/9] COPY shared/ ./shared/
+#52 [bot production  4/10] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 #52 CACHED
 
-#53 [retry-daemon base 3/7] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     && rm -rf /var/lib/apt/lists/*
+#53 [bot production  6/10] COPY shared/ ./shared/
 #53 CACHED
 
-#54 [retry-daemon production 7/9] COPY services/retry/ ./services/retry/
+#54 [status-transition-daemon production 13/17] COPY services/scheduler/__init__.py ./services/scheduler/__init__.py
 #54 CACHED
 
-#55 [retry-daemon production 4/9] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#55 [status-transition-daemon production 11/17] COPY services/scheduler/status_transition_daemon_wrapper.py ./services/scheduler/status_transition_daemon_wrapper.py
 #55 CACHED
 
-#56 [retry-daemon production 8/9] RUN addgroup --system appgroup && adduser --system --group appuser
+#56 [status-transition-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
 #56 CACHED
 
-#57 [retry-daemon base 6/7] COPY pyproject.toml ./
+#57 [status-transition-daemon production 10/17] COPY services/scheduler/event_builders.py ./services/scheduler/event_builders.py
 #57 CACHED
 
-#58 [retry-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
+#58 [status-transition-daemon production  7/17] COPY services/__init__.py ./services/__init__.py
 #58 CACHED
 
-#59 [retry-daemon base 4/7] WORKDIR /app
+#59 [status-transition-daemon production  9/17] COPY services/scheduler/daemon_runner.py ./services/scheduler/daemon_runner.py
 #59 CACHED
 
-#60 [retry-daemon production 5/9] COPY --from=base /usr/local/bin /usr/local/bin
+#60 [status-transition-daemon production  4/17] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 #60 CACHED
 
-#61 [retry-daemon production 3/9] WORKDIR /app
+#61 [status-transition-daemon production 12/17] COPY services/scheduler/postgres_listener.py ./services/scheduler/postgres_listener.py
 #61 CACHED
 
-#62 [bot production  5/10] COPY --from=base /usr/local/bin /usr/local/bin
+#62 [status-transition-daemon production  8/17] COPY services/scheduler/generic_scheduler_daemon.py ./services/scheduler/generic_scheduler_daemon.py
 #62 CACHED
 
-#63 [bot base 3/7] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     && rm -rf /var/lib/apt/lists/*
+#63 [status-transition-daemon production  5/17] COPY --from=base /usr/local/bin /usr/local/bin
 #63 CACHED
 
-#64 [notification-daemon production 11/16] COPY services/scheduler/postgres_listener.py ./services/scheduler/postgres_listener.py
+#64 [status-transition-daemon production 15/17] COPY alembic.ini ./
 #64 CACHED
 
-#65 [notification-daemon production  8/16] COPY services/scheduler/generic_scheduler_daemon.py ./services/scheduler/generic_scheduler_daemon.py
+#65 [status-transition-daemon base 6/7] COPY pyproject.toml ./
 #65 CACHED
 
-#15 [retry-daemon base 2/7] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
-#15 CACHED
-
-#66 [notification-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
+#66 [status-transition-daemon production  6/17] COPY shared/ ./shared/
 #66 CACHED
 
-#67 [notification-daemon base 6/7] COPY pyproject.toml ./
+#67 [status-transition-daemon production 14/17] COPY alembic/ ./alembic/
 #67 CACHED
 
-#68 [notification-daemon production  4/16] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#68 [status-transition-daemon production 16/17] RUN addgroup --system appgroup && adduser --system --group appuser
 #68 CACHED
 
-#69 [notification-daemon production 14/16] COPY alembic.ini ./
+#69 [status-transition-daemon production 17/17] RUN chown -R appuser:appgroup /app
 #69 CACHED
 
-#70 [notification-daemon production 15/16] RUN addgroup --system appgroup && adduser --system --group appuser
+#70 [participant-action-daemon production  8/18] COPY services/scheduler/generic_scheduler_daemon.py ./services/scheduler/generic_scheduler_daemon.py
 #70 CACHED
 
-#71 [notification-daemon production  5/16] COPY --from=base /usr/local/bin /usr/local/bin
+#71 [participant-action-daemon production 12/18] COPY services/scheduler/participant_action_daemon_wrapper.py ./services/scheduler/participant_action_daemon_wrapper.py
 #71 CACHED
 
-#72 [bot base 5/7] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
+#72 [participant-action-daemon production 13/18] COPY services/scheduler/postgres_listener.py ./services/scheduler/postgres_listener.py
 #72 CACHED
 
-#73 [notification-daemon production  6/16] COPY shared/ ./shared/
+#73 [participant-action-daemon production 11/18] COPY services/scheduler/participant_action_event_builder.py ./services/scheduler/participant_action_event_builder.py
 #73 CACHED
 
-#74 [notification-daemon production  7/16] COPY services/__init__.py ./services/__init__.py
+#74 [participant-action-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
 #74 CACHED
 
-#75 [bot base 4/7] WORKDIR /app
+#75 [participant-action-daemon production  6/18] COPY shared/ ./shared/
 #75 CACHED
 
-#76 [notification-daemon production 12/16] COPY services/scheduler/__init__.py ./services/scheduler/__init__.py
+#76 [participant-action-daemon production  7/18] COPY services/__init__.py ./services/__init__.py
 #76 CACHED
 
-#77 [notification-daemon production 10/16] COPY services/scheduler/notification_daemon_wrapper.py ./services/scheduler/notification_daemon_wrapper.py
+#77 [participant-action-daemon production 10/18] COPY services/scheduler/event_builders.py ./services/scheduler/event_builders.py
 #77 CACHED
 
-#78 [notification-daemon production 13/16] COPY alembic/ ./alembic/
+#78 [participant-action-daemon production 14/18] COPY services/scheduler/__init__.py ./services/scheduler/__init__.py
 #78 CACHED
 
-#79 [notification-daemon production  2/16] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     postgresql-client     procps     && rm -rf /var/lib/apt/lists/*
+#79 [participant-action-daemon production 16/18] COPY alembic.ini ./
 #79 CACHED
 
-#80 [notification-daemon production  9/16] COPY services/scheduler/event_builders.py ./services/scheduler/event_builders.py
+#80 [participant-action-daemon production  4/18] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 #80 CACHED
 
-#81 [notification-daemon production  3/16] WORKDIR /app
+#81 [participant-action-daemon production  9/18] COPY services/scheduler/daemon_runner.py ./services/scheduler/daemon_runner.py
 #81 CACHED
 
-#82 [notification-daemon production 16/16] RUN chown -R appuser:appgroup /app
+#82 [participant-action-daemon production  5/18] COPY --from=base /usr/local/bin /usr/local/bin
 #82 CACHED
 
-#83 [retry-daemon production 9/9] RUN chown -R appuser:appgroup /app
+#83 [participant-action-daemon base 6/7] COPY pyproject.toml ./
 #83 CACHED
 
-#29 [api internal] load build context
-#29 ...
+#84 [participant-action-daemon production 15/18] COPY alembic/ ./alembic/
+#84 CACHED
 
-#84 [init] resolving provenance for metadata file
-#84 DONE 0.0s
+#85 [participant-action-daemon production 17/18] RUN addgroup --system appgroup && adduser --system --group appuser
+#85 CACHED
 
-#29 [api internal] load build context
-#29 ...
+#86 [notification-daemon production 10/17] COPY services/scheduler/event_builders.py ./services/scheduler/event_builders.py
+#86 CACHED
 
-#85 [bot production  6/10] COPY shared/ ./shared/
-#85 DONE 0.2s
+#87 [notification-daemon production  6/17] COPY shared/ ./shared/
+#87 CACHED
 
-#86 [retry-daemon] exporting to image
-#86 exporting layers 0.0s done
-#86 exporting manifest sha256:69850b65c55f4f0320196fba97c1d35d9fd031a4a3a1a6f7782c11b8efa4fedb 0.0s done
-#86 exporting config sha256:190440a1ef4a9e8d252d7b21c9e83ab75ce7cf92311a1a96dcaf810bd17eeceb 0.0s done
-#86 exporting attestation manifest sha256:f2b86beefb9adee79a0b83cf31844dfdc1a4f22044b3cd9556b690f64de05580 0.0s done
-#86 exporting manifest list sha256:6f501abb0b216a13b1701ffe6a30322218c90bb5eb65ab20f3dc6d0102d6b923 0.0s done
-#86 naming to docker.io/library/game-scheduler-retry-daemon:latest done
-#86 unpacking to docker.io/library/game-scheduler-retry-daemon:latest 0.0s done
-#86 DONE 0.2s
+#88 [participant-action-daemon production  3/18] WORKDIR /app
+#88 CACHED
 
-#87 [status-transition-daemon] exporting to image
-#87 exporting layers 0.0s done
-#87 exporting manifest sha256:da1b8f4a60a50d4d3c9142207e47cbea483ab2b1a0e21c8513e50b53117b2c95 0.0s done
-#87 exporting config sha256:9fdeaeac9c0618e97d9e7cf5ad36de4a20dc3ea21dc31a77317d312eec173db9 0.0s done
-#87 exporting attestation manifest sha256:154ad728cf8bf50303bca6804d0fe5a9ac27507ca8f4ff6eeb8003cd2fcbb299 0.0s done
-#87 exporting manifest list sha256:6e48487fbc5ec0cd85127ccff43be2fc1d71dfad03126a54bdf3c2b40c17152b 0.0s done
-#87 naming to docker.io/library/game-scheduler-status-transition-daemon:latest done
-#87 unpacking to docker.io/library/game-scheduler-status-transition-daemon:latest 0.0s done
-#87 DONE 0.2s
+#89 [notification-daemon production 14/17] COPY alembic/ ./alembic/
+#89 CACHED
 
-#29 [api internal] load build context
-#29 ...
+#90 [participant-action-daemon base 3/7] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     && rm -rf /var/lib/apt/lists/*
+#90 CACHED
 
-#88 [notification-daemon] exporting to image
-#88 exporting layers 0.0s done
-#88 exporting manifest sha256:eef96fa7775e448258556290e09c7d0a17342eb330d45b14f1584cd8303cfe23 0.0s done
-#88 exporting config sha256:0e7c10eb5823c257f30581d4d0d1b488f06a3333687f97aec8483b85f1bf7a78 0.0s done
-#88 exporting attestation manifest sha256:cbd4aca404e999b2d0d4a4164d1f4be99081a2b1e48924e0a1bc0a32bafc2251 0.0s done
-#88 exporting manifest list sha256:74b859838ab1c40d3831851332a5c8ebc062ef4436e52a04600f919025575a18 0.0s done
-#88 naming to docker.io/library/game-scheduler-notification-daemon:latest done
-#88 unpacking to docker.io/library/game-scheduler-notification-daemon:latest 0.0s done
-#88 DONE 0.2s
+#91 [notification-daemon production 12/17] COPY services/scheduler/postgres_listener.py ./services/scheduler/postgres_listener.py
+#91 CACHED
 
-#29 [api internal] load build context
-#29 ...
+#92 [participant-action-daemon base 4/7] WORKDIR /app
+#92 CACHED
 
-#89 [bot production  7/10] COPY services/bot/ ./services/bot/
-#89 DONE 0.4s
+#93 [notification-daemon base 6/7] COPY pyproject.toml ./
+#93 CACHED
 
-#29 [api internal] load build context
-#29 ...
-
-#90 [notification-daemon] resolving provenance for metadata file
-#90 DONE 0.1s
-
-#29 [api internal] load build context
-#29 ...
-
-#91 [status-transition-daemon] resolving provenance for metadata file
-#91 DONE 0.1s
-
-#92 [retry-daemon] resolving provenance for metadata file
-#92 DONE 0.0s
-
-#29 [api internal] load build context
-#29 ...
-
-#93 [bot production  8/10] RUN addgroup --system appgroup && adduser --system --group appuser
-#93 DONE 0.6s
-
-#29 [api internal] load build context
-#29 transferring context: 21.89MB 1.9s done
-#29 DONE 1.9s
-
-#94 [api production 6/9] COPY shared/ ./shared/
+#94 [notification-daemon production  5/17] COPY --from=base /usr/local/bin /usr/local/bin
 #94 CACHED
 
-#95 [api base  4/10] WORKDIR /app
+#95 [notification-daemon production  4/17] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 #95 CACHED
 
-#96 [api base  7/10] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
+#96 [notification-daemon production 16/17] RUN addgroup --system appgroup && adduser --system --group appuser
 #96 CACHED
 
-#97 [api production 3/9] WORKDIR /app
+#97 [notification-daemon production  8/17] COPY services/scheduler/generic_scheduler_daemon.py ./services/scheduler/generic_scheduler_daemon.py
 #97 CACHED
 
-#98 [api base  8/10] COPY shared/ ./shared/
+#22 [participant-action-daemon base 2/7] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+#22 CACHED
+
+#98 [participant-action-daemon production  2/18] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     postgresql-client     procps     && rm -rf /var/lib/apt/lists/*
 #98 CACHED
 
-#99 [api base  3/10] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     curl     git     && rm -rf /var/lib/apt/lists/*
+#99 [notification-daemon base 7/7] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
 #99 CACHED
 
-#100 [api base  5/10] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
+#100 [notification-daemon production  7/17] COPY services/__init__.py ./services/__init__.py
 #100 CACHED
 
-#101 [api base  6/10] COPY pyproject.toml ./
+#101 [notification-daemon production 13/17] COPY services/scheduler/__init__.py ./services/scheduler/__init__.py
 #101 CACHED
 
-#102 [api production 8/9] RUN addgroup --system appgroup && adduser --system --group appuser
+#102 [notification-daemon production 15/17] COPY alembic.ini ./
 #102 CACHED
 
-#103 [api production 5/9] COPY --from=base /usr/local/bin /usr/local/bin
+#103 [notification-daemon production  9/17] COPY services/scheduler/daemon_runner.py ./services/scheduler/daemon_runner.py
 #103 CACHED
 
-#104 [api base 10/10] RUN --mount=source=.git,target=.git,type=bind     export GIT_VERSION=$(git describe --tags --always) &&     export PEP440_VERSION=$(echo "$GIT_VERSION" | sed -E 's/^v//; s/-([0-9]+)-g/.post\1+g/') &&     SETUPTOOLS_SCM_PRETEND_VERSION="$PEP440_VERSION" uv pip install --system --no-deps . &&     python -c "import importlib.metadata; print(importlib.metadata.version('game-scheduler'), end='')" > /app/.build_version
+#104 [notification-daemon production 11/17] COPY services/scheduler/notification_daemon_wrapper.py ./services/scheduler/notification_daemon_wrapper.py
 #104 CACHED
 
-#105 [api production 7/9] COPY services/api/ ./services/api/
+#105 [participant-action-daemon base 5/7] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
 #105 CACHED
 
-#106 [api production 2/9] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     postgresql-client     curl     && rm -rf /var/lib/apt/lists/*
+#106 [participant-action-daemon production 18/18] RUN chown -R appuser:appgroup /app
 #106 CACHED
 
-#107 [api production 4/9] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#107 [notification-daemon production 17/17] RUN chown -R appuser:appgroup /app
 #107 CACHED
 
-#15 [api base 2/7] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
-#15 CACHED
+#33 [api internal] load build context
+#33 transferring context: 12.01MB 0.4s done
+#33 DONE 0.4s
 
-#108 [api base  9/10] COPY services/ ./services/
-#108 CACHED
+#108 [bot production  7/10] COPY services/bot/ ./services/bot/
+#108 DONE 0.1s
 
-#109 [api production 9/9] RUN chown -R appuser:appgroup /app
+#109 [api production 6/9] COPY shared/ ./shared/
 #109 CACHED
 
-#110 [api] exporting to image
-#110 exporting layers done
-#110 exporting manifest sha256:969645758d64f644485cf2eeb8a97d798f87bb3dd79d2856fb7e1e327c6738ea done
-#110 exporting config sha256:44830de7159e5a29790e7c52c23e3c0a6552dfb00cd44e9ed922298bf31c1b1b done
-#110 exporting attestation manifest sha256:dd5e87f3566c69624993146e9c65c2b2cb17a67931ab0d9829a9e48230b36fdf 0.0s done
-#110 exporting manifest list sha256:134b95fd8383c35a509d5eabd8fd775a6c29a03e750c5893221ace40f610ca95 done
-#110 naming to docker.io/library/game-scheduler-api:latest
-#110 naming to docker.io/library/game-scheduler-api:latest done
-#110 unpacking to docker.io/library/game-scheduler-api:latest done
-#110 DONE 0.1s
+#110 [api base  6/10] COPY pyproject.toml ./
+#110 CACHED
 
-#111 [api] resolving provenance for metadata file
-#111 DONE 0.0s
+#111 [api base  3/10] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     curl     git     && rm -rf /var/lib/apt/lists/*
+#111 CACHED
 
-#112 [bot production  9/10] RUN pip install -e ./shared
-#112 1.294 Obtaining file:///app/shared
-#112 1.297   Installing build dependencies: started
-#112 2.477   Installing build dependencies: finished with status 'done'
-#112 2.478   Checking if build backend supports build_editable: started
-#112 2.884   Checking if build backend supports build_editable: finished with status 'done'
-#112 2.885   Getting requirements to build editable: started
-#112 3.117   Getting requirements to build editable: finished with status 'done'
-#112 3.118   Preparing editable metadata (pyproject.toml): started
-#112 3.343   Preparing editable metadata (pyproject.toml): finished with status 'done'
-#112 3.355 Requirement already satisfied: sqlalchemy>=2.0.0 in /usr/local/lib/python3.13/site-packages (from game-scheduler-shared==0.1.0) (2.0.47)
-#112 3.356 Requirement already satisfied: pydantic>=2.0.0 in /usr/local/lib/python3.13/site-packages (from game-scheduler-shared==0.1.0) (2.10.6)
-#112 3.356 Requirement already satisfied: asyncpg>=0.29.0 in /usr/local/lib/python3.13/site-packages (from game-scheduler-shared==0.1.0) (0.30.0)
-#112 3.357 Requirement already satisfied: aio-pika>=9.0.0 in /usr/local/lib/python3.13/site-packages (from game-scheduler-shared==0.1.0) (9.5.8)
-#112 3.358 Requirement already satisfied: redis>=5.0.0 in /usr/local/lib/python3.13/site-packages (from game-scheduler-shared==0.1.0) (5.2.1)
-#112 3.361 Requirement already satisfied: aiormq<7.0,>=6.8 in /usr/local/lib/python3.13/site-packages (from aio-pika>=9.0.0->game-scheduler-shared==0.1.0) (6.9.3)
-#112 3.362 Requirement already satisfied: yarl in /usr/local/lib/python3.13/site-packages (from aio-pika>=9.0.0->game-scheduler-shared==0.1.0) (1.22.0)
-#112 3.364 Requirement already satisfied: pamqp==3.3.0 in /usr/local/lib/python3.13/site-packages (from aiormq<7.0,>=6.8->aio-pika>=9.0.0->game-scheduler-shared==0.1.0) (3.3.0)
-#112 3.369 Requirement already satisfied: annotated-types>=0.6.0 in /usr/local/lib/python3.13/site-packages (from pydantic>=2.0.0->game-scheduler-shared==0.1.0) (0.7.0)
-#112 3.370 Requirement already satisfied: pydantic-core==2.27.2 in /usr/local/lib/python3.13/site-packages (from pydantic>=2.0.0->game-scheduler-shared==0.1.0) (2.27.2)
-#112 3.371 Requirement already satisfied: typing-extensions>=4.12.2 in /usr/local/lib/python3.13/site-packages (from pydantic>=2.0.0->game-scheduler-shared==0.1.0) (4.15.0)
-#112 3.378 Requirement already satisfied: greenlet>=1 in /usr/local/lib/python3.13/site-packages (from sqlalchemy>=2.0.0->game-scheduler-shared==0.1.0) (3.3.2)
-#112 3.386 Requirement already satisfied: idna>=2.0 in /usr/local/lib/python3.13/site-packages (from yarl->aio-pika>=9.0.0->game-scheduler-shared==0.1.0) (3.11)
-#112 3.387 Requirement already satisfied: multidict>=4.0 in /usr/local/lib/python3.13/site-packages (from yarl->aio-pika>=9.0.0->game-scheduler-shared==0.1.0) (6.7.1)
-#112 3.388 Requirement already satisfied: propcache>=0.2.1 in /usr/local/lib/python3.13/site-packages (from yarl->aio-pika>=9.0.0->game-scheduler-shared==0.1.0) (0.4.1)
-#112 3.392 Building wheels for collected packages: game-scheduler-shared
-#112 3.393   Building editable for game-scheduler-shared (pyproject.toml): started
-#112 3.666   Building editable for game-scheduler-shared (pyproject.toml): finished with status 'done'
-#112 3.667   Created wheel for game-scheduler-shared: filename=game_scheduler_shared-0.1.0-0.editable-py3-none-any.whl size=3141 sha256=09d40e2626e6e11b98e41922f1a831afdabc902d24b50f40b252909c934bb430
-#112 3.668   Stored in directory: /tmp/pip-ephem-wheel-cache-5x2hcl2s/wheels/cc/2c/19/fb0fd6ffc25161deff52583b559a588510a5b7fc0b64215ef4
-#112 3.671 Successfully built game-scheduler-shared
-#112 3.768 Installing collected packages: game-scheduler-shared
-#112 3.787 Successfully installed game-scheduler-shared-0.1.0
-#112 3.788 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
-#112 3.954
-#112 3.954 [notice] A new release of pip is available: 25.3 -> 26.0.1
-#112 3.954 [notice] To update, run: pip install --upgrade pip
-#112 DONE 4.1s
+#112 [api base  4/10] WORKDIR /app
+#112 CACHED
 
-#113 [bot production 10/10] RUN chown -R appuser:appgroup /app
-#113 DONE 0.4s
+#113 [api base  9/10] COPY services/ ./services/
+#113 CACHED
 
-#114 [bot] exporting to image
-#114 exporting layers 0.4s done
-#114 exporting manifest sha256:10d892001da4aad7121bdc94c466da26cbad3b5f520176dc3253091420d61d16 done
-#114 exporting config sha256:783ff2e55daec61d5e90755ad0b2a769171ba98d60c9278c45f89a7619e63717 done
-#114 exporting attestation manifest sha256:4c8a6034886aeaa7694048729cab8f6c330efd741560f43de0feba2583f63896 done
-#114 exporting manifest list sha256:747ba528a7e56ff9fad754b6d70e9bb19556bbc75de631cd6bbc95894c670aad done
-#114 naming to docker.io/library/game-scheduler-bot:latest done
-#114 unpacking to docker.io/library/game-scheduler-bot:latest
-#114 unpacking to docker.io/library/game-scheduler-bot:latest 2.8s done
-#114 DONE 3.2s
+#114 [api production 3/9] WORKDIR /app
+#114 CACHED
 
-#115 [bot] resolving provenance for metadata file
-#115 DONE 0.0s
- game-scheduler-notification-daemon:latest  Built
- game-scheduler-status-transition-daemon:latest  Built
- game-scheduler-bot:latest  Built
- game-scheduler-retry-daemon:latest  Built
- game-scheduler-init:latest  Built
+#115 [api base 10/10] RUN --mount=source=.git,target=.git,type=bind     export GIT_VERSION=$(git describe --tags --always) &&     export PEP440_VERSION=$(echo "$GIT_VERSION" | sed -E 's/^v//; s/-([0-9]+)-g/.post\1+g/') &&     SETUPTOOLS_SCM_PRETEND_VERSION="$PEP440_VERSION" uv pip install --system --no-deps . &&     python -c "import importlib.metadata; print(importlib.metadata.version('game-scheduler'), end='')" > /app/.build_version
+#115 CACHED
+
+#116 [api base  7/10] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system .
+#116 CACHED
+
+#117 [api production 4/9] COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#117 CACHED
+
+#22 [api base 2/7] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+#22 CACHED
+
+#118 [api base  8/10] COPY shared/ ./shared/
+#118 CACHED
+
+#119 [api production 2/9] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     postgresql-client     curl     && rm -rf /var/lib/apt/lists/*
+#119 CACHED
+
+#120 [api production 7/9] COPY services/api/ ./services/api/
+#120 CACHED
+
+#121 [api base  5/10] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
+#121 CACHED
+
+#122 [api production 5/9] COPY --from=base /usr/local/bin /usr/local/bin
+#122 CACHED
+
+#123 [api production 8/9] RUN addgroup --system appgroup && adduser --system --group appuser
+#123 CACHED
+
+#124 [api production 9/9] RUN chown -R appuser:appgroup /app
+#124 CACHED
+
+#125 [api] exporting to image
+#125 exporting layers done
+#125 exporting manifest sha256:76202c58d9f2c116308c3bb397e7392f41e32cd353f9610eb05ae78baea47fef 0.0s done
+#125 exporting config sha256:ce55f7129c0b4aa4b7295458f442f431790037e3e5c56232bbc521eb355bc90d done
+#125 exporting attestation manifest sha256:b698d772b208c767da357489ebdd73d504e87abce0ea627061314a924db18bc6 0.0s done
+#125 exporting manifest list sha256:212caf6b94700947951f1e00b9df4d65a23397c83ab01be6b6f3c33473a975be done
+#125 naming to docker.io/library/game-scheduler-api:latest done
+#125 unpacking to docker.io/library/game-scheduler-api:latest 0.0s done
+#125 DONE 0.1s
+
+#126 [retry-daemon] exporting to image
+#126 exporting layers done
+#126 exporting manifest sha256:c0aca6f2bb9dc318bddc65cce2c64545867325d307121f8abb2ecb6f54d6c10e 0.0s done
+#126 exporting config sha256:af7c8326e69638d79373e7549d8b61c0aa350e8013e2baa6bee7a18f92db2fb9 done
+#126 exporting attestation manifest sha256:998f7346f9f8b35fefad6dedf2b5d7347bbd951f64e51070a182a4c326ffce00 0.0s done
+#126 exporting manifest list sha256:700d4d2c01e162d0f42a0acfaea37c31a623d2d03fddcfedff2d8338cc20b0ff 0.0s done
+#126 naming to docker.io/library/game-scheduler-retry-daemon:latest done
+#126 unpacking to docker.io/library/game-scheduler-retry-daemon:latest 0.0s done
+#126 DONE 0.2s
+
+#127 [init] resolving provenance for metadata file
+#127 DONE 0.0s
+
+#128 [participant-action-daemon] exporting to image
+#128 exporting layers 0.0s done
+#128 exporting manifest sha256:601e2703fe0e48d4ea389356d4a61d33b6461f552509236efacfb6f06d109231 0.0s done
+#128 exporting config sha256:7fdffe13f80378399e71680caa1da692ca8a9f09feb7ddd3313e0d916fe2362f 0.0s done
+#128 exporting attestation manifest sha256:41e98d22de1fef46ea72f3cc376fe9f12fc46554fa716b695f4c33f953f9cb9f 0.0s done
+#128 exporting manifest list sha256:c4d3daabf90ac5a0e0de41cba4d4f1ea4500ff4445f3949706c8bcb5df2f062c 0.0s done
+#128 naming to docker.io/library/game-scheduler-participant-action-daemon:latest done
+#128 unpacking to docker.io/library/game-scheduler-participant-action-daemon:latest 0.0s done
+#128 DONE 0.2s
+
+#129 [status-transition-daemon] exporting to image
+#129 exporting layers 0.0s done
+#129 exporting manifest sha256:8346c7e8c48ce042db84c8c8dc7f2f0af0229c2fb5cce8d6914b584371bb0f01 0.0s done
+#129 exporting config sha256:b7011f2c3cd54517f6bfe9371e1a6b8bbd0f658b8d48b7ec02ac55be254d0af6 0.0s done
+#129 exporting attestation manifest sha256:8e4f12906b60a408e152b6ec288d0fe1b897436bf64a60fefc500746f8c60f0e 0.0s done
+#129 exporting manifest list sha256:5ee6cd37c9522e6039c691a3d4c276eafaec2ea2ae0d2a983b37f0ce6949d7f9 0.0s done
+#129 naming to docker.io/library/game-scheduler-status-transition-daemon:latest done
+#129 unpacking to docker.io/library/game-scheduler-status-transition-daemon:latest 0.0s done
+#129 DONE 0.2s
+
+#130 [notification-daemon] exporting to image
+#130 exporting layers 0.0s done
+#130 exporting manifest sha256:4986b8710b5ca6f030b62c0c19762a38bea85481acc25c97283d2cd38be719d1 0.0s done
+#130 exporting config sha256:b616b965126a7e8c965509ec56629dacf46f24b0b41400ca5e0deef882a26eb0 0.0s done
+#130 exporting attestation manifest sha256:1d417f4c4bcdf05d7face6f88d80b8206948757ca1fced5c996b4c7695230574 0.0s done
+#130 exporting manifest list sha256:5da1548770bfb702dc585ca1f9b1aa9dc4f1170d50f1902e8b08fcc7f67bf496 0.0s done
+#130 naming to docker.io/library/game-scheduler-notification-daemon:latest done
+#130 unpacking to docker.io/library/game-scheduler-notification-daemon:latest 0.0s done
+#130 DONE 0.2s
+
+#131 [retry-daemon] resolving provenance for metadata file
+#131 DONE 0.0s
+
+#132 [notification-daemon] resolving provenance for metadata file
+#132 DONE 0.0s
+
+#133 [api] resolving provenance for metadata file
+#133 DONE 0.1s
+
+#134 [status-transition-daemon] resolving provenance for metadata file
+#134 DONE 0.0s
+
+#135 [participant-action-daemon] resolving provenance for metadata file
+#135 DONE 0.0s
+
+#136 [bot production  8/10] RUN addgroup --system appgroup && adduser --system --group appuser
+#136 DONE 0.4s
+
+#137 [bot production  9/10] RUN pip install -e ./shared
+#137 1.512 Obtaining file:///app/shared
+#137 1.515   Installing build dependencies: started
+#137 2.654   Installing build dependencies: finished with status 'done'
+#137 2.655   Checking if build backend supports build_editable: started
+#137 3.086   Checking if build backend supports build_editable: finished with status 'done'
+#137 3.087   Getting requirements to build editable: started
+#137 3.311   Getting requirements to build editable: finished with status 'done'
+#137 3.312   Preparing editable metadata (pyproject.toml): started
+#137 3.521   Preparing editable metadata (pyproject.toml): finished with status 'done'
+#137 3.531 Requirement already satisfied: sqlalchemy>=2.0.0 in /usr/local/lib/python3.13/site-packages (from game-scheduler-shared==0.1.0) (2.0.47)
+#137 3.532 Requirement already satisfied: pydantic>=2.0.0 in /usr/local/lib/python3.13/site-packages (from game-scheduler-shared==0.1.0) (2.10.6)
+#137 3.532 Requirement already satisfied: asyncpg>=0.29.0 in /usr/local/lib/python3.13/site-packages (from game-scheduler-shared==0.1.0) (0.30.0)
+#137 3.533 Requirement already satisfied: aio-pika>=9.0.0 in /usr/local/lib/python3.13/site-packages (from game-scheduler-shared==0.1.0) (9.5.8)
+#137 3.534 Requirement already satisfied: redis>=5.0.0 in /usr/local/lib/python3.13/site-packages (from game-scheduler-shared==0.1.0) (5.2.1)
+#137 3.536 Requirement already satisfied: aiormq<7.0,>=6.8 in /usr/local/lib/python3.13/site-packages (from aio-pika>=9.0.0->game-scheduler-shared==0.1.0) (6.9.3)
+#137 3.536 Requirement already satisfied: yarl in /usr/local/lib/python3.13/site-packages (from aio-pika>=9.0.0->game-scheduler-shared==0.1.0) (1.22.0)
+#137 3.539 Requirement already satisfied: pamqp==3.3.0 in /usr/local/lib/python3.13/site-packages (from aiormq<7.0,>=6.8->aio-pika>=9.0.0->game-scheduler-shared==0.1.0) (3.3.0)
+#137 3.545 Requirement already satisfied: annotated-types>=0.6.0 in /usr/local/lib/python3.13/site-packages (from pydantic>=2.0.0->game-scheduler-shared==0.1.0) (0.7.0)
+#137 3.545 Requirement already satisfied: pydantic-core==2.27.2 in /usr/local/lib/python3.13/site-packages (from pydantic>=2.0.0->game-scheduler-shared==0.1.0) (2.27.2)
+#137 3.546 Requirement already satisfied: typing-extensions>=4.12.2 in /usr/local/lib/python3.13/site-packages (from pydantic>=2.0.0->game-scheduler-shared==0.1.0) (4.15.0)
+#137 3.553 Requirement already satisfied: greenlet>=1 in /usr/local/lib/python3.13/site-packages (from sqlalchemy>=2.0.0->game-scheduler-shared==0.1.0) (3.3.2)
+#137 3.562 Requirement already satisfied: idna>=2.0 in /usr/local/lib/python3.13/site-packages (from yarl->aio-pika>=9.0.0->game-scheduler-shared==0.1.0) (3.11)
+#137 3.563 Requirement already satisfied: multidict>=4.0 in /usr/local/lib/python3.13/site-packages (from yarl->aio-pika>=9.0.0->game-scheduler-shared==0.1.0) (6.7.1)
+#137 3.564 Requirement already satisfied: propcache>=0.2.1 in /usr/local/lib/python3.13/site-packages (from yarl->aio-pika>=9.0.0->game-scheduler-shared==0.1.0) (0.4.1)
+#137 3.568 Building wheels for collected packages: game-scheduler-shared
+#137 3.569   Building editable for game-scheduler-shared (pyproject.toml): started
+#137 3.845   Building editable for game-scheduler-shared (pyproject.toml): finished with status 'done'
+#137 3.846   Created wheel for game-scheduler-shared: filename=game_scheduler_shared-0.1.0-0.editable-py3-none-any.whl size=3141 sha256=7f73a5a9127649c1ff00c32cc20fffd58776c3ee9e246180b5945fb8d3ca4064
+#137 3.846   Stored in directory: /tmp/pip-ephem-wheel-cache-d6ihkfjm/wheels/cc/2c/19/fb0fd6ffc25161deff52583b559a588510a5b7fc0b64215ef4
+#137 3.850 Successfully built game-scheduler-shared
+#137 3.939 Installing collected packages: game-scheduler-shared
+#137 3.957 Successfully installed game-scheduler-shared-0.1.0
+#137 3.957 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#137 4.157
+#137 4.157 [notice] A new release of pip is available: 25.3 -> 26.0.1
+#137 4.157 [notice] To update, run: pip install --upgrade pip
+#137 DONE 4.3s
+
+#138 [bot production 10/10] RUN chown -R appuser:appgroup /app
+#138 DONE 0.4s
+
+#139 [bot] exporting to image
+#139 exporting layers
+#139 exporting layers 0.3s done
+#139 exporting manifest sha256:daabd7d754465030514ee2cc90926c91fa3b7003c394e87489fd407223cc4eeb done
+#139 exporting config sha256:92316109025c46009797bd0d4f5530eba56d806ed1b313215c716bbe53d84f6a done
+#139 exporting attestation manifest sha256:6ee7d7ab6e8a639b50e5bd221a482cb897dd864e78300f0e1556d2a2d437754e 0.0s done
+#139 exporting manifest list sha256:2c95e4e40794c825f8b4360ea5c847dab3a30605b0b8d4edefbc80002715d8a5 done
+#139 naming to docker.io/library/game-scheduler-bot:latest done
+#139 unpacking to docker.io/library/game-scheduler-bot:latest
+#139 unpacking to docker.io/library/game-scheduler-bot:latest 0.2s done
+#139 DONE 0.6s
+
+#140 [bot] resolving provenance for metadata file
+#140 DONE 0.0s
  game-scheduler-api:latest  Built
- Network gamebot-e2e-test-network  Creating
- Network gamebot-e2e-test-network  Created
- Volume gamebot-e2e-redis-data  Creating
- Volume gamebot-e2e-redis-data  Created
- Container gamebot-e2e-postgres  Creating
- Container gamebot-e2e-rabbitmq  Creating
- Container gamebot-e2e-grafana-alloy  Creating
- Container gamebot-e2e-redis  Creating
- Container gamebot-e2e-grafana-alloy  Created
- Container gamebot-e2e-rabbitmq  Created
- Container gamebot-e2e-postgres  Created
- Container gamebot-e2e-init  Creating
- Container gamebot-e2e-redis  Created
- Container gamebot-e2e-init  Created
- Container gamebot-e2e-bot  Creating
- Container gamebot-e2e-api  Creating
- Container gamebot-e2e-notification-daemon  Creating
- Container gamebot-e2e-status-transition-daemon  Creating
- Container gamebot-e2e-retry-daemon  Creating
- Container gamebot-e2e-retry-daemon  Created
- Container gamebot-e2e-api  Created
- Container gamebot-e2e-cloudflared  Creating
- Container gamebot-e2e-bot  Created
- Container gamebot-e2e-notification-daemon  Created
- Container gamebot-e2e-status-transition-daemon  Created
- Container gamebot-e2e-cloudflared  Created
- Container gamebot-e2e-system-ready  Creating
- Container gamebot-e2e-system-ready  Created
- Container gamebot-e2e-rabbitmq  Starting
- Container gamebot-e2e-redis  Starting
- Container gamebot-e2e-postgres  Starting
+ game-scheduler-bot:latest  Built
+ game-scheduler-notification-daemon:latest  Built
+ game-scheduler-participant-action-daemon:latest  Built
+ game-scheduler-init:latest  Built
+ game-scheduler-retry-daemon:latest  Built
+ game-scheduler-status-transition-daemon:latest  Built
+ Container gamebot-e2e-rabbitmq  Running
+ Container gamebot-e2e-postgres  Running
+ Container gamebot-e2e-init  Recreate
+ Container gamebot-e2e-redis  Running
+ Container gamebot-e2e-init  Recreated
+ Container gamebot-e2e-api  Recreate
+ Container gamebot-e2e-bot  Recreate
+ Container gamebot-e2e-status-transition-daemon  Recreate
+ Container gamebot-e2e-retry-daemon  Recreate
+ Container gamebot-e2e-notification-daemon  Recreate
+ Container gamebot-e2e-participant-action-daemon  Recreate
+ Container gamebot-e2e-api  Recreated
+ Container gamebot-e2e-cloudflared  Running
+ Container gamebot-e2e-retry-daemon  Recreated
+ Container gamebot-e2e-participant-action-daemon  Recreated
+ Container gamebot-e2e-status-transition-daemon  Recreated
+ Container gamebot-e2e-bot  Recreated
+ Container gamebot-e2e-notification-daemon  Recreated
+ Container gamebot-e2e-system-ready  Running
  Container gamebot-e2e-grafana-alloy  Starting
  Container gamebot-e2e-grafana-alloy  Started
- Container gamebot-e2e-postgres  Started
- Container gamebot-e2e-redis  Started
- Container gamebot-e2e-rabbitmq  Started
- Container gamebot-e2e-rabbitmq  Waiting
  Container gamebot-e2e-postgres  Waiting
+ Container gamebot-e2e-rabbitmq  Waiting
  Container gamebot-e2e-rabbitmq  Healthy
  Container gamebot-e2e-postgres  Healthy
  Container gamebot-e2e-init  Starting
@@ -1208,187 +1301,173 @@ time="2026-03-01T11:17:57-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" va
  Container gamebot-e2e-init  Waiting
  Container gamebot-e2e-init  Waiting
  Container gamebot-e2e-init  Waiting
- Container gamebot-e2e-init  Healthy
- Container gamebot-e2e-init  Healthy
- Container gamebot-e2e-init  Healthy
+ Container gamebot-e2e-init  Waiting
  Container gamebot-e2e-init  Healthy
  Container gamebot-e2e-api  Starting
  Container gamebot-e2e-init  Healthy
  Container gamebot-e2e-notification-daemon  Starting
- Container gamebot-e2e-bot  Starting
+ Container gamebot-e2e-init  Healthy
+ Container gamebot-e2e-init  Healthy
+ Container gamebot-e2e-participant-action-daemon  Starting
  Container gamebot-e2e-status-transition-daemon  Starting
+ Container gamebot-e2e-init  Healthy
+ Container gamebot-e2e-bot  Starting
+ Container gamebot-e2e-init  Healthy
  Container gamebot-e2e-retry-daemon  Starting
- Container gamebot-e2e-notification-daemon  Started
- Container gamebot-e2e-status-transition-daemon  Started
- Container gamebot-e2e-retry-daemon  Started
- Container gamebot-e2e-bot  Started
  Container gamebot-e2e-api  Started
- Container gamebot-e2e-cloudflared  Starting
- Container gamebot-e2e-cloudflared  Started
+ Container gamebot-e2e-participant-action-daemon  Started
+ Container gamebot-e2e-notification-daemon  Started
+ Container gamebot-e2e-bot  Started
+ Container gamebot-e2e-retry-daemon  Started
+ Container gamebot-e2e-status-transition-daemon  Started
+ Container gamebot-e2e-bot  Waiting
+ Container gamebot-e2e-init  Waiting
+ Container gamebot-e2e-postgres  Waiting
  Container gamebot-e2e-redis  Waiting
  Container gamebot-e2e-rabbitmq  Waiting
- Container gamebot-e2e-init  Waiting
- Container gamebot-e2e-bot  Waiting
- Container gamebot-e2e-postgres  Waiting
- Container gamebot-e2e-redis  Healthy
- Container gamebot-e2e-rabbitmq  Healthy
  Container gamebot-e2e-init  Healthy
+ Container gamebot-e2e-redis  Healthy
  Container gamebot-e2e-postgres  Healthy
+ Container gamebot-e2e-rabbitmq  Healthy
  Container gamebot-e2e-bot  Healthy
- Container gamebot-e2e-system-ready  Starting
- Container gamebot-e2e-system-ready  Started
-time="2026-03-01T11:18:36-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" variable is not set. Defaulting to a blank string."
+time="2026-03-04T20:46:08-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" variable is not set. Defaulting to a blank string."
 #1 [internal] load local bake definitions
 #1 reading from stdin 652B done
 #1 DONE 0.0s
 
 #2 [internal] load build definition from test.Dockerfile
+#2 transferring dockerfile: 35B
 #2 transferring dockerfile: 2.09kB done
 #2 DONE 0.0s
 
 #3 resolve image config for docker-image://docker.io/docker/dockerfile:1
-#3 ...
+#3 DONE 0.5s
 
-#4 [auth] docker/dockerfile:pull token for registry-1.docker.io
-#4 DONE 0.0s
+#4 docker-image://docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6
+#4 resolve docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6 0.0s done
+#4 CACHED
 
-#3 resolve image config for docker-image://docker.io/docker/dockerfile:1
-#3 DONE 0.8s
+#5 [internal] load metadata for docker.io/library/python:3.13-slim
+#5 DONE 0.3s
 
-#5 docker-image://docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6
-#5 resolve docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6 0.0s done
-#5 CACHED
+#6 [internal] load .dockerignore
+#6 transferring context: 943B done
+#6 DONE 0.0s
 
-#6 [internal] load metadata for docker.io/library/python:3.13-slim
-#6 ...
-
-#7 [auth] library/python:pull token for registry-1.docker.io
+#7 [stage-0  1/16] FROM docker.io/library/python:3.13-slim@sha256:8bc60ca09afaa8ea0d6d1220bde073bacfedd66a4bf8129cbdc8ef0e16c8a952
+#7 resolve docker.io/library/python:3.13-slim@sha256:8bc60ca09afaa8ea0d6d1220bde073bacfedd66a4bf8129cbdc8ef0e16c8a952 0.0s done
 #7 DONE 0.0s
 
-#6 [internal] load metadata for docker.io/library/python:3.13-slim
-#6 DONE 0.5s
+#8 [internal] load build context
+#8 transferring context: 10.82MB 0.2s done
+#8 DONE 0.2s
 
-#8 [internal] load .dockerignore
-#8 transferring context: 943B done
-#8 DONE 0.0s
+#9 [stage-0  9/16] COPY shared/ ./shared/
+#9 CACHED
 
-#9 [internal] load build context
-#9 DONE 0.0s
+#10 [stage-0  6/16] RUN mkdir -p /app/coverage
+#10 CACHED
 
-#10 [stage-0  1/16] FROM docker.io/library/python:3.13-slim@sha256:8bc60ca09afaa8ea0d6d1220bde073bacfedd66a4bf8129cbdc8ef0e16c8a952
-#10 resolve docker.io/library/python:3.13-slim@sha256:8bc60ca09afaa8ea0d6d1220bde073bacfedd66a4bf8129cbdc8ef0e16c8a952 0.0s done
-#10 DONE 0.0s
-
-#9 [internal] load build context
-#9 transferring context: 10.30MB 0.3s done
-#9 DONE 0.3s
-
-#11 [stage-0 10/16] COPY services/ ./services/
+#11 [stage-0 12/16] COPY alembic.ini ./
 #11 CACHED
 
-#12 [stage-0  8/16] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system -e . && uv pip install --system --group dev
+#12 [stage-0 10/16] COPY services/ ./services/
 #12 CACHED
 
-#13 [stage-0  5/16] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
+#13 [stage-0 11/16] COPY alembic/ ./alembic/
 #13 CACHED
 
-#14 [stage-0  9/16] COPY shared/ ./shared/
+#14 [stage-0 14/16] COPY tests/ ./tests/
 #14 CACHED
 
-#15 [stage-0  2/16] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+#15 [stage-0  3/16] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     curl     && rm -rf /var/lib/apt/lists/*
 #15 CACHED
 
-#16 [stage-0  3/16] RUN --mount=type=cache,target=/var/cache/apt,sharing=private     --mount=type=cache,target=/var/lib/apt,sharing=private     apt-get update && apt-get install -y     gcc     postgresql-client     curl     && rm -rf /var/lib/apt/lists/*
+#16 [stage-0  8/16] RUN --mount=type=cache,target=/root/.cache/uv     uv pip install --system -e . && uv pip install --system --group dev
 #16 CACHED
 
-#17 [stage-0  6/16] RUN mkdir -p /app/coverage
+#17 [stage-0  5/16] RUN --mount=type=cache,target=/root/.cache/pip     pip install --no-cache-dir uv
 #17 CACHED
 
-#18 [stage-0  4/16] WORKDIR /app
+#18 [stage-0  2/16] RUN rm -f /etc/apt/apt.conf.d/docker-clean;     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 #18 CACHED
 
-#19 [stage-0 15/16] RUN addgroup --system testgroup && adduser --system --group testuser
+#19 [stage-0  4/16] WORKDIR /app
 #19 CACHED
 
-#20 [stage-0 14/16] COPY tests/ ./tests/
+#20 [stage-0 13/16] COPY scripts/ ./scripts/
 #20 CACHED
 
-#21 [stage-0 12/16] COPY alembic.ini ./
+#21 [stage-0 15/16] RUN addgroup --system testgroup && adduser --system --group testuser
 #21 CACHED
 
-#22 [stage-0 13/16] COPY scripts/ ./scripts/
+#22 [stage-0  7/16] COPY pyproject.toml uv.lock ./
 #22 CACHED
 
-#23 [stage-0 11/16] COPY alembic/ ./alembic/
+#23 [stage-0 16/16] RUN chown -R testuser:testgroup /app
 #23 CACHED
 
-#24 [stage-0  7/16] COPY pyproject.toml uv.lock ./
-#24 CACHED
+#24 exporting to image
+#24 exporting layers done
+#24 exporting manifest sha256:031ee8232011dbbca1725283370b240124e720443eda41ab33907df91699e648 done
+#24 exporting config sha256:222dc5b5f55754795c52e5efc36379fc284cf7953069e76bf9ffe52540c7dd09 done
+#24 exporting attestation manifest sha256:616342a5370fef585ddc3f3f6dc4401d6ce92f25f594e2a001db9fec757417ee 0.0s done
+#24 exporting manifest list sha256:241b8f744c4382ae2ca70c9d0a6f26e7a85ef0fdfaa324c1d325ed77722cd24a done
+#24 naming to docker.io/library/gamebot-e2e-e2e-tests:latest done
+#24 unpacking to docker.io/library/gamebot-e2e-e2e-tests:latest 0.0s done
+#24 DONE 0.1s
 
-#25 [stage-0 16/16] RUN chown -R testuser:testgroup /app
-#25 CACHED
-
-#26 exporting to image
-#26 exporting layers done
-#26 exporting manifest sha256:e35db12aa96430942e6cab72add0aeeb185ad7d44d55fecad7baffafb902c9c4 done
-#26 exporting config sha256:46c24bab3902502807128976a7104e868afce1e8aaea7f2baa1a462e31436024 done
-#26 exporting attestation manifest sha256:d7abe4ac75156991b66c52f4aeecb9ac660a2e825f0361a92f398bb088fa30ee done
-#26 exporting manifest list sha256:e0225fb6dea3bcec392b9677edf55322fda68a9233b33367ab4ce35ac34d4705 done
-#26 naming to docker.io/library/gamebot-e2e-e2e-tests:latest done
-#26 unpacking to docker.io/library/gamebot-e2e-e2e-tests:latest 0.0s done
-#26 DONE 0.1s
-
-#27 resolving provenance for metadata file
-#27 DONE 0.0s
-..........F............................................................. [ 98%]
-.                                                                        [100%]
-=================================== FAILURES ===================================
-/app/tests/e2e/helpers/discord.py:658: AssertionError: Thumbnail width should be > 0: 0
-=========================== short test summary info ============================
-FAILED tests/e2e/test_game_image_display.py::test_game_with_only_thumbnail_displays_correctly
-1 failed, 72 passed, 1753 deselected in 408.30s (0:06:48)
-
+#25 resolving provenance for metadata file
+#25 DONE 0.0s
+........................................................................ [ 97%]
+..                                                                       [100%]
+74 passed, 1820 deselected in 533.44s (0:08:53)
+End-to-end tests passed!
 Cleaning up e2e test environment...
-time="2026-03-01T11:25:33-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" variable is not set. Defaulting to a blank string."
+time="2026-03-04T20:55:09-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" variable is not set. Defaulting to a blank string."
  Container gamebot-e2e-system-ready  Stopping
  Container gamebot-e2e-system-ready  Stopped
  Container gamebot-e2e-system-ready  Removing
  Container gamebot-e2e-system-ready  Removed
- Container gamebot-e2e-cloudflared  Stopping
  Container gamebot-e2e-redis  Stopping
  Container gamebot-e2e-status-transition-daemon  Stopping
- Container gamebot-e2e-notification-daemon  Stopping
  Container gamebot-e2e-bot  Stopping
+ Container gamebot-e2e-participant-action-daemon  Stopping
+ Container gamebot-e2e-cloudflared  Stopping
  Container gamebot-e2e-retry-daemon  Stopping
- Container gamebot-e2e-cloudflared  Stopped
- Container gamebot-e2e-cloudflared  Removing
+ Container gamebot-e2e-notification-daemon  Stopping
  Container gamebot-e2e-redis  Stopped
  Container gamebot-e2e-redis  Removing
+ Container gamebot-e2e-cloudflared  Stopped
+ Container gamebot-e2e-cloudflared  Removing
+ Container gamebot-e2e-redis  Removed
  Container gamebot-e2e-cloudflared  Removed
  Container gamebot-e2e-api  Stopping
- Container gamebot-e2e-redis  Removed
  Container gamebot-e2e-api  Stopped
  Container gamebot-e2e-api  Removing
  Container gamebot-e2e-api  Removed
  Container gamebot-e2e-retry-daemon  Stopped
  Container gamebot-e2e-retry-daemon  Removing
  Container gamebot-e2e-retry-daemon  Removed
- Container gamebot-e2e-bot  Stopped
- Container gamebot-e2e-bot  Removing
- Container gamebot-e2e-notification-daemon  Stopped
- Container gamebot-e2e-notification-daemon  Removing
  Container gamebot-e2e-status-transition-daemon  Stopped
  Container gamebot-e2e-status-transition-daemon  Removing
- Container gamebot-e2e-bot  Removed
+ Container gamebot-e2e-participant-action-daemon  Stopped
+ Container gamebot-e2e-participant-action-daemon  Removing
+ Container gamebot-e2e-notification-daemon  Stopped
+ Container gamebot-e2e-notification-daemon  Removing
+ Container gamebot-e2e-bot  Stopped
+ Container gamebot-e2e-bot  Removing
  Container gamebot-e2e-status-transition-daemon  Removed
+ Container gamebot-e2e-bot  Removed
  Container gamebot-e2e-notification-daemon  Removed
+ Container gamebot-e2e-participant-action-daemon  Removed
  Container gamebot-e2e-init  Stopping
  Container gamebot-e2e-init  Stopped
  Container gamebot-e2e-init  Removing
  Container gamebot-e2e-init  Removed
- Container gamebot-e2e-postgres  Stopping
  Container gamebot-e2e-rabbitmq  Stopping
  Container gamebot-e2e-grafana-alloy  Stopping
+ Container gamebot-e2e-postgres  Stopping
  Container gamebot-e2e-grafana-alloy  Stopped
  Container gamebot-e2e-grafana-alloy  Removing
  Container gamebot-e2e-grafana-alloy  Removed
@@ -1406,4 +1485,179 @@ time="2026-03-01T11:25:33-08:00" level=warning msg="The \"DISCORD_CLIENT_ID\" va
  Volume gamebot-e2e-redis-data  Removed
  Volume gamebot-e2e-postgres-data  Removed
  Network gamebot-e2e-test-network  Removed
-ERROR: E2E tests failed
+E2E tests completed with 35.85% coverage
+
+Combining coverage data...
+=========================
+Combined data file .coverage.e2e
+Combined data file .coverage.integration
+Combined data file .coverage.unit
+
+Coverage Report:
+================
+Name                                                      Stmts   Miss   Cover
+------------------------------------------------------------------------------
+services/api/app.py                                          71      0 100.00%
+services/api/auth/__init__.py                                 2      0 100.00%
+services/api/auth/oauth2.py                                  66      0 100.00%
+services/api/auth/roles.py                                   92      8  91.30%
+services/api/auth/tokens.py                                  81      6  92.59%
+services/api/config.py                                       53      0 100.00%
+services/api/database/queries.py                             55      8  85.45%
+services/api/dependencies/__init__.py                         2      0 100.00%
+services/api/dependencies/auth.py                            25     13  48.00%
+services/api/dependencies/discord.py                          8      0 100.00%
+services/api/dependencies/permissions.py                    139     10  92.81%
+services/api/main.py                                         27      2  92.59%
+services/api/middleware/__init__.py                           2      0 100.00%
+services/api/middleware/authorization.py                     27      0 100.00%
+services/api/middleware/cors.py                               8      0 100.00%
+services/api/middleware/error_handler.py                     31      0 100.00%
+services/api/routes/__init__.py                               2      0 100.00%
+services/api/routes/auth.py                                  91     67  26.37%
+services/api/routes/channels.py                              40     11  72.50%
+services/api/routes/export.py                                43      2  95.35%
+services/api/routes/games.py                                246    105  57.32%
+services/api/routes/guilds.py                               126     38  69.84%
+services/api/routes/maintainers.py                           52      4  92.31%
+services/api/routes/public.py                                47      1  97.87%
+services/api/routes/sse.py                                   30      9  70.00%
+services/api/routes/templates.py                             95     31  67.37%
+services/api/schemas/clone_game.py                           30      0 100.00%
+services/api/services/calendar_export.py                     83      0 100.00%
+services/api/services/channel_resolver.py                    26      0 100.00%
+services/api/services/channel_service.py                     13      0 100.00%
+services/api/services/display_names.py                      114      3  97.37%
+services/api/services/games.py                              598     42  92.98%
+services/api/services/guild_service.py                       37      0 100.00%
+services/api/services/notification_schedule.py               36      0 100.00%
+services/api/services/participant_resolver.py                97      2  97.94%
+services/api/services/sse_bridge.py                          73      2  97.26%
+services/api/services/template_service.py                    69      0 100.00%
+services/bot/auth/__init__.py                                 2      0 100.00%
+services/bot/auth/cache.py                                   63      6  90.48%
+services/bot/auth/permissions.py                             49      0 100.00%
+services/bot/auth/role_checker.py                            88     28  68.18%
+services/bot/bot.py                                          95      8  91.58%
+services/bot/commands/__init__.py                             2      0 100.00%
+services/bot/commands/decorators.py                          33      1  96.97%
+services/bot/commands/list_games.py                          61      5  91.80%
+services/bot/commands/my_games.py                            55      4  92.73%
+services/bot/commands/setup.py                                5      0 100.00%
+services/bot/config.py                                       18      0 100.00%
+services/bot/dependencies/discord_client.py                   8      0 100.00%
+services/bot/events/__init__.py                               3      0 100.00%
+services/bot/events/handlers.py                             508     76  85.04%
+services/bot/events/publisher.py                             38      0 100.00%
+services/bot/formatters/__init__.py                           2      0 100.00%
+services/bot/formatters/game_message.py                     105      0 100.00%
+services/bot/guild_sync.py                                   89     26  70.79%
+services/bot/handlers/__init__.py                             4      0 100.00%
+services/bot/handlers/button_handler.py                      29     20  31.03%
+services/bot/handlers/join_game.py                           62     43  30.65%
+services/bot/handlers/leave_game.py                          51     37  27.45%
+services/bot/handlers/participant_drop.py                    35      4  88.57%
+services/bot/handlers/utils.py                               25     11  56.00%
+services/bot/main.py                                         35      4  88.57%
+services/bot/utils/__init__.py                                2      0 100.00%
+services/bot/utils/discord_format.py                         74     36  51.35%
+services/bot/views/__init__.py                                3      0 100.00%
+services/bot/views/clone_confirmation_view.py                47      6  87.23%
+services/bot/views/game_view.py                              32      0 100.00%
+services/retry/retry_daemon.py                              156      4  97.44%
+services/retry/retry_daemon_wrapper.py                       25     25   0.00%
+services/scheduler/config.py                                 13     13   0.00%
+services/scheduler/daemon_runner.py                          16      0 100.00%
+services/scheduler/event_builders.py                         24      0 100.00%
+services/scheduler/generic_scheduler_daemon.py              121      5  95.87%
+services/scheduler/notification_daemon_wrapper.py            18     18   0.00%
+services/scheduler/participant_action_daemon_wrapper.py      18      1  94.44%
+services/scheduler/participant_action_event_builder.py        5      0 100.00%
+services/scheduler/postgres_listener.py                      61     10  83.61%
+services/scheduler/services/notification_service.py          30     30   0.00%
+services/scheduler/status_transition_daemon_wrapper.py       18     18   0.00%
+shared/__init__.py                                            5      0 100.00%
+shared/cache/__init__.py                                      4      0 100.00%
+shared/cache/client.py                                      134     31  76.87%
+shared/cache/keys.py                                         49      0 100.00%
+shared/cache/ttl.py                                          14      0 100.00%
+shared/data_access/__init__.py                                2      0 100.00%
+shared/data_access/guild_isolation.py                        22      0 100.00%
+shared/data_access/guild_queries.py                         174      2  98.85%
+shared/database.py                                          103     28  72.82%
+shared/database_objects.py                                    7      7   0.00%
+shared/discord/__init__.py                                    2      0 100.00%
+shared/discord/client.py                                    308     49  84.09%
+shared/discord/game_embeds.py                                19      0 100.00%
+shared/message_formats.py                                    53      0 100.00%
+shared/messaging/__init__.py                                  6      0 100.00%
+shared/messaging/config.py                                   40     18  55.00%
+shared/messaging/consumer.py                                 74     36  51.35%
+shared/messaging/deferred_publisher.py                       29      0 100.00%
+shared/messaging/events.py                                   65      0 100.00%
+shared/messaging/infrastructure.py                           18      0 100.00%
+shared/messaging/publisher.py                                36      6  83.33%
+shared/messaging/sync_publisher.py                           56     11  80.36%
+shared/models/__init__.py                                    13      0 100.00%
+shared/models/base.py                                        13      0 100.00%
+shared/models/channel.py                                     17      1  94.12%
+shared/models/game.py                                        50      1  98.00%
+shared/models/game_image.py                                  17      1  94.12%
+shared/models/game_status_schedule.py                        14      0 100.00%
+shared/models/guild.py                                       17      1  94.12%
+shared/models/notification_schedule.py                       19      0 100.00%
+shared/models/participant.py                                 24      2  91.67%
+shared/models/participant_action_schedule.py                 15      0 100.00%
+shared/models/signup_method.py                               12      0 100.00%
+shared/models/template.py                                    32      0 100.00%
+shared/models/user.py                                        16      1  93.75%
+shared/schemas/__init__.py                                    8      0 100.00%
+shared/schemas/auth.py                                       28      0 100.00%
+shared/schemas/channel.py                                    17      0 100.00%
+shared/schemas/events.py                                     10      0 100.00%
+shared/schemas/game.py                                       89      6  93.26%
+shared/schemas/guild.py                                      27      0 100.00%
+shared/schemas/participant.py                                14      0 100.00%
+shared/schemas/template.py                                   76      0 100.00%
+shared/schemas/user.py                                       10      0 100.00%
+shared/services/image_storage.py                             42      0 100.00%
+shared/setup.py                                               2      2   0.00%
+shared/telemetry.py                                          58      0 100.00%
+shared/utils/__init__.py                                      4      0 100.00%
+shared/utils/datetime_utils.py                                3      0 100.00%
+shared/utils/discord.py                                      28      0 100.00%
+shared/utils/discord_tokens.py                               18      0 100.00%
+shared/utils/games.py                                         4      0 100.00%
+shared/utils/limits.py                                        2      0 100.00%
+shared/utils/participant_sorting.py                          27      0 100.00%
+shared/utils/security_constants.py                            3      0 100.00%
+shared/utils/status_transitions.py                           22      0 100.00%
+shared/utils/time_constants.py                                2      0 100.00%
+shared/utils/timezone.py                                     17      0 100.00%
+shared/version.py                                            14      0 100.00%
+------------------------------------------------------------------------------
+TOTAL                                                      6769   1006  85.14%
+
+10 empty files skipped.
+
+Generating XML report (coverage.xml)...
+Wrote XML report to coverage.xml
+Generating HTML report (htmlcov/)...
+Wrote HTML report to htmlcov/index.html
+
+════════════════════════════════════════════════
+Coverage Summary:
+════════════════════════════════════════════════
+  Unit tests:         84.49%
+  Integration tests:  44.26%
+  E2E tests:          35.85%
+  ────────────────────────────────────────────────
+  Combined total:     85.14%
+════════════════════════════════════════════════
+
+✓ Coverage reports generated:
+  - Terminal report (above)
+  - coverage.xml (for CI/CD)
+  - htmlcov/index.html (detailed view)
+
+To view HTML report: open htmlcov/index.html in your browser

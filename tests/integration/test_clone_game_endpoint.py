@@ -315,3 +315,102 @@ def test_clone_game_endpoint_yes_carryover_copies_new_game_participants(
     assert participants[0][0] == participant_user["id"]
     assert participants[0][1] == 1
     assert participants[0][2] == ParticipantType.HOST_ADDED
+
+
+def test_clone_game_endpoint_yes_with_deadline_creates_action_and_notification_schedules(
+    admin_db_sync,
+    rabbitmq_channel,
+    create_user,
+    create_guild,
+    create_channel,
+    create_template,
+    create_game,
+    seed_redis_cache,
+    create_authenticated_client,
+):
+    """YES_WITH_DEADLINE carryover creates ParticipantActionSchedule
+    and clone_confirmation records.
+    """
+    env = _setup_environment(
+        create_user, create_guild, create_channel, create_template, seed_redis_cache
+    )
+    authenticated_client = create_authenticated_client(TEST_DISCORD_TOKEN, TEST_BOT_DISCORD_ID)
+
+    source_game = create_game(
+        guild_id=env["guild"]["id"],
+        channel_id=env["channel"]["id"],
+        host_id=env["user"]["id"],
+        title="Source Game YES_WITH_DEADLINE",
+        max_players=4,
+    )
+
+    participant_user = create_user(discord_user_id="329000000000000007")
+    admin_db_sync.execute(
+        text(
+            "INSERT INTO game_participants "
+            "(id, game_session_id, user_id, position, position_type) "
+            "VALUES (:id, :game_id, :user_id, :position, :position_type)"
+        ),
+        {
+            "id": "test-participant-uuid-deadline",
+            "game_id": source_game["id"],
+            "user_id": participant_user["id"],
+            "position": 1,
+            "position_type": ParticipantType.HOST_ADDED,
+        },
+    )
+    admin_db_sync.commit()
+
+    rabbitmq_channel.queue_purge(QUEUE_BOT_EVENTS)
+
+    deadline = (datetime.now(UTC) + timedelta(days=1)).isoformat()
+    clone_at = (datetime.now(UTC) + timedelta(days=14)).isoformat()
+
+    response = authenticated_client.post(
+        f"/api/v1/games/{source_game['id']}/clone",
+        json={
+            "scheduled_at": clone_at,
+            "player_carryover": "YES_WITH_DEADLINE",
+            "player_deadline": deadline,
+            "waitlist_carryover": "NO",
+        },
+    )
+
+    assert response.status_code == 201, f"Expected 201, got {response.status_code}: {response.text}"
+    new_game_id = response.json()["id"]
+
+    # Verify participant was carried over
+    new_participant = admin_db_sync.execute(
+        text(
+            "SELECT id, user_id FROM game_participants "
+            "WHERE game_session_id = :game_id AND user_id = :user_id"
+        ),
+        {"game_id": new_game_id, "user_id": participant_user["id"]},
+    ).fetchone()
+    assert new_participant is not None, "Carried-over participant must exist in the new game"
+    new_participant_id = new_participant[0]
+
+    # Verify ParticipantActionSchedule created
+    action_schedule = admin_db_sync.execute(
+        text(
+            "SELECT action, action_time FROM participant_action_schedule "
+            "WHERE participant_id = :participant_id"
+        ),
+        {"participant_id": new_participant_id},
+    ).fetchone()
+    assert action_schedule is not None, "ParticipantActionSchedule must be created"
+    assert action_schedule[0] == "drop", "Action must be 'drop'"
+
+    # Verify clone_confirmation NotificationSchedule created
+    notif_schedule = admin_db_sync.execute(
+        text(
+            "SELECT notification_type FROM notification_schedule "
+            "WHERE game_id = :game_id AND participant_id = :participant_id "
+            "AND notification_type = 'clone_confirmation'"
+        ),
+        {"game_id": new_game_id, "participant_id": new_participant_id},
+    ).fetchone()
+    assert notif_schedule is not None, "NotificationSchedule must be created"
+    assert notif_schedule[0] == "clone_confirmation", (
+        "Notification type must be 'clone_confirmation'"
+    )

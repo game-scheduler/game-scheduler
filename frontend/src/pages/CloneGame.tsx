@@ -41,17 +41,20 @@ import { useNavigate, useParams } from 'react-router';
 import { apiClient } from '../api/client';
 import { GameSession } from '../types';
 
-type CarryoverOption = 'NO' | 'YES';
+type CarryoverOption = 'NO' | 'YES' | 'YES_WITH_DEADLINE';
 
 interface CloneGameRequest {
   scheduled_at: string;
   player_carryover: CarryoverOption;
+  player_deadline?: string;
   waitlist_carryover: CarryoverOption;
+  waitlist_deadline?: string;
 }
 
 const CARRYOVER_OPTIONS: { value: CarryoverOption; label: string }[] = [
   { value: 'NO', label: 'No — start with an empty roster' },
   { value: 'YES', label: 'Yes — carry over existing players' },
+  { value: 'YES_WITH_DEADLINE', label: 'Yes — carry over with confirmation deadline' },
 ];
 
 const DEFAULT_DAYS_AHEAD = 14;
@@ -69,6 +72,9 @@ export const CloneGame: FC = () => {
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
   const [playerCarryover, setPlayerCarryover] = useState<CarryoverOption>('NO');
   const [waitlistCarryover, setWaitlistCarryover] = useState<CarryoverOption>('NO');
+  const [playerDeadline, setPlayerDeadline] = useState<Date | null>(null);
+  const [waitlistDeadline, setWaitlistDeadline] = useState<Date | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!gameId) return;
@@ -95,13 +101,43 @@ export const CloneGame: FC = () => {
     e.preventDefault();
     if (!gameId || !scheduledAt) return;
 
-    setSubmitting(true);
+    setValidationError(null);
     setSubmitError(null);
+
+    const now = new Date();
+    if (playerCarryover === 'YES_WITH_DEADLINE') {
+      if (!playerDeadline) {
+        setValidationError('Player deadline is required when using deadline carryover.');
+        return;
+      }
+      if (playerDeadline <= now) {
+        setValidationError('Player deadline must be in the future.');
+        return;
+      }
+    }
+    if (waitlistCarryover === 'YES_WITH_DEADLINE') {
+      if (!waitlistDeadline) {
+        setValidationError('Waitlist deadline is required when using deadline carryover.');
+        return;
+      }
+      if (waitlistDeadline <= now) {
+        setValidationError('Waitlist deadline must be in the future.');
+        return;
+      }
+    }
+
+    setSubmitting(true);
 
     const payload: CloneGameRequest = {
       scheduled_at: scheduledAt.toISOString(),
       player_carryover: playerCarryover,
+      ...(playerCarryover === 'YES_WITH_DEADLINE' && playerDeadline
+        ? { player_deadline: playerDeadline.toISOString() }
+        : {}),
       waitlist_carryover: waitlistCarryover,
+      ...(waitlistCarryover === 'YES_WITH_DEADLINE' && waitlistDeadline
+        ? { waitlist_deadline: waitlistDeadline.toISOString() }
+        : {}),
     };
 
     try {
@@ -145,9 +181,9 @@ export const CloneGame: FC = () => {
           Cloning: <strong>{sourceGame.title}</strong>
         </Typography>
 
-        {submitError && (
+        {(validationError || submitError) && (
           <Alert severity="error" sx={{ mb: 3 }}>
-            {submitError}
+            {validationError ?? submitError}
           </Alert>
         )}
 
@@ -184,6 +220,17 @@ export const CloneGame: FC = () => {
               </Select>
             </FormControl>
 
+            {playerCarryover === 'YES_WITH_DEADLINE' && (
+              <DateTimePicker
+                label="Player Confirmation Deadline"
+                value={playerDeadline}
+                onChange={(value) => setPlayerDeadline(value)}
+                slotProps={{
+                  textField: { required: true, fullWidth: true },
+                }}
+              />
+            )}
+
             <FormControl fullWidth>
               <InputLabel id="waitlist-carryover-label">Waitlist Carryover</InputLabel>
               <Select
@@ -201,6 +248,17 @@ export const CloneGame: FC = () => {
                 ))}
               </Select>
             </FormControl>
+
+            {waitlistCarryover === 'YES_WITH_DEADLINE' && (
+              <DateTimePicker
+                label="Waitlist Confirmation Deadline"
+                value={waitlistDeadline}
+                onChange={(value) => setWaitlistDeadline(value)}
+                slotProps={{
+                  textField: { required: true, fullWidth: true },
+                }}
+              />
+            )}
 
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button

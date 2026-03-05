@@ -182,9 +182,44 @@ with optional participant carry-over and deadline-based auto-drop confirmation.
 - New integration tests: 2 (`test_daemon_processes_overdue_action`, `test_daemon_waits_for_future_action`) — require Docker compose environment to run
 - Lint: all Phase 6 Python files pass `ruff check`
 
-## Pending Phases
+## Phase 7: Frontend YES_WITH_DEADLINE + remove 422 guard (COMPLETE)
 
-- Phase 7: Frontend YES_WITH_DEADLINE + remove 422 guard
+### Task 7.1: Add YES_WITH_DEADLINE option to frontend carryover selectors (stub)
+
+**Files Changed**:
+
+- [frontend/src/pages/CloneGame.tsx](frontend/src/pages/CloneGame.tsx) — MODIFIED: added `YES_WITH_DEADLINE` to `CarryoverOption` type and to the player/waitlist `<Select>` menus; stub sends `NO` in API payload when `YES_WITH_DEADLINE` is selected
+
+### Task 7.2: Write test.fails frontend tests for deadline picker
+
+**Files Changed**:
+
+- [frontend/src/pages/**tests**/CloneGame.test.tsx](frontend/src/pages/__tests__/CloneGame.test.tsx) — MODIFIED: added 6 `it.fails` tests covering: deadline picker appears after selecting `YES_WITH_DEADLINE`; API payload includes `player_deadline`; validation blocks submit without deadline; validation blocks past deadline; same two tests for waitlist
+
+### Task 7.3: Implement full frontend + remove 422 guard; remove it.fails markers
+
+**Files Changed**:
+
+- [frontend/src/pages/CloneGame.tsx](frontend/src/pages/CloneGame.tsx) — MODIFIED: added `playerDeadline`/`waitlistDeadline` `DateTimePicker` state; conditional rendering of pickers when `YES_WITH_DEADLINE` selected; validation in `handleSubmit` (deadline required, must be in the future); deadline included in API payload; removed stub `NO` substitution
+- [frontend/src/pages/**tests**/CloneGame.test.tsx](frontend/src/pages/__tests__/CloneGame.test.tsx) — MODIFIED: converted all 6 `it.fails` to regular `it`; all 15 tests pass
+- [services/api/services/games.py](services/api/services/games.py) — MODIFIED: removed `YES_WITH_DEADLINE` `ValueError` guard in `clone_game`; updated participant carryover logic to include `YES_WITH_DEADLINE` in carry conditions; added `_apply_deadline_carryover` method; fixed import ordering (ruff auto-fix); removed unused `sqlalchemy_update` import; introduced `carry_options` set to avoid E501
+- [tests/unit/services/test_clone_game.py](tests/unit/services/test_clone_game.py) — MODIFIED: replaced `test_clone_game_yes_with_deadline_raises_value_error` with `test_clone_game_yes_with_deadline_completes_successfully`; added top-level imports for `NotificationSchedule` and `ParticipantActionSchedule`; added 4 new direct tests for `_apply_deadline_carryover`: creates action + notification schedules, sends pg_notify, skips when no deadline carryover, skips missing participants
+
+### Task 7.4: Integration + E2E tests for YES_WITH_DEADLINE flow
+
+**Files Changed**:
+
+- [tests/integration/test_clone_game_endpoint.py](tests/integration/test_clone_game_endpoint.py) — MODIFIED: added `test_clone_game_endpoint_yes_with_deadline_creates_action_and_notification_schedules` verifying both `participant_action_schedule` and `clone_confirmation` notification records are created in DB
+- [tests/e2e/helpers/discord.py](tests/e2e/helpers/discord.py) — MODIFIED: added `CLONE_CONFIRMATION = "clone_confirmation"` to `DMType` enum; added `DMType.CLONE_CONFIRMATION: DMPredicates.clone_confirmation(game_title)` to `wait_for_recent_dm` predicates dict
+- [tests/e2e/test_clone_game_e2e.py](tests/e2e/test_clone_game_e2e.py) — NEW: `test_clone_game_yes_with_deadline_sends_confirmation_dm_and_auto_drops` — E2E test cloning with `YES_WITH_DEADLINE`, verifying `ParticipantActionSchedule` + `clone_confirmation` NotificationSchedule in DB, waiting for confirmation DM, then waiting for participant to be auto-dropped after deadline + daemon-driven removal DM
+
+## Test Results (Phase 7)
+
+- Unit tests: 140 passed (0 failed) — 13 in `test_clone_game.py`, 127 elsewhere
+- Frontend tests: 15 passed in `CloneGame.test.tsx` (0 failed)
+- Integration tests: require Docker compose environment to run
+- E2E tests: require full stack to run
+- Lint: all Phase 7 Python files pass `ruff check`; frontend passes TypeScript type check
 
 ## Phase 5: clone_confirmation notification type wired into notification daemon (COMPLETE)
 

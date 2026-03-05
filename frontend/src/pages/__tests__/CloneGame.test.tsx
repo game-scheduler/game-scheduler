@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router';
 import { CloneGame } from '../CloneGame';
@@ -233,6 +233,158 @@ describe('CloneGame', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Failed to clone game. Please try again.')).toBeInTheDocument();
+    });
+  });
+
+  describe('YES_WITH_DEADLINE carryover', () => {
+    it('player deadline picker renders when player carryover is YES_WITH_DEADLINE', async () => {
+      vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockGame });
+      const user = userEvent.setup();
+      renderCloneGame();
+      await waitFor(() => {
+        expect(screen.getByText('Test Game To Clone')).toBeInTheDocument();
+      });
+
+      const playerSelect = screen.getByLabelText('Player Carryover');
+      await user.click(playerSelect);
+      const option = await screen.findByRole('option', { name: /confirmation deadline/i });
+      await user.click(option);
+
+      expect(screen.getByLabelText('Player Confirmation Deadline')).toBeInTheDocument();
+    });
+
+    it('waitlist deadline picker renders when waitlist carryover is YES_WITH_DEADLINE', async () => {
+      vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockGame });
+      const user = userEvent.setup();
+      renderCloneGame();
+      await waitFor(() => {
+        expect(screen.getByText('Test Game To Clone')).toBeInTheDocument();
+      });
+
+      const waitlistSelect = screen.getByLabelText('Waitlist Carryover');
+      await user.click(waitlistSelect);
+      const option = await screen.findByRole('option', { name: /confirmation deadline/i });
+      await user.click(option);
+
+      expect(screen.getByLabelText('Waitlist Confirmation Deadline')).toBeInTheDocument();
+    });
+
+    it('shows validation error when player deadline is missing with YES_WITH_DEADLINE', async () => {
+      vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockGame });
+      const user = userEvent.setup();
+      renderCloneGame();
+      await waitFor(() => {
+        expect(screen.getByText('Test Game To Clone')).toBeInTheDocument();
+      });
+
+      const playerSelect = screen.getByLabelText('Player Carryover');
+      await user.click(playerSelect);
+      const option = await screen.findByRole('option', { name: /confirmation deadline/i });
+      await user.click(option);
+
+      const deadlinePicker = await screen.findByLabelText('Player Confirmation Deadline');
+      expect(deadlinePicker).toBeInTheDocument();
+
+      const form = deadlinePicker.closest('form');
+      fireEvent.submit(form!);
+
+      await waitFor(
+        () => {
+          expect(screen.getByText(/player deadline is required/i)).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
+    });
+
+    it('shows validation error when player deadline is in the past', async () => {
+      vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockGame });
+      const user = userEvent.setup();
+      renderCloneGame();
+      await waitFor(() => {
+        expect(screen.getByText('Test Game To Clone')).toBeInTheDocument();
+      });
+
+      const playerSelect = screen.getByLabelText('Player Carryover');
+      await user.click(playerSelect);
+      const option = await screen.findByRole('option', { name: /confirmation deadline/i });
+      await user.click(option);
+
+      const deadlineInput = await screen.findByLabelText('Player Confirmation Deadline');
+      const pastDate = new Date(Date.now() - 3600000);
+      fireEvent.change(deadlineInput, { target: { value: pastDate.toISOString() } });
+
+      const cloneButton = screen.getByRole('button', { name: 'Clone Game' });
+      await user.click(cloneButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/player deadline must be in the future/i)).toBeInTheDocument();
+      });
+    });
+
+    it('API call includes player_deadline when YES_WITH_DEADLINE selected', async () => {
+      const newGame = { ...mockGame, id: 'new-game-456' };
+      vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockGame });
+      vi.mocked(apiClient.post).mockResolvedValueOnce({ data: newGame });
+      const user = userEvent.setup();
+      renderCloneGame();
+      await waitFor(() => {
+        expect(screen.getByText('Test Game To Clone')).toBeInTheDocument();
+      });
+
+      const playerSelect = screen.getByLabelText('Player Carryover');
+      await user.click(playerSelect);
+      const option = await screen.findByRole('option', { name: /confirmation deadline/i });
+      await user.click(option);
+
+      const futureDate = new Date(Date.now() + 3 * 24 * 3600000);
+      const deadlineInput = screen.getByLabelText('Player Confirmation Deadline');
+      fireEvent.change(deadlineInput, { target: { value: futureDate.toISOString() } });
+
+      const cloneButton = screen.getByRole('button', { name: 'Clone Game' });
+      await user.click(cloneButton);
+
+      await waitFor(() => {
+        expect(apiClient.post).toHaveBeenCalledWith(
+          '/api/v1/games/game123/clone',
+          expect.objectContaining({
+            player_carryover: 'YES_WITH_DEADLINE',
+            player_deadline: expect.any(String),
+          })
+        );
+      });
+    });
+
+    it('API call includes waitlist_deadline when YES_WITH_DEADLINE selected', async () => {
+      const newGame = { ...mockGame, id: 'new-game-456' };
+      vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockGame });
+      vi.mocked(apiClient.post).mockResolvedValueOnce({ data: newGame });
+      const user = userEvent.setup();
+      renderCloneGame();
+      await waitFor(() => {
+        expect(screen.getByText('Test Game To Clone')).toBeInTheDocument();
+      });
+
+      const waitlistSelect = screen.getByLabelText('Waitlist Carryover');
+      await user.click(waitlistSelect);
+      const option = await screen.findByRole('option', { name: /confirmation deadline/i });
+      await user.click(option);
+
+      const futureDate = new Date(Date.now() + 3 * 24 * 3600000);
+      const deadlineInput = screen.getByLabelText('Waitlist Confirmation Deadline');
+      fireEvent.change(deadlineInput, { target: { value: futureDate.toISOString() } });
+
+      const cloneButton = screen.getByRole('button', { name: 'Clone Game' });
+      await user.click(cloneButton);
+
+      await waitFor(() => {
+        expect(apiClient.post).toHaveBeenCalledWith(
+          '/api/v1/games/game123/clone',
+          expect.objectContaining({
+            waitlist_carryover: 'YES_WITH_DEADLINE',
+            waitlist_deadline: expect.any(String),
+          })
+        );
+      });
     });
   });
 });

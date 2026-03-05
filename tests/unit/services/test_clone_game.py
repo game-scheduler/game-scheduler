@@ -34,6 +34,8 @@ from services.api.schemas.clone_game import CarryoverOption, CloneGameRequest
 from services.api.services.games import GameService
 from shared.models import game as game_model
 from shared.models import participant as participant_model
+from shared.models.notification_schedule import NotificationSchedule
+from shared.models.participant_action_schedule import ParticipantActionSchedule
 from shared.models.signup_method import SignupMethod
 from shared.schemas import auth as auth_schemas
 
@@ -256,28 +258,173 @@ async def test_clone_game_no_carryover_creates_no_participants(
     assert len(participant_adds) == 0, "NO carryover must add no participants"
 
 
+DEADLINE = datetime.datetime(2027, 1, 1, 12, 0, 0)
+
+
 @pytest.mark.asyncio
-async def test_clone_game_yes_with_deadline_raises_value_error(
+async def test_clone_game_yes_with_deadline_completes_successfully(
     game_service, source_game, current_user, role_service
 ):
-    """clone_game with YES_WITH_DEADLINE must raise ValueError (guard removed in Phase 7)."""
+    """YES_WITH_DEADLINE carryover must succeed without raising ValueError."""
+    new_game = MagicMock(spec=game_model.GameSession)
+    new_game.id = "new-game-uuid"
+
     clone_data = CloneGameRequest(
         scheduled_at=CLONE_AT,
         player_carryover=CarryoverOption.YES_WITH_DEADLINE,
-        player_deadline=datetime.datetime(2027, 1, 1, 12, 0, 0),
+        player_deadline=DEADLINE,
     )
 
     with (
-        patch.object(game_service, "get_game", new=AsyncMock(return_value=source_game)),
+        patch.object(game_service, "get_game", new=AsyncMock(side_effect=[source_game, new_game])),
         patch("services.api.dependencies.permissions.can_manage_game", return_value=True),
+        patch.object(game_service, "_setup_game_schedules", new=AsyncMock()),
+        patch.object(game_service, "_apply_deadline_carryover", new=AsyncMock()),
+        patch.object(game_service, "_publish_game_created", new=AsyncMock()),
     ):
-        with pytest.raises(ValueError, match="YES_WITH_DEADLINE"):
-            await game_service.clone_game(
-                source_game_id=source_game.id,
-                clone_data=clone_data,
-                current_user=current_user,
-                role_service=role_service,
-            )
+        result = await game_service.clone_game(
+            source_game_id=source_game.id,
+            clone_data=clone_data,
+            current_user=current_user,
+            role_service=role_service,
+        )
+
+    assert result is new_game
+
+
+@pytest.mark.asyncio
+async def test_apply_deadline_carryover_creates_action_and_notification_schedules(
+    game_service, source_game
+):
+    """_apply_deadline_carryover creates one action schedule and one
+    notification per participant.
+    """
+    source_player = source_game.participants[0]
+
+    new_participant = MagicMock(spec=participant_model.GameParticipant)
+    new_participant.id = "new-participant-uuid"
+    new_participant.user_id = source_player.user_id
+
+    new_game = MagicMock(spec=game_model.GameSession)
+    new_game.id = "new-game-uuid"
+    new_game.scheduled_at = CLONE_AT
+    new_game.participants = [new_participant]
+
+    clone_data = CloneGameRequest(
+        scheduled_at=CLONE_AT,
+        player_carryover=CarryoverOption.YES_WITH_DEADLINE,
+        player_deadline=DEADLINE,
+    )
+
+    await game_service._apply_deadline_carryover(
+        new_game=new_game,
+        players_to_carry=[source_player],
+        waitlist_to_carry=[],
+        clone_data=clone_data,
+    )
+
+    add_calls = game_service.db.add.call_args_list
+    action_schedules = [
+        c[0][0] for c in add_calls if isinstance(c[0][0], ParticipantActionSchedule)
+    ]
+    notif_schedules = [c[0][0] for c in add_calls if isinstance(c[0][0], NotificationSchedule)]
+
+    assert len(action_schedules) == 1, "Exactly one ParticipantActionSchedule must be created"
+    sched = action_schedules[0]
+    assert sched.participant_id == new_participant.id
+    assert sched.game_id == new_game.id
+    assert sched.action == "drop"
+    assert sched.action_time == DEADLINE
+
+    assert len(notif_schedules) == 1, "Exactly one NotificationSchedule must be created"
+    notif = notif_schedules[0]
+    assert notif.participant_id == new_participant.id
+    assert notif.notification_type == "clone_confirmation"
+
+
+@pytest.mark.asyncio
+async def test_apply_deadline_carryover_sends_pg_notify(game_service, source_game):
+    """_apply_deadline_carryover sends pg_notify to wake the participant_action_daemon."""
+    source_player = source_game.participants[0]
+
+    new_participant = MagicMock(spec=participant_model.GameParticipant)
+    new_participant.id = "new-participant-uuid"
+    new_participant.user_id = source_player.user_id
+
+    new_game = MagicMock(spec=game_model.GameSession)
+    new_game.id = "new-game-uuid"
+    new_game.scheduled_at = CLONE_AT
+    new_game.participants = [new_participant]
+
+    clone_data = CloneGameRequest(
+        scheduled_at=CLONE_AT,
+        player_carryover=CarryoverOption.YES_WITH_DEADLINE,
+        player_deadline=DEADLINE,
+    )
+
+    await game_service._apply_deadline_carryover(
+        new_game=new_game,
+        players_to_carry=[source_player],
+        waitlist_to_carry=[],
+        clone_data=clone_data,
+    )
+
+    execute_calls = game_service.db.execute.call_args_list
+    notify_calls = [
+        c
+        for c in execute_calls
+        if hasattr(c.args[0], "text") and "participant_action_schedule_changed" in c.args[0].text
+    ]
+    assert len(notify_calls) == 1, "pg_notify for participant_action_schedule_changed must be sent"
+
+
+@pytest.mark.asyncio
+async def test_apply_deadline_carryover_skips_when_no_deadline_carryover(game_service, source_game):
+    """_apply_deadline_carryover does nothing when neither carryover is YES_WITH_DEADLINE."""
+    new_game = MagicMock(spec=game_model.GameSession)
+    new_game.id = "new-game-uuid"
+    new_game.participants = []
+
+    clone_data = CloneGameRequest(
+        scheduled_at=CLONE_AT,
+        player_carryover=CarryoverOption.YES,
+        waitlist_carryover=CarryoverOption.NO,
+    )
+
+    await game_service._apply_deadline_carryover(
+        new_game=new_game,
+        players_to_carry=list(source_game.participants),
+        waitlist_to_carry=[],
+        clone_data=clone_data,
+    )
+
+    game_service.db.add.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_apply_deadline_carryover_skips_missing_participant(game_service, source_game):
+    """_apply_deadline_carryover logs a warning and skips participants not found in new game."""
+    source_player = source_game.participants[0]
+
+    new_game = MagicMock(spec=game_model.GameSession)
+    new_game.id = "new-game-uuid"
+    new_game.scheduled_at = CLONE_AT
+    new_game.participants = []  # No matching participant in new game
+
+    clone_data = CloneGameRequest(
+        scheduled_at=CLONE_AT,
+        player_carryover=CarryoverOption.YES_WITH_DEADLINE,
+        player_deadline=DEADLINE,
+    )
+
+    await game_service._apply_deadline_carryover(
+        new_game=new_game,
+        players_to_carry=[source_player],
+        waitlist_to_carry=[],
+        clone_data=clone_data,
+    )
+
+    game_service.db.add.assert_not_called()
 
 
 @pytest.mark.asyncio

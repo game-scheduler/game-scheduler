@@ -31,7 +31,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -50,10 +50,13 @@ from shared.models import channel as channel_model
 from shared.models import game as game_model
 from shared.models import game_status_schedule as game_status_schedule_model
 from shared.models import guild as guild_model
+from shared.models import notification_schedule as notification_schedule_model
 from shared.models import participant as participant_model
 from shared.models import template as template_model
 from shared.models import user as user_model
+from shared.models.base import utc_now
 from shared.models.participant import ParticipantType
+from shared.models.participant_action_schedule import ParticipantActionSchedule
 from shared.models.signup_method import SignupMethod
 from shared.schemas import auth as auth_schemas
 from shared.schemas import game as game_schemas
@@ -779,13 +782,6 @@ class GameService:
             )
             raise ValueError(msg)
 
-        if (
-            clone_data.player_carryover == CarryoverOption.YES_WITH_DEADLINE
-            or clone_data.waitlist_carryover == CarryoverOption.YES_WITH_DEADLINE
-        ):
-            msg = "YES_WITH_DEADLINE carryover is not yet supported"
-            raise ValueError(msg)
-
         scheduled_at_naive = clone_data.scheduled_at.replace(tzinfo=None)
 
         new_game = game_model.GameSession(
@@ -815,11 +811,12 @@ class GameService:
 
         partitioned = partition_participants(source_game.participants, source_game.max_players)
 
+        carry_options = {CarryoverOption.YES, CarryoverOption.YES_WITH_DEADLINE}
         players_to_carry = (
-            partitioned.confirmed if clone_data.player_carryover == CarryoverOption.YES else []
+            partitioned.confirmed if clone_data.player_carryover in carry_options else []
         )
         waitlist_to_carry = (
-            partitioned.overflow if clone_data.waitlist_carryover == CarryoverOption.YES else []
+            partitioned.overflow if clone_data.waitlist_carryover in carry_options else []
         )
 
         for position, source_participant in enumerate(
@@ -853,6 +850,13 @@ class GameService:
             source_game.expected_duration_minutes,
         )
 
+        await self._apply_deadline_carryover(
+            new_game=new_game,
+            players_to_carry=players_to_carry,
+            waitlist_to_carry=waitlist_to_carry,
+            clone_data=clone_data,
+        )
+
         new_game = await self.get_game(new_game.id)
         if new_game is None:
             msg = "Failed to reload cloned game"
@@ -861,6 +865,115 @@ class GameService:
         await self._publish_game_created(new_game, source_game.channel)
 
         return new_game
+
+    def _add_participant_carryover_schedules(
+        self,
+        new_game: game_model.GameSession,
+        source_participant: participant_model.GameParticipant,
+        new_participant_by_user: dict[str, participant_model.GameParticipant],
+        deadline_naive: datetime.datetime,
+    ) -> bool:
+        """Add action and notification schedule for one carried-over participant.
+
+        Returns True if records were added, False if the participant was not found
+        in the new game (which is logged as a warning).
+        """
+        new_participant = new_participant_by_user.get(source_participant.user_id)
+        if new_participant is None:
+            logger.warning(
+                "Cannot find new participant for user %s in game %s; skipping deadline",
+                source_participant.user_id,
+                new_game.id,
+            )
+            return False
+
+        self.db.add(
+            ParticipantActionSchedule(
+                game_id=new_game.id,
+                participant_id=new_participant.id,
+                action="drop",
+                action_time=deadline_naive,
+            )
+        )
+
+        self.db.add(
+            notification_schedule_model.NotificationSchedule(
+                game_id=new_game.id,
+                participant_id=new_participant.id,
+                notification_type="clone_confirmation",
+                notification_time=utc_now() + datetime.timedelta(seconds=60),
+                sent=False,
+                game_scheduled_at=new_game.scheduled_at,
+                reminder_minutes=None,
+            )
+        )
+
+        return True
+
+    async def _apply_deadline_carryover(
+        self,
+        new_game: game_model.GameSession,
+        players_to_carry: list[participant_model.GameParticipant],
+        waitlist_to_carry: list[participant_model.GameParticipant],
+        clone_data: CloneGameRequest,
+    ) -> None:
+        """
+        Create ParticipantActionSchedule and clone_confirmation notifications
+        for participants carried over with YES_WITH_DEADLINE.
+
+        Sends pg_notify after inserting records so the participant_action_daemon
+        wakes up and schedules the nearest deadline.
+
+        Does not commit. Caller must commit.
+
+        Args:
+            new_game: Newly cloned game session (with participants loaded)
+            players_to_carry: Source confirmed players carrying over
+            waitlist_to_carry: Source waitlist players carrying over
+            clone_data: Clone request containing deadlines
+        """
+        player_with_deadline = clone_data.player_carryover == CarryoverOption.YES_WITH_DEADLINE
+        waitlist_with_deadline = clone_data.waitlist_carryover == CarryoverOption.YES_WITH_DEADLINE
+
+        if not player_with_deadline and not waitlist_with_deadline:
+            return
+
+        new_participant_by_user: dict[str, participant_model.GameParticipant] = {
+            p.user_id: p for p in new_game.participants
+        }
+
+        need_notify = False
+
+        groups: list[tuple[list[participant_model.GameParticipant], datetime.datetime | None]] = []
+        if player_with_deadline:
+            groups.append((players_to_carry, clone_data.player_deadline))
+        if waitlist_with_deadline:
+            groups.append((waitlist_to_carry, clone_data.waitlist_deadline))
+
+        for source_participants, deadline in groups:
+            if not deadline or not source_participants:
+                continue
+
+            deadline_naive = (
+                deadline.astimezone(datetime.UTC).replace(tzinfo=None)
+                if deadline.tzinfo
+                else deadline
+            )
+
+            for source_participant in source_participants:
+                need_notify |= self._add_participant_carryover_schedules(
+                    new_game, source_participant, new_participant_by_user, deadline_naive
+                )
+        if need_notify:
+            await self.db.flush()
+            await self.db.execute(
+                text("SELECT pg_notify('participant_action_schedule_changed', '')")
+            )
+            logger.info(
+                "Scheduled deadline carryover for %d participant(s) in game %s",
+                sum(len(g[0]) for g in groups if g[1]),
+                new_game.id,
+            )
 
     async def list_games(
         self,

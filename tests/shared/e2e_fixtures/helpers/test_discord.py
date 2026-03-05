@@ -399,5 +399,5 @@ class TestDMTypeEnum:
     def test_enum_iteration(self):
         """Should support iteration."""
         types = list(DMType)
-        assert len(types) == 4
+        assert len(types) == 5
         assert DMType.REMINDER in types
