@@ -28,6 +28,10 @@ COPY pyproject.toml ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system .
 
+# Install sitecustomize.py so coverage auto-starts when COVERAGE_PROCESS_START is set.
+# This is a no-op in production because that env var is never set there.
+RUN python -c "import site; open(site.getsitepackages()[0] + '/sitecustomize.py', 'w').write('import coverage\ncoverage.process_startup()\n')"
+
 # Development stage
 FROM base AS development
 
@@ -65,6 +69,7 @@ COPY --from=base /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.
 COPY --from=base /usr/local/bin /usr/local/bin
 
 # Copy application code
+COPY pyproject.toml ./
 COPY shared/ ./shared/
 COPY services/retry/ ./services/retry/
 

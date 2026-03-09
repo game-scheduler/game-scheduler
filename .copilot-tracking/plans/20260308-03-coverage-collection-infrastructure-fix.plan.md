@@ -42,53 +42,53 @@ Fix integration and e2e coverage instrumentation so that `.coverage.integration`
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Add `coverage` to project dependencies
+### [x] Phase 1: Add `coverage` to project dependencies
 
-- [ ] Task 1.1: Add `coverage` to `[project.dependencies]` in `pyproject.toml`
+- [x] Task 1.1: Add `coverage` to `[project.dependencies]` in `pyproject.toml`
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 14-35)
 
-### [ ] Phase 2: Install `sitecustomize.py` in service Dockerfiles
+### [x] Phase 2: Install `sitecustomize.py` in service Dockerfiles
 
-- [ ] Task 2.1: Add `sitecustomize.py` RUN line to `docker/api.Dockerfile`
+- [x] Task 2.1: Add `sitecustomize.py` RUN line to `docker/api.Dockerfile`
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 38-65)
 
-- [ ] Task 2.2: Add `sitecustomize.py` RUN line to `docker/bot.Dockerfile`
+- [x] Task 2.2: Add `sitecustomize.py` RUN line to `docker/bot.Dockerfile`
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 68-84)
 
-- [ ] Task 2.3: Add `sitecustomize.py` RUN line to `docker/scheduler.Dockerfile`
+- [x] Task 2.3: Add `sitecustomize.py` RUN line to `docker/scheduler.Dockerfile`
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 87-103)
 
-- [ ] Task 2.4: Add `sitecustomize.py` RUN line to `docker/retry.Dockerfile`
+- [x] Task 2.4: Add `sitecustomize.py` RUN line to `docker/retry.Dockerfile`
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 106-122)
 
-### [ ] Phase 3: Add coverage env/volumes to compose.int.yaml
+### [x] Phase 3: Add coverage env/volumes to compose.int.yaml
 
-- [ ] Task 3.1: Add coverage instrumentation to `api` service in `compose.int.yaml`
+- [x] Task 3.1: Add coverage instrumentation to `api` service in `compose.int.yaml`
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 125-152)
 
-- [ ] Task 3.2: Add coverage instrumentation to `bot` service in `compose.int.yaml`
+- [x] Task 3.2: Add coverage instrumentation to `bot` service in `compose.int.yaml`
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 155-172)
 
-- [ ] Task 3.3: Add coverage instrumentation to `scheduler` service in `compose.int.yaml`
+- [x] Task 3.3: Add coverage instrumentation to `scheduler` service in `compose.int.yaml`
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 175-192)
 
-- [ ] Task 3.4: Add coverage instrumentation to `retry-daemon` service in `compose.int.yaml`
+- [x] Task 3.4: Add coverage instrumentation to `retry-daemon` service in `compose.int.yaml`
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 195-212)
 
-### [ ] Phase 4: Add coverage env/volumes to compose.e2e.yaml
+### [x] Phase 4: Add coverage env/volumes to compose.e2e.yaml
 
-- [ ] Task 4.1: Add coverage instrumentation to `api` service in `compose.e2e.yaml`
+- [x] Task 4.1: Add coverage instrumentation to `api` service in `compose.e2e.yaml`
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 215-237)
 
-- [ ] Task 4.2: Add coverage instrumentation to `bot` service in `compose.e2e.yaml`
+- [x] Task 4.2: Add coverage instrumentation to `bot` service in `compose.e2e.yaml`
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 240-257)
 
-- [ ] Task 4.3: Add coverage instrumentation to `scheduler` service in `compose.e2e.yaml`
+- [x] Task 4.3: Add coverage instrumentation to `scheduler` service in `compose.e2e.yaml`
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 260-277)
 
-### [ ] Phase 5: Verify coverage-report.sh combines new files
+### [x] Phase 5: Verify coverage-report.sh combines new files
 
-- [ ] Task 5.1: Update `scripts/coverage-report.sh` to include all per-service coverage files
+- [x] Task 5.1: Update `scripts/coverage-report.sh` to include all per-service coverage files
   - Details: .copilot-tracking/details/20260308-03-coverage-collection-infrastructure-fix-details.md (Lines 280-310)
 
 ## Dependencies

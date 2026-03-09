@@ -15,11 +15,19 @@
 
 services:
   init:
+    volumes:
+      - ./coverage:/app/coverage:rw
     environment:
+      COVERAGE_PROCESS_START: /app/pyproject.toml
+      COVERAGE_FILE: /app/coverage/init.integration
       PYTEST_RUNNING: "1"
 
   api:
+    volumes:
+      - ./coverage:/app/coverage:rw
     environment:
+      COVERAGE_PROCESS_START: /app/pyproject.toml
+      COVERAGE_FILE: /app/coverage/api.integration
       LOG_LEVEL: DEBUG
       PYTEST_RUNNING: "1"
       SSE_KEEPALIVE_INTERVAL_SECONDS: ${SSE_KEEPALIVE_INTERVAL_SECONDS:-30}
@@ -30,17 +38,29 @@ services:
       RATE_LIMIT_2_TIME: ${RATE_LIMIT_2_TIME:-300}
 
   bot:
+    volumes:
+      - ./coverage:/app/coverage:rw
     environment:
+      COVERAGE_PROCESS_START: /app/pyproject.toml
+      COVERAGE_FILE: /app/coverage/bot.integration
       LOG_LEVEL: DEBUG
       PYTEST_RUNNING: "1"
 
   scheduler:
+    volumes:
+      - ./coverage:/app/coverage:rw
     environment:
+      COVERAGE_PROCESS_START: /app/pyproject.toml
+      COVERAGE_FILE: /app/coverage/scheduler.integration
       LOG_LEVEL: DEBUG
       PYTEST_RUNNING: "1"
 
   retry-daemon:
+    volumes:
+      - ./coverage:/app/coverage:rw
     environment:
+      COVERAGE_PROCESS_START: /app/pyproject.toml
+      COVERAGE_FILE: /app/coverage/retry.integration
       LOG_LEVEL: DEBUG
       PYTEST_RUNNING: "1"
 

@@ -15,8 +15,11 @@
 
 services:
   init:
-    volumes: []
+    volumes:
+      - ./coverage:/app/coverage:rw
     environment:
+      COVERAGE_PROCESS_START: /app/pyproject.toml
+      COVERAGE_FILE: /app/coverage/init.e2e
       TEST_ENVIRONMENT: ${TEST_ENVIRONMENT}
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
       DISCORD_USER_ID: ${DISCORD_USER_ID}
@@ -33,8 +36,11 @@ services:
   api:
     build:
       target: production
-    volumes: []
+    volumes:
+      - ./coverage:/app/coverage:rw
     environment:
+      COVERAGE_PROCESS_START: /app/pyproject.toml
+      COVERAGE_FILE: /app/coverage/api.e2e
       TEST_ENVIRONMENT: ${TEST_ENVIRONMENT}
       LOG_LEVEL: DEBUG
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
@@ -43,8 +49,11 @@ services:
   bot:
     build:
       target: production
-    volumes: []
+    volumes:
+      - ./coverage:/app/coverage:rw
     environment:
+      COVERAGE_PROCESS_START: /app/pyproject.toml
+      COVERAGE_FILE: /app/coverage/bot.e2e
       LOG_LEVEL: DEBUG
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
       DISCORD_BOT_CLIENT_ID: ${DISCORD_BOT_CLIENT_ID}
@@ -53,8 +62,11 @@ services:
   scheduler:
     build:
       target: production
-    volumes: []
+    volumes:
+      - ./coverage:/app/coverage:rw
     environment:
+      COVERAGE_PROCESS_START: /app/pyproject.toml
+      COVERAGE_FILE: /app/coverage/scheduler.e2e
       LOG_LEVEL: DEBUG
       PYTEST_RUNNING: "1"
 
