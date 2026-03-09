@@ -624,6 +624,52 @@ class DiscordTestHelper:
             description=f"{dm_type.value} DM for '{game_title}'",
         )
 
+    async def wait_for_embed_images(
+        self,
+        channel_id: str,
+        message_id: str,
+        expect_thumbnail: bool = False,
+        expect_image: bool = False,
+        timeout: int = 30,
+        interval: float = 2.0,
+    ) -> discord.Message:
+        """
+        Poll a message until Discord has populated embed image dimensions.
+
+        Discord fetches images asynchronously after a message is posted, then sets
+        width/height on the embed proxy URLs. This method retries until those
+        dimensions are non-zero so the caller can assert them reliably.
+
+        Args:
+            channel_id: Discord channel snowflake ID
+            message_id: Discord message snowflake ID
+            expect_thumbnail: Whether to wait for thumbnail dimensions
+            expect_image: Whether to wait for image (banner) dimensions
+            timeout: Maximum seconds to wait
+            interval: Seconds between fetches
+
+        Returns:
+            Discord Message with populated image dimensions
+        """
+
+        async def check_images() -> tuple[bool, discord.Message | None]:
+            msg = await self.get_message(channel_id, message_id)
+            if not msg.embeds:
+                return (False, None)
+            embed = msg.embeds[0]
+            if expect_thumbnail and (embed.thumbnail is None or not embed.thumbnail.width):
+                return (False, None)
+            if expect_image and (embed.image is None or not embed.image.width):
+                return (False, None)
+            return (True, msg)
+
+        return await wait_for_condition(
+            check_images,
+            timeout=timeout,
+            interval=interval,
+            description="Discord embed image dimensions to be populated",
+        )
+
     def verify_embed_images(
         self,
         embed: discord.Embed,

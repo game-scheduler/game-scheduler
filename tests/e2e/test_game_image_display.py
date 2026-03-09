@@ -128,7 +128,13 @@ async def test_game_with_images_displays_in_discord(
     print(f"[TEST] Expected Discord channel_id: {discord_channel_id}")
     assert message_id is not None, "Message ID should be populated after announcement"
 
-    message = await discord_helper.get_message(discord_channel_id, message_id)
+    message = await discord_helper.wait_for_embed_images(
+        channel_id=discord_channel_id,
+        message_id=message_id,
+        expect_thumbnail=True,
+        expect_image=True,
+        timeout=test_timeouts[TimeoutType.MESSAGE_CREATE],
+    )
     print(f"[TEST] Discord message fetched: {message}")
     assert message is not None, "Discord message should exist"
     assert len(message.embeds) == 1, "Message should have exactly one embed"
@@ -219,7 +225,13 @@ async def test_game_with_only_thumbnail_displays_correctly(
     )
     assert message_id is not None, "Message ID should be populated"
 
-    message = await discord_helper.get_message(discord_channel_id, message_id)
+    message = await discord_helper.wait_for_embed_images(
+        channel_id=discord_channel_id,
+        message_id=message_id,
+        expect_thumbnail=True,
+        expect_image=False,
+        timeout=test_timeouts[TimeoutType.MESSAGE_CREATE],
+    )
     assert message is not None, "Discord message should exist"
     assert len(message.embeds) == 1, "Message should have exactly one embed"
 
