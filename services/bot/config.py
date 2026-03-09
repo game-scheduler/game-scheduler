@@ -49,6 +49,10 @@ class BotConfig(BaseSettings):
     # Make Discord tokens optional for integration tests
     discord_bot_token: str | None = Field(default=None, description="Discord bot token")
     discord_bot_client_id: str | None = Field(default=None, description="Discord application ID")
+    discord_api_base_url: str = Field(
+        default="https://discord.com/api/v10",
+        description="Discord API base URL",
+    )
 
     database_url: str = Field(
         default="postgresql+asyncpg://postgres:postgres@localhost:5432/game_scheduler",

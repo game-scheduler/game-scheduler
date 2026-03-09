@@ -117,6 +117,10 @@ class APIConfig:
         self.rate_limits = get_rate_limits()
         self.discord_client_secret = os.getenv("DISCORD_BOT_CLIENT_SECRET", "")
         self.discord_bot_token = os.getenv("DISCORD_BOT_TOKEN", "")
+        self.discord_api_base_url = os.getenv("DISCORD_API_BASE_URL", "https://discord.com/api/v10")
+        self.discord_oauth_url = os.getenv(
+            "DISCORD_OAUTH_URL", "https://discord.com/api/oauth2/authorize"
+        )
 
         self.database_url = os.getenv(
             "DATABASE_URL",

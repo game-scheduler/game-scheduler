@@ -36,7 +36,6 @@ from shared.cache import client as cache_client
 
 logger = logging.getLogger(__name__)
 
-DISCORD_OAUTH_URL = "https://discord.com/api/oauth2/authorize"
 OAUTH_SCOPES = ["identify", "guilds", "guilds.members.read"]
 
 
@@ -72,7 +71,7 @@ async def generate_authorization_url(redirect_uri: str) -> tuple[str, str]:
     }
 
     query_string = "&".join(f"{k}={v}" for k, v in params.items())
-    auth_url = f"{DISCORD_OAUTH_URL}?{query_string}"
+    auth_url = f"{api_config.discord_oauth_url}?{query_string}"
 
     logger.info("Generated OAuth2 authorization URL with state: %s", state)
     return auth_url, state

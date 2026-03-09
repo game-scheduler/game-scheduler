@@ -45,5 +45,6 @@ def get_discord_client() -> DiscordAPIClient:
             client_id=api_config.discord_client_id,
             client_secret=api_config.discord_client_secret,
             bot_token=api_config.discord_bot_token,
+            api_base_url=api_config.discord_api_base_url,
         )
     return _discord_client_instance

@@ -58,18 +58,18 @@ Enable full integration-test coverage for all 5 auth endpoints by making Discord
 - [x] Task 1.4: Refactor — verify default (no arg) still targets real Discord; remove module-level URL constants entirely
   - Details: .copilot-tracking/details/20260308-04-auth-oauth-testing-details.md (Lines 86-97)
 
-### [ ] Phase 2: Config + OAuth URL Wiring (TDD)
+### [x] Phase 2: Config + OAuth URL Wiring (TDD)
 
-- [ ] Task 2.1: Add `discord_api_base_url` and `discord_oauth_url` stub fields to `ApiConfig`; add `discord_api_base_url` to bot config with defaults matching current hardcoded values
+- [x] Task 2.1: Add `discord_api_base_url` and `discord_oauth_url` stub fields to `ApiConfig`; add `discord_api_base_url` to bot config with defaults matching current hardcoded values
   - Details: .copilot-tracking/details/20260308-04-auth-oauth-testing-details.md (Lines 100-118)
 
-- [ ] Task 2.2: Write unit tests verifying config fields are forwarded to `DiscordAPIClient` and `oauth2.py` — mark as `@pytest.mark.xfail` (RED)
+- [x] Task 2.2: Write unit tests verifying config fields are forwarded to `DiscordAPIClient` and `oauth2.py` — mark as `@pytest.mark.xfail` (RED)
   - Details: .copilot-tracking/details/20260308-04-auth-oauth-testing-details.md (Lines 119-135)
 
-- [ ] Task 2.3: Wire both `DiscordAPIClient()` callsites to pass `api_base_url=config.discord_api_base_url`; update `oauth2.py` to read `discord_oauth_url` from `ApiConfig`; remove xfail markers (GREEN)
+- [x] Task 2.3: Wire both `DiscordAPIClient()` callsites to pass `api_base_url=config.discord_api_base_url`; update `oauth2.py` to read `discord_oauth_url` from `ApiConfig`; remove xfail markers (GREEN)
   - Details: .copilot-tracking/details/20260308-04-auth-oauth-testing-details.md (Lines 136-155)
 
-- [ ] Task 2.4: Refactor — confirm no module-level URL constants remain in `oauth2.py`; run existing tests to confirm no regressions
+- [x] Task 2.4: Refactor — confirm no module-level URL constants remain in `oauth2.py`; run existing tests to confirm no regressions
   - Details: .copilot-tracking/details/20260308-04-auth-oauth-testing-details.md (Lines 156-165)
 
 ### [ ] Phase 3: Fake Discord Service (Infrastructure)
