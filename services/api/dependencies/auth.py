@@ -43,7 +43,9 @@ _db_dependency = Depends(database.get_db)
 
 
 async def get_current_user(
-    session_token: str = Cookie(..., description="Session token from HTTPOnly cookie"),
+    session_token: str | None = Cookie(
+        default=None, description="Session token from HTTPOnly cookie"
+    ),
     db: AsyncSession = _db_dependency,
 ) -> auth_schemas.CurrentUser:
     """

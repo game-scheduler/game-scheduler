@@ -82,16 +82,16 @@ Enable full integration-test coverage for all 5 auth endpoints by making Discord
 
 ### [ ] Phase 4: Auth Integration Tests (TDD)
 
-- [ ] Task 4.1: Create `tests/integration/test_auth_routes.py` skeleton with placeholder structure and imports
+- [x] Task 4.1: Create `tests/integration/test_auth_routes.py` skeleton with placeholder structure and imports
   - Details: .copilot-tracking/details/20260308-04-auth-oauth-testing-details.md (Lines 225-237)
 
-- [ ] Task 4.2: Write integration tests for all 5 auth endpoints covering primary success paths — mark all as `@pytest.mark.xfail` (RED)
+- [x] Task 4.2: Write integration tests for all 5 auth endpoints covering primary success paths — mark all as `@pytest.mark.xfail` (RED)
   - Details: .copilot-tracking/details/20260308-04-auth-oauth-testing-details.md (Lines 238-285)
 
-- [ ] Task 4.3: Verify tests pass against fake Discord service; remove xfail markers (GREEN)
+- [x] Task 4.3: Verify tests pass against fake Discord service; remove xfail markers (GREEN)
   - Details: .copilot-tracking/details/20260308-04-auth-oauth-testing-details.md (Lines 286-295)
 
-- [ ] Task 4.4: Add error-path and edge-case tests (state mismatch, Discord 5xx, missing session, expired token)
+- [x] Task 4.4: Add error-path and edge-case tests (state mismatch, Discord 5xx, missing session, expired token)
   - Details: .copilot-tracking/details/20260308-04-auth-oauth-testing-details.md (Lines 296-316)
 
 ## Dependencies

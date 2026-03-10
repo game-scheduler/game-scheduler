@@ -43,8 +43,8 @@ import signal
 from aiohttp import web
 
 _DEFAULT_TOKEN_RESPONSE = {
-    "access_token": "fake_access_token",
-    "refresh_token": "fake_refresh_token",
+    "access_token": "fake.access_token",
+    "refresh_token": "fake.refresh_token",
     "token_type": "Bearer",
     "expires_in": 604800,
     "scope": "identify guilds",
@@ -71,7 +71,12 @@ def build_app() -> web.Application:
     user_response = _load_response("FAKE_USER_RESPONSE", _DEFAULT_USER_RESPONSE)
     guilds_response = _load_response("FAKE_GUILDS_RESPONSE", [])
 
-    async def token_handler(_request: web.Request) -> web.Response:
+    async def token_handler(request: web.Request) -> web.Response:
+        data = await request.post()
+        if data.get("code") == "error_trigger":
+            return web.json_response({"error": "server_error"}, status=500)
+        if data.get("refresh_token") == "error_refresh":
+            return web.json_response({"error": "invalid_grant"}, status=401)
         return web.json_response(token_response)
 
     async def user_handler(_request: web.Request) -> web.Response:

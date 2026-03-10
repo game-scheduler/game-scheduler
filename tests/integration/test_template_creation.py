@@ -222,9 +222,10 @@ async def test_create_template_without_authentication(
     create_channel,
     api_base_url,
 ):
-    """Verify template creation fails without authentication (422 Unprocessable Entity).
+    """Verify template creation fails without authentication (401 Unauthorized).
 
-    FastAPI returns 422 for missing required Cookie parameter (session_token).
+    The session_token cookie is optional at the FastAPI parameter level; the
+    get_current_user dependency raises 401 when it is absent.
     This ensures unauthenticated requests cannot create templates.
     """
     # Setup test environment
@@ -248,15 +249,9 @@ async def test_create_template_without_authentication(
             },
         )
 
-    # Verify authentication failure - FastAPI returns 422 for missing required cookie
-    assert response.status_code == 422, (
-        f"Expected 422 Unprocessable Entity, got {response.status_code}: {response.text}"
-    )
-
-    # Verify error message mentions session_token
-    response_data = response.json()
-    assert "session_token" in str(response_data).lower(), (
-        "Response should indicate missing session_token cookie"
+    # Verify authentication failure
+    assert response.status_code == 401, (
+        f"Expected 401 Unauthorized, got {response.status_code}: {response.text}"
     )
 
     # Verify template was NOT created in database
