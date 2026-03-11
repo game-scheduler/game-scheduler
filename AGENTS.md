@@ -12,6 +12,8 @@ Follow the referenced instruction files as the single source of truth.
   - Note: The "declare intent before tool use" rule is relaxed for Codex.
 - `.github/instructions/quality-check-overrides.instructions.md`
   - Applies when bypassing quality checks, suppressing lints, or during commit/push flows.
+- `.github/instructions/commit-messages.instructions.md`
+  - Applies when creating git commits.
 
 ## Conditional Guidance
 
