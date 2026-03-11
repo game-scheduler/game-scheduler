@@ -3,6 +3,13 @@
 This file mirrors the Copilot planning agent instructions, adapted for Codex directory-scoped guidance.
 It applies to files under `.copilot-tracking/planning/`.
 
+## Implementation Prompt Shortcut
+
+When asked to implement a plan, open and follow the matching
+`.copilot-tracking/planning/prompts/implement-*.prompt.md` file if it exists.
+If the prompt file is not specified, list available prompts or use
+`scripts/show-implement-prompt.sh` to locate one.
+
 # Task Planner Instructions
 
 ## Core Requirements
