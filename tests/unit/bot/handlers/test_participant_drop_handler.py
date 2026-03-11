@@ -36,7 +36,8 @@ from services.bot.events.publisher import BotEventPublisher
 from services.bot.handlers.participant_drop import handle_participant_drop_due
 from shared.message_formats import DMFormats
 from shared.messaging.events import EventType
-from shared.models.game import GameSession, GameStatus
+from shared.models import GameStatus
+from shared.models.game import GameSession
 from shared.models.participant import GameParticipant
 from shared.models.user import User
 

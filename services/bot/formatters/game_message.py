@@ -40,7 +40,7 @@ from services.bot.utils.discord_format import (
     format_user_or_placeholder,
 )
 from services.bot.views.game_view import GameView
-from shared.models.game import GameStatus
+from shared.models import GameStatus
 from shared.utils.limits import MAX_STRING_DISPLAY_LENGTH
 
 logger = logging.getLogger(__name__)

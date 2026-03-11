@@ -44,25 +44,25 @@ Eliminate the duplicate `GameStatus` enum by making `shared/utils/status_transit
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Add `display_name` to `status_transitions.py` (TDD)
+### [x] Phase 1: Add `display_name` to `status_transitions.py` (TDD)
 
-- [ ] Task 1.1: Add `display_name` stub to `GameStatus` in `status_transitions.py`
+- [x] Task 1.1: Add `display_name` stub to `GameStatus` in `status_transitions.py`
   - Details: .copilot-tracking/details/20260308-01-game-status-consolidation-details.md (Lines 11-23)
 
-- [ ] Task 1.2: Write xfail tests for `display_name` (RED)
+- [x] Task 1.2: Write xfail tests for `display_name` (RED)
   - Details: .copilot-tracking/details/20260308-01-game-status-consolidation-details.md (Lines 24-37)
 
-- [ ] Task 1.3: Implement `display_name` and remove xfail markers (GREEN)
+- [x] Task 1.3: Implement `display_name` and remove xfail markers (GREEN)
   - Details: .copilot-tracking/details/20260308-01-game-status-consolidation-details.md (Lines 38-52)
 
-### [ ] Phase 2: Consolidate `game.py`
+### [x] Phase 2: Consolidate `game.py`
 
-- [ ] Task 2.1: Replace local `GameStatus` in `game.py` with import from `status_transitions`
+- [x] Task 2.1: Replace local `GameStatus` in `game.py` with import from `status_transitions`
   - Details: .copilot-tracking/details/20260308-01-game-status-consolidation-details.md (Lines 55-69)
 
-### [ ] Phase 3: Update Consumer Import Paths
+### [x] Phase 3: Update Consumer Import Paths
 
-- [ ] Task 3.1: Replace `from shared.models.game import GameStatus` in all 7 consumer files
+- [x] Task 3.1: Replace `from shared.models.game import GameStatus` in all 7 consumer files
   - Details: .copilot-tracking/details/20260308-01-game-status-consolidation-details.md (Lines 72-90)
 
 ## Dependencies

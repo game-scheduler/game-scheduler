@@ -29,9 +29,8 @@ from services.scheduler.event_builders import (
     build_status_transition_event,
 )
 from shared.messaging.events import EventType
-from shared.models import GameStatusSchedule, NotificationSchedule
+from shared.models import GameStatus, GameStatusSchedule, NotificationSchedule
 from shared.models.base import utc_now
-from shared.models.game import GameStatus
 
 
 class TestBuildNotificationEvent:

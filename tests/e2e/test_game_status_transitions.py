@@ -50,7 +50,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import text
 
-from shared.models.game import GameStatus
+from shared.models import GameStatus
 from tests.e2e.conftest import (
     TimeoutType,
     wait_for_db_condition,

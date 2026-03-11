@@ -37,7 +37,7 @@ import pytest
 from sqlalchemy import text
 
 from shared.messaging.infrastructure import QUEUE_BOT_EVENTS
-from shared.models.game import GameStatus
+from shared.models import GameStatus
 from shared.models.participant import ParticipantType
 from shared.utils.discord_tokens import extract_bot_discord_id
 from tests.integration.conftest import consume_one_message

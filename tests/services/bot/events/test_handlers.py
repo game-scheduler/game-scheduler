@@ -31,9 +31,10 @@ import pytest
 
 from services.bot.events.handlers import EventHandlers
 from shared.messaging.events import EventType, NotificationDueEvent
+from shared.models import GameStatus
 from shared.models import participant as participant_model
 from shared.models.base import utc_now
-from shared.models.game import GameSession, GameStatus
+from shared.models.game import GameSession
 from shared.models.participant import ParticipantType
 from shared.models.user import User
 

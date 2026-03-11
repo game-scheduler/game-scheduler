@@ -36,7 +36,8 @@ from sqlalchemy import text
 
 from services.api.services.games import GameService
 from shared.messaging.publisher import EventPublisher
-from shared.models.game import GameSession, GameStatus
+from shared.models import GameStatus
+from shared.models.game import GameSession
 
 pytestmark = pytest.mark.integration
 

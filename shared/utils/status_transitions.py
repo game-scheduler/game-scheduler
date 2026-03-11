@@ -32,6 +32,17 @@ class GameStatus(StrEnum):
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
 
+    @property
+    def display_name(self) -> str:
+        """User-friendly display name for the status."""
+        display_map = {
+            "SCHEDULED": "Scheduled",
+            "IN_PROGRESS": "In Progress",
+            "COMPLETED": "Completed",
+            "CANCELLED": "Cancelled",
+        }
+        return display_map[self.value]
+
 
 class StatusTransitionError(Exception):
     """Raised when invalid status transition is attempted."""

@@ -22,12 +22,13 @@
 """Game session model."""
 
 from datetime import datetime
-from enum import StrEnum
 from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import JSON, ForeignKey, Integer, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from shared.utils.status_transitions import GameStatus
 
 from .base import Base, generate_uuid, utc_now
 from .signup_method import SignupMethod
@@ -39,26 +40,6 @@ if TYPE_CHECKING:
     from .participant import GameParticipant
     from .template import GameTemplate
     from .user import User
-
-
-class GameStatus(StrEnum):
-    """Game session status."""
-
-    SCHEDULED = "SCHEDULED"
-    IN_PROGRESS = "IN_PROGRESS"
-    COMPLETED = "COMPLETED"
-    CANCELLED = "CANCELLED"
-
-    @property
-    def display_name(self) -> str:
-        """User-friendly display name for the status."""
-        display_map = {
-            "SCHEDULED": "Scheduled",
-            "IN_PROGRESS": "In Progress",
-            "COMPLETED": "Completed",
-            "CANCELLED": "Cancelled",
-        }
-        return display_map[self.value]
 
 
 class GameSession(Base):
