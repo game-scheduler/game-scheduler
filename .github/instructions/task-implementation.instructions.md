@@ -84,7 +84,7 @@ Implementation progress MUST be tracked in a corresponding changes files located
 2. Fix any problems before moving to the next task
 3. **MANDATORY**: Update the plan file to mark completed tasks `[x]`
 4. **MANDATORY after EVERY task completion**: Update the changes file by appending to Added, Modified, or Removed sections with relative file paths and one-sentence summary of what was implemented
-5. Stop and return control to the user so they can review progress
+5. Stop and return control to the user so they can review progress **unless** the user explicitly requested multiple tasks or an entire phase. In that case, continue through the requested scope, then stop for review.
 
 **Continue until:**
 
