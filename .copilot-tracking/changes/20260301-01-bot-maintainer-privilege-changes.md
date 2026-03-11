@@ -1,5 +1,5 @@
 ---
-applyTo: '.copilot-tracking/plans/20260301-01-bot-maintainer-privilege.plan.md'
+applyTo: '.copilot-tracking/planning/plans/20260301-01-bot-maintainer-privilege.plan.md'
 ---
 
 <!-- markdownlint-disable-file -->

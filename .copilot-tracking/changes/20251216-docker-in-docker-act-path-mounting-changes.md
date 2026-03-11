@@ -21,7 +21,7 @@ Fixed Docker-in-Docker path mounting for nektos/act by implementing a path consi
 - .actrc - Removed --directory workaround flag since act now uses current directory correctly
 - .github/workflows/ci-cd.yml - Removed matrix strategies from unit-tests and integration-tests, updated to Python 3.13
 - docs/LOCAL_TESTING_WITH_ACT.md - Added path consistency approach section, troubleshooting for chdir errors and port conflicts, container reuse notes
-- .copilot-tracking/plans/20251216-docker-in-docker-act-path-mounting.plan.md - Marked all phases complete
+- .copilot-tracking/planning/plans/20251216-docker-in-docker-act-path-mounting.plan.md - Marked all phases complete
 
 ### Removed
 
@@ -41,7 +41,7 @@ None
 - .actrc - Removed --directory=${HOST_WORKSPACE_FOLDER} flag as it's no longer needed with path consistency
 - .github/workflows/ci-cd.yml - Simplified workflows by removing python-version matrix from unit-tests and integration-tests jobs, updated to single Python 3.13 version
 - docs/LOCAL_TESTING_WITH_ACT.md - Documented path consistency solution, added troubleshooting sections for chdir errors and port conflicts, noted container reuse limitations with matrix jobs
-- .copilot-tracking/plans/20251216-docker-in-docker-act-path-mounting.plan.md - Updated all phase checkboxes to complete
+- .copilot-tracking/planning/plans/20251216-docker-in-docker-act-path-mounting.plan.md - Updated all phase checkboxes to complete
 
 ### Files Removed (0)
 

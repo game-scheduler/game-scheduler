@@ -98,7 +98,7 @@ Comprehensive security audit and fixes for REST API authorization vulnerabilitie
 - services/api/routes/export.py - Updated export endpoint to pass current_user for guild membership verification
 - tests/services/api/dependencies/test_permissions.py - Added comprehensive unit tests for all new authorization helpers
 - tests/services/api/routes/test_templates.py - Updated 4 tests to mock new authorization helpers
-- .copilot-tracking/plans/20251204-api-authorization-audit.plan.md - Marked all phases and tasks as completed
+- .copilot-tracking/planning/plans/20251204-api-authorization-audit.plan.md - Marked all phases and tasks as completed
 - .copilot-tracking/changes/20251204-api-authorization-audit-changes.md - Documented all implementation changes
 
 ### Files Removed (0)

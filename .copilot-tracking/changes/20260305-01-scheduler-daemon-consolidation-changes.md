@@ -2,7 +2,7 @@
 
 # Release Changes: Scheduler Daemon Consolidation
 
-**Related Plan**: .copilot-tracking/plans/20260305-01-scheduler-daemon-consolidation.plan.md
+**Related Plan**: .copilot-tracking/planning/plans/20260305-01-scheduler-daemon-consolidation.plan.md
 **Implementation Date**: 2026-03-05
 
 ## Summary

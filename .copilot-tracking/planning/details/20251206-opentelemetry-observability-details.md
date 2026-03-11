@@ -107,7 +107,7 @@ Add PostgreSQL metrics collection using Alloy's built-in prometheus.exporter.pos
   - prometheus.exporter.postgres configured with correct DSN
   - DSN uses environment variables: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
   - discovery.relabel configured with job="integrations/postgres_exporter" and instance="postgres"
-  - prometheus.relabel configured with metric filtering (pg_settings_*, pg_stat_activity_*, pg_stat_bgwriter_*, pg_stat_database_*, pg_up, up)
+  - prometheus.relabel configured with metric filtering (pg*settings*_, pg*stat_activity*_, pg*stat_bgwriter*_, pg*stat_database*_, pg_up, up)
   - prometheus.scrape configured with 60s interval
   - Alloy restarts successfully with new config
 - **Research References**:
@@ -264,7 +264,7 @@ Add telemetry initialization to API service startup sequence.
 Add OpenTelemetry environment variables to API service configuration.
 
 - **Files**:
-  - `docker-compose.base.yml` - Add OTEL_* environment variables to api service
+  - `docker-compose.base.yml` - Add OTEL\_\* environment variables to api service
   - `.env.example` - Add OpenTelemetry service configuration template
 - **Success**:
   - OTEL_SERVICE_NAME=api-service
@@ -328,7 +328,7 @@ Create manual trace spans for Discord event handlers and bot commands.
   - Relevant bot command files - Add manual spans
 - **Success**:
   - Import opentelemetry.trace.get_tracer
-  - Create tracer = trace.get_tracer(__name__)
+  - Create tracer = trace.get_tracer(**name**)
   - Wrap Discord event handlers (on_message, on_interaction) with tracer.start_as_current_span()
   - Add span attributes: discord.user_id, discord.channel_id, discord.guild_id, discord.command
   - Downstream operations (database, RabbitMQ) inherit trace context
@@ -343,7 +343,7 @@ Create manual trace spans for Discord event handlers and bot commands.
 Add OpenTelemetry configuration to bot service.
 
 - **Files**:
-  - `docker-compose.base.yml` - Add OTEL_* variables to bot service
+  - `docker-compose.base.yml` - Add OTEL\_\* variables to bot service
 - **Success**:
   - OTEL_SERVICE_NAME=bot-service
   - OTEL_EXPORTER_OTLP_ENDPOINT=http://grafana-alloy:4318
@@ -416,7 +416,7 @@ Add telemetry to status transition daemon with manual spans for scheduled tasks.
 Add OpenTelemetry configuration to both daemon services.
 
 - **Files**:
-  - `docker-compose.base.yml` - Add OTEL_* variables to notification-daemon and status-transition-daemon
+  - `docker-compose.base.yml` - Add OTEL\_\* variables to notification-daemon and status-transition-daemon
 - **Success**:
   - notification-daemon: OTEL_SERVICE_NAME=notification-daemon
   - status-transition-daemon: OTEL_SERVICE_NAME=status-transition-daemon

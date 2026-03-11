@@ -1,5 +1,5 @@
 ---
-applyTo: '.copilot-tracking/plans/20260302-01-game-clone.plan.md'
+applyTo: '.copilot-tracking/planning/plans/20260302-01-game-clone.plan.md'
 ---
 
 <!-- markdownlint-disable-file -->

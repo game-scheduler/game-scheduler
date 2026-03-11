@@ -1,33 +1,7 @@
----
-description: 'Task planner for creating actionable implementation plans - Brought to you by microsoft/edge-ai'
-tools:
-  [
-    'changes',
-    'search/codebase',
-    'edit/editFiles',
-    'extensions',
-    'fetch',
-    'findTestFiles',
-    'githubRepo',
-    'new',
-    'openSimpleBrowser',
-    'problems',
-    'runCommands',
-    'runNotebooks',
-    'runTests',
-    'search',
-    'search/searchResults',
-    'runCommands/terminalLastCommand',
-    'runCommands/terminalSelection',
-    'testFailure',
-    'usages',
-    'vscodeAPI',
-    'terraform',
-    'Microsoft Docs',
-    'azure_get_schema_for_Bicep',
-    'context7',
-  ]
----
+# Planning Instructions (Codex)
+
+This file mirrors the Copilot planning agent instructions, adapted for Codex directory-scoped guidance.
+It applies to files under `.copilot-tracking/planning/`.
 
 # Task Planner Instructions
 

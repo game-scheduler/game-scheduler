@@ -44,7 +44,7 @@ Consolidate GameStatus into a single canonical enum in status_transitions and up
 ### Files Modified (11)
 
 - .copilot-tracking/changes/20260308-01-game-status-consolidation-changes.md - tracked implementation progress and release summary.
-- .copilot-tracking/plans/20260308-01-game-status-consolidation.plan.md - updated task and phase completion status.
+- .copilot-tracking/planning/plans/20260308-01-game-status-consolidation.plan.md - updated task and phase completion status.
 - shared/models/game.py - switched GameStatus to import from shared.utils.status_transitions.
 - shared/utils/status_transitions.py - added display_name property for canonical GameStatus.
 - services/bot/formatters/game_message.py - updated GameStatus import to shared.models.

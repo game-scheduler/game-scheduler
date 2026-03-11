@@ -52,176 +52,176 @@ aggregation using OpenTelemetry with Grafana Cloud as the observability backend.
 
 - [x] Task 1.1: Create Grafana Cloud account and obtain credentials
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 15-35)
 
 - [x] Task 1.2: Create Alloy configuration file
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 37-75)
 
 - [x] Task 1.3: Add Grafana Alloy service to docker-compose
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 77-100)
 
 - [x] Task 1.4: Configure environment variables
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 102-125)
 
 - [x] Task 1.5: Test Alloy connection to Grafana Cloud
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 127-145)
 
 ### [x] Phase 2: PostgreSQL Metrics Collection
 
 - [x] Task 2.1: Configure PostgreSQL exporter in Alloy
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 147-180)
 
 - [x] Task 2.2: Configure Prometheus remote write
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 182-205)
 
 - [x] Task 2.3: Verify PostgreSQL metrics in Grafana Cloud
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 207-225)
 
 - [x] Task 2.4: Remove redundant postgres-exporter service
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 227-240)
 
 ### [x] Phase 3: Redis Metrics Collection
 
 - [x] Task 3.1: Configure Redis exporter scraping in Alloy
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 242-270)
 
 - [x] Task 3.2: Verify Redis metrics in Grafana Cloud
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 272-285)
 
 ### [x] Phase 4: API Service Instrumentation
 
 - [x] Task 4.1: Add OpenTelemetry Python packages
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 287-310)
 
 - [x] Task 4.2: Create shared telemetry initialization module
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 312-360)
 
 - [x] Task 4.3: Instrument API service startup
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 362-390)
 
 - [x] Task 4.4: Configure API service environment variables
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 392-410)
 
 - [x] Task 4.5: Verify API traces, metrics, and logs
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 412-435)
 
 ### [x] Phase 5: Bot Service Instrumentation
 
 - [x] Task 5.1: Instrument bot service startup
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 437-465)
 
 - [x] Task 5.2: Add manual spans for Discord event handlers
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 467-505)
 
 - [x] Task 5.3: Configure bot service environment variables
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 507-525)
 
 - [x] Task 5.4: Verify bot traces
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 527-545)
 
 ### [x] Phase 6: Daemon Services Instrumentation
 
 - [x] Task 6.1: Instrument notification daemon
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 547-585)
 
 - [x] Task 6.2: Instrument status transition daemon
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 587-625)
 
 - [x] Task 6.3: Configure daemon environment variables
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 627-650)
 
 - [x] Task 6.4: Verify daemon traces and message context propagation
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 652-675)
 
 ### [x] Phase 7: RabbitMQ Metrics Collection
 
 - [x] Task 7.1: Enable RabbitMQ Prometheus plugin
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 450-466)
 
 - [x] Task 7.2: Configure RabbitMQ metrics scraping in Alloy
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 467-484)
 
 - [x] Task 7.3: Verify RabbitMQ metrics in Grafana Cloud
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 485-502)
 
 ### [ ] Phase 8: Grafana Cloud Dashboards
 
 - [ ] Task 8.1: Import pre-built PostgreSQL dashboard
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 505-520)
 
 - [ ] Task 8.2: Import pre-built Redis dashboard
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 521-536)
 
 - [ ] Task 8.3: Import pre-built RabbitMQ dashboard
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 537-553)
 
 - [ ] Task 8.4: Create custom service overview dashboard
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 554-572)
 
 - [ ] Task 8.5: Configure alerting rules
   - Details:
-    .copilot-tracking/details/20251206-opentelemetry-observability-details.md
+    .copilot-tracking/planning/details/20251206-opentelemetry-observability-details.md
     (Lines 573-591)
 
 ## Dependencies

@@ -130,7 +130,7 @@ PostgreSQL 15→17, and optionally Node.js 20→22.
 - .github/instructions/python.instructions.md - Updated Python version reference
   from 3.11+ to 3.13+
 - RUNTIME_CONFIG.md - Added documentation note about current base image versions
-- .copilot-tracking/plans/20251206-docker-base-image-updates.plan.md -
+- .copilot-tracking/planning/plans/20251206-docker-base-image-updates.plan.md -
   Marked all phases complete
 
 ### Files Removed (0)

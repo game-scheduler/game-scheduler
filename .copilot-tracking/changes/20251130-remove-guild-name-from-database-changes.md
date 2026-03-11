@@ -73,7 +73,7 @@ All code changes complete and verified. Ready for Phase 5 (database migration an
 - `services/bot/commands/config_guild.py` - Removed guild_name parameter and logic from \_get_or_create_guild_config helper function
 - `tests/integration/test_notification_daemon.py` - Removed guild_name from SQL INSERT statements in test fixtures
 - `tests/e2e/test_game_notification_api_flow.py` - Removed guild_name from SQL INSERT statements in test fixtures
-- `.copilot-tracking/plans/20251130-remove-guild-name-from-database.plan.md` - Tracked implementation progress
+- `.copilot-tracking/planning/plans/20251130-remove-guild-name-from-database.plan.md` - Tracked implementation progress
 - `.copilot-tracking/changes/20251130-remove-guild-name-from-database-changes.md` - Documented all changes for release
 
 ### Files Removed (0)

@@ -1,5 +1,5 @@
 ---
-applyTo: '.copilot-tracking/plans/20260308-04-auth-oauth-testing.plan.md'
+applyTo: '.copilot-tracking/planning/plans/20260308-04-auth-oauth-testing.plan.md'
 ---
 
 <!-- markdownlint-disable-file -->
