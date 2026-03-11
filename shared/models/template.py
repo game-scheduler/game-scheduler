@@ -71,6 +71,10 @@ class GameTemplate(Base):
 
     # Locked Fields (manager-only, host cannot edit)
     channel_id: Mapped[str] = mapped_column(ForeignKey("channel_configurations.id"))
+    archive_delay_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    archive_channel_id: Mapped[str | None] = mapped_column(
+        ForeignKey("channel_configurations.id", ondelete="SET NULL"), nullable=True
+    )
     notify_role_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     allowed_player_role_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     allowed_host_role_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
@@ -88,7 +92,12 @@ class GameTemplate(Base):
     guild: Mapped["GuildConfiguration"] = relationship(
         "GuildConfiguration", back_populates="templates"
     )
-    channel: Mapped["ChannelConfiguration"] = relationship("ChannelConfiguration")
+    channel: Mapped["ChannelConfiguration"] = relationship(
+        "ChannelConfiguration", foreign_keys="GameTemplate.channel_id"
+    )
+    archive_channel: Mapped["ChannelConfiguration | None"] = relationship(
+        "ChannelConfiguration", foreign_keys="GameTemplate.archive_channel_id"
+    )
     games: Mapped[list["GameSession"]] = relationship("GameSession", back_populates="template")
 
     # Constraints and Indexes

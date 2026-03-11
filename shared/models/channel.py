@@ -56,7 +56,11 @@ class ChannelConfiguration(Base):
     guild: Mapped["GuildConfiguration"] = relationship(
         "GuildConfiguration", back_populates="channels"
     )
-    games: Mapped[list["GameSession"]] = relationship("GameSession", back_populates="channel")
+    games: Mapped[list["GameSession"]] = relationship(
+        "GameSession",
+        back_populates="channel",
+        foreign_keys="GameSession.channel_id",
+    )
 
     def __repr__(self) -> str:
         return f"<ChannelConfiguration(id={self.id}, channel_id={self.channel_id})>"

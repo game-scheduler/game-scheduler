@@ -47,6 +47,10 @@ class TestStatusTransitions:
         """IN_PROGRESS can transition to CANCELLED."""
         assert is_valid_transition("IN_PROGRESS", "CANCELLED") is True
 
+    def test_valid_completed_to_archived(self):
+        """COMPLETED can transition to ARCHIVED."""
+        assert is_valid_transition("COMPLETED", "ARCHIVED") is True
+
     def test_invalid_scheduled_to_completed(self):
         """SCHEDULED cannot directly transition to COMPLETED."""
         assert is_valid_transition("SCHEDULED", "COMPLETED") is False
@@ -56,6 +60,13 @@ class TestStatusTransitions:
         assert is_valid_transition("COMPLETED", "IN_PROGRESS") is False
         assert is_valid_transition("COMPLETED", "SCHEDULED") is False
         assert is_valid_transition("COMPLETED", "CANCELLED") is False
+
+    def test_invalid_archived_transitions(self):
+        """ARCHIVED is a terminal state with no valid transitions."""
+        assert is_valid_transition("ARCHIVED", "SCHEDULED") is False
+        assert is_valid_transition("ARCHIVED", "IN_PROGRESS") is False
+        assert is_valid_transition("ARCHIVED", "COMPLETED") is False
+        assert is_valid_transition("ARCHIVED", "CANCELLED") is False
 
     def test_invalid_cancelled_transitions(self):
         """CANCELLED is a terminal state with no valid transitions."""
@@ -91,3 +102,7 @@ class TestStatusTransitions:
         assert GameStatus.IN_PROGRESS == "IN_PROGRESS"
         assert GameStatus.COMPLETED == "COMPLETED"
         assert GameStatus.CANCELLED == "CANCELLED"
+
+    def test_game_status_enum_value_archived(self):
+        """GameStatus ARCHIVED enum value is present."""
+        assert GameStatus.ARCHIVED == "ARCHIVED"

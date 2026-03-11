@@ -39,15 +39,15 @@ Plan and implement archive support for game announcements, including data model 
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Data Model + Status Enum
+### [x] Phase 1: Data Model + Status Enum
 
-- [ ] Task 1.1: Add alembic migration for archive fields
+- [x] Task 1.1: Add alembic migration for archive fields
   - Details: .copilot-tracking/planning/details/20260311-01-game-archive-feature-details.md (Lines 11-24)
 
-- [ ] Task 1.2: Update GameTemplate and GameSession models for archive fields and relationships
+- [x] Task 1.2: Update GameTemplate and GameSession models for archive fields and relationships
   - Details: .copilot-tracking/planning/details/20260311-01-game-archive-feature-details.md (Lines 26-39)
 
-- [ ] Task 1.3: Extend canonical GameStatus for ARCHIVED and transitions
+- [x] Task 1.3: Extend canonical GameStatus for ARCHIVED and transitions
   - Details: .copilot-tracking/planning/details/20260311-01-game-archive-feature-details.md (Lines 41-54)
 
 ### [ ] Phase 2: API + Services

@@ -42,3 +42,8 @@ def test_game_status_display_name_completed() -> None:
 def test_game_status_display_name_cancelled() -> None:
     """CANCELLED display name is "Cancelled"."""
     assert GameStatus.CANCELLED.display_name == "Cancelled"
+
+
+def test_game_status_display_name_archived() -> None:
+    """ARCHIVED display name is "Archived"."""
+    assert GameStatus.ARCHIVED.display_name == "Archived"

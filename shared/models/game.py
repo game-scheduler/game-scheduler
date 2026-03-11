@@ -63,6 +63,10 @@ class GameSession(Base):
     max_players: Mapped[int | None] = mapped_column(Integer, nullable=True)
     guild_id: Mapped[str] = mapped_column(ForeignKey("guild_configurations.id"))
     channel_id: Mapped[str] = mapped_column(ForeignKey("channel_configurations.id"))
+    archive_delay_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    archive_channel_id: Mapped[str | None] = mapped_column(
+        ForeignKey("channel_configurations.id", ondelete="SET NULL"), nullable=True
+    )
     message_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
     host_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     reminder_minutes: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
@@ -100,7 +104,12 @@ class GameSession(Base):
     template: Mapped["GameTemplate"] = relationship("GameTemplate", back_populates="games")
     guild: Mapped["GuildConfiguration"] = relationship("GuildConfiguration", back_populates="games")
     channel: Mapped["ChannelConfiguration"] = relationship(
-        "ChannelConfiguration", back_populates="games"
+        "ChannelConfiguration",
+        back_populates="games",
+        foreign_keys="GameSession.channel_id",
+    )
+    archive_channel: Mapped["ChannelConfiguration | None"] = relationship(
+        "ChannelConfiguration", foreign_keys="GameSession.archive_channel_id"
     )
     host: Mapped["User"] = relationship("User", back_populates="hosted_games")
     participants: Mapped[list["GameParticipant"]] = relationship(

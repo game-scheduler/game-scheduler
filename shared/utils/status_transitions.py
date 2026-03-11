@@ -31,6 +31,7 @@ class GameStatus(StrEnum):
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
+    ARCHIVED = "ARCHIVED"
 
     @property
     def display_name(self) -> str:
@@ -40,6 +41,7 @@ class GameStatus(StrEnum):
             "IN_PROGRESS": "In Progress",
             "COMPLETED": "Completed",
             "CANCELLED": "Cancelled",
+            "ARCHIVED": "Archived",
         }
         return display_map[self.value]
 
@@ -70,8 +72,9 @@ def is_valid_transition(current_status: str, new_status: str) -> bool:
     valid_transitions = {
         GameStatus.SCHEDULED: [GameStatus.IN_PROGRESS, GameStatus.CANCELLED],
         GameStatus.IN_PROGRESS: [GameStatus.COMPLETED, GameStatus.CANCELLED],
-        GameStatus.COMPLETED: [],
+        GameStatus.COMPLETED: [GameStatus.ARCHIVED],
         GameStatus.CANCELLED: [],
+        GameStatus.ARCHIVED: [],
     }
 
     try:
