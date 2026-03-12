@@ -31,7 +31,7 @@ import pytest
 
 from services.bot.events.handlers import EventHandlers
 from shared.messaging.events import EventType, NotificationDueEvent
-from shared.models import GameStatus
+from shared.models import GameStatus, GameStatusSchedule
 from shared.models import participant as participant_model
 from shared.models.base import utc_now
 from shared.models.game import GameSession
@@ -579,6 +579,240 @@ async def test_handle_status_transition_due_invalid_data(event_handlers):
     """Test status transition with invalid event data."""
     data = {"invalid": "data"}
     await event_handlers._handle_status_transition_due(data)
+
+
+@pytest.mark.asyncio
+async def test_handle_status_transition_creates_archived_schedule_when_delay_set(
+    event_handlers, sample_game, sample_user
+):
+    """Test COMPLETED transition schedules ARCHIVED when delay is set."""
+    fixed_now = datetime(2025, 11, 20, 19, 0, 0)
+    sample_game.host = sample_user
+    sample_game.participants = []
+    sample_game.status = GameStatus.IN_PROGRESS.value
+    sample_game.archive_delay_seconds = 3600
+
+    mock_channel_config = MagicMock()
+    mock_channel_config.channel_id = "123456789"
+    sample_game.channel = mock_channel_config
+
+    with (
+        patch("services.bot.events.handlers.get_db_session") as mock_db_session,
+        patch("services.bot.events.handlers.utc_now", return_value=fixed_now),
+    ):
+        mock_db = MagicMock()
+        mock_db.commit = AsyncMock()
+        mock_db.add = MagicMock()
+        mock_db.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_db.__aexit__ = AsyncMock()
+        mock_db_session.return_value = mock_db
+
+        with (
+            patch(
+                "services.bot.events.handlers.EventHandlers._get_game_with_participants",
+                return_value=sample_game,
+            ),
+            patch.object(event_handlers, "_refresh_game_message", new=AsyncMock()),
+        ):
+            data = {
+                "game_id": sample_game.id,
+                "target_status": GameStatus.COMPLETED.value,
+                "transition_time": fixed_now,
+            }
+            await event_handlers._handle_status_transition_due(data)
+
+            added_schedules = [
+                call.args[0]
+                for call in mock_db.add.call_args_list
+                if isinstance(call.args[0], GameStatusSchedule)
+            ]
+            assert len(added_schedules) == 1
+            schedule = added_schedules[0]
+            assert schedule.game_id == sample_game.id
+            assert schedule.target_status == GameStatus.ARCHIVED.value
+            assert schedule.transition_time == fixed_now + timedelta(seconds=3600)
+
+
+@pytest.mark.asyncio
+async def test_handle_status_transition_no_archived_schedule_when_delay_none(
+    event_handlers, sample_game, sample_user
+):
+    """Test COMPLETED transition does not schedule ARCHIVED when delay is None."""
+    sample_game.host = sample_user
+    sample_game.participants = []
+    sample_game.status = GameStatus.IN_PROGRESS.value
+    sample_game.archive_delay_seconds = None
+
+    mock_channel_config = MagicMock()
+    mock_channel_config.channel_id = "123456789"
+    sample_game.channel = mock_channel_config
+
+    with patch("services.bot.events.handlers.get_db_session") as mock_db_session:
+        mock_db = MagicMock()
+        mock_db.commit = AsyncMock()
+        mock_db.add = MagicMock()
+        mock_db.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_db.__aexit__ = AsyncMock()
+        mock_db_session.return_value = mock_db
+
+        with (
+            patch(
+                "services.bot.events.handlers.EventHandlers._get_game_with_participants",
+                return_value=sample_game,
+            ),
+            patch.object(event_handlers, "_refresh_game_message", new=AsyncMock()),
+        ):
+            data = {
+                "game_id": sample_game.id,
+                "target_status": GameStatus.COMPLETED.value,
+                "transition_time": datetime(2025, 11, 20, 18, 0, 0, tzinfo=UTC),
+            }
+            await event_handlers._handle_status_transition_due(data)
+
+            assert not any(
+                isinstance(call.args[0], GameStatusSchedule) for call in mock_db.add.call_args_list
+            )
+
+
+@pytest.mark.asyncio
+async def test_archive_game_announcement_deletes_original(event_handlers, sample_game):
+    """Test archive handler deletes original announcement when no archive channel set."""
+    sample_game.archive_channel_id = None
+    sample_game.archive_channel = None
+    sample_game.message_id = "999888777"
+
+    mock_channel_config = MagicMock()
+    mock_channel_config.channel_id = "123456789"
+    sample_game.channel = mock_channel_config
+
+    mock_channel = AsyncMock(spec=discord.TextChannel)
+    mock_message = AsyncMock()
+    mock_channel.fetch_message = AsyncMock(return_value=mock_message)
+
+    with (
+        patch.object(
+            event_handlers,
+            "_get_bot_channel",
+            new=AsyncMock(return_value=mock_channel),
+        ) as mock_get_channel,
+        patch.object(
+            event_handlers,
+            "_create_game_announcement",
+            new=AsyncMock(),
+        ) as mock_create,
+    ):
+        await event_handlers._archive_game_announcement(sample_game)
+
+        mock_get_channel.assert_awaited_once_with(sample_game.channel.channel_id)
+        mock_channel.fetch_message.assert_awaited_once_with(int(sample_game.message_id))
+        mock_message.delete.assert_awaited_once()
+        mock_create.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_archive_game_announcement_posts_to_archive_channel(event_handlers, sample_game):
+    """Test archive handler reposts announcement when archive channel configured."""
+    sample_game.message_id = "999888777"
+    sample_game.archive_channel_id = "archive-config"
+
+    mock_channel_config = MagicMock()
+    mock_channel_config.channel_id = "123456789"
+    sample_game.channel = mock_channel_config
+
+    mock_archive_config = MagicMock()
+    mock_archive_config.channel_id = "222333444"
+    sample_game.archive_channel = mock_archive_config
+
+    mock_active_channel = AsyncMock(spec=discord.TextChannel)
+    mock_message = AsyncMock()
+    mock_active_channel.fetch_message = AsyncMock(return_value=mock_message)
+
+    mock_archive_channel = AsyncMock(spec=discord.TextChannel)
+
+    with (
+        patch.object(
+            event_handlers,
+            "_get_bot_channel",
+            new=AsyncMock(side_effect=[mock_active_channel, mock_archive_channel]),
+        ),
+        patch.object(
+            event_handlers,
+            "_create_game_announcement",
+            new=AsyncMock(return_value=("content", "embed", "view")),
+        ),
+    ):
+        await event_handlers._archive_game_announcement(sample_game)
+
+        mock_archive_channel.send.assert_awaited_once_with(content="content", embed="embed")
+        mock_active_channel.fetch_message.assert_awaited_once_with(int(sample_game.message_id))
+        mock_message.delete.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_handle_status_transition_creates_archived_schedule_when_delay_zero(
+    event_handlers, sample_game, sample_user
+):
+    """Test COMPLETED transition schedules ARCHIVED when delay is zero."""
+    fixed_now = datetime(2025, 11, 20, 19, 30, 0)
+    sample_game.host = sample_user
+    sample_game.participants = []
+    sample_game.status = GameStatus.IN_PROGRESS.value
+    sample_game.archive_delay_seconds = 0
+
+    mock_channel_config = MagicMock()
+    mock_channel_config.channel_id = "123456789"
+    sample_game.channel = mock_channel_config
+
+    with (
+        patch("services.bot.events.handlers.get_db_session") as mock_db_session,
+        patch("services.bot.events.handlers.utc_now", return_value=fixed_now),
+    ):
+        mock_db = MagicMock()
+        mock_db.commit = AsyncMock()
+        mock_db.add = MagicMock()
+        mock_db.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_db.__aexit__ = AsyncMock()
+        mock_db_session.return_value = mock_db
+
+        with (
+            patch(
+                "services.bot.events.handlers.EventHandlers._get_game_with_participants",
+                return_value=sample_game,
+            ),
+            patch.object(event_handlers, "_refresh_game_message", new=AsyncMock()),
+        ):
+            data = {
+                "game_id": sample_game.id,
+                "target_status": GameStatus.COMPLETED.value,
+                "transition_time": fixed_now,
+            }
+            await event_handlers._handle_status_transition_due(data)
+
+            added_schedules = [
+                call.args[0]
+                for call in mock_db.add.call_args_list
+                if isinstance(call.args[0], GameStatusSchedule)
+            ]
+            assert len(added_schedules) == 1
+            schedule = added_schedules[0]
+            assert schedule.transition_time == fixed_now
+
+
+@pytest.mark.asyncio
+async def test_archive_game_announcement_no_message_id_is_noop(event_handlers, sample_game):
+    """Test archive handler exits when no message_id is set."""
+    sample_game.archive_channel_id = None
+    sample_game.archive_channel = None
+    sample_game.message_id = None
+
+    mock_channel_config = MagicMock()
+    mock_channel_config.channel_id = "123456789"
+    sample_game.channel = mock_channel_config
+
+    with patch.object(event_handlers, "_get_bot_channel", new=AsyncMock()) as mock_get_channel:
+        await event_handlers._archive_game_announcement(sample_game)
+
+        mock_get_channel.assert_not_awaited()
 
 
 @pytest.mark.asyncio

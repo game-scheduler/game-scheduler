@@ -23,7 +23,8 @@
 
 import asyncio
 import logging
-from datetime import datetime
+import uuid
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 import discord
@@ -53,12 +54,13 @@ from shared.models import participant as participant_model
 from shared.models import user as user_model
 from shared.models.base import utc_now
 from shared.models.game import GameSession
+from shared.models.game_status_schedule import GameStatusSchedule
 from shared.models.participant import GameParticipant
 from shared.models.participant_action_schedule import ParticipantActionSchedule
 from shared.schemas.events import GameStatusTransitionDueEvent
 from shared.utils.games import resolve_max_players
 from shared.utils.participant_sorting import partition_participants
-from shared.utils.status_transitions import is_valid_transition
+from shared.utils.status_transitions import GameStatus, is_valid_transition
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -1181,43 +1183,19 @@ class EventHandlers:
         try:
             async with get_db_session() as db:
                 game = await self._get_game_with_participants(db, game_id)
-                if not game:
-                    logger.error("Game %s not found for status transition", game_id)
+                if not self._is_transition_ready(game, game_id, transition_event.target_status):
                     return
 
-                # Validate transition is valid based on current status
-                if not is_valid_transition(game.status, transition_event.target_status):
-                    logger.warning(
-                        "Invalid status transition for game %s: %s → %s. Skipping.",
-                        game_id,
-                        game.status,
-                        transition_event.target_status,
-                    )
-                    return
-
-                # Check if already at target status (idempotency)
-                if game.status == transition_event.target_status:
-                    logger.info(
-                        "Game %s already at status %s, skipping transition",
-                        game_id,
-                        game.status,
-                    )
-                    return
-
-                current_status = game.status
-                game.status = transition_event.target_status
-                # updated_at handled automatically by SQLAlchemy onupdate
-                await db.commit()
-
-                logger.info(
-                    "✓ Transitioned game %s from %s to %s",
-                    game_id,
-                    current_status,
+                await self._transition_game_status(db, game, transition_event.target_status)
+                await self._schedule_archive_transition_if_needed(
+                    db,
+                    game,
                     transition_event.target_status,
                 )
 
             # Refresh Discord message to reflect new status
             await self._refresh_game_message(game_id)
+            await self._handle_post_transition_actions(game, transition_event.target_status)
 
         except Exception as e:
             logger.exception(
@@ -1225,6 +1203,114 @@ class EventHandlers:
                 game_id,
                 e,
             )
+
+    def _is_transition_ready(
+        self,
+        game: GameSession | None,
+        game_id: str,
+        target_status: str,
+    ) -> bool:
+        """Validate that a status transition can proceed for this game."""
+        if not game:
+            logger.error("Game %s not found for status transition", game_id)
+            return False
+
+        if not is_valid_transition(game.status, target_status):
+            logger.warning(
+                "Invalid status transition for game %s: %s → %s. Skipping.",
+                game_id,
+                game.status,
+                target_status,
+            )
+            return False
+
+        if game.status == target_status:
+            logger.info(
+                "Game %s already at status %s, skipping transition",
+                game_id,
+                game.status,
+            )
+            return False
+
+        return True
+
+    async def _transition_game_status(
+        self,
+        db: AsyncSession,
+        game: GameSession,
+        target_status: str,
+    ) -> None:
+        """Persist the game status transition."""
+        current_status = game.status
+        game.status = target_status
+        # updated_at handled automatically by SQLAlchemy onupdate
+        await db.commit()
+
+        logger.info(
+            "✓ Transitioned game %s from %s to %s",
+            game.id,
+            current_status,
+            target_status,
+        )
+
+    async def _schedule_archive_transition_if_needed(
+        self,
+        db: AsyncSession,
+        game: GameSession,
+        target_status: str,
+    ) -> None:
+        """Schedule ARCHIVED transition after a COMPLETED transition when configured."""
+        if target_status != GameStatus.COMPLETED.value or game.archive_delay_seconds is None:
+            return
+
+        archive_time = utc_now() + timedelta(seconds=game.archive_delay_seconds)
+        archive_schedule = GameStatusSchedule(
+            id=str(uuid.uuid4()),
+            game_id=game.id,
+            target_status=GameStatus.ARCHIVED.value,
+            transition_time=archive_time,
+            executed=False,
+        )
+        db.add(archive_schedule)
+        await db.commit()
+
+    async def _handle_post_transition_actions(self, game: GameSession, target_status: str) -> None:
+        """Run follow-up actions after a status transition commit."""
+        if target_status != GameStatus.ARCHIVED.value:
+            return
+
+        await self._archive_game_announcement(game)
+
+    async def _archive_game_announcement(self, game: GameSession) -> None:
+        """
+        Archive game announcement by deleting original and optionally reposting.
+
+        Args:
+            game: Game session with channel and announcement data
+        """
+        if not game.message_id or not game.channel:
+            return
+
+        channel = await self._get_bot_channel(game.channel.channel_id)
+        if not channel:
+            return
+
+        if game.archive_channel_id and game.archive_channel:
+            archive_channel = await self._get_bot_channel(game.archive_channel.channel_id)
+            if archive_channel:
+                content, embed, _view = await self._create_game_announcement(game)
+                await archive_channel.send(content=content, embed=embed)
+
+        try:
+            message = await channel.fetch_message(int(game.message_id))
+            await message.delete()
+        except discord.NotFound:
+            logger.warning(
+                "Original announcement not found for archive deletion: %s",
+                game.message_id,
+            )
+        except Exception as e:
+            logger.exception("Failed to delete archived announcement %s: %s", game.message_id, e)
 
     def _format_participants_for_display(self, game: GameSession) -> tuple[list[str], list[str]]:
         """
@@ -1318,6 +1404,7 @@ class EventHandlers:
             .options(selectinload(GameSession.participants).selectinload(GameParticipant.user))
             .options(selectinload(GameSession.host))
             .options(selectinload(GameSession.channel))
+            .options(selectinload(GameSession.archive_channel))
             .options(selectinload(GameSession.guild))
             .where(GameSession.id == str(UUID(game_id)))
         )

@@ -29,6 +29,10 @@ Add archive metadata fields to templates and game sessions, including schema and
 - services/api/services/games.py - copy archive fields into new game sessions.
 - tests/services/api/routes/test_templates.py - validate archive fields in template route helpers.
 - tests/services/api/services/test_games.py - verify archive fields are copied when building sessions.
+- services/bot/events/handlers.py - add archive announcement stub for TDD coverage.
+- tests/services/bot/events/test_handlers.py - add xfail tests for archive scheduling and archiving behavior.
+- services/bot/events/handlers.py - schedule ARCHIVED transitions and archive announcements on status changes.
+- tests/services/bot/events/test_handlers.py - remove xfail markers and add edge case coverage for archive handling.
 
 ### Removed
 

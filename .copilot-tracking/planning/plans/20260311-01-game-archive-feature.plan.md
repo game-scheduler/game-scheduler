@@ -61,15 +61,15 @@ Plan and implement archive support for game announcements, including data model 
 - [x] Task 2.3: Copy archive fields in game session creation
   - Details: .copilot-tracking/planning/details/20260311-01-game-archive-feature-details.md (Lines 88-100)
 
-### [ ] Phase 3: Bot Scheduling + Announcement Archiving (TDD)
+### [x] Phase 3: Bot Scheduling + Announcement Archiving (TDD)
 
-- [ ] Task 3.1: Add failing unit tests for archive scheduling and archiving behavior
+- [x] Task 3.1: Add failing unit tests for archive scheduling and archiving behavior
   - Details: .copilot-tracking/planning/details/20260311-01-game-archive-feature-details.md (Lines 104-116)
 
-- [ ] Task 3.2: Implement archive scheduling and announcement archive flow
+- [x] Task 3.2: Implement archive scheduling and announcement archive flow
   - Details: .copilot-tracking/planning/details/20260311-01-game-archive-feature-details.md (Lines 118-130)
 
-- [ ] Task 3.3: Remove xfail markers and harden edge cases
+- [x] Task 3.3: Remove xfail markers and harden edge cases
   - Details: .copilot-tracking/planning/details/20260311-01-game-archive-feature-details.md (Lines 132-145)
 
 ### [ ] Phase 4: Integration + E2E + Docs (TDD)
