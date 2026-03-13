@@ -233,13 +233,12 @@ class TestRetryDaemonEndToEnd:
             notification_event,
             "notification.send_dm",
         )
+        # Primary queues should start empty so later messages must come from DLQ processing.
+        bot_primary_count = get_queue_message_count(rabbitmq_channel, QUEUE_BOT_EVENTS)
+        notif_primary_count = get_queue_message_count(rabbitmq_channel, QUEUE_NOTIFICATION)
 
-        # Verify both messages in their respective DLQs
-        bot_dlq_count = get_queue_message_count(rabbitmq_channel, QUEUE_BOT_EVENTS_DLQ)
-        notif_dlq_count = get_queue_message_count(rabbitmq_channel, QUEUE_NOTIFICATION_DLQ)
-
-        assert bot_dlq_count == 1, "bot_events.dlq should have 1 message"
-        assert notif_dlq_count == 1, "notification_queue.dlq should have 1 message"
+        assert bot_primary_count == 0, "bot_events should start empty"
+        assert notif_primary_count == 0, "notification_queue should start empty"
 
         # Wait for retry daemon to process both
         retry_interval = int(os.getenv("RETRY_INTERVAL_SECONDS", "15"))
