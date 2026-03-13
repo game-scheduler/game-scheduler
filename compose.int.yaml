@@ -14,6 +14,11 @@
 # Note: Container ENTRYPOINT is 'pytest', so pass pytest args directly (not 'pytest' itself)
 
 services:
+  grafana-alloy:
+    image: alpine:latest
+    command: sh -c "echo 'Telemetry disabled for integration tests' && sleep infinity"
+    volumes: !reset []
+
   init:
     volumes:
       - ./coverage:/app/coverage:rw
