@@ -179,7 +179,6 @@ repos:
         language: system
         pass_filenames: false
         files: ^frontend/src/.*\.(ts|tsx|js|jsx)$
-        verbose: true
 
       # Diff coverage check for modified TypeScript code
       - id: diff-coverage-frontend
