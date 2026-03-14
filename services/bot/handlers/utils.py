@@ -21,7 +21,6 @@
 
 """Utilities for interaction handling."""
 
-import contextlib
 import logging
 import uuid
 
@@ -41,8 +40,14 @@ async def send_deferred_response(interaction: discord.Interaction) -> None:
         interaction: Discord interaction object
     """
     if not interaction.response.is_done():
-        with contextlib.suppress(discord.HTTPException):
+        try:
             await interaction.response.defer(ephemeral=True)
+        except discord.HTTPException as e:
+            logger.warning(
+                "Failed to defer interaction response for user %s: %s",
+                interaction.user.id,
+                e,
+            )
 
 
 async def get_participant_count(db: AsyncSession, game_id: uuid.UUID | str) -> int:

@@ -115,12 +115,6 @@ async def handle_join_game(
             updated_fields={"participants": True},
         )
 
-    # Update button interaction view (no DM notification here)
-    await interaction.edit_original_response(
-        content=f"✅ You've joined **{game.title}**!",
-        view=None,
-    )
-
     logger.info(
         "User %s joined game %s (%s/%s)",
         user_discord_id,

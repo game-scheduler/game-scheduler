@@ -21,12 +21,13 @@
 
 """Unit tests for bot handler utilities."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import discord
 import pytest
 
-from services.bot.handlers.utils import get_participant_count
+from services.bot.handlers.utils import get_participant_count, send_deferred_response
 from shared.models.participant import GameParticipant
 
 
@@ -128,3 +129,23 @@ class TestGetParticipantCount:
 
         count = await get_participant_count(mock_db, non_existent_game_id)
         assert count == 0
+
+
+class TestSendDeferredResponse:
+    """Tests for send_deferred_response function."""
+
+    @pytest.mark.asyncio
+    async def test_logs_warning_when_defer_raises_http_exception(self):
+        """Test that an HTTPException from defer is logged as a warning."""
+        mock_interaction = MagicMock()
+        mock_interaction.response.is_done.return_value = False
+        mock_interaction.user.id = 123456789
+        mock_interaction.response.defer = AsyncMock(
+            side_effect=discord.HTTPException(MagicMock(status=400), "Unknown interaction")
+        )
+
+        with patch("services.bot.handlers.utils.logger") as mock_logger:
+            await send_deferred_response(mock_interaction)
+            mock_logger.warning.assert_called_once()
+            args = mock_logger.warning.call_args[0]
+            assert "123456789" in str(args)
