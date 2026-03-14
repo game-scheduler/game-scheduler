@@ -31,28 +31,28 @@ Add `increment_image_ref` to `image_storage.py` and call it in `clone_game()` so
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Add `increment_image_ref` helper (TDD)
+### [x] Phase 1: Add `increment_image_ref` helper (TDD)
 
-- [ ] Task 1.1: Add stub for `increment_image_ref` in `shared/services/image_storage.py`
+- [x] Task 1.1: Add stub for `increment_image_ref` in `shared/services/image_storage.py`
   - Details: .copilot-tracking/planning/details/20260314-02-clone-game-image-refcount-bug-details.md (Lines 11-23)
 
-- [ ] Task 1.2: Write unit tests marked xfail in `tests/unit/shared/services/test_image_storage.py` (RED)
+- [x] Task 1.2: Write unit tests marked xfail in `tests/unit/shared/services/test_image_storage.py` (RED)
   - Details: .copilot-tracking/planning/details/20260314-02-clone-game-image-refcount-bug-details.md (Lines 24-42)
 
-- [ ] Task 1.3: Implement `increment_image_ref` and remove xfail markers (GREEN)
+- [x] Task 1.3: Implement `increment_image_ref` and remove xfail markers (GREEN)
   - Details: .copilot-tracking/planning/details/20260314-02-clone-game-image-refcount-bug-details.md (Lines 43-58)
 
-### [ ] Phase 2: Fix `clone_game()`
+### [x] Phase 2: Fix `clone_game()`
 
-- [ ] Task 2.1: Add `increment_image_ref` to the `image_storage` import in `services/api/services/games.py`
+- [x] Task 2.1: Add `increment_image_ref` to the `image_storage` import in `services/api/services/games.py`
   - Details: .copilot-tracking/planning/details/20260314-02-clone-game-image-refcount-bug-details.md (Lines 61-79)
 
-- [ ] Task 2.2: Call `increment_image_ref` for both image IDs in `clone_game()`
+- [x] Task 2.2: Call `increment_image_ref` for both image IDs in `clone_game()`
   - Details: .copilot-tracking/planning/details/20260314-02-clone-game-image-refcount-bug-details.md (Lines 80-99)
 
-### [ ] Phase 3: Add integration test
+### [x] Phase 3: Add integration test
 
-- [ ] Task 3.1: Add `test_clone_game_increments_image_refcounts` to `test_game_image_integration.py`
+- [x] Task 3.1: Add `test_clone_game_increments_image_refcounts` to `test_game_image_integration.py`
   - Details: .copilot-tracking/planning/details/20260314-02-clone-game-image-refcount-bug-details.md (Lines 102-130)
 
 ## Dependencies

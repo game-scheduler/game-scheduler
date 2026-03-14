@@ -60,7 +60,11 @@ from shared.models.participant_action_schedule import ParticipantActionSchedule
 from shared.models.signup_method import SignupMethod
 from shared.schemas import auth as auth_schemas
 from shared.schemas import game as game_schemas
-from shared.services.image_storage import release_image, store_image
+from shared.services.image_storage import (
+    increment_image_ref,
+    release_image,
+    store_image,
+)
 from shared.utils.games import resolve_max_players
 from shared.utils.participant_sorting import (
     PartitionedParticipants,
@@ -809,6 +813,8 @@ class GameService:
             banner_image_id=source_game.banner_image_id,
         )
         self.db.add(new_game)
+        await increment_image_ref(self.db, source_game.thumbnail_id)
+        await increment_image_ref(self.db, source_game.banner_image_id)
         await self.db.flush()
 
         partitioned = partition_participants(source_game.participants, source_game.max_players)
@@ -964,7 +970,10 @@ class GameService:
 
             for source_participant in source_participants:
                 need_notify |= self._add_participant_carryover_schedules(
-                    new_game, source_participant, new_participant_by_user, deadline_naive
+                    new_game,
+                    source_participant,
+                    new_participant_by_user,
+                    deadline_naive,
                 )
         if need_notify:
             await self.db.flush()

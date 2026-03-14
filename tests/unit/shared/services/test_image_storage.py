@@ -241,3 +241,49 @@ async def test_release_image_uses_correct_query(mock_session):
     call_args = mock_session.execute.call_args[0][0]
     assert str(call_args).lower().count("select") == 1
     assert "game_images" in str(call_args).lower()
+
+
+@pytest.mark.asyncio
+async def test_increment_image_ref_none_is_noop(mock_session):
+    """Test that increment_image_ref with None image_id is a no-op."""
+    await image_storage.increment_image_ref(mock_session, None)
+
+    mock_session.execute.assert_not_called()
+    mock_session.flush.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_increment_image_ref_increments_count(mock_session):
+    """Test that increment_image_ref increments reference_count by 1 and flushes."""
+    image_id = UUID("00000000-0000-0000-0000-000000000001")
+    image = MagicMock(spec=GameImage)
+    image.id = image_id
+    image.reference_count = 1
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none = MagicMock(return_value=image)
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    await image_storage.increment_image_ref(mock_session, image_id)
+
+    assert image.reference_count == 2
+    mock_session.flush.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_increment_image_ref_uses_for_update(mock_session):
+    """Test that increment_image_ref uses SELECT ... FOR UPDATE."""
+    image_id = UUID("00000000-0000-0000-0000-000000000001")
+    image = MagicMock(spec=GameImage)
+    image.id = image_id
+    image.reference_count = 1
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none = MagicMock(return_value=image)
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    await image_storage.increment_image_ref(mock_session, image_id)
+
+    mock_session.execute.assert_called_once()
+    call_args = mock_session.execute.call_args[0][0]
+    assert "for update" in str(call_args).lower()

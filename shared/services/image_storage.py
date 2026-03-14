@@ -131,3 +131,40 @@ async def release_image(db: AsyncSession, image_id: UUID | None) -> None:
         )
 
     await db.flush()
+
+
+async def increment_image_ref(db: AsyncSession, image_id: UUID | None) -> None:
+    """
+    Increment reference count for an existing image.
+
+    Call this when a second game session starts pointing at an image that was
+    previously stored (e.g. when cloning a game).  Does not commit. Caller
+    must commit transaction.
+
+    Args:
+        db: Database session
+        image_id: Image ID to increment, or None (no-op)
+    """
+    if not image_id:
+        logger.info("increment_image_ref: Called with None, no-op")
+        return
+
+    logger.info("increment_image_ref: Called for image %s", image_id)
+
+    stmt = select(GameImage).where(GameImage.id == image_id).with_for_update()
+    result = await db.execute(stmt)
+    image = result.scalar_one_or_none()
+
+    if not image:
+        logger.warning("increment_image_ref: Image %s not found", image_id)
+        return
+
+    old_count = image.reference_count
+    image.reference_count += 1
+    await db.flush()
+    logger.info(
+        "increment_image_ref: Image %s refs %s -> %s",
+        image_id,
+        old_count,
+        image.reference_count,
+    )

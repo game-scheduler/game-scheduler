@@ -34,6 +34,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from services.api.schemas.clone_game import CarryoverOption, CloneGameRequest
 from services.api.services.games import GameService
 from shared.models.game_image import GameImage
 from shared.models.user import User
@@ -601,3 +602,131 @@ async def test_delete_shared_image_keeps_image_until_all_refs_gone(
     result = await admin_db.execute(select(GameImage).where(GameImage.id == image_id))
     image = result.scalar_one_or_none()
     assert image is None
+
+
+@pytest.mark.asyncio
+async def test_clone_game_increments_image_refcounts(
+    admin_db: AsyncSession,
+    mock_discord_api_client,
+    mock_event_publisher,
+    mock_participant_resolver,
+    mock_role_service,
+    create_guild,
+    create_channel,
+    create_template,
+    create_user,
+    seed_redis_cache,
+    valid_png_data: bytes,
+    valid_jpeg_data: bytes,
+) -> None:
+    """clone_game increments reference_count for thumbnail and banner images."""
+    guild = create_guild()
+    channel = create_channel(guild_id=guild["id"])
+    template = create_template(guild_id=guild["id"], channel_id=channel["id"])
+    user = create_user()
+
+    await seed_redis_cache(
+        user_discord_id=user["discord_id"],
+        guild_discord_id=guild["guild_id"],
+        channel_discord_id=channel["channel_id"],
+        user_roles=[],
+        session_token="test-session",
+        session_user_id=user["id"],
+        session_access_token="valid-test-token",
+    )
+
+    service = GameService(
+        db=admin_db,
+        event_publisher=mock_event_publisher,
+        discord_client=mock_discord_api_client,
+        participant_resolver=mock_participant_resolver,
+        channel_resolver=MagicMock(),
+    )
+
+    game_data = GameCreateRequest(
+        title="Source Game",
+        description="Game to be cloned",
+        scheduled_at=datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1),
+        template_id=template["id"],
+    )
+
+    source_game = await service.create_game(
+        game_data=game_data,
+        host_user_id=user["id"],
+        access_token="valid-test-token",
+        thumbnail_data=valid_png_data,
+        thumbnail_mime_type="image/png",
+        image_data=valid_jpeg_data,
+        image_mime_type="image/jpeg",
+    )
+    await admin_db.commit()
+
+    thumbnail_id = source_game.thumbnail_id
+    banner_id = source_game.banner_image_id
+    assert thumbnail_id is not None
+    assert banner_id is not None
+
+    # Before cloning, each image should have reference_count == 1
+    thumb_result = await admin_db.execute(select(GameImage).where(GameImage.id == thumbnail_id))
+    assert thumb_result.scalar_one().reference_count == 1
+    banner_result = await admin_db.execute(select(GameImage).where(GameImage.id == banner_id))
+    assert banner_result.scalar_one().reference_count == 1
+
+    # Get user model for CurrentUser
+    user_result = await admin_db.execute(select(User).where(User.id == user["id"]))
+    user_model = user_result.scalar_one()
+    current_user = CurrentUser(
+        user=user_model,
+        access_token="valid-test-token",
+        session_token="test-session",
+    )
+
+    clone_data = CloneGameRequest(
+        scheduled_at=datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=2),
+        player_carryover=CarryoverOption.NO,
+        waitlist_carryover=CarryoverOption.NO,
+    )
+
+    cloned_game = await service.clone_game(
+        source_game_id=source_game.id,
+        clone_data=clone_data,
+        current_user=current_user,
+        role_service=mock_role_service,
+    )
+    await admin_db.commit()
+
+    # Clone should reference the same images
+    assert cloned_game.thumbnail_id == thumbnail_id
+    assert cloned_game.banner_image_id == banner_id
+
+    # Both images should now have reference_count == 2
+    thumb_result = await admin_db.execute(select(GameImage).where(GameImage.id == thumbnail_id))
+    assert thumb_result.scalar_one().reference_count == 2
+    banner_result = await admin_db.execute(select(GameImage).where(GameImage.id == banner_id))
+    assert banner_result.scalar_one().reference_count == 2
+
+    # Delete source game — counts should drop to 1 and images still exist
+    await service.delete_game(
+        game_id=source_game.id,
+        current_user=current_user,
+        role_service=mock_role_service,
+    )
+    await admin_db.commit()
+
+    thumb_result = await admin_db.execute(select(GameImage).where(GameImage.id == thumbnail_id))
+    assert thumb_result.scalar_one().reference_count == 1
+    banner_result = await admin_db.execute(select(GameImage).where(GameImage.id == banner_id))
+    assert banner_result.scalar_one().reference_count == 1
+
+    # Delete cloned game — both images should be gone
+    await service.delete_game(
+        game_id=cloned_game.id,
+        current_user=current_user,
+        role_service=mock_role_service,
+    )
+    await admin_db.commit()
+
+    thumb_result = await admin_db.execute(select(GameImage).where(GameImage.id == thumbnail_id))
+    assert thumb_result.scalar_one_or_none() is None
+    banner_result = await admin_db.execute(select(GameImage).where(GameImage.id == banner_id))
+    assert banner_result.scalar_one_or_none() is None
