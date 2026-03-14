@@ -448,7 +448,18 @@ async def get_game(
         role_service=role_service,
     )
 
-    return await _build_game_response(game)
+    try:
+        can_manage = await permissions_deps.can_manage_game(
+            game_host_id=game.host.discord_id,
+            guild_id=game.guild.guild_id,
+            current_user=current_user,
+            role_service=role_service,
+            db=game_service.db,
+        )
+    except HTTPException:
+        can_manage = False
+
+    return await _build_game_response(game, can_manage=can_manage)
 
 
 @router.put("/{game_id}", response_model=game_schemas.GameResponse)
@@ -834,6 +845,7 @@ def _build_host_response(
 
 async def _build_game_response(
     game: game_model.GameSession,
+    can_manage: bool = False,
 ) -> game_schemas.GameResponse:
     """
     Build GameResponse from GameSession model with resolved display names.
@@ -879,4 +891,5 @@ async def _build_game_response(
         has_image=game.banner_image_id is not None,
         thumbnail_id=str(game.thumbnail_id) if game.thumbnail_id else None,
         banner_image_id=str(game.banner_image_id) if game.banner_image_id else None,
+        can_manage=can_manage,
     )

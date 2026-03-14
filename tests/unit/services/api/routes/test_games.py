@@ -22,6 +22,7 @@
 """Unit tests for game routes error handling."""
 
 from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -118,3 +119,132 @@ def test_handle_game_operation_errors_with_update_data(sample_update_data):
     form_data = exc_info.value.detail["form_data"]
     assert form_data["title"] == "Updated Game"
     assert form_data["description"] == "Updated description"
+
+
+class TestGetGameCanManage:
+    """Tests for can_manage logic in get_game route handler."""
+
+    def _make_game(self) -> MagicMock:
+        game = MagicMock()
+        game.host = MagicMock()
+        game.host.discord_id = "host_discord_id"
+        game.guild = MagicMock()
+        game.guild.guild_id = "guild_discord_id"
+        return game
+
+    def _make_current_user(self) -> MagicMock:
+        user = MagicMock()
+        user.user.discord_id = "user_discord_id"
+        user.access_token = "token"
+        return user
+
+    @pytest.mark.asyncio
+    async def test_get_game_passes_can_manage_true_when_authorized(self):
+        """get_game passes can_manage=True to _build_game_response when user can manage."""
+        game = self._make_game()
+        current_user = self._make_current_user()
+        game_service = MagicMock()
+        game_service.get_game = AsyncMock(return_value=game)
+        game_service.db = MagicMock()
+        role_service = MagicMock()
+        expected_response = MagicMock()
+
+        with (
+            patch(
+                "services.api.routes.games.permissions_deps.verify_game_access",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "services.api.routes.games.permissions_deps.can_manage_game",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch(
+                "services.api.routes.games._build_game_response",
+                new_callable=AsyncMock,
+                return_value=expected_response,
+            ) as mock_build,
+        ):
+            result = await games_routes.get_game(
+                game_id="game-123",
+                current_user=current_user,
+                game_service=game_service,
+                role_service=role_service,
+            )
+
+        mock_build.assert_called_once_with(game, can_manage=True)
+        assert result is expected_response
+
+    @pytest.mark.asyncio
+    async def test_get_game_passes_can_manage_false_when_not_authorized(self):
+        """get_game passes can_manage=False to _build_game_response when user cannot manage."""
+        game = self._make_game()
+        current_user = self._make_current_user()
+        game_service = MagicMock()
+        game_service.get_game = AsyncMock(return_value=game)
+        game_service.db = MagicMock()
+        role_service = MagicMock()
+        expected_response = MagicMock()
+
+        with (
+            patch(
+                "services.api.routes.games.permissions_deps.verify_game_access",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "services.api.routes.games.permissions_deps.can_manage_game",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "services.api.routes.games._build_game_response",
+                new_callable=AsyncMock,
+                return_value=expected_response,
+            ) as mock_build,
+        ):
+            result = await games_routes.get_game(
+                game_id="game-123",
+                current_user=current_user,
+                game_service=game_service,
+                role_service=role_service,
+            )
+
+        mock_build.assert_called_once_with(game, can_manage=False)
+        assert result is expected_response
+
+    @pytest.mark.asyncio
+    async def test_get_game_passes_can_manage_false_on_http_exception(self):
+        """get_game passes can_manage=False when can_manage_game raises HTTPException."""
+        game = self._make_game()
+        current_user = self._make_current_user()
+        game_service = MagicMock()
+        game_service.get_game = AsyncMock(return_value=game)
+        game_service.db = MagicMock()
+        role_service = MagicMock()
+        expected_response = MagicMock()
+
+        with (
+            patch(
+                "services.api.routes.games.permissions_deps.verify_game_access",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "services.api.routes.games.permissions_deps.can_manage_game",
+                new_callable=AsyncMock,
+                side_effect=HTTPException(status_code=http_status.HTTP_404_NOT_FOUND),
+            ),
+            patch(
+                "services.api.routes.games._build_game_response",
+                new_callable=AsyncMock,
+                return_value=expected_response,
+            ) as mock_build,
+        ):
+            result = await games_routes.get_game(
+                game_id="game-123",
+                current_user=current_user,
+                game_service=game_service,
+                role_service=role_service,
+            )
+
+        mock_build.assert_called_once_with(game, can_manage=False)
+        assert result is expected_response

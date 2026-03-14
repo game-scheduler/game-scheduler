@@ -205,6 +205,10 @@ class GameResponse(BaseModel):
     has_image: bool = Field(default=False, description="True if game has a banner image")
     thumbnail_id: str | None = Field(None, description="UUID of thumbnail image if present")
     banner_image_id: str | None = Field(None, description="UUID of banner image if present")
+    can_manage: bool = Field(
+        default=False,
+        description="True if the requesting user can edit or manage this game",
+    )
 
     model_config = {"from_attributes": True}
 

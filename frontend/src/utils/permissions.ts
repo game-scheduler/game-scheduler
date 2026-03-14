@@ -36,6 +36,14 @@ export async function canUserCreateGames(guildId: string): Promise<boolean> {
 }
 
 /**
+ * Check if the current user can manage (edit/clone) a game.
+ * The backend sets can_manage=true when the user is the host, a bot manager, or a maintainer.
+ */
+export function canManageGame(game: { can_manage?: boolean } | null): boolean {
+  return !!game?.can_manage;
+}
+
+/**
  * Check if user has bot manager permissions for a guild.
  * Bot managers can manage templates, channels, and have elevated permissions.
  * Returns true if user has bot manager role or MANAGE_GUILD permission.

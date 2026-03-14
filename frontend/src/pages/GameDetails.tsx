@@ -44,6 +44,7 @@ import { apiClient } from '../api/client';
 import { GameSession, SignupMethod, SIGNUP_METHOD_INFO } from '../types';
 import { ParticipantList } from '../components/ParticipantList';
 import { useAuth } from '../hooks/useAuth';
+import { canManageGame } from '../utils/permissions';
 import { Time } from '../constants/time';
 import { UI } from '../constants/ui';
 
@@ -166,6 +167,7 @@ export const GameDetails: FC = () => {
   };
 
   const isHost = user && game && game.host?.user_id === user.user_uuid;
+  const canEdit = canManageGame(game);
   const isParticipant =
     user && game && game.participants?.some((p) => p.user_id === user.user_uuid);
 
@@ -412,7 +414,7 @@ export const GameDetails: FC = () => {
             </Button>
           )}
 
-          {isHost && (
+          {canEdit && (
             <>
               <Button
                 variant="outlined"
@@ -428,7 +430,7 @@ export const GameDetails: FC = () => {
               >
                 Clone Game
               </Button>
-              {(game.status === 'SCHEDULED' || game.status === 'IN_PROGRESS') && (
+              {isHost && (game.status === 'SCHEDULED' || game.status === 'IN_PROGRESS') && (
                 <Button
                   variant="outlined"
                   color="error"
