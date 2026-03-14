@@ -57,3 +57,6 @@ For any code generated, follow these guidelines:
   commands to add, remove, and update dependencies as needed and 'uv run' to run python files.
 - This project uses modern docker, so the command to run docker compose is
   'docker compose' (not 'docker-compose')
+- `git commit` runs pre-commit hooks that include the full unit test suite and
+  duplicate detection, which take 60-90 seconds. Always use a terminal timeout
+  of at least **180000ms** (3 minutes) for commits, and 300000ms for large changesets.
