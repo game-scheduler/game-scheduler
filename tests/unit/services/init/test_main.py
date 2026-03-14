@@ -150,7 +150,7 @@ class TestCompleteInitialization:
         # Verify duration value was passed
         duration_call = [c for c in calls if len(c[0]) > 1 and "Duration" in c[0][0]]
         assert len(duration_call) == 1
-        assert duration_call[0][0][1] == 330.00
+        assert duration_call[0][0][1] == pytest.approx(330.0)
 
     @patch("services.init.main.time")
     @patch("services.init.main.logger")

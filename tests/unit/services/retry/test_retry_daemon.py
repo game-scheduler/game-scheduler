@@ -668,7 +668,9 @@ class TestRetryDaemonHelpers:
 
         daemon._update_health_tracking(QUEUE_BOT_EVENTS_DLQ, processed=5, failed=0)
 
-        assert daemon.last_successful_processing_time[QUEUE_BOT_EVENTS_DLQ] == 1234567890.0
+        assert daemon.last_successful_processing_time[QUEUE_BOT_EVENTS_DLQ] == pytest.approx(
+            1234567890.0
+        )
         assert daemon.consecutive_failures[QUEUE_BOT_EVENTS_DLQ] == 0
 
     @patch("services.retry.retry_daemon.time")
@@ -678,7 +680,9 @@ class TestRetryDaemonHelpers:
 
         daemon._update_health_tracking(QUEUE_BOT_EVENTS_DLQ, processed=3, failed=2)
 
-        assert daemon.last_successful_processing_time[QUEUE_BOT_EVENTS_DLQ] == 1234567890.0
+        assert daemon.last_successful_processing_time[QUEUE_BOT_EVENTS_DLQ] == pytest.approx(
+            1234567890.0
+        )
         assert daemon.consecutive_failures[QUEUE_BOT_EVENTS_DLQ] == 0
 
     def test_update_health_tracking_all_failed(self, daemon):

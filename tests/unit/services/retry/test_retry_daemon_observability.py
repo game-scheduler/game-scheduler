@@ -23,7 +23,6 @@
 
 from unittest.mock import MagicMock, Mock, patch
 
-import pika
 import pika.exceptions
 
 from services.retry.retry_daemon import RetryDaemon

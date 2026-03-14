@@ -175,7 +175,7 @@ markers = [
     "e2e: End-to-end tests requiring Discord bot and full stack",
     "order: Test execution order (used with pytest-order plugin)",
 ]
-addopts = "-m 'not e2e and not integration' --strict-markers"
+addopts = "-m 'not e2e and not integration' --strict-markers --import-mode=importlib"
 filterwarnings = [
     "error",
     'ignore::DeprecationWarning:pika.data',
