@@ -58,7 +58,7 @@ cleanup() {
     echo "Skipping integration test environment cleanup (SKIP_CLEANUP is set)"
   else
     echo "Cleaning up integration test environment..."
-    docker compose --env-file "$ENV_FILE" down -v
+    docker compose --progress quiet --env-file "$ENV_FILE" down -v
   fi
 }
 trap cleanup EXIT
@@ -69,11 +69,11 @@ if [ -n "$SKIP_STARTUP" ]; then
   echo "Skipping integration test environment startup (SKIP_STARTUP is set)"
 else
   # Ensure full stack (including init) is healthy before running tests
-  docker compose --env-file "$ENV_FILE" up -d --build system-ready
+  docker compose --progress quiet --env-file "$ENV_FILE" up -d --build system-ready
 fi
 
 # Build if needed, then run tests without restarting dependencies
 # When $@ is empty, compose uses command field; when present, it overrides
-docker compose --env-file "$ENV_FILE" run --build --no-deps --rm integration-tests "$@"
+docker compose --progress quiet --env-file "$ENV_FILE" run --build --no-deps --rm integration-tests "$@"
 
 echo "Integration tests passed!"
