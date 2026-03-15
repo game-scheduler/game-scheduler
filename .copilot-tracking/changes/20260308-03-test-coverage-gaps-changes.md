@@ -103,4 +103,53 @@ _(Not yet started)_
 
 ## Phase 4: Service Layer and Permissions Tests (Priority 10 + Extras)
 
-_(Not yet started)_
+### Task 4.2: `permissions.py` unit tests
+
+**Status**: Complete
+
+#### Modified
+
+- `tests/unit/services/api/dependencies/test_api_permissions.py` — Added 8 new
+  tests covering all previously uncovered maintainer-bypass and success paths:
+  `test_check_guild_membership_success` (line 79), `test_check_guild_membership_not_member`,
+  `test_require_permission_with_maintainer_token` (line 316),
+  `test_check_bot_manager_permission_success` / `_failure` (lines 521–525),
+  `test_require_game_host_with_maintainer_token` (line 564),
+  `test_can_manage_game_with_maintainer_token` (line 627),
+  `test_require_administrator_with_maintainer_token` (line 719).
+  Coverage: 92.81% → 97.12%.
+
+---
+
+### Task 4.3: `guild_queries.py` unit tests
+
+**Status**: Complete
+
+#### Modified
+
+- `tests/unit/shared/data_access/test_guild_queries_unit.py` — Added 3 new test
+  classes (7 tests total): `TestGetChannelByDiscordId` (lines 480–485, found +
+  not-found paths), `TestCreateChannelConfig` (lines 511–524, success + RLS
+  context set + empty guild_id error), `TestCreateDefaultTemplate` (line 545,
+  success + empty guild_id error). Coverage (unit): 93.68% → 100%.
+
+---
+
+### Task 4.1: `games.py` unit tests
+
+**Status**: Complete
+
+#### Created
+
+- `tests/unit/api/services/test_games.py` — New file with 26 tests across 9
+  test classes covering all previously untested error and branch paths:
+  `TestJoinGame` (game/user/config not found, game full, reload failure),
+  `TestLeaveGame` (game/user not found, completed game, reload failure),
+  `TestListGames` (guild_id filter, status filter, channel+status filter),
+  `TestUpdateGame` (game not found, permission denied),
+  `TestDeleteGame` (game not found, permission denied),
+  `TestResolveGameHost` (host user not found),
+  `TestApplyDeadlineCarryover` (no-carryover early return, empty participants),
+  `TestScheduleJoinNotifications` (confirmed Discord participant, display-name skip),
+  `TestAddNewMentions` / `TestUpdatePrefilledParticipants` (discord + display-name
+  participants, validation error). Coverage (unit): 89.23% → 95.12%.

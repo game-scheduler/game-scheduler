@@ -36,6 +36,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.data_access import guild_queries
+from shared.models.channel import ChannelConfiguration
 from shared.models.game import GameSession
 from shared.models.participant import GameParticipant
 from shared.models.template import GameTemplate
@@ -801,5 +802,98 @@ class TestUpdateTemplate:
         """Raises ValueError when template_id is empty string."""
         with pytest.raises(ValueError, match="template_id cannot be empty"):
             await guild_queries.update_template(mock_db, "guild-1", "", {"name": "New"})
+
+        mock_db.execute.assert_not_called()
+
+
+class TestGetChannelByDiscordId:
+    """Tests for get_channel_by_discord_id function."""
+
+    @pytest.mark.asyncio
+    async def test_returns_channel_when_found(self, mock_db):
+        """Returns channel configuration when discord_id matches."""
+        mock_channel = MagicMock(spec=ChannelConfiguration)
+        mock_channel.channel_id = "123456789"
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_channel
+        mock_db.execute.return_value = mock_result
+
+        result = await guild_queries.get_channel_by_discord_id(mock_db, "123456789")
+
+        assert result == mock_channel
+        mock_db.execute.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_not_found(self, mock_db):
+        """Returns None when no channel matches the discord_id."""
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_db.execute.return_value = mock_result
+
+        result = await guild_queries.get_channel_by_discord_id(mock_db, "nonexistent")
+
+        assert result is None
+
+
+class TestCreateChannelConfig:
+    """Tests for create_channel_config function."""
+
+    @pytest.mark.asyncio
+    async def test_creates_channel_config_successfully(self, mock_db):
+        """Creates and returns channel configuration with valid inputs."""
+        mock_db.execute.return_value = MagicMock()
+
+        result = await guild_queries.create_channel_config(
+            mock_db, "guild-1", "123456789", is_active=True
+        )
+
+        assert isinstance(result, ChannelConfiguration)
+        assert result.guild_id == "guild-1"
+        assert result.channel_id == "123456789"
+        mock_db.add.assert_called_once_with(result)
+        mock_db.flush.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_sets_rls_context_before_insert(self, mock_db):
+        """Sets the RLS guild context before creating the channel."""
+        mock_db.execute.return_value = MagicMock()
+
+        await guild_queries.create_channel_config(mock_db, "guild-1", "123456789")
+
+        rls_call = mock_db.execute.call_args_list[0]
+        rls_sql = str(rls_call[0][0])
+        assert "SET LOCAL app.current_guild_id = 'guild-1'" in rls_sql
+
+    @pytest.mark.asyncio
+    async def test_empty_guild_id_raises_error(self, mock_db):
+        """Raises ValueError when guild_id is empty string."""
+        with pytest.raises(ValueError, match="guild_id cannot be empty"):
+            await guild_queries.create_channel_config(mock_db, "", "123456789")
+
+        mock_db.execute.assert_not_called()
+
+
+class TestCreateDefaultTemplate:
+    """Tests for create_default_template function."""
+
+    @pytest.mark.asyncio
+    async def test_creates_default_template(self, mock_db):
+        """Creates a template with default name, description, and is_default=True."""
+        mock_db.execute.return_value = MagicMock()
+
+        result = await guild_queries.create_default_template(mock_db, "guild-1", "channel-1")
+
+        assert isinstance(result, GameTemplate)
+        assert result.name == "Default"
+        assert result.description == "Default game template"
+        assert result.is_default is True
+        assert result.channel_id == "channel-1"
+        assert result.guild_id == "guild-1"
+
+    @pytest.mark.asyncio
+    async def test_empty_guild_id_raises_error(self, mock_db):
+        """Raises ValueError when guild_id is empty string."""
+        with pytest.raises(ValueError, match="guild_id cannot be empty"):
+            await guild_queries.create_default_template(mock_db, "", "channel-1")
 
         mock_db.execute.assert_not_called()

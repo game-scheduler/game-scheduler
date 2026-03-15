@@ -1275,3 +1275,140 @@ async def test_require_permission_checker_exception(
         )
 
     assert str(exc_info.value) == "Permission check error"
+
+
+@pytest.mark.asyncio
+async def test_check_guild_membership_success():
+    """Test _check_guild_membership returns True when user is in the guild list."""
+    user_guilds = [{"id": "guild123"}, {"id": "guild456"}]
+    with patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds):
+        result = await permissions._check_guild_membership("user123", "guild123", "test_token")
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_check_guild_membership_not_member():
+    """Test _check_guild_membership returns False when guild is not in user's list."""
+    user_guilds = [{"id": "guild456"}]
+    with patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds):
+        result = await permissions._check_guild_membership("user123", "guild123", "test_token")
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_require_permission_with_maintainer_token(mock_current_user, mock_role_service):
+    """Test _require_permission bypasses the permission check when user is maintainer."""
+    mock_db = AsyncMock()
+    maintainer_tokens = {"access_token": "test_token", "is_maintainer": True}
+
+    async def mock_checker(user_id: str, guild_id: str, token: str, **kwargs) -> bool:
+        msg = "Should not be called for maintainer"
+        raise AssertionError(msg)
+
+    with patch("services.api.auth.tokens.get_user_tokens", return_value=maintainer_tokens):
+        result = await permissions._require_permission(
+            "123456789012345678",
+            mock_checker,
+            "You need permission",
+            mock_current_user,
+            mock_role_service,
+            mock_db,
+        )
+
+    assert result == mock_current_user
+
+
+@pytest.mark.asyncio
+async def test_check_bot_manager_permission_success(mock_current_user, mock_role_service):
+    """Test check_bot_manager_permission returns True when require_bot_manager succeeds."""
+    mock_db = AsyncMock()
+
+    with patch(
+        "services.api.dependencies.permissions.require_bot_manager",
+        return_value=mock_current_user,
+    ):
+        result = await permissions.check_bot_manager_permission(
+            "guild123", mock_current_user, mock_role_service, mock_db
+        )
+
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_check_bot_manager_permission_failure(mock_current_user, mock_role_service):
+    """Test check_bot_manager_permission returns False when require_bot_manager raises 403."""
+    mock_db = AsyncMock()
+
+    with patch(
+        "services.api.dependencies.permissions.require_bot_manager",
+        side_effect=HTTPException(status_code=403, detail="Forbidden"),
+    ):
+        result = await permissions.check_bot_manager_permission(
+            "guild123", mock_current_user, mock_role_service, mock_db
+        )
+
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_require_game_host_with_maintainer_token(mock_current_user, mock_role_service):
+    """Test require_game_host bypasses the permission check when user is maintainer."""
+    mock_db = AsyncMock()
+    maintainer_tokens = {"access_token": "test_token", "is_maintainer": True}
+
+    with patch("services.api.auth.tokens.get_user_tokens", return_value=maintainer_tokens):
+        result = await permissions.require_game_host(
+            "guild456",
+            "channel789",
+            mock_current_user,
+            mock_role_service,
+            mock_db,
+        )
+
+    assert result == mock_current_user
+
+
+@pytest.mark.asyncio
+async def test_can_manage_game_with_maintainer_token():
+    """Test can_manage_game returns True when user is maintainer (bypasses role check)."""
+    mock_user = MagicMock()
+    mock_user.discord_id = "user123"
+    mock_current_user = MagicMock()
+    mock_current_user.user = mock_user
+    mock_current_user.session_token = "session123"
+
+    mock_role_service = AsyncMock()
+    mock_db = AsyncMock()
+    maintainer_tokens = {"access_token": "test_token", "is_maintainer": True}
+
+    with (
+        patch(
+            "services.api.dependencies.permissions.verify_guild_membership",
+            return_value=[{"id": "guild123"}],
+        ),
+        patch("services.api.auth.tokens.get_user_tokens", return_value=maintainer_tokens),
+    ):
+        result = await permissions.can_manage_game(
+            "other_user",
+            "guild123",
+            mock_current_user,
+            mock_role_service,
+            mock_db,
+        )
+
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_require_administrator_with_maintainer_token(mock_current_user, mock_role_service):
+    """Test require_administrator bypasses the permission check when user is maintainer."""
+    maintainer_tokens = {"access_token": "test_token", "is_maintainer": True}
+
+    with patch("services.api.auth.tokens.get_user_tokens", return_value=maintainer_tokens):
+        result = await permissions.require_administrator(
+            "guild456",
+            mock_current_user,
+            mock_role_service,
+        )
+
+    assert result == mock_current_user

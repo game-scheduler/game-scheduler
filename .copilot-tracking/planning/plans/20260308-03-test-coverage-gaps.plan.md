@@ -87,15 +87,15 @@ routes, and service layer code.
 - [x] Task 3.3: Write integration tests for `guilds.py` (lines 88, 158, 242, 255, 293, 377–415)
   - Details: .copilot-tracking/planning/details/20260308-03-test-coverage-gaps-details.md (Lines 210-235)
 
-### [ ] Phase 4: Service Layer and Permissions Tests (Priority 10 + Extras)
+### [x] Phase 4: Service Layer and Permissions Tests (Priority 10 + Extras)
 
-- [ ] Task 4.1: Write integration/unit tests for `games.py` scattered error paths
+- [x] Task 4.1: Write integration/unit tests for `games.py` scattered error paths
   - Details: .copilot-tracking/planning/details/20260308-03-test-coverage-gaps-details.md (Lines 238-260)
 
-- [ ] Task 4.2: Write integration/unit tests for `permissions.py` (lines 316, 524–525, 564, 627, 719)
+- [x] Task 4.2: Write integration/unit tests for `permissions.py` (lines 316, 524–525, 564, 627, 719)
   - Details: .copilot-tracking/planning/details/20260308-03-test-coverage-gaps-details.md (Lines 261-282)
 
-- [ ] Task 4.3: Write unit tests for `guild_queries.py` (lines 512–513)
+- [x] Task 4.3: Write unit tests for `guild_queries.py` (lines 512–513)
   - Details: .copilot-tracking/planning/details/20260308-03-test-coverage-gaps-details.md (Lines 283-302)
 
 ## Dependencies
