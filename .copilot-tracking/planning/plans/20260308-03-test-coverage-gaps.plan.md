@@ -54,15 +54,15 @@ routes, and service layer code.
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Bot Handler E2E/Integration Tests (Priorities 1–3)
+### [x] Phase 1: Bot Handler E2E/Integration Tests (Priorities 1–3)
 
-- [ ] Task 1.1: Write e2e/integration tests for `button_handler.py` (lines 55–78)
+- [x] Task 1.1: Write e2e/integration tests for `button_handler.py` (lines 55–78)
   - Details: .copilot-tracking/planning/details/20260308-03-test-coverage-gaps-details.md (Lines 13-37)
 
-- [ ] Task 1.2: Write e2e/integration tests for `join_game.py` (lines 63–118, 143–162)
+- [x] Task 1.2: Write e2e/integration tests for `join_game.py` (lines 63–118, 143–162)
   - Details: .copilot-tracking/planning/details/20260308-03-test-coverage-gaps-details.md (Lines 38-64)
 
-- [ ] Task 1.3: Write e2e/integration tests for `leave_game.py` (lines 59–93, 116–143)
+- [x] Task 1.3: Write e2e/integration tests for `leave_game.py` (lines 59–93, 116–143)
   - Details: .copilot-tracking/planning/details/20260308-03-test-coverage-gaps-details.md (Lines 65-90)
 
 ### [ ] Phase 2: Bot Auth and Utility Unit Tests (Priorities 4, 7, 9)
