@@ -47,7 +47,7 @@ rm -rf htmlcov/
 echo ""
 echo "Running unit tests with coverage..."
 echo "===================================="
-if ! COVERAGE_FILE=coverage/unit uv run pytest -q --cov=shared --cov=services --cov-report=; then
+if ! COVERAGE_FILE=coverage/unit uv run pytest -q -p no:randomly --cov=shared --cov=services --cov-report=; then
     echo "ERROR: Unit tests failed"
     exit 1
 fi
@@ -60,7 +60,7 @@ echo "Unit tests completed with $UNIT_COV coverage"
 echo ""
 echo "Running integration tests with coverage..."
 echo "=========================================="
-if ! ./scripts/run-integration-tests.sh; then
+if ! ./scripts/run-integration-tests.sh --cov=shared --cov=services --cov-report= -q --tb=line -p no:randomly; then
     echo "ERROR: Integration tests failed"
     exit 1
 fi
@@ -68,7 +68,7 @@ fi
 # Capture integration coverage if per-service files exist
 INT_COV=""
 if ls coverage/*.integration 1> /dev/null 2>&1; then
-    INT_COV=$(uv run coverage combine --keep coverage/*.integration 2>/dev/null && uv run coverage report 2>/dev/null | awk '/^TOTAL/ {print $NF}')
+    INT_COV=$(uv run coverage combine --keep coverage/*.integration > /dev/null 2>&1; uv run coverage report 2>/dev/null | awk '/^TOTAL/ {print $NF}')
     echo "Integration tests completed with $INT_COV coverage"
 fi
 
@@ -83,14 +83,14 @@ if $RUN_E2E; then
         echo "WARNING: config/env.e2e not found - skipping e2e tests"
         echo "See docs/developer/TESTING.md for setup instructions"
     else
-        if ! ./scripts/run-e2e-tests.sh; then
+        if ! ./scripts/run-e2e-tests.sh --cov=shared --cov=services --cov-report= -q --tb=line -p no:randomly; then
             echo "ERROR: E2E tests failed"
             exit 1
         fi
         E2E_RAN=true
         # Capture e2e coverage if per-service files exist
         if ls coverage/*.e2e 1> /dev/null 2>&1; then
-            E2E_COV=$(uv run coverage combine --keep coverage/*.e2e 2>/dev/null && uv run coverage report 2>/dev/null | awk '/^TOTAL/ {print $NF}')
+            E2E_COV=$(uv run coverage combine --keep coverage/*.e2e > /dev/null 2>&1; uv run coverage report 2>/dev/null | awk '/^TOTAL/ {print $NF}')
             echo "E2E tests completed with $E2E_COV coverage"
         fi
     fi

@@ -143,7 +143,7 @@ services:
     networks:
       - app-network
     entrypoint: ["pytest", "-m", "integration"]
-    command: --cov=shared --cov=services --cov-report= -q --tb=line
+    command: -q --tb=line
 
   fake-discord:
     build:
