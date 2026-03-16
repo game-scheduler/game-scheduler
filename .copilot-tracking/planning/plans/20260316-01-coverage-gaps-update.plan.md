@@ -53,15 +53,15 @@ Fix the hidden coverage file bug that silently excludes test-runner coverage dat
 - [x] Task 2.1: Write unit tests for `NotificationService.send_game_reminder_due()`
   - Details: .copilot-tracking/planning/details/20260316-01-coverage-gaps-update-details.md (Lines 72–92)
 
-### [ ] Phase 3: Unit Test `events/handlers.py`
+### [x] Phase 3: Unit Test `events/handlers.py`
 
-- [ ] Task 3.1: Unit tests for game-created and game-updated handler error paths
+- [x] Task 3.1: Unit tests for game-created and game-updated handler error paths
   - Details: .copilot-tracking/planning/details/20260316-01-coverage-gaps-update-details.md (Lines 96–112)
 
-- [ ] Task 3.2: Unit tests for notification, player-removal, and cancellation handler paths
+- [x] Task 3.2: Unit tests for notification, player-removal, and cancellation handler paths
   - Details: .copilot-tracking/planning/details/20260316-01-coverage-gaps-update-details.md (Lines 113–127)
 
-- [ ] Task 3.3: Unit tests for remaining handler error paths to reach ≥85%
+- [x] Task 3.3: Unit tests for remaining handler error paths to reach ≥85%
   - Details: .copilot-tracking/planning/details/20260316-01-coverage-gaps-update-details.md (Lines 128–142)
 
 ## Dependencies
