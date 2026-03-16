@@ -48,9 +48,9 @@ Fix the hidden coverage file bug that silently excludes test-runner coverage dat
   - Details: .copilot-tracking/planning/details/20260316-01-coverage-gaps-update-details.md (Lines 54–69)
   - Note: Requires fresh integration + e2e test runs against updated compose files
 
-### [ ] Phase 2: Unit Test `notification_service.py`
+### [x] Phase 2: Unit Test `notification_service.py`
 
-- [ ] Task 2.1: Write unit tests for `NotificationService.send_game_reminder_due()`
+- [x] Task 2.1: Write unit tests for `NotificationService.send_game_reminder_due()`
   - Details: .copilot-tracking/planning/details/20260316-01-coverage-gaps-update-details.md (Lines 72–92)
 
 ### [ ] Phase 3: Unit Test `events/handlers.py`

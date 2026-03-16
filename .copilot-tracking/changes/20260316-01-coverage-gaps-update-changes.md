@@ -18,3 +18,9 @@
 ### Notes
 
 - Task 1.4 (verify ≥87.69%) requires fresh integration and e2e Docker runs against the updated compose files; deferred to manual verification after the next test run
+
+## Phase 2: Unit Test `notification_service.py`
+
+### Added
+
+- `tests/unit/services/scheduler/test_notification_service.py` — 4 unit tests covering `send_game_reminder_due()` happy path, publish exception, connect exception, and `get_notification_service()` factory; brings `notification_service.py` to 100% coverage
