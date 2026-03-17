@@ -45,26 +45,26 @@ tests for the correctness-critical and security-critical code paths identified b
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Fix Signal Test Coverage Bug
+### [x] Phase 1: Fix Signal Test Coverage Bug
 
-- [ ] Task 1.1: Fix `test_signal_sets_shutdown_flag` to stop corrupting coverage
+- [x] Task 1.1: Fix `test_signal_sets_shutdown_flag` to stop corrupting coverage
   - Details: .copilot-tracking/planning/details/20260316-03-coverage-gaps-priority-details.md (Lines 13-37)
 
-### [ ] Phase 2: High-Priority Unit Tests (P1–P5)
+### [x] Phase 2: High-Priority Unit Tests (P1–P5)
 
-- [ ] Task 2.1: Add `get_current_user` error branch tests (`auth.py` → 100%)
+- [x] Task 2.1: Add `get_current_user` error branch tests (`auth.py` → 100%)
   - Details: .copilot-tracking/planning/details/20260316-03-coverage-gaps-priority-details.md (Lines 38-57)
 
-- [ ] Task 2.2: Cover `status_transitions.py` invalid-input branches (→ 100%)
+- [x] Task 2.2: Cover `status_transitions.py` invalid-input branches (→ 100%)
   - Details: .copilot-tracking/planning/details/20260316-03-coverage-gaps-priority-details.md (Lines 58-75)
 
-- [ ] Task 2.3: Cover `guild_queries.py` empty-input validation guards (→ 100%)
+- [x] Task 2.3: Cover `guild_queries.py` empty-input validation guards (→ 100%)
   - Details: .copilot-tracking/planning/details/20260316-03-coverage-gaps-priority-details.md (Lines 76-94)
 
-- [ ] Task 2.4: Cover `event_builders.py` TTL calculation branches (→ 100%)
+- [x] Task 2.4: Cover `event_builders.py` TTL calculation branches (→ 100%)
   - Details: .copilot-tracking/planning/details/20260316-03-coverage-gaps-priority-details.md (Lines 95-113)
 
-- [ ] Task 2.5: Cover `generic_scheduler_daemon.py` error paths (→ ≥85%)
+- [x] Task 2.5: Cover `generic_scheduler_daemon.py` error paths (→ ≥85%)
   - Details: .copilot-tracking/planning/details/20260316-03-coverage-gaps-priority-details.md (Lines 114-138)
 
 ### [ ] Phase 3: Redis and Infrastructure Error Paths (P7–P9)

@@ -78,7 +78,13 @@ class TestRunDaemon:
         sigterm_handler = next(
             c.args[1] for c in mock_signal.call_args_list if c.args[0] == signal.SIGTERM
         )
-        sigterm_handler(signal.SIGTERM, None)
+        # Prevent the signal handler from calling cov.stop()/cov.save() on the live
+        # pytest-cov instance, which would halt coverage measurement for subsequent tests.
+        with patch(
+            "services.scheduler.daemon_runner._coverage.Coverage.current",
+            return_value=None,
+        ):
+            sigterm_handler(signal.SIGTERM, None)
 
         assert captured_handler["fn"]() is True
 

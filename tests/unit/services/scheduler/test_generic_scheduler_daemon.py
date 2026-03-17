@@ -500,6 +500,21 @@ class TestSchedulerDaemonProcessLoopIteration:
         # New session should be assigned
         assert daemon.db == new_session
 
+    @patch.object(SchedulerDaemon, "_get_next_due_item")
+    def test_process_loop_iteration_logs_notify_event(self, mock_get_next, daemon):
+        """_process_loop_iteration logs when woken by PostgreSQL NOTIFY."""
+        mock_listener = MagicMock()
+        mock_listener.wait_for_notification.return_value = (True, "test_notification")
+        daemon.listener = mock_listener
+        daemon.db = MagicMock()
+        daemon.max_timeout = 60
+
+        mock_get_next.return_value = None
+
+        daemon._process_loop_iteration()
+
+        mock_listener.wait_for_notification.assert_called_once()
+
 
 class TestSchedulerDaemonRun:
     """Test main run loop."""
@@ -631,6 +646,40 @@ class TestSchedulerDaemonCleanup:
         daemon._cleanup()
 
         # All close() should be attempted
+        mock_listener.close.assert_called_once()
+        mock_publisher.close.assert_called_once()
+        mock_db.close.assert_called_once()
+
+    def test_cleanup_continues_if_publisher_close_raises(self, daemon):
+        """_cleanup continues when publisher close raises."""
+        mock_listener = MagicMock()
+        mock_publisher = MagicMock()
+        mock_db = MagicMock()
+        mock_publisher.close.side_effect = Exception("Publisher close failed")
+
+        daemon.listener = mock_listener
+        daemon.publisher = mock_publisher
+        daemon.db = mock_db
+
+        daemon._cleanup()
+
+        mock_listener.close.assert_called_once()
+        mock_publisher.close.assert_called_once()
+        mock_db.close.assert_called_once()
+
+    def test_cleanup_continues_if_db_close_raises(self, daemon):
+        """_cleanup completes gracefully when database close raises."""
+        mock_listener = MagicMock()
+        mock_publisher = MagicMock()
+        mock_db = MagicMock()
+        mock_db.close.side_effect = Exception("DB close failed")
+
+        daemon.listener = mock_listener
+        daemon.publisher = mock_publisher
+        daemon.db = mock_db
+
+        daemon._cleanup()
+
         mock_listener.close.assert_called_once()
         mock_publisher.close.assert_called_once()
         mock_db.close.assert_called_once()
