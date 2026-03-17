@@ -704,3 +704,118 @@ class TestGuildSyncHelpers:
 
         # Verify channel creation was called for both voice channels
         assert mock_create_channel.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_update_guild_config_sets_fields():
+    """update_guild_config() updates the fields on the guild config object."""
+    guild_config = GuildConfiguration(guild_id="original_id")
+
+    result = await guild_sync.update_guild_config(guild_config, guild_id="updated_id")
+
+    assert result.guild_id == "updated_id"
+    assert result is guild_config
+
+
+@pytest.mark.asyncio
+async def test_refresh_guild_channels_returns_zero_for_unknown_guild():
+    """_refresh_guild_channels() returns 0 if guild not found in database."""
+    mock_db = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute = AsyncMock(return_value=mock_result)
+    mock_discord = AsyncMock()
+
+    result = await guild_sync._refresh_guild_channels(mock_db, mock_discord, "unknown_guild")
+
+    assert result == 0
+
+
+@pytest.mark.asyncio
+async def test_refresh_guild_channels_creates_new_channel():
+    """_refresh_guild_channels() creates a DB record for a channel not yet in the database."""
+    guild_id = str(uuid4())
+    mock_db = AsyncMock()
+
+    mock_guild = MagicMock()
+    mock_guild.id = guild_id
+
+    mock_guild_result = MagicMock()
+    mock_guild_result.scalar_one_or_none.return_value = mock_guild
+
+    mock_channels_result = MagicMock()
+    mock_channels_result.fetchall.return_value = []
+
+    mock_db.execute = AsyncMock(side_effect=[mock_guild_result, mock_channels_result])
+
+    mock_discord = AsyncMock()
+    mock_discord.get_guild_channels = AsyncMock(return_value=[{"id": "new_channel_1", "type": 0}])
+
+    with patch(
+        "services.bot.guild_sync.guild_queries.create_channel_config",
+        new_callable=AsyncMock,
+    ) as mock_create:
+        result = await guild_sync._refresh_guild_channels(mock_db, mock_discord, "guild_discord_id")
+
+    assert result == 1
+    mock_create.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_refresh_guild_channels_reactivates_inactive_channel():
+    """_refresh_guild_channels() sets is_active=true for channels back in Discord."""
+    guild_id = str(uuid4())
+    channel_db_id = str(uuid4())
+    mock_db = AsyncMock()
+
+    mock_guild = MagicMock()
+    mock_guild.id = guild_id
+
+    mock_guild_result = MagicMock()
+    mock_guild_result.scalar_one_or_none.return_value = mock_guild
+
+    mock_channels_result = MagicMock()
+    mock_channels_result.fetchall.return_value = [
+        (channel_db_id, "channel_discord_1", False),
+    ]
+
+    mock_db.execute = AsyncMock(side_effect=[mock_guild_result, mock_channels_result, AsyncMock()])
+
+    mock_discord = AsyncMock()
+    mock_discord.get_guild_channels = AsyncMock(
+        return_value=[{"id": "channel_discord_1", "type": 0}]
+    )
+
+    result = await guild_sync._refresh_guild_channels(mock_db, mock_discord, "guild_discord_id")
+
+    assert result == 1
+    assert mock_db.execute.await_count == 3
+
+
+@pytest.mark.asyncio
+async def test_refresh_guild_channels_deactivates_missing_channel():
+    """_refresh_guild_channels() sets is_active=false for channels removed from Discord."""
+    guild_id = str(uuid4())
+    channel_db_id = str(uuid4())
+    mock_db = AsyncMock()
+
+    mock_guild = MagicMock()
+    mock_guild.id = guild_id
+
+    mock_guild_result = MagicMock()
+    mock_guild_result.scalar_one_or_none.return_value = mock_guild
+
+    mock_channels_result = MagicMock()
+    mock_channels_result.fetchall.return_value = [
+        (channel_db_id, "channel_discord_1", True),
+    ]
+
+    mock_db.execute = AsyncMock(side_effect=[mock_guild_result, mock_channels_result, AsyncMock()])
+
+    mock_discord = AsyncMock()
+    mock_discord.get_guild_channels = AsyncMock(return_value=[])
+
+    result = await guild_sync._refresh_guild_channels(mock_db, mock_discord, "guild_discord_id")
+
+    assert result == 1
+    assert mock_db.execute.await_count == 3

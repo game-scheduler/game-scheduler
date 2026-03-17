@@ -23,14 +23,23 @@
 
 import asyncio
 import json
+import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
 
+import shared.discord.client as discord_client_module
 from shared.cache.keys import CacheKeys
 from shared.cache.ttl import CacheTTL
-from shared.discord.client import DiscordAPIClient, DiscordAPIError
+from shared.discord.client import (
+    DiscordAPIClient,
+    DiscordAPIError,
+    _get_global_client,
+    fetch_channel_name_safe,
+    fetch_guild_name_safe,
+    fetch_user_display_name_safe,
+)
 
 
 @pytest.fixture
@@ -1628,3 +1637,377 @@ async def test_get_guilds_uses_api_base_url(discord_client_fake_base: DiscordAPI
 
     actual_url = mock_session.get.call_args[0][0]
     assert actual_url == "http://fake:9999/users/@me/guilds"
+
+
+# ---------------------------------------------------------------------------
+# Tests for uncovered error branches
+# ---------------------------------------------------------------------------
+
+
+class TestGetUserInfoNetworkError:
+    """Test get_user_info() network error path."""
+
+    @pytest.mark.asyncio
+    async def test_get_user_info_network_error(self, discord_client):
+        """get_user_info() raises DiscordAPIError(500) on network failure."""
+        mock_session = MagicMock()
+        mock_session.closed = False
+
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(side_effect=aiohttp.ClientError("Connection refused"))
+        mock_cm.__aexit__ = AsyncMock(return_value=None)
+
+        mock_session.get = MagicMock(return_value=mock_cm)
+        discord_client._session = mock_session
+
+        with pytest.raises(DiscordAPIError) as exc_info:
+            await discord_client.get_user_info("test_access_token")
+
+        assert exc_info.value.status == 500
+        assert "network error" in exc_info.value.message.lower()
+
+
+class TestGetErrorMessageNonDict:
+    """Test _get_error_message() with non-dict response data."""
+
+    def test_get_error_message_non_dict_returns_default(self, discord_client):
+        """_get_error_message() returns the default when response_data is not a dict."""
+        result = discord_client._get_error_message(["item1", "item2"], "fallback_message")
+
+        assert result == "fallback_message"
+
+
+class TestProcessGuildsResponseHttpError:
+    """Test _process_guilds_response() non-200/non-429 error path."""
+
+    @pytest.mark.asyncio
+    async def test_get_guilds_http_error_response(self, discord_client):
+        """get_guilds() raises DiscordAPIError for non-200/non-429 HTTP status."""
+        mock_response = AsyncMock()
+        mock_response.status = 403
+        mock_response.headers = {"x-ratelimit-remaining": "50"}
+        mock_response.json = AsyncMock(return_value={"message": "Missing Permissions"})
+
+        mock_session = MagicMock()
+        mock_session.closed = False
+
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_cm.__aexit__ = AsyncMock(return_value=None)
+
+        mock_session.get = MagicMock(return_value=mock_cm)
+        discord_client._session = mock_session
+
+        with pytest.raises(DiscordAPIError) as exc_info:
+            await discord_client.get_guilds()
+
+        assert exc_info.value.status == 403
+
+    @pytest.mark.asyncio
+    async def test_get_guilds_http_error_non_dict_body(self, discord_client):
+        """_process_guilds_response() uses default message when body is not a dict."""
+        mock_response = AsyncMock()
+        mock_response.status = 503
+        mock_response.headers = {"x-ratelimit-remaining": "50"}
+        mock_response.json = AsyncMock(return_value=["unexpected", "list"])
+
+        mock_session = MagicMock()
+        mock_session.closed = False
+
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_cm.__aexit__ = AsyncMock(return_value=None)
+
+        mock_session.get = MagicMock(return_value=mock_cm)
+        discord_client._session = mock_session
+
+        with pytest.raises(DiscordAPIError) as exc_info:
+            await discord_client.get_guilds()
+
+        assert exc_info.value.status == 503
+        assert exc_info.value.message == "Unknown error"
+
+
+class TestFetchGuildsUncachedSafetyRaise:
+    """Test the safety raise at the end of _fetch_guilds_uncached."""
+
+    @pytest.mark.asyncio
+    async def test_fetch_guilds_uncached_raises_after_all_retries_return_none(self, discord_client):
+        """Final safety raise in _fetch_guilds_uncached fires when all retries return None."""
+        mock_session = MagicMock()
+        mock_session.closed = False
+
+        mock_response = AsyncMock()
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_cm.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_cm)
+        discord_client._session = mock_session
+
+        with patch.object(
+            discord_client, "_process_guilds_response", new_callable=AsyncMock
+        ) as mock_pgr:
+            mock_pgr.return_value = None
+
+            with pytest.raises(DiscordAPIError) as exc_info:
+                await discord_client._fetch_guilds_uncached(discord_client.bot_token)
+
+        assert exc_info.value.status == 429
+        assert "rate limit" in exc_info.value.message.lower()
+        assert mock_pgr.await_count == 3
+
+
+class TestGuildChannelsErrorPaths:
+    """Test get_guild_channels() error branches."""
+
+    @pytest.mark.asyncio
+    async def test_get_guild_channels_http_error(self, discord_client, mock_redis):
+        """get_guild_channels() raises DiscordAPIError for non-200 HTTP status."""
+        mock_response = AsyncMock()
+        mock_response.status = 403
+        mock_response.headers = {"x-ratelimit-remaining": "50"}
+        mock_response.json = AsyncMock(return_value={"message": "Missing Permissions"})
+
+        mock_session = MagicMock()
+        mock_session.closed = False
+
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_cm.__aexit__ = AsyncMock(return_value=None)
+
+        mock_session.get = MagicMock(return_value=mock_cm)
+        discord_client._session = mock_session
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            with pytest.raises(DiscordAPIError) as exc_info:
+                await discord_client.get_guild_channels("guild123")
+
+        assert exc_info.value.status == 403
+
+    @pytest.mark.asyncio
+    async def test_get_guild_channels_network_error(self, discord_client, mock_redis):
+        """get_guild_channels() raises DiscordAPIError(500) on network failure."""
+        mock_session = MagicMock()
+        mock_session.closed = False
+
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(side_effect=aiohttp.ClientError("Timeout"))
+        mock_cm.__aexit__ = AsyncMock(return_value=None)
+
+        mock_session.get = MagicMock(return_value=mock_cm)
+        discord_client._session = mock_session
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            with pytest.raises(DiscordAPIError) as exc_info:
+                await discord_client.get_guild_channels("guild123")
+
+        assert exc_info.value.status == 500
+        assert "network error" in exc_info.value.message.lower()
+
+
+class TestFetchChannelAndRolesErrorPaths:
+    """Test fetch_channel(), fetch_guild_roles() error branches."""
+
+    @pytest.mark.asyncio
+    async def test_fetch_channel_network_error(self, discord_client, mock_redis):
+        """fetch_channel() raises DiscordAPIError(500) on network failure."""
+        mock_session = MagicMock()
+        mock_session.closed = False
+
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(side_effect=aiohttp.ClientError("Connection reset"))
+        mock_cm.__aexit__ = AsyncMock(return_value=None)
+
+        mock_session.get = MagicMock(return_value=mock_cm)
+        discord_client._session = mock_session
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            with pytest.raises(DiscordAPIError) as exc_info:
+                await discord_client.fetch_channel("channel123")
+
+        assert exc_info.value.status == 500
+        assert "network error" in exc_info.value.message.lower()
+
+    @pytest.mark.asyncio
+    async def test_fetch_guild_roles_cache_hit(self, discord_client, mock_redis):
+        """fetch_guild_roles() returns cached data without hitting Discord API."""
+        roles_data = [{"id": "role1", "name": "Admin"}, {"id": "role2", "name": "Member"}]
+        mock_redis.get = AsyncMock(return_value=json.dumps(roles_data))
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            result = await discord_client.fetch_guild_roles("guild123")
+
+        assert len(result) == 2
+        assert result[0]["name"] == "Admin"
+        mock_redis.get.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_fetch_guild_roles_http_error(self, discord_client, mock_redis):
+        """fetch_guild_roles() raises DiscordAPIError for non-200 HTTP status."""
+        mock_response = AsyncMock()
+        mock_response.status = 403
+        mock_response.headers = {"x-ratelimit-remaining": "50"}
+        mock_response.json = AsyncMock(return_value={"message": "Missing Permissions"})
+
+        mock_session = MagicMock()
+        mock_session.closed = False
+
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_cm.__aexit__ = AsyncMock(return_value=None)
+
+        mock_session.get = MagicMock(return_value=mock_cm)
+        discord_client._session = mock_session
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            with pytest.raises(DiscordAPIError) as exc_info:
+                await discord_client.fetch_guild_roles("guild123")
+
+        assert exc_info.value.status == 403
+        assert exc_info.value.message == "Missing Permissions"
+
+    @pytest.mark.asyncio
+    async def test_fetch_guild_roles_network_error(self, discord_client, mock_redis):
+        """fetch_guild_roles() raises DiscordAPIError(500) on network failure."""
+        mock_session = MagicMock()
+        mock_session.closed = False
+
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(side_effect=aiohttp.ClientError("Timeout"))
+        mock_cm.__aexit__ = AsyncMock(return_value=None)
+
+        mock_session.get = MagicMock(return_value=mock_cm)
+        discord_client._session = mock_session
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            with pytest.raises(DiscordAPIError) as exc_info:
+                await discord_client.fetch_guild_roles("guild123")
+
+        assert exc_info.value.status == 500
+        assert "network error" in exc_info.value.message.lower()
+
+
+class TestHelperFunctions:
+    """Test module-level helper functions."""
+
+    def test_get_global_client_creates_instance(self):
+        """_get_global_client() imports and calls get_discord_client when no instance exists."""
+        saved = discord_client_module._global_client_instance
+        discord_client_module._global_client_instance = None
+        try:
+            mock_client = MagicMock()
+            mock_discord_dep = MagicMock()
+            mock_discord_dep.get_discord_client.return_value = mock_client
+
+            with patch.dict(sys.modules, {"services.api.dependencies.discord": mock_discord_dep}):
+                result = _get_global_client()
+
+            assert result is mock_client
+            assert discord_client_module._global_client_instance is mock_client
+        finally:
+            discord_client_module._global_client_instance = saved
+
+    @pytest.mark.asyncio
+    async def test_fetch_channel_name_safe_success(self):
+        """fetch_channel_name_safe() returns channel name on success."""
+        mock_client = MagicMock()
+        mock_client.fetch_channel = AsyncMock(return_value={"name": "general", "id": "123"})
+
+        result = await fetch_channel_name_safe("123", client=mock_client)
+
+        assert result == "general"
+
+    @pytest.mark.asyncio
+    async def test_fetch_channel_name_safe_error(self):
+        """fetch_channel_name_safe() returns 'Unknown Channel' on DiscordAPIError."""
+        mock_client = MagicMock()
+        mock_client.fetch_channel = AsyncMock(side_effect=DiscordAPIError(404, "Unknown Channel"))
+
+        result = await fetch_channel_name_safe("nonexistent", client=mock_client)
+
+        assert result == "Unknown Channel"
+
+    @pytest.mark.asyncio
+    async def test_fetch_channel_name_safe_uses_global_client_when_none(self):
+        """fetch_channel_name_safe() calls _get_global_client() when no client is provided."""
+        mock_client = MagicMock()
+        mock_client.fetch_channel = AsyncMock(return_value={"name": "announcements"})
+
+        with patch("shared.discord.client._get_global_client", return_value=mock_client):
+            result = await fetch_channel_name_safe("channel_id")
+
+        assert result == "announcements"
+
+    @pytest.mark.asyncio
+    async def test_fetch_user_display_name_safe_success(self):
+        """fetch_user_display_name_safe() returns formatted username on success."""
+        mock_client = MagicMock()
+        mock_client.fetch_user = AsyncMock(return_value={"username": "testuser", "id": "456"})
+
+        result = await fetch_user_display_name_safe("456", client=mock_client)
+
+        assert result == "@testuser"
+
+    @pytest.mark.asyncio
+    async def test_fetch_user_display_name_safe_error(self):
+        """fetch_user_display_name_safe() returns '@{id}' fallback on DiscordAPIError."""
+        mock_client = MagicMock()
+        mock_client.fetch_user = AsyncMock(side_effect=DiscordAPIError(404, "Unknown User"))
+
+        result = await fetch_user_display_name_safe("user_id_123", client=mock_client)
+
+        assert result == "@user_id_123"
+
+    @pytest.mark.asyncio
+    async def test_fetch_user_display_name_safe_uses_global_client_when_none(self):
+        """fetch_user_display_name_safe() calls _get_global_client() when no client is provided."""
+        mock_client = MagicMock()
+        mock_client.fetch_user = AsyncMock(return_value={"username": "globaluser"})
+
+        with patch("shared.discord.client._get_global_client", return_value=mock_client):
+            result = await fetch_user_display_name_safe("user_id")
+
+        assert result == "@globaluser"
+
+    @pytest.mark.asyncio
+    async def test_fetch_guild_name_safe_success(self):
+        """fetch_guild_name_safe() returns guild name on success."""
+        mock_client = MagicMock()
+        mock_client.fetch_guild = AsyncMock(return_value={"name": "My Server", "id": "789"})
+
+        result = await fetch_guild_name_safe("789", client=mock_client)
+
+        assert result == "My Server"
+
+    @pytest.mark.asyncio
+    async def test_fetch_guild_name_safe_error(self):
+        """fetch_guild_name_safe() returns guild_id fallback on DiscordAPIError."""
+        mock_client = MagicMock()
+        mock_client.fetch_guild = AsyncMock(side_effect=DiscordAPIError(404, "Unknown Guild"))
+
+        result = await fetch_guild_name_safe("guild_789", client=mock_client)
+
+        assert result == "guild_789"
+
+    @pytest.mark.asyncio
+    async def test_fetch_guild_name_safe_uses_global_client_when_none(self):
+        """fetch_guild_name_safe() calls _get_global_client() when no client is provided."""
+        mock_client = MagicMock()
+        mock_client.fetch_guild = AsyncMock(return_value={"name": "Global Server"})
+
+        with patch("shared.discord.client._get_global_client", return_value=mock_client):
+            result = await fetch_guild_name_safe("guild_id")
+
+        assert result == "Global Server"

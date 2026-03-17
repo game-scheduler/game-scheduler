@@ -67,15 +67,15 @@ tests for the correctness-critical and security-critical code paths identified b
 - [x] Task 2.5: Cover `generic_scheduler_daemon.py` error paths (→ ≥85%)
   - Details: .copilot-tracking/planning/details/20260316-03-coverage-gaps-priority-details.md (Lines 114-138)
 
-### [ ] Phase 3: Redis and Infrastructure Error Paths (P7–P9)
+### [x] Phase 3: Redis and Infrastructure Error Paths (P7–P9)
 
-- [ ] Task 3.1: Cover `cache/client.py` exception branches (→ ≥90%)
+- [x] Task 3.1: Cover `cache/client.py` exception branches (→ ≥90%)
   - Details: .copilot-tracking/planning/details/20260316-03-coverage-gaps-priority-details.md (Lines 139-158)
 
-- [ ] Task 3.2: Cover `guild_sync.py` refresh channel scenarios (→ ≥90%)
+- [x] Task 3.2: Cover `guild_sync.py` refresh channel scenarios (→ ≥90%)
   - Details: .copilot-tracking/planning/details/20260316-03-coverage-gaps-priority-details.md (Lines 159-178)
 
-- [ ] Task 3.3: Cover `shared/discord/client.py` HTTP error branches (→ ≥95%)
+- [x] Task 3.3: Cover `shared/discord/client.py` HTTP error branches (→ ≥95%)
   - Details: .copilot-tracking/planning/details/20260316-03-coverage-gaps-priority-details.md (Lines 179-200)
 
 ### [ ] Phase 4: Integration Tests (P6, P10, P11)

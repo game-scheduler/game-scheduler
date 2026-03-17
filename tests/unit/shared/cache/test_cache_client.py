@@ -22,12 +22,17 @@
 """Unit tests for Redis cache client."""
 
 import json
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 import shared.cache.client
-from shared.cache.client import RedisClient, get_redis_client
+from shared.cache.client import (
+    RedisClient,
+    SyncRedisClient,
+    get_redis_client,
+    get_sync_redis_client,
+)
 
 
 @pytest.fixture
@@ -271,6 +276,213 @@ class TestRedisClient:
         result = await redis_client.ttl("missing_key")
 
         assert result == -2
+
+    async def test_get_auto_connects(self, mock_redis, mock_pool):
+        """get() triggers connect() automatically when client not initialized."""
+        with (
+            patch("shared.cache.client.ConnectionPool") as mock_pool_class,
+            patch("shared.cache.client.Redis") as mock_redis_class,
+        ):
+            mock_pool_class.from_url.return_value = mock_pool
+            mock_redis_class.return_value = mock_redis
+            mock_redis.get.return_value = "value"
+
+            client = RedisClient("redis://localhost:6379/0")
+            result = await client.get("key")
+
+        assert result == "value"
+
+    async def test_set_auto_connects(self, mock_redis, mock_pool):
+        """set() triggers connect() automatically when client not initialized."""
+        with (
+            patch("shared.cache.client.ConnectionPool") as mock_pool_class,
+            patch("shared.cache.client.Redis") as mock_redis_class,
+        ):
+            mock_pool_class.from_url.return_value = mock_pool
+            mock_redis_class.return_value = mock_redis
+
+            client = RedisClient("redis://localhost:6379/0")
+            result = await client.set("key", "value")
+
+        assert result is True
+
+    async def test_delete_auto_connects(self, mock_redis, mock_pool):
+        """delete() triggers connect() automatically when client not initialized."""
+        with (
+            patch("shared.cache.client.ConnectionPool") as mock_pool_class,
+            patch("shared.cache.client.Redis") as mock_redis_class,
+        ):
+            mock_pool_class.from_url.return_value = mock_pool
+            mock_redis_class.return_value = mock_redis
+            mock_redis.delete.return_value = 1
+
+            client = RedisClient("redis://localhost:6379/0")
+            result = await client.delete("key")
+
+        assert result is True
+
+    async def test_delete_error_handling(self, redis_client, mock_redis):
+        """delete() returns False when redis raises an exception."""
+        mock_redis.delete.side_effect = Exception("Redis error")
+
+        result = await redis_client.delete("key")
+
+        assert result is False
+
+    async def test_exists_auto_connects(self, mock_redis, mock_pool):
+        """exists() triggers connect() automatically when client not initialized."""
+        with (
+            patch("shared.cache.client.ConnectionPool") as mock_pool_class,
+            patch("shared.cache.client.Redis") as mock_redis_class,
+        ):
+            mock_pool_class.from_url.return_value = mock_pool
+            mock_redis_class.return_value = mock_redis
+            mock_redis.exists.return_value = 1
+
+            client = RedisClient("redis://localhost:6379/0")
+            result = await client.exists("key")
+
+        assert result is True
+
+    async def test_expire_auto_connects(self, mock_redis, mock_pool):
+        """expire() triggers connect() automatically when client not initialized."""
+        with (
+            patch("shared.cache.client.ConnectionPool") as mock_pool_class,
+            patch("shared.cache.client.Redis") as mock_redis_class,
+        ):
+            mock_pool_class.from_url.return_value = mock_pool
+            mock_redis_class.return_value = mock_redis
+            mock_redis.expire.return_value = True
+
+            client = RedisClient("redis://localhost:6379/0")
+            result = await client.expire("key", 300)
+
+        assert result is True
+
+    async def test_expire_error_handling(self, redis_client, mock_redis):
+        """expire() returns False when redis raises an exception."""
+        mock_redis.expire.side_effect = Exception("Redis error")
+
+        result = await redis_client.expire("key", 300)
+
+        assert result is False
+
+    async def test_ttl_auto_connects(self, mock_redis, mock_pool):
+        """ttl() triggers connect() automatically when client not initialized."""
+        with (
+            patch("shared.cache.client.ConnectionPool") as mock_pool_class,
+            patch("shared.cache.client.Redis") as mock_redis_class,
+        ):
+            mock_pool_class.from_url.return_value = mock_pool
+            mock_redis_class.return_value = mock_redis
+            mock_redis.ttl.return_value = 300
+
+            client = RedisClient("redis://localhost:6379/0")
+            result = await client.ttl("key")
+
+        assert result == 300
+
+    async def test_ttl_error_handling(self, redis_client, mock_redis):
+        """ttl() returns -2 when redis raises an exception."""
+        mock_redis.ttl.side_effect = Exception("Redis error")
+
+        result = await redis_client.ttl("key")
+
+        assert result == -2
+
+
+class TestSyncRedisClient:
+    """Test suite for SyncRedisClient."""
+
+    def test_get_success(self):
+        """Test successful synchronous GET."""
+        with patch("shared.cache.client.redis.from_url") as mock_from_url:
+            mock_sync = MagicMock()
+            mock_sync.get.return_value = "cached_value"
+            mock_from_url.return_value = mock_sync
+
+            client = SyncRedisClient("redis://localhost:6379/0")
+            result = client.get("test_key")
+
+        assert result == "cached_value"
+        mock_sync.get.assert_called_once_with("test_key")
+
+    def test_get_error_returns_none(self):
+        """Test synchronous GET returns None on error."""
+        with patch("shared.cache.client.redis.from_url") as mock_from_url:
+            mock_sync = MagicMock()
+            mock_sync.get.side_effect = Exception("Connection error")
+            mock_from_url.return_value = mock_sync
+
+            client = SyncRedisClient("redis://localhost:6379/0")
+            result = client.get("test_key")
+
+        assert result is None
+
+    def test_set_success_without_ttl(self):
+        """Test successful synchronous SET without TTL."""
+        with patch("shared.cache.client.redis.from_url") as mock_from_url:
+            mock_sync = MagicMock()
+            mock_from_url.return_value = mock_sync
+
+            client = SyncRedisClient("redis://localhost:6379/0")
+            result = client.set("test_key", "test_value")
+
+        assert result is True
+        mock_sync.set.assert_called_once_with("test_key", "test_value")
+
+    def test_set_success_with_ttl(self):
+        """Test successful synchronous SET with TTL."""
+        with patch("shared.cache.client.redis.from_url") as mock_from_url:
+            mock_sync = MagicMock()
+            mock_from_url.return_value = mock_sync
+
+            client = SyncRedisClient("redis://localhost:6379/0")
+            result = client.set("test_key", "test_value", ttl=300)
+
+        assert result is True
+        mock_sync.setex.assert_called_once_with("test_key", 300, "test_value")
+
+    def test_set_error_returns_false(self):
+        """Test synchronous SET returns False on error."""
+        with patch("shared.cache.client.redis.from_url") as mock_from_url:
+            mock_sync = MagicMock()
+            mock_sync.set.side_effect = Exception("Write error")
+            mock_from_url.return_value = mock_sync
+
+            client = SyncRedisClient("redis://localhost:6379/0")
+            result = client.set("test_key", "test_value")
+
+        assert result is False
+
+    def test_close(self):
+        """Test synchronous connection close."""
+        with patch("shared.cache.client.redis.from_url") as mock_from_url:
+            mock_sync = MagicMock()
+            mock_from_url.return_value = mock_sync
+
+            client = SyncRedisClient("redis://localhost:6379/0")
+            client.close()
+
+        mock_sync.close.assert_called_once()
+
+
+class TestGetSyncRedisClient:
+    """Test suite for get_sync_redis_client singleton."""
+
+    def test_singleton_returns_same_instance(self):
+        """Test get_sync_redis_client returns singleton instance."""
+        with patch("shared.cache.client.redis.from_url") as mock_from_url:
+            mock_sync = MagicMock()
+            mock_from_url.return_value = mock_sync
+
+            shared.cache.client._sync_redis_client = None
+
+            client1 = get_sync_redis_client()
+            client2 = get_sync_redis_client()
+
+            assert client1 is client2
+            mock_from_url.assert_called_once()
 
 
 class TestGetRedisClient:
