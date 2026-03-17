@@ -218,5 +218,31 @@ async def test_refresh_discord_error_returns_401(create_user, redis_client_async
 async def test_user_info_no_session_returns_401(async_client):
     """GET /auth/user without a session cookie → 401 Unauthorized."""
     response = await async_client.get("/api/v1/auth/user")
-
     assert response.status_code == 401
+
+
+# ============================================================================
+# New user creation path (lines 122-129)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_callback_creates_new_user_on_first_login(redis_client_async, api_base_url):
+    """Callback for a Discord user with no existing DB record creates the user (lines 122-129).
+
+    This test must run before any other test that calls create_user with
+    _FAKE_DISCORD_USER_ID so that the user does not already exist in the DB.
+    """
+    state = uuid.uuid4().hex
+    redirect_uri = "http://localhost:3000/callback"
+    await redis_client_async.set(f"oauth_state:{state}", redirect_uri, ttl=600)
+
+    async with httpx.AsyncClient(base_url=api_base_url, timeout=10.0) as client:
+        response = await client.get(
+            "/api/v1/auth/callback",
+            params={"code": "fake_code", "state": state},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body.get("success") is True

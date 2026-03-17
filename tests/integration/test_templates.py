@@ -26,6 +26,8 @@ reorder_templates in services/api/routes/templates.py (lines 123-128,
 254, 282, 297, 311-354) that were previously uncovered.
 """
 
+import uuid
+
 import httpx
 import pytest
 from sqlalchemy import text
@@ -243,6 +245,355 @@ async def test_reorder_templates(
 
         assert response.status_code == 204, (
             f"Expected 204, got {response.status_code}: {response.text}"
+        )
+    finally:
+        await cleanup_test_session(session_token)
+
+
+# ============================================================================
+# list_templates (lines 103-172)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_list_templates_success(
+    create_guild,
+    create_channel,
+    create_user,
+    create_template,
+    seed_redis_cache,
+    api_base_url,
+):
+    """GET /api/v1/guilds/{guild_id}/templates returns template list (lines 103-172)."""
+    guild = create_guild(bot_manager_roles=[BOT_MANAGER_ROLE_ID])
+    channel = create_channel(guild_id=guild["id"])
+    create_user(discord_user_id=TEST_BOT_DISCORD_ID)
+    create_template(guild_id=guild["id"], channel_id=channel["id"], name="Listed Template")
+
+    session_token, _ = await create_test_session(TEST_DISCORD_TOKEN, TEST_BOT_DISCORD_ID)
+    await seed_redis_cache(
+        user_discord_id=TEST_BOT_DISCORD_ID,
+        guild_discord_id=guild["guild_id"],
+        user_roles=[BOT_MANAGER_ROLE_ID],
+    )
+
+    try:
+        async with httpx.AsyncClient(
+            base_url=api_base_url,
+            timeout=10.0,
+            cookies={"session_token": session_token},
+        ) as client:
+            response = await client.get(f"/api/v1/guilds/{guild['id']}/templates")
+
+        assert response.status_code == 200, (
+            f"Expected 200, got {response.status_code}: {response.text}"
+        )
+        data = response.json()
+        assert isinstance(data, list)
+        assert any(t["name"] == "Listed Template" for t in data)
+    finally:
+        await cleanup_test_session(session_token)
+
+
+@pytest.mark.asyncio
+async def test_list_templates_manager_no_templates_returns_404(
+    create_guild,
+    create_user,
+    seed_redis_cache,
+    api_base_url,
+):
+    """Bot manager with no templates in guild gets 404 (lines 122-127)."""
+    guild = create_guild(
+        discord_guild_id="123456789012345678", bot_manager_roles=[BOT_MANAGER_ROLE_ID]
+    )
+    create_user(discord_user_id=TEST_BOT_DISCORD_ID)
+
+    session_token, _ = await create_test_session(TEST_DISCORD_TOKEN, TEST_BOT_DISCORD_ID)
+    await seed_redis_cache(
+        user_discord_id=TEST_BOT_DISCORD_ID,
+        guild_discord_id=guild["guild_id"],
+        user_roles=[BOT_MANAGER_ROLE_ID],
+    )
+
+    try:
+        async with httpx.AsyncClient(
+            base_url=api_base_url,
+            timeout=10.0,
+            cookies={"session_token": session_token},
+        ) as client:
+            response = await client.get(f"/api/v1/guilds/{guild['id']}/templates")
+
+        assert response.status_code == 404, (
+            f"Expected 404, got {response.status_code}: {response.text}"
+        )
+    finally:
+        await cleanup_test_session(session_token)
+
+
+# ============================================================================
+# get_template (lines 183-194)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_template_success(
+    create_guild,
+    create_channel,
+    create_user,
+    create_template,
+    seed_redis_cache,
+    api_base_url,
+):
+    """GET /api/v1/templates/{id} returns template details (lines 183-194)."""
+    guild = create_guild(bot_manager_roles=[BOT_MANAGER_ROLE_ID])
+    channel = create_channel(guild_id=guild["id"])
+    create_user(discord_user_id=TEST_BOT_DISCORD_ID)
+    template = create_template(guild_id=guild["id"], channel_id=channel["id"])
+
+    session_token, _ = await create_test_session(TEST_DISCORD_TOKEN, TEST_BOT_DISCORD_ID)
+    await seed_redis_cache(
+        user_discord_id=TEST_BOT_DISCORD_ID,
+        guild_discord_id=guild["guild_id"],
+        user_roles=[BOT_MANAGER_ROLE_ID],
+    )
+
+    try:
+        async with httpx.AsyncClient(
+            base_url=api_base_url,
+            timeout=10.0,
+            cookies={"session_token": session_token},
+        ) as client:
+            response = await client.get(f"/api/v1/templates/{template['id']}")
+
+        assert response.status_code == 200, (
+            f"Expected 200, got {response.status_code}: {response.text}"
+        )
+        assert response.json()["id"] == template["id"]
+    finally:
+        await cleanup_test_session(session_token)
+
+
+@pytest.mark.asyncio
+async def test_get_template_not_found(
+    create_guild,
+    create_user,
+    seed_redis_cache,
+    api_base_url,
+):
+    """GET /api/v1/templates/{id} returns 404 for nonexistent template (lines 186-187)."""
+    guild = create_guild(bot_manager_roles=[BOT_MANAGER_ROLE_ID])
+    create_user(discord_user_id=TEST_BOT_DISCORD_ID)
+
+    session_token, _ = await create_test_session(TEST_DISCORD_TOKEN, TEST_BOT_DISCORD_ID)
+    await seed_redis_cache(
+        user_discord_id=TEST_BOT_DISCORD_ID,
+        guild_discord_id=guild["guild_id"],
+    )
+
+    try:
+        async with httpx.AsyncClient(
+            base_url=api_base_url,
+            timeout=10.0,
+            cookies={"session_token": session_token},
+        ) as client:
+            response = await client.get(f"/api/v1/templates/{uuid.uuid4()}")
+
+        assert response.status_code == 404, (
+            f"Expected 404, got {response.status_code}: {response.text}"
+        )
+    finally:
+        await cleanup_test_session(session_token)
+
+
+# ============================================================================
+# update_template not-found (lines 253-254)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_update_template_not_found(
+    create_guild,
+    create_user,
+    seed_redis_cache,
+    api_base_url,
+):
+    """PUT /api/v1/templates/{id} returns 404 when template does not exist (lines 253-254)."""
+    guild = create_guild(bot_manager_roles=[BOT_MANAGER_ROLE_ID])
+    create_user(discord_user_id=TEST_BOT_DISCORD_ID)
+
+    session_token, _ = await create_test_session(TEST_DISCORD_TOKEN, TEST_BOT_DISCORD_ID)
+    await seed_redis_cache(
+        user_discord_id=TEST_BOT_DISCORD_ID,
+        guild_discord_id=guild["guild_id"],
+        user_roles=[BOT_MANAGER_ROLE_ID],
+    )
+
+    try:
+        async with httpx.AsyncClient(
+            base_url=api_base_url,
+            timeout=10.0,
+            cookies={"session_token": session_token},
+        ) as client:
+            response = await client.put(
+                f"/api/v1/templates/{uuid.uuid4()}",
+                json={"name": "Irrelevant"},
+            )
+
+        assert response.status_code == 404, (
+            f"Expected 404, got {response.status_code}: {response.text}"
+        )
+    finally:
+        await cleanup_test_session(session_token)
+
+
+# ============================================================================
+# delete_template not-found (lines 281-282)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_delete_template_not_found(
+    create_guild,
+    create_user,
+    seed_redis_cache,
+    api_base_url,
+):
+    """DELETE /api/v1/templates/{id} returns 404 when template does not exist (lines 281-282)."""
+    guild = create_guild(bot_manager_roles=[BOT_MANAGER_ROLE_ID])
+    create_user(discord_user_id=TEST_BOT_DISCORD_ID)
+
+    session_token, _ = await create_test_session(TEST_DISCORD_TOKEN, TEST_BOT_DISCORD_ID)
+    await seed_redis_cache(
+        user_discord_id=TEST_BOT_DISCORD_ID,
+        guild_discord_id=guild["guild_id"],
+        user_roles=[BOT_MANAGER_ROLE_ID],
+    )
+
+    try:
+        async with httpx.AsyncClient(
+            base_url=api_base_url,
+            timeout=10.0,
+            cookies={"session_token": session_token},
+        ) as client:
+            response = await client.delete(f"/api/v1/templates/{uuid.uuid4()}")
+
+        assert response.status_code == 404, (
+            f"Expected 404, got {response.status_code}: {response.text}"
+        )
+    finally:
+        await cleanup_test_session(session_token)
+
+
+# ============================================================================
+# set_default_template not-found (lines 314-315)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_set_default_template_not_found(
+    create_guild,
+    create_user,
+    seed_redis_cache,
+    api_base_url,
+):
+    """POST /api/v1/templates/{id}/set-default returns 404 when not found (lines 314-315)."""
+    guild = create_guild(bot_manager_roles=[BOT_MANAGER_ROLE_ID])
+    create_user(discord_user_id=TEST_BOT_DISCORD_ID)
+
+    session_token, _ = await create_test_session(TEST_DISCORD_TOKEN, TEST_BOT_DISCORD_ID)
+    await seed_redis_cache(
+        user_discord_id=TEST_BOT_DISCORD_ID,
+        guild_discord_id=guild["guild_id"],
+        user_roles=[BOT_MANAGER_ROLE_ID],
+    )
+
+    try:
+        async with httpx.AsyncClient(
+            base_url=api_base_url,
+            timeout=10.0,
+            cookies={"session_token": session_token},
+        ) as client:
+            response = await client.post(f"/api/v1/templates/{uuid.uuid4()}/set-default")
+
+        assert response.status_code == 404, (
+            f"Expected 404, got {response.status_code}: {response.text}"
+        )
+    finally:
+        await cleanup_test_session(session_token)
+
+
+# ============================================================================
+# reorder_templates early-return and not-found (lines 336, 345-346)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_reorder_templates_empty_list_returns_204(
+    create_guild,
+    create_user,
+    seed_redis_cache,
+    api_base_url,
+):
+    """POST /api/v1/templates/reorder with empty list returns 204 immediately (line 336)."""
+    guild = create_guild(bot_manager_roles=[BOT_MANAGER_ROLE_ID])
+    create_user(discord_user_id=TEST_BOT_DISCORD_ID)
+
+    session_token, _ = await create_test_session(TEST_DISCORD_TOKEN, TEST_BOT_DISCORD_ID)
+    await seed_redis_cache(
+        user_discord_id=TEST_BOT_DISCORD_ID,
+        guild_discord_id=guild["guild_id"],
+        user_roles=[BOT_MANAGER_ROLE_ID],
+    )
+
+    try:
+        async with httpx.AsyncClient(
+            base_url=api_base_url,
+            timeout=10.0,
+            cookies={"session_token": session_token},
+        ) as client:
+            response = await client.post(
+                "/api/v1/templates/reorder",
+                json={"template_orders": []},
+            )
+
+        assert response.status_code == 204, (
+            f"Expected 204, got {response.status_code}: {response.text}"
+        )
+    finally:
+        await cleanup_test_session(session_token)
+
+
+@pytest.mark.asyncio
+async def test_reorder_templates_template_not_found(
+    create_guild,
+    create_user,
+    seed_redis_cache,
+    api_base_url,
+):
+    """POST /api/v1/templates/reorder with nonexistent template_id returns 404 (lines 345-346)."""
+    guild = create_guild(bot_manager_roles=[BOT_MANAGER_ROLE_ID])
+    create_user(discord_user_id=TEST_BOT_DISCORD_ID)
+
+    session_token, _ = await create_test_session(TEST_DISCORD_TOKEN, TEST_BOT_DISCORD_ID)
+    await seed_redis_cache(
+        user_discord_id=TEST_BOT_DISCORD_ID,
+        guild_discord_id=guild["guild_id"],
+        user_roles=[BOT_MANAGER_ROLE_ID],
+    )
+
+    try:
+        async with httpx.AsyncClient(
+            base_url=api_base_url,
+            timeout=10.0,
+            cookies={"session_token": session_token},
+        ) as client:
+            response = await client.post(
+                "/api/v1/templates/reorder",
+                json={"template_orders": [{str(uuid.uuid4()): 1}]},
+            )
+
+        assert response.status_code == 404, (
+            f"Expected 404, got {response.status_code}: {response.text}"
         )
     finally:
         await cleanup_test_session(session_token)
