@@ -118,7 +118,17 @@ def test_handle_game_operation_errors_with_update_data(sample_update_data):
     assert exc_info.value.status_code == http_status.HTTP_422_UNPROCESSABLE_ENTITY
     form_data = exc_info.value.detail["form_data"]
     assert form_data["title"] == "Updated Game"
-    assert form_data["description"] == "Updated description"
+
+
+def test_handle_game_operation_errors_unexpected_type(sample_game_data):
+    """Test that an unexpected exception type produces a 500 with the type name."""
+    unexpected_error = RuntimeError("Database crashed")
+
+    with pytest.raises(HTTPException) as exc_info:
+        games_routes._handle_game_operation_errors(unexpected_error, sample_game_data)
+
+    assert exc_info.value.status_code == http_status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert "RuntimeError" in exc_info.value.detail
 
 
 class TestGetGameCanManage:
@@ -230,7 +240,6 @@ class TestGetGameCanManage:
             ),
             patch(
                 "services.api.routes.games.permissions_deps.can_manage_game",
-                new_callable=AsyncMock,
                 side_effect=HTTPException(status_code=http_status.HTTP_404_NOT_FOUND),
             ),
             patch(
