@@ -36,7 +36,7 @@ describe('ChannelValidationErrors', () => {
 
     render(<ChannelValidationErrors errors={errors} onSuggestionClick={vi.fn()} />);
 
-    expect(screen.getByText('Could not resolve some #channel mentions')).toBeInTheDocument();
+    expect(screen.getByText('Location contains an invalid channel reference')).toBeInTheDocument();
   });
 
   it('displays error input and reason', () => {

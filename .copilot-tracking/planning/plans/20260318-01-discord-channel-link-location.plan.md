@@ -40,22 +40,22 @@ Extend the channel resolver to detect and validate `discord.com/channels/{gid}/{
 
 ## Implementation Checklist
 
-### [ ] Phase 1: TDD - Write Failing Unit Tests
+### [x] Phase 1: TDD - Write Failing Unit Tests
 
-- [ ] Task 1.1: Add unit tests for URL resolution cases to `test_channel_resolver.py`
+- [x] Task 1.1: Add unit tests for URL resolution cases to `test_channel_resolver.py`
   - Details: .copilot-tracking/planning/details/20260318-01-discord-channel-link-location-details.md (Lines 9-23)
 
-### [ ] Phase 2: Implement URL Resolution in Backend
+### [x] Phase 2: Implement URL Resolution in Backend
 
-- [ ] Task 2.1: Add URL regex to `ChannelResolver.__init__` and refactor channel fetch
+- [x] Task 2.1: Add URL regex to `ChannelResolver.__init__` and refactor channel fetch
   - Details: .copilot-tracking/planning/details/20260318-01-discord-channel-link-location-details.md (Lines 25-40)
 
-- [ ] Task 2.2: Add URL detection loop to `resolve_channel_mentions`
+- [x] Task 2.2: Add URL detection loop to `resolve_channel_mentions`
   - Details: .copilot-tracking/planning/details/20260318-01-discord-channel-link-location-details.md (Lines 42-56)
 
-### [ ] Phase 3: Update Frontend Alert Title
+### [x] Phase 3: Update Frontend Alert Title
 
-- [ ] Task 3.1: Update `AlertTitle` in `ChannelValidationErrors.tsx`
+- [x] Task 3.1: Update `AlertTitle` in `ChannelValidationErrors.tsx`
   - Details: .copilot-tracking/planning/details/20260318-01-discord-channel-link-location-details.md (Lines 58-72)
 
 ## Dependencies

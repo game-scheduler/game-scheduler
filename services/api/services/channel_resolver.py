@@ -43,6 +43,7 @@ class ChannelResolver:
         """
         self.discord_client = discord_client
         self._channel_mention_pattern = re.compile(r"#([\w-]+)")
+        self._discord_channel_url_pattern = re.compile(r"https://discord\.com/channels/(\d+)/(\d+)")
 
     async def resolve_channel_mentions(
         self,
@@ -64,17 +65,38 @@ class ChannelResolver:
         if not location_text:
             return location_text, []
 
-        matches = list(self._channel_mention_pattern.finditer(location_text))
-        if not matches:
+        url_matches = list(self._discord_channel_url_pattern.finditer(location_text))
+        hash_matches = list(self._channel_mention_pattern.finditer(location_text))
+
+        if not url_matches and not hash_matches:
             return location_text, []
 
         channels = await self.discord_client.get_guild_channels(guild_discord_id)
         text_channels = [ch for ch in channels if ch.get("type") == 0]
+        text_channel_ids = {ch["id"] for ch in text_channels}
 
         resolved = location_text
-        errors = []
+        errors: list[dict] = []
 
-        for match in matches:
+        for url_match in url_matches:
+            url_guild_id = url_match.group(1)
+            url_channel_id = url_match.group(2)
+            full_url = url_match.group(0)
+
+            if url_guild_id != guild_discord_id:
+                continue
+
+            if url_channel_id not in text_channel_ids:
+                errors.append({
+                    "type": "not_found",
+                    "input": full_url,
+                    "reason": "This link is not a valid text channel in this server",
+                    "suggestions": [],
+                })
+            else:
+                resolved = resolved.replace(full_url, f"<#{url_channel_id}>", 1)
+
+        for match in hash_matches:
             channel_name = match.group(1)
             matching_channels = [
                 ch for ch in text_channels if ch["name"].lower() == channel_name.lower()

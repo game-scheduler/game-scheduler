@@ -44,7 +44,7 @@ export const ChannelValidationErrors: FC<ChannelValidationErrorsProps> = ({
 }) => {
   return (
     <Alert severity="error" sx={{ mb: 2 }}>
-      <AlertTitle>Could not resolve some #channel mentions</AlertTitle>
+      <AlertTitle>Location contains an invalid channel reference</AlertTitle>
       {errors.map((err, idx) => (
         <Box key={idx} mb={2}>
           <Typography variant="body2">

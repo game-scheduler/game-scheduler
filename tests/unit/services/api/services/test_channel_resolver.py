@@ -198,6 +198,113 @@ async def test_resolve_multiple_mentions_in_one_location(resolver, mock_discord_
     )
 
     assert resolved_text == "Start in <#111111111> then move to <#222222222>"
+
+
+# ---------------------------------------------------------------------------
+# Discord channel URL detection tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_resolve_discord_url_same_guild(resolver, mock_discord_client):
+    """Valid same-guild discord.com channel URL is replaced with <#channel_id>."""
+    mock_discord_client.get_guild_channels = AsyncMock(
+        return_value=[
+            {"id": "406583674453098496", "name": "general", "type": 0},
+        ]
+    )
+
+    resolved_text, errors = await resolver.resolve_channel_mentions(
+        location_text="https://discord.com/channels/111222333444555666/406583674453098496",
+        guild_discord_id="111222333444555666",
+    )
+
+    assert resolved_text == "<#406583674453098496>"
+    assert len(errors) == 0
+
+
+@pytest.mark.asyncio
+async def test_resolve_discord_url_wrong_guild_passes_through(resolver, mock_discord_client):
+    """discord.com URL from a different guild is left unchanged with no error."""
+    url = "https://discord.com/channels/999999999999999999/406583674453098496"
+    mock_discord_client.get_guild_channels = AsyncMock(
+        return_value=[
+            {"id": "406583674453098496", "name": "general", "type": 0},
+        ]
+    )
+
+    resolved_text, errors = await resolver.resolve_channel_mentions(
+        location_text=url,
+        guild_discord_id="111222333444555666",
+    )
+
+    assert resolved_text == url
+    assert len(errors) == 0
+
+
+@pytest.mark.asyncio
+async def test_resolve_discord_url_channel_not_found(resolver, mock_discord_client):
+    """Same-guild discord.com URL for a non-existent text channel returns not_found error."""
+    mock_discord_client.get_guild_channels = AsyncMock(
+        return_value=[
+            {"id": "406583674453098496", "name": "general", "type": 0},
+        ]
+    )
+
+    resolved_text, errors = await resolver.resolve_channel_mentions(
+        location_text="https://discord.com/channels/111222333444555666/999999999999999999",
+        guild_discord_id="111222333444555666",
+    )
+
+    assert resolved_text == "https://discord.com/channels/111222333444555666/999999999999999999"
+    assert len(errors) == 1
+    assert errors[0]["type"] == "not_found"
+    assert (
+        errors[0]["input"] == "https://discord.com/channels/111222333444555666/999999999999999999"
+    )
+    assert errors[0]["reason"] == "This link is not a valid text channel in this server"
+    assert errors[0]["suggestions"] == []
+
+
+@pytest.mark.asyncio
+async def test_resolve_discord_url_non_text_channel_not_found(resolver, mock_discord_client):
+    """Same-guild discord.com URL for a non-text channel (type != 0) returns not_found."""
+    mock_discord_client.get_guild_channels = AsyncMock(
+        return_value=[
+            {"id": "406583674453098496", "name": "general", "type": 0},
+            {"id": "777777777777777777", "name": "voice-chat", "type": 2},
+        ]
+    )
+
+    resolved_text, errors = await resolver.resolve_channel_mentions(
+        location_text="https://discord.com/channels/111222333444555666/777777777777777777",
+        guild_discord_id="111222333444555666",
+    )
+
+    assert len(errors) == 1
+    assert errors[0]["type"] == "not_found"
+    assert errors[0]["suggestions"] == []
+
+
+@pytest.mark.asyncio
+async def test_resolve_discord_url_coexisting_with_hash_mention(resolver, mock_discord_client):
+    """discord.com URL and a #channel mention in the same string both resolve correctly."""
+    mock_discord_client.get_guild_channels = AsyncMock(
+        return_value=[
+            {"id": "111111111", "name": "general", "type": 0},
+            {"id": "406583674453098496", "name": "voice-lobby", "type": 0},
+        ]
+    )
+
+    resolved_text, errors = await resolver.resolve_channel_mentions(
+        location_text=(
+            "Start at #general then https://discord.com/channels/GUILD/406583674453098496"
+        ).replace("GUILD", "999999999999999999"),
+        guild_discord_id="999999999999999999",
+    )
+
+    assert resolved_text == "Start at <#111111111> then <#406583674453098496>"
+    assert len(errors) == 0
     assert len(errors) == 0
 
 
