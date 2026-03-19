@@ -374,6 +374,111 @@ full unit test suite passes and no references to the removed names remain in the
 
 ---
 
+## Phase 6: Integration Tests
+
+### Task 6.1: Integration Test — Queue Trigger Fires Correct `pg_notify` Payload
+
+Create `tests/integration/test_message_refresh_queue.py` to hold all three
+integration test classes (Tasks 6.1, 6.2, and 6.3). Follow the
+`PostgresNotificationListener` + `admin_db_url_sync` + `admin_db_sync` pattern
+from `tests/integration/test_notification_daemon.py`.
+
+Test steps:
+
+1. Open a `PostgresNotificationListener(admin_db_url_sync)` and call
+   `listener.listen("message_refresh_queue_changed")`
+2. Create a game environment via `test_game_environment()`; insert one row into
+   `message_refresh_queue` via `admin_db_sync` with `game_id=env["game"]["id"]`
+   and `channel_id=env["channel"]["channel_id"]`; call `admin_db_sync.commit()`
+3. Call `listener.wait_for_notification(timeout=2.0)`, assert `received is True`,
+   and assert `payload == env["channel"]["channel_id"]`
+
+The existing `admin_db_sync` setup cleanup (CASCADE delete from `game_sessions`)
+removes any leftover queue rows at the start of each subsequent test, so no
+additional cleanup fixture is needed.
+
+- **Files**:
+  - `tests/integration/test_message_refresh_queue.py` — new file
+- **Success**:
+  - LISTEN connection receives a NOTIFY with `payload == channel_id` immediately
+    after the INSERT is committed
+  - Guards the Alembic migration trigger function correctness
+- **Research References**:
+  - #file:../research/20260319-01-discord-embed-rate-limit-research.md (Lines 213-230) — addendum test 1 description
+  - #file:../research/20260319-01-discord-embed-rate-limit-research.md (Lines 76-100) — trigger function SQL in migration
+- **Dependencies**:
+  - Phase 1 complete (migration applied; `message_refresh_queue` table and trigger exist)
+
+### Task 6.2: Integration Test — `MessageRefreshListener` Receives `channel_id` via asyncpg
+
+Add `TestMessageRefreshListenerIntegration` to
+`tests/integration/test_message_refresh_queue.py`. This is an `async def` test
+exercising the full asyncpg LISTEN pathway. Use `bot_db_url` for the listener
+(BYPASS-RLS, matching production bot credentials) and `admin_db_url` for the
+inserting connection.
+
+Test steps:
+
+1. Create `received_payloads: list[str] = []` and `received_event = asyncio.Event()`
+2. Define `spawn_cb(channel_id: str) -> asyncio.Task` that appends `channel_id`
+   to the list, sets `received_event`, and returns
+   `asyncio.create_task(asyncio.sleep(0))`
+3. Construct `listener = MessageRefreshListener(bot_db_url, spawn_cb)` and launch
+   `task = asyncio.create_task(listener.start())`
+4. `await asyncio.sleep(0.3)` to allow the asyncpg LISTEN connection to establish
+5. Open a direct asyncpg admin connection:
+   `conn = await asyncpg.connect(admin_db_url.replace("postgresql+asyncpg://", "postgresql://"))`;
+   execute the `INSERT INTO message_refresh_queue (game_id, channel_id) VALUES ($1, $2)`;
+   `await conn.close()` so the transaction auto-commits
+6. `await asyncio.wait_for(received_event.wait(), timeout=2.0)`
+7. `task.cancel(); await asyncio.gather(task, return_exceptions=True)`
+8. Assert `received_payloads == [env["channel"]["channel_id"]]`
+
+- **Files**:
+  - `tests/integration/test_message_refresh_queue.py` — add `TestMessageRefreshListenerIntegration`
+- **Success**:
+  - `spawn_cb` fires with the correct `channel_id`; `received_event` set within 2 s
+  - Guards `MessageRefreshListener._on_notify` parsing and asyncpg `add_listener` wiring
+- **Research References**:
+  - #file:../research/20260319-01-discord-embed-rate-limit-research.md (Lines 231-242) — addendum test 2 description
+- **Dependencies**:
+  - Task 6.1 complete
+  - Phase 3 complete (`MessageRefreshListener` fully implemented)
+  - `bot_db_url` and `admin_db_url` fixtures in `tests/conftest.py` (Lines 200-215)
+
+### Task 6.3: Integration Test — Startup Recovery Query Returns Pending Channels
+
+Add `TestMessageRefreshQueueRecovery` to
+`tests/integration/test_message_refresh_queue.py`. This is a pure sync SQL test;
+no async listener or NOTIFY receipt is needed.
+
+Test steps:
+
+1. Delete all existing `message_refresh_queue` rows via `admin_db_sync` to start
+   with a known-empty table
+2. Create a game environment via `test_game_environment()`; insert two rows with
+   `game_id=env["game"]["id"]` but two distinct `channel_id` strings (e.g.,
+   `"111111111111111111"` and `"222222222222222222"`); commit
+3. Execute the exact recovery query used in `services/bot/bot.py`:
+   `SELECT DISTINCT channel_id FROM message_refresh_queue`
+4. Assert both expected `channel_id` strings appear in the result set
+
+Use the identical SQL text as the `on_ready` recovery query so that any future
+change to that query will also break this test.
+
+- **Files**:
+  - `tests/integration/test_message_refresh_queue.py` — add `TestMessageRefreshQueueRecovery`
+- **Success**:
+  - Both distinct `channel_id` values returned by the recovery SELECT
+  - Guards the `on_ready` recovery query against schema or logic regressions
+- **Research References**:
+  - #file:../research/20260319-01-discord-embed-rate-limit-research.md (Lines 243-256) — addendum test 3 description
+- **Dependencies**:
+  - Task 6.1 complete
+  - Phase 5 complete (startup recovery query implemented in `services/bot/bot.py`)
+
+---
+
 ## Dependencies
 
 - `asyncpg~=0.30.0` (already in `pyproject.toml`)
