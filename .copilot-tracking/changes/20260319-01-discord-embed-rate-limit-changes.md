@@ -25,3 +25,12 @@
 - `shared/cache/keys.py` `CacheKeys.message_update_throttle()` — obsolete game-keyed throttle cache key function.
 - `tests/unit/shared/cache/test_ttl.py` `test_message_update_throttle_ttl` — test for removed constant.
 - `tests/unit/shared/cache/test_keys.py` `test_message_update_throttle_key` — test for removed key function.
+
+---
+
+## Phase 3: asyncpg LISTEN Listener — `MessageRefreshListener`
+
+### Added
+
+- `services/bot/message_refresh_listener.py` — New `MessageRefreshListener` class: `__init__` stores `bot_db_url` and `spawn_worker_cb`; `start()` opens a dedicated asyncpg connection (stripping the `+asyncpg` SQLAlchemy prefix), registers `_on_notify` on the `message_refresh_queue_changed` channel, and blocks until cancelled or an error occurs (logs exception and closes connection cleanly); `_on_notify` prunes completed tasks from `_channel_workers` then calls `spawn_worker_cb(discord_channel_id)` at most once per active channel.
+- `tests/unit/services/bot/test_message_refresh_listener.py` — 9 unit tests covering: `start()` calls `asyncpg.connect` with a plain `postgresql://` URL; `start()` registers the listener with the correct channel name and callback; `_on_notify` spawns a worker for a new channel; repeated notify for the same running channel does not spawn again; task stored in `_channel_workers`; connection error on `start()` is logged and returns cleanly; empty payload is ignored without raising; completed worker is removed and a new one spawned; `_channel_workers` dict is pruned and does not grow unbounded.

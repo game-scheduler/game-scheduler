@@ -67,18 +67,18 @@ accounts for Discord's per-channel 5-edits-per-5s bucket.
 - [x] Task 2.4: Remove obsolete cache constants; add edge case tests (REFACTOR)
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 126-149)
 
-### [ ] Phase 3: asyncpg LISTEN Listener — `MessageRefreshListener` (TDD)
+### [x] Phase 3: asyncpg LISTEN Listener — `MessageRefreshListener` (TDD)
 
-- [ ] Task 3.1: Stub `MessageRefreshListener` class (NotImplementedError)
+- [x] Task 3.1: Stub `MessageRefreshListener` class (NotImplementedError)
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 150-168)
 
-- [ ] Task 3.2: Write xfail unit tests for `MessageRefreshListener` (RED)
+- [x] Task 3.2: Write xfail unit tests for `MessageRefreshListener` (RED)
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 169-186)
 
-- [ ] Task 3.3: Implement full `MessageRefreshListener`; remove xfail (GREEN)
+- [x] Task 3.3: Implement full `MessageRefreshListener`; remove xfail (GREEN)
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 187-204)
 
-- [ ] Task 3.4: Refactor and add edge case tests for `MessageRefreshListener` (REFACTOR)
+- [x] Task 3.4: Refactor and add edge case tests for `MessageRefreshListener` (REFACTOR)
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 205-223)
 
 ### [ ] Phase 4: Per-Channel Worker — `_channel_worker` (TDD)
