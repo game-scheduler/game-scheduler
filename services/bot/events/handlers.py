@@ -28,7 +28,8 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 import discord
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.bot.dependencies.discord_client import get_discord_client
@@ -280,7 +281,18 @@ class EventHandlers:
                     return
 
                 channel_id = str(game.channel.channel_id)
-                db.add(MessageRefreshQueue(game_id=game_id, channel_id=channel_id))
+                stmt = (
+                    pg_insert(MessageRefreshQueue)
+                    .values(
+                        game_id=game_id,
+                        channel_id=channel_id,
+                    )
+                    .on_conflict_do_update(
+                        index_elements=["channel_id", "game_id"],
+                        set_={"enqueued_at": func.now()},
+                    )
+                )
+                await db.execute(stmt)
                 await db.commit()
                 logger.info("Queued message refresh: game=%s, channel=%s", game_id, channel_id)
 

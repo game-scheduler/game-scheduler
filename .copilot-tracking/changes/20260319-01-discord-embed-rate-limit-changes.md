@@ -55,3 +55,27 @@
 - `services/bot/events/handlers.py` — Replaced `_handle_game_updated` body: removed Redis TTL check and `asyncio.create_task(_delayed_refresh(...))` path; replaced with `get_db_session` context that fetches the game, inserts a `MessageRefreshQueue` row, and commits. Deleted `_delayed_refresh`, `_set_message_refresh_throttle`, `_pending_refreshes`, and `_background_tasks` from the class. Simplified `stop_consuming` to remove `_pending_refreshes.clear()` and `_background_tasks` cancellation loop. Removed `_set_message_refresh_throttle` call from `_refresh_game_message`.
 - `services/bot/bot.py` — Added `import asyncio`, `from sqlalchemy import distinct, select`, and `from shared.models.message_refresh_queue import MessageRefreshQueue`; added `_recover_pending_workers()` helper that queries `SELECT DISTINCT channel_id FROM message_refresh_queue` and spawns a `_channel_worker` task for each channel with no active worker; wired `_recover_pending_workers()` into `on_ready` and `on_resumed`.
 - `tests/unit/bot/events/test_handlers_game_events.py` — Updated module docstring to remove `_delayed_refresh` reference; replaced `test_handle_game_updated_redis_failure_fails_open` (tested removed Redis fail-open path) with `test_handle_game_updated_db_failure_logs_exception` (tests that a DB exception is caught and logged without re-raising); removed `test_delayed_refresh_refreshes_and_clears_pending` (tested deleted method).
+
+---
+
+## Phase 6: Integration Tests
+
+### Added
+
+- `tests/integration/test_message_refresh_queue.py` — Three integration tests: `TestMessageRefreshQueueTrigger.test_insert_notifies_correct_channel_id` (inserts via raw SQL and asserts the asyncpg LISTEN connection receives the correct `channel_id` payload); `TestMessageRefreshListenerIntegration.test_listener_receives_channel_id` (instantiates `MessageRefreshListener` against `BOT_DATABASE_URL` and asserts `spawn_cb` fires with the correct `channel_id` after an INSERT); `TestMessageRefreshQueueRecovery.test_recovery_query_returns_pending_channels` (inserts two distinct `channel_id` rows and asserts `SELECT DISTINCT channel_id` returns both).
+
+---
+
+## Phase 7: UPSERT Redesign for `message_refresh_queue`
+
+### Added
+
+- `alembic/versions/c3d4e5f6a7b8_upsert_message_refresh_queue.py` — Migration that drops the `id` UUID primary key column, adds a composite `PRIMARY KEY (channel_id, game_id)`, and recreates the trigger as `AFTER INSERT OR UPDATE` so the upsert write path always fires `pg_notify`; downgrade re-adds `id` as a generated nullable column (populated with `gen_random_uuid()`), restores the single-column PK, and restores the `AFTER INSERT`-only trigger.
+
+### Modified
+
+- `shared/models/message_refresh_queue.py` — Removed `id` column and `generate_uuid` import; set `primary_key=True` on both `game_id` and `channel_id` to define the composite PK; updated docstring to describe the upsert deduplication model.
+- `tests/unit/shared/models/test_message_refresh_queue.py` — Removed `test_id_is_settable` and `id` from `test_instantiate_with_required_fields` and `test_column_types`; added `test_primary_key_is_composite` asserting `PRIMARY KEY (channel_id, game_id)` with no surrogate `id`.
+- `tests/unit/services/bot/events/test_handlers.py` — Updated `test_handle_game_updated_inserts_queue_row` to assert `db.execute` is awaited once and no `MessageRefreshQueue` is added via `db.add` (upsert path, not bare INSERT).
+- `services/bot/events/handlers.py` — Added `func` to the `sqlalchemy` import and `from sqlalchemy.dialects.postgresql import insert as pg_insert`; replaced `db.add(MessageRefreshQueue(...))` with an `pg_insert(MessageRefreshQueue).values(...).on_conflict_do_update(index_elements=["channel_id", "game_id"], set_={"enqueued_at": func.now()})` upsert executed via `db.execute(stmt)`.
+- `tests/integration/test_message_refresh_queue.py` — Updated all three integration tests to use the upsert SQL form (`INSERT ... ON CONFLICT (channel_id, game_id) DO UPDATE SET enqueued_at = NOW()`) instead of bare `INSERT`; updated class and module docstrings to reference the upsert.

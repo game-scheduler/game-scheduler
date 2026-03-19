@@ -447,6 +447,53 @@ class TestGameSchedulerBot:
         with patch("services.bot.bot.get_db_session", return_value=mock_db_ctx):
             await bot._recover_pending_workers()  # must not raise
 
+    def test_spawn_channel_worker_creates_new_task(self, bot_config: BotConfig) -> None:
+        """_spawn_channel_worker creates a task when no worker exists for the channel."""
+        bot = GameSchedulerBot(bot_config)
+        mock_handlers = MagicMock()
+        mock_handlers._channel_workers = {}
+        bot.event_handlers = mock_handlers
+
+        mock_task = MagicMock()
+        with patch("services.bot.bot.asyncio.create_task", return_value=mock_task) as mock_ct:
+            result = bot._spawn_channel_worker("channel-1")
+
+        mock_ct.assert_called_once()
+        assert result is mock_task
+        assert mock_handlers._channel_workers["channel-1"] is mock_task
+
+    def test_spawn_channel_worker_reuses_active_task(self, bot_config: BotConfig) -> None:
+        """_spawn_channel_worker returns the existing task when it is still running."""
+        bot = GameSchedulerBot(bot_config)
+        active_task = MagicMock()
+        active_task.done.return_value = False
+        mock_handlers = MagicMock()
+        mock_handlers._channel_workers = {"channel-1": active_task}
+        bot.event_handlers = mock_handlers
+
+        with patch("services.bot.bot.asyncio.create_task") as mock_ct:
+            result = bot._spawn_channel_worker("channel-1")
+
+        mock_ct.assert_not_called()
+        assert result is active_task
+
+    def test_spawn_channel_worker_replaces_finished_task(self, bot_config: BotConfig) -> None:
+        """_spawn_channel_worker creates a new task when the existing one is done."""
+        bot = GameSchedulerBot(bot_config)
+        done_task = MagicMock()
+        done_task.done.return_value = True
+        mock_handlers = MagicMock()
+        mock_handlers._channel_workers = {"channel-1": done_task}
+        bot.event_handlers = mock_handlers
+
+        new_task = MagicMock()
+        with patch("services.bot.bot.asyncio.create_task", return_value=new_task) as mock_ct:
+            result = bot._spawn_channel_worker("channel-1")
+
+        mock_ct.assert_called_once()
+        assert result is new_task
+        assert mock_handlers._channel_workers["channel-1"] is new_task
+
 
 class TestCreateBot:
     """Test suite for create_bot function."""

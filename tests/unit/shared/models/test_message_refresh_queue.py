@@ -24,7 +24,7 @@
 from sqlalchemy import inspect
 
 from shared.models import MessageRefreshQueue
-from shared.models.base import generate_uuid, utc_now
+from shared.models.base import utc_now
 
 
 class TestMessageRefreshQueueModel:
@@ -33,7 +33,6 @@ class TestMessageRefreshQueueModel:
     def test_instantiate_with_required_fields(self):
         """Can instantiate with game_id and channel_id."""
         entry = MessageRefreshQueue(
-            id=generate_uuid(),
             game_id="game-abc",
             channel_id="123456789012345678",
         )
@@ -41,22 +40,10 @@ class TestMessageRefreshQueueModel:
         assert entry.game_id == "game-abc"
         assert entry.channel_id == "123456789012345678"
 
-    def test_id_is_settable(self):
-        """Primary key can be set explicitly via generate_uuid."""
-        uid = generate_uuid()
-        entry = MessageRefreshQueue(
-            id=uid,
-            game_id="game-abc",
-            channel_id="123456789012345678",
-        )
-
-        assert entry.id == uid
-
     def test_enqueued_at_can_be_set(self):
         """enqueued_at can be set explicitly."""
         now = utc_now()
         entry = MessageRefreshQueue(
-            id=generate_uuid(),
             game_id="game-abc",
             channel_id="123456789012345678",
             enqueued_at=now,
@@ -69,14 +56,22 @@ class TestMessageRefreshQueueModel:
         assert MessageRefreshQueue.__tablename__ == "message_refresh_queue"
 
     def test_column_types(self):
-        """Column types match the migration schema."""
+        """Column types match the composite-PK migration schema."""
         mapper = inspect(MessageRefreshQueue)
         columns = {c.key: c for c in mapper.mapper.column_attrs}
 
-        assert "id" in columns
+        assert "id" not in columns
         assert "game_id" in columns
         assert "channel_id" in columns
         assert "enqueued_at" in columns
+
+    def test_primary_key_is_composite(self):
+        """Primary key consists of channel_id and game_id (no surrogate id)."""
+        mapper = inspect(MessageRefreshQueue)
+        table = mapper.mapper.local_table
+        pk_column_names = {col.name for col in table.primary_key.columns}
+
+        assert pk_column_names == {"channel_id", "game_id"}
 
     def test_game_id_fk_target(self):
         """game_id foreign key references game_sessions.id with CASCADE delete."""

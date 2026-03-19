@@ -26,7 +26,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, generate_uuid
+from .base import Base
 
 
 class MessageRefreshQueue(Base):
@@ -34,8 +34,9 @@ class MessageRefreshQueue(Base):
     Durable queue for Discord embed refresh requests.
 
     Each row represents a pending request to update the Discord embed for the
-    game identified by `game_id`. The worker deduplicates by draining all rows
-    for a given `channel_id` in a single Discord API call.
+    game identified by `game_id`. At most one row exists per (channel_id, game_id)
+    pair; the upsert write path refreshes `enqueued_at` on conflict, keeping the
+    table bounded by the number of active games.
 
     Rows are deleted by the per-channel worker after a successful Discord edit.
     ON DELETE CASCADE ensures rows are removed when the parent game is deleted.
@@ -43,18 +44,13 @@ class MessageRefreshQueue(Base):
 
     __tablename__ = "message_refresh_queue"
 
-    id: Mapped[str] = mapped_column(
-        String(36),
-        primary_key=True,
-        default=generate_uuid,
-        server_default=func.cast(func.gen_random_uuid(), String),
-    )
     game_id: Mapped[str] = mapped_column(
         String(36),
         ForeignKey("game_sessions.id", ondelete="CASCADE"),
         nullable=False,
+        primary_key=True,
     )
-    channel_id: Mapped[str] = mapped_column(String(20), nullable=False)
+    channel_id: Mapped[str] = mapped_column(String(20), nullable=False, primary_key=True)
     enqueued_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

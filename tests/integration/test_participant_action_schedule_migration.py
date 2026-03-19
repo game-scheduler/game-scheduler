@@ -155,6 +155,6 @@ def test_participant_action_schedule_downgrade_removes_table(db_session):
     result = db_session.execute(text("SELECT version_num FROM alembic_version")).fetchone()
 
     assert result is not None, "No alembic version found"
-    assert result[0] in {"f3a2c1d8e9b7", "a7c1e3b4f9c2"}, (
+    assert result[0] in {"f3a2c1d8e9b7", "a7c1e3b4f9c2", "b1d2e3f4a5c6", "c3d4e5f6a7b8"}, (
         f"Expected migration f3a2c1d8e9b7 or later to be applied, got: {result[0]}"
     )

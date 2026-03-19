@@ -118,21 +118,21 @@ accounts for Discord's per-channel 5-edits-per-5s bucket.
 - [x] Task 6.3: Integration test — startup recovery query returns all pending channels
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 447-475)
 
-### [ ] Phase 7: UPSERT Redesign for `message_refresh_queue`
+### [x] Phase 7: UPSERT Redesign for `message_refresh_queue`
 
-- [ ] Task 7.1: Update write-path unit tests to expect upsert SQL (RED)
+- [x] Task 7.1: Update write-path unit tests to expect upsert SQL (RED)
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 502-520)
 
-- [ ] Task 7.2: Add Alembic migration — composite PK and `AFTER INSERT OR UPDATE` trigger
+- [x] Task 7.2: Add Alembic migration — composite PK and `AFTER INSERT OR UPDATE` trigger
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 522-550)
 
-- [ ] Task 7.3: Update `MessageRefreshQueue` model to composite PK (remove `id`)
+- [x] Task 7.3: Update `MessageRefreshQueue` model to composite PK (remove `id`)
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 552-569)
 
-- [ ] Task 7.4: Replace bare `INSERT` with upsert in write path (GREEN)
+- [x] Task 7.4: Replace bare `INSERT` with upsert in write path (GREEN)
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 571-591)
 
-- [ ] Task 7.5: Update integration test to use upsert SQL
+- [x] Task 7.5: Update integration test to use upsert SQL
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 593-612)
 
 ## Dependencies

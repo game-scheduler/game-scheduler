@@ -22,7 +22,7 @@
 """Integration tests for message_refresh_queue table, trigger, and listener.
 
 Covers:
-- Trigger fires pg_notify with the correct channel_id on INSERT (Task 6.1)
+- Trigger fires pg_notify with the correct channel_id on upsert (Task 6.1 / Task 7.5)
 - MessageRefreshListener receives channel_id via asyncpg LISTEN (Task 6.2)
 - Startup recovery query returns all distinct pending channel_ids (Task 6.3)
 """
@@ -40,7 +40,7 @@ pytestmark = pytest.mark.integration
 
 
 class TestMessageRefreshQueueTrigger:
-    """INSERT on message_refresh_queue fires pg_notify with the correct channel_id."""
+    """Upsert on message_refresh_queue fires pg_notify with the correct channel_id."""
 
     def test_insert_notifies_correct_channel_id(
         self,
@@ -59,9 +59,13 @@ class TestMessageRefreshQueueTrigger:
             admin_db_sync.execute(
                 text(
                     "INSERT INTO message_refresh_queue (game_id, channel_id) "
-                    "VALUES (:game_id, :channel_id)"
+                    "VALUES (:game_id, :channel_id) "
+                    "ON CONFLICT (channel_id, game_id) DO UPDATE SET enqueued_at = NOW()"
                 ),
-                {"game_id": env["game"]["id"], "channel_id": env["channel"]["channel_id"]},
+                {
+                    "game_id": env["game"]["id"],
+                    "channel_id": env["channel"]["channel_id"],
+                },
             )
             admin_db_sync.commit()
 
@@ -107,7 +111,8 @@ class TestMessageRefreshListenerIntegration:
         conn = await asyncpg.connect(raw_url)
         try:
             await conn.execute(
-                "INSERT INTO message_refresh_queue (game_id, channel_id) VALUES ($1, $2)",
+                "INSERT INTO message_refresh_queue (game_id, channel_id) VALUES ($1, $2)"
+                " ON CONFLICT (channel_id, game_id) DO UPDATE SET enqueued_at = NOW()",
                 env["game"]["id"],
                 env["channel"]["channel_id"],
             )
@@ -142,7 +147,8 @@ class TestMessageRefreshQueueRecovery:
             admin_db_sync.execute(
                 text(
                     "INSERT INTO message_refresh_queue (game_id, channel_id) "
-                    "VALUES (:game_id, :channel_id)"
+                    "VALUES (:game_id, :channel_id) "
+                    "ON CONFLICT (channel_id, game_id) DO UPDATE SET enqueued_at = NOW()"
                 ),
                 {"game_id": env["game"]["id"], "channel_id": channel_id},
             )

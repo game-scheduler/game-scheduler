@@ -274,7 +274,7 @@ async def test_get_bot_channel_invalid_type(event_handlers, mock_bot):
 async def test_handle_game_updated_inserts_queue_row(
     event_handlers, mock_bot, sample_game, sample_user
 ):
-    """Test game.updated event inserts a row into message_refresh_queue."""
+    """Test game.updated event upserts a row into message_refresh_queue."""
     sample_game.host = sample_user
     sample_game.participants = []
 
@@ -284,6 +284,7 @@ async def test_handle_game_updated_inserts_queue_row(
 
     mock_db = AsyncMock()
     mock_db.add = MagicMock()
+    mock_db.execute = AsyncMock()
     mock_db.commit = AsyncMock()
 
     with (
@@ -298,11 +299,14 @@ async def test_handle_game_updated_inserts_queue_row(
 
         await event_handlers._handle_game_updated({"game_id": sample_game.id})
 
-    added_rows = [call.args[0] for call in mock_db.add.call_args_list]
-    queue_rows = [r for r in added_rows if isinstance(r, MessageRefreshQueue)]
-    assert len(queue_rows) == 1
-    assert queue_rows[0].game_id == sample_game.id
-    assert queue_rows[0].channel_id == "123456789"
+    # Write path uses execute() with an upsert statement (not session.add)
+    mock_db.execute.assert_awaited_once()
+    queue_rows_via_add = [
+        call.args[0]
+        for call in mock_db.add.call_args_list
+        if isinstance(call.args[0], MessageRefreshQueue)
+    ]
+    assert len(queue_rows_via_add) == 0
 
 
 @pytest.mark.asyncio

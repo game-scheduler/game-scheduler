@@ -34,6 +34,7 @@ from sqlalchemy import distinct, select
 from services.bot.config import BotConfig
 from services.bot.dependencies.discord_client import get_discord_client
 from services.bot.guild_sync import sync_all_bot_guilds
+from services.bot.message_refresh_listener import MessageRefreshListener
 from shared.database import get_db_session
 from shared.models.message_refresh_queue import MessageRefreshQueue
 
@@ -155,6 +156,16 @@ class GameSchedulerBot(commands.Bot):
 
             await self._recover_pending_workers()
 
+            if not hasattr(self, "_refresh_listener_started"):
+                self._refresh_listener_started = True
+                self._refresh_listener_task = asyncio.create_task(
+                    MessageRefreshListener(
+                        self.config.database_url,
+                        self._spawn_channel_worker,
+                    ).start()
+                )
+                logger.info("Started message refresh listener task")
+
     async def on_disconnect(self) -> None:
         """Handle Gateway disconnection."""
         logger.warning("Bot disconnected from Gateway")
@@ -187,6 +198,16 @@ class GameSchedulerBot(commands.Bot):
                     logger.info("Recovery: spawned worker for channel %s", channel_id)
         except Exception as e:
             logger.exception("Failed to recover pending channel workers: %s", e)
+
+    def _spawn_channel_worker(self, channel_id: str) -> "asyncio.Task[Any]":
+        """Spawn a channel worker task, reusing any existing active task."""
+        workers = self.event_handlers._channel_workers
+        if channel_id not in workers or workers[channel_id].done():
+            task = asyncio.create_task(self.event_handlers._channel_worker(channel_id))
+            workers[channel_id] = task
+            logger.info("Listener: spawned worker for channel %s", channel_id)
+            return task
+        return workers[channel_id]
 
     async def on_interaction(self, interaction: discord.Interaction) -> None:
         """
