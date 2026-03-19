@@ -38,8 +38,6 @@ from services.bot.handlers.participant_drop import handle_participant_drop_due
 from services.bot.utils.discord_format import get_member_display_info
 from services.bot.views.clone_confirmation_view import CloneConfirmationView
 from shared.cache.client import get_redis_client
-from shared.cache.keys import CacheKeys
-from shared.cache.ttl import CacheTTL
 from shared.database import get_db_session
 from shared.message_formats import DMFormats
 from shared.messaging.consumer import EventConsumer
@@ -281,7 +279,7 @@ class EventHandlers:
 
         try:
             redis = await get_redis_client()
-            cache_key = CacheKeys.message_update_throttle(game_id)
+            cache_key = f"message_update:{game_id}"
 
             # Check if we can update immediately
             if not await redis.exists(cache_key):
@@ -300,9 +298,7 @@ class EventHandlers:
 
             # Schedule refresh after TTL expires
             self._pending_refreshes.add(game_id)
-            task = asyncio.create_task(
-                self._delayed_refresh(game_id, CacheTTL.MESSAGE_UPDATE_THROTTLE)
-            )
+            task = asyncio.create_task(self._delayed_refresh(game_id, 2))
             self._background_tasks.add(task)
             task.add_done_callback(self._background_tasks.discard)
 
@@ -450,8 +446,8 @@ class EventHandlers:
             game_id: Game session UUID
         """
         redis = await get_redis_client()
-        cache_key = CacheKeys.message_update_throttle(game_id)
-        await redis.set(cache_key, "1", ttl=CacheTTL.MESSAGE_UPDATE_THROTTLE)
+        cache_key = f"message_update:{game_id}"
+        await redis.set(cache_key, "1", ttl=2)
 
     async def _refresh_game_message(self, game_id: str) -> None:
         """

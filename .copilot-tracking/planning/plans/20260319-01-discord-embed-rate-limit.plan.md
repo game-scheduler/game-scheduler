@@ -53,18 +53,18 @@ accounts for Discord's per-channel 5-edits-per-5s bucket.
 - [x] Task 1.2: `MessageRefreshQueue` SQLAlchemy ORM model with unit tests
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 42-67)
 
-### [ ] Phase 2: Redis Rate Limit Tracking — `claim_channel_rate_limit_slot` (TDD)
+### [x] Phase 2: Redis Rate Limit Tracking — `claim_channel_rate_limit_slot` (TDD)
 
-- [ ] Task 2.1: Stub `claim_channel_rate_limit_slot` on `RedisClient` (NotImplementedError)
+- [x] Task 2.1: Stub `claim_channel_rate_limit_slot` on `RedisClient` (NotImplementedError)
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 68-83)
 
-- [ ] Task 2.2: Write xfail unit tests for `claim_channel_rate_limit_slot` (RED)
+- [x] Task 2.2: Write xfail unit tests for `claim_channel_rate_limit_slot` (RED)
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 84-102)
 
-- [ ] Task 2.3: Implement Lua script for `claim_channel_rate_limit_slot`; remove xfail (GREEN)
+- [x] Task 2.3: Implement Lua script for `claim_channel_rate_limit_slot`; remove xfail (GREEN)
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 103-125)
 
-- [ ] Task 2.4: Remove obsolete cache constants; add edge case tests (REFACTOR)
+- [x] Task 2.4: Remove obsolete cache constants; add edge case tests (REFACTOR)
   - Details: .copilot-tracking/planning/details/20260319-01-discord-embed-rate-limit-details.md (Lines 126-149)
 
 ### [ ] Phase 3: asyncpg LISTEN Listener — `MessageRefreshListener` (TDD)

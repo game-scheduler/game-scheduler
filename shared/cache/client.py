@@ -24,13 +24,66 @@
 import json
 import logging
 import os
-from typing import Any
+import time
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable
 
 import redis
 from redis.asyncio import Redis
 from redis.asyncio.connection import ConnectionPool
 
 logger = logging.getLogger(__name__)
+
+# Atomic Lua script for sliding-window rate limit tracking.
+#
+# Arguments: KEYS[1] = sorted-set key, ARGV[1] = current time in ms.
+# Spacing table (seconds before next edit is allowed, indexed by window count):
+#   n=0 → 0s, n=1 → 1s, n=2 → 1s, n=3 → 1.5s, n=4+ → 1.5s
+#
+# Returns the number of milliseconds the caller must sleep before editing
+# (0 = proceed now).  When returning 0, atomically records the timestamp
+# and resets the 5001ms expiry so the key disappears after 5s of inactivity.
+_CHANNEL_RATE_LIMIT_LUA = """
+local key     = KEYS[1]
+local now_ms  = tonumber(ARGV[1])
+local window  = 5000
+
+redis.call('zremrangebyscore', key, 0, now_ms - window)
+
+local n = redis.call('zcard', key)
+
+local spacing_ms
+if     n == 0 then spacing_ms = 0
+elseif n == 1 then spacing_ms = 1000
+elseif n == 2 then spacing_ms = 1000
+elseif n == 3 then spacing_ms = 1500
+else               spacing_ms = 1500
+end
+
+local wait_ms = 0
+
+if n > 0 then
+    local last_ts = tonumber(redis.call('zrange', key, -1, -1)[1])
+    local spacing_wait = last_ts + spacing_ms - now_ms
+    if spacing_wait > wait_ms then wait_ms = spacing_wait end
+end
+
+if n >= 5 then
+    local oldest_ts = tonumber(redis.call('zrange', key, 0, 0)[1])
+    local window_wait = oldest_ts + window - now_ms
+    if window_wait > wait_ms then wait_ms = window_wait end
+end
+
+if wait_ms <= 0 then
+    redis.call('zadd', key, now_ms, tostring(now_ms))
+    redis.call('pexpire', key, 5001)
+    return 0
+end
+
+return wait_ms
+"""
 
 
 class RedisClient:
@@ -249,6 +302,36 @@ class RedisClient:
         except Exception as e:
             logger.error("Redis TTL error for key %s: %s", key, e)
             return -2
+
+    async def claim_channel_rate_limit_slot(self, channel_id: str) -> int:
+        """
+        Claim a rate-limit slot for the given Discord channel.
+
+        Uses a Redis sorted set (`channel_rate_limit:{channel_id}`) as a
+        sliding 5-second window of recent edit timestamps.  Returns the number
+        of milliseconds the caller should sleep before performing the Discord
+        edit (0 = proceed immediately).  When returning 0 the timestamp is
+        recorded atomically so subsequent callers see the updated window.
+
+        Args:
+            channel_id: Discord channel snowflake string.
+
+        Returns:
+            Milliseconds to wait before the edit is safe to send (0 = now).
+        """
+        if not self._client:
+            await self.connect()
+
+        key = f"channel_rate_limit:{channel_id}"
+        now_ms = int(time.time() * 1000)
+
+        try:
+            raw = self._client.eval(_CHANNEL_RATE_LIMIT_LUA, 1, key, str(now_ms))
+            result = await cast("Awaitable[Any]", raw)
+            return int(result)
+        except Exception as e:
+            logger.error("Redis EVAL error for channel %s: %s", channel_id, e)
+            return 0
 
 
 _redis_client: RedisClient | None = None

@@ -66,11 +66,6 @@ class CacheKeys:
         return f"oauth_state:{state}"
 
     @staticmethod
-    def message_update_throttle(game_id: str) -> str:
-        """Return cache key for message update throttling."""
-        return f"message_update:{game_id}"
-
-    @staticmethod
     def user_guilds(user_id: str) -> str:
         """Return cache key for Discord user's guild list."""
         return f"user_guilds:{user_id}"
