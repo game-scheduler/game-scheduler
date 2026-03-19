@@ -31,6 +31,7 @@ from sqlalchemy.orm import selectinload
 from services.bot.events.publisher import BotEventPublisher
 from shared.database import get_bypass_db_session
 from shared.message_formats import DMFormats
+from shared.models.notification_schedule import NotificationSchedule
 from shared.models.participant import GameParticipant
 
 logger = logging.getLogger(__name__)
@@ -76,12 +77,20 @@ async def handle_participant_drop_due(
         guild_id = participant.game.guild_id
         discord_id = participant.user.discord_id if participant.user else None
 
+        notif_result = await db.execute(
+            select(NotificationSchedule).where(
+                NotificationSchedule.participant_id == str(participant_id),
+                NotificationSchedule.sent == False,  # noqa: E712
+            )
+        )
+        welcome_not_sent = notif_result.scalar_one_or_none() is not None
+
         await db.delete(participant)
         await db.commit()
 
     logger.info("Dropped participant %s from game %s", participant_id, game_id)
 
-    if discord_id:
+    if discord_id and not welcome_not_sent:
         try:
             user = await bot.fetch_user(int(discord_id))
             await user.send(DMFormats.removal(game_title))

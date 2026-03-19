@@ -38,6 +38,7 @@ from shared.message_formats import DMFormats
 from shared.messaging.events import EventType
 from shared.models import GameStatus
 from shared.models.game import GameSession
+from shared.models.notification_schedule import NotificationSchedule
 from shared.models.participant import GameParticipant
 from shared.models.user import User
 
@@ -97,15 +98,22 @@ def drop_event_data(game_id, participant_db_id):
     return {"game_id": game_id, "participant_id": participant_db_id}
 
 
-def _make_mock_db(mock_participant):
-    """Build an AsyncMock DB session that returns the given participant."""
+def _make_mock_db(mock_participant, notification_schedule: NotificationSchedule | None = None):
+    """Build an AsyncMock DB session that returns the given participant.
+
+    notification_schedule: unsent NotificationSchedule to simulate (None = no pending notification).
+    """
     mock_db = AsyncMock()
     mock_db.delete = AsyncMock()
     mock_db.commit = AsyncMock()
 
-    result = MagicMock()
-    result.scalar_one_or_none = MagicMock(return_value=mock_participant)
-    mock_db.execute = AsyncMock(return_value=result)
+    participant_result = MagicMock()
+    participant_result.scalar_one_or_none = MagicMock(return_value=mock_participant)
+
+    notif_result = MagicMock()
+    notif_result.scalar_one_or_none = MagicMock(return_value=notification_schedule)
+
+    mock_db.execute = AsyncMock(side_effect=[participant_result, notif_result])
     return mock_db
 
 
@@ -207,6 +215,37 @@ async def test_handler_drops_participant_from_cancelled_game(
 
     mock_db.delete.assert_called_once_with(participant)
     mock_db.commit.assert_called_once()
+    mock_publisher.publish_game_updated.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_handler_suppresses_removal_dm_when_welcome_not_sent(
+    mock_game, mock_participant, mock_bot, mock_publisher, drop_event_data
+):
+    """No removal DM when an unsent join/clone notification exists for the participant."""
+    unsent_schedule = MagicMock(spec=NotificationSchedule)
+    unsent_schedule.sent = False
+    mock_db = _make_mock_db(mock_participant, notification_schedule=unsent_schedule)
+
+    with _patch_db(mock_db):
+        await handle_participant_drop_due(drop_event_data, mock_bot, mock_publisher)
+
+    mock_db.delete.assert_called_once_with(mock_participant)
+    mock_bot.fetch_user.assert_not_called()
+    mock_publisher.publish_game_updated.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_handler_sends_removal_dm_when_welcome_already_sent(
+    mock_game, mock_participant, mock_bot, mock_publisher, drop_event_data
+):
+    """Removal DM is sent when the welcome notification has already been delivered (sent=True)."""
+    mock_db = _make_mock_db(mock_participant, notification_schedule=None)
+
+    with _patch_db(mock_db):
+        await handle_participant_drop_due(drop_event_data, mock_bot, mock_publisher)
+
+    mock_bot.fetch_user.assert_called_once_with(int(PARTICIPANT_DISCORD_ID))
     mock_publisher.publish_game_updated.assert_called_once()
 
 

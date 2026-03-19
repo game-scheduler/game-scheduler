@@ -37,6 +37,7 @@ from services.bot.handlers.utils import (
 )
 from shared.database import get_db_session
 from shared.models.game import GameSession
+from shared.models.notification_schedule import NotificationSchedule
 from shared.models.participant import GameParticipant
 from shared.models.user import User
 
@@ -78,6 +79,14 @@ async def handle_leave_game(
         participant_count = result["participant_count"]
         participant = result["participant"]
 
+        notif_result = await db.execute(
+            select(NotificationSchedule).where(
+                NotificationSchedule.participant_id == participant.id,
+                NotificationSchedule.sent == False,  # noqa: E712
+            )
+        )
+        join_not_sent = notif_result.scalar_one_or_none() is not None
+
         # Delete participant from database
         await db.delete(participant)
         await db.commit()
@@ -88,7 +97,8 @@ async def handle_leave_game(
             updated_fields={"participants": True},
         )
 
-    await send_success_message(interaction, f"❌ You've left **{game.title}**")
+    if not join_not_sent:
+        await send_success_message(interaction, f"❌ You've left **{game.title}**")
 
     logger.info(
         "User %s left game %s (%s remaining)",
