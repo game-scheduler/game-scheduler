@@ -80,6 +80,9 @@ describe('CreateGame', () => {
     allowed_host_role_ids: null,
     allowed_signup_methods: null,
     default_signup_method: null,
+    archive_channel_id: null,
+    archive_channel_name: null,
+    archive_delay_seconds: null,
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
   };

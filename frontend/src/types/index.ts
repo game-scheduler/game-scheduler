@@ -166,6 +166,9 @@ export interface GameTemplate {
   is_default: boolean;
   channel_id: string;
   channel_name: string;
+  archive_channel_id: string | null;
+  archive_channel_name: string | null;
+  archive_delay_seconds: number | null;
   notify_role_ids: string[] | null;
   allowed_player_role_ids: string[] | null;
   allowed_host_role_ids: string[] | null;
@@ -180,24 +183,10 @@ export interface GameTemplate {
   updated_at: string;
 }
 
-export interface TemplateListItem {
-  id: string;
-  name: string;
-  description: string | null;
-  is_default: boolean;
-  channel_id: string;
-  channel_name: string;
-  notify_role_ids: string[] | null;
-  allowed_player_role_ids: string[] | null;
-  allowed_host_role_ids: string[] | null;
-  max_players: number | null;
-  expected_duration_minutes: number | null;
-  reminder_minutes: number[] | null;
-  where: string | null;
-  signup_instructions: string | null;
-  allowed_signup_methods: string[] | null;
-  default_signup_method: string | null;
-}
+export type TemplateListItem = Omit<
+  GameTemplate,
+  'guild_id' | 'order' | 'created_at' | 'updated_at'
+>;
 
 export interface TemplateCreateRequest {
   guild_id: string;
@@ -206,6 +195,8 @@ export interface TemplateCreateRequest {
   order?: number;
   is_default?: boolean;
   channel_id: string;
+  archive_channel_id?: string | null;
+  archive_delay_seconds?: number | null;
   notify_role_ids?: string[] | null;
   allowed_player_role_ids?: string[] | null;
   allowed_host_role_ids?: string[] | null;

@@ -31,6 +31,16 @@ export const Time = {
   SECONDS_PER_MINUTE: 60,
 
   /**
+   * Number of seconds in one hour.
+   */
+  SECONDS_PER_HOUR: 3600,
+
+  /**
+   * Number of seconds in one day.
+   */
+  SECONDS_PER_DAY: 86400,
+
+  /**
    * Number of milliseconds in one second.
    */
   MILLISECONDS_PER_SECOND: 1000,

@@ -66,6 +66,9 @@ describe('TemplateForm', () => {
     channel_name: 'general',
     order: 1,
     is_default: false,
+    archive_channel_id: null,
+    archive_channel_name: null,
+    archive_delay_seconds: null,
     where: 'Online via Discord',
     signup_instructions: 'React to sign up',
     max_players: 6,
@@ -205,6 +208,9 @@ describe('TemplateForm', () => {
       allowed_host_role_ids: null,
       allowed_signup_methods: null,
       default_signup_method: null,
+      archive_channel_id: null,
+      archive_channel_name: null,
+      archive_delay_seconds: null,
     };
 
     render(
@@ -340,6 +346,9 @@ describe('TemplateForm - ReminderSelector Integration', () => {
       allowed_host_role_ids: null,
       allowed_signup_methods: ['BUTTON', 'EMOJI'],
       default_signup_method: 'BUTTON',
+      archive_channel_id: null,
+      archive_channel_name: null,
+      archive_delay_seconds: null,
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z',
     };
@@ -405,6 +414,9 @@ describe('TemplateForm - ReminderSelector Integration', () => {
       allowed_host_role_ids: null,
       allowed_signup_methods: ['BUTTON', 'EMOJI'],
       default_signup_method: 'BUTTON',
+      archive_channel_id: null,
+      archive_channel_name: null,
+      archive_delay_seconds: null,
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z',
     };
@@ -513,5 +525,160 @@ describe('TemplateForm - ReminderSelector Integration', () => {
         })
       );
     });
+  });
+});
+
+describe('TemplateForm - Archive Fields', () => {
+  const mockOnClose = vi.fn();
+  const mockOnSubmit = vi.fn();
+
+  const mockChannels: Channel[] = [
+    {
+      id: 'channel-1',
+      guild_id: 'guild-1',
+      channel_id: '123456',
+      channel_name: 'general',
+      is_active: true,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    },
+    {
+      id: 'channel-archive',
+      guild_id: 'guild-1',
+      channel_id: '789012',
+      channel_name: 'archive',
+      is_active: true,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    },
+  ];
+
+  const mockRoles: DiscordRole[] = [];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockOnSubmit.mockResolvedValue(undefined);
+  });
+
+  it('renders archive channel dropdown and delay fields', () => {
+    render(
+      <TemplateForm
+        open={true}
+        template={null}
+        guildId="guild-1"
+        channels={mockChannels}
+        roles={mockRoles}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    expect(screen.getAllByText('Archive Channel').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText(/^Days$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Hours$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Minutes$/i)).toBeInTheDocument();
+  });
+
+  it('includes null archive fields for new template when left empty', async () => {
+    const user = userEvent.setup();
+    render(
+      <TemplateForm
+        open={true}
+        template={null}
+        guildId="guild-1"
+        channels={mockChannels}
+        roles={mockRoles}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    await user.type(screen.getByLabelText(/Template Name/i), 'Test');
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          archive_channel_id: null,
+          archive_delay_seconds: null,
+        })
+      );
+    });
+  });
+
+  it('converts days/hours/minutes to seconds in submission', async () => {
+    const user = userEvent.setup();
+    render(
+      <TemplateForm
+        open={true}
+        template={null}
+        guildId="guild-1"
+        channels={mockChannels}
+        roles={mockRoles}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    await user.type(screen.getByLabelText(/Template Name/i), 'Test');
+    await user.type(screen.getByLabelText(/^Days$/i), '1');
+    await user.type(screen.getByLabelText(/^Hours$/i), '2');
+    await user.type(screen.getByLabelText(/^Minutes$/i), '30');
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      // 1 day + 2 hours + 30 minutes = 86400 + 7200 + 1800 = 95400 seconds
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          archive_delay_seconds: 95400,
+        })
+      );
+    });
+  });
+
+  it('populates archive fields from existing template', () => {
+    const templateWithArchive: GameTemplate = {
+      id: 'template-1',
+      guild_id: 'guild-1',
+      name: 'Test Template',
+      description: null,
+      channel_id: 'channel-1',
+      channel_name: 'general',
+      order: 1,
+      is_default: false,
+      where: null,
+      signup_instructions: null,
+      max_players: null,
+      expected_duration_minutes: null,
+      reminder_minutes: null,
+      notify_role_ids: null,
+      allowed_player_role_ids: null,
+      allowed_host_role_ids: null,
+      allowed_signup_methods: null,
+      default_signup_method: null,
+      archive_channel_id: 'channel-archive',
+      archive_channel_name: 'archive',
+      archive_delay_seconds: 90000,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    };
+
+    render(
+      <TemplateForm
+        open={true}
+        template={templateWithArchive}
+        guildId="guild-1"
+        channels={mockChannels}
+        roles={mockRoles}
+        onClose={mockOnClose}
+        onSubmit={mockOnSubmit}
+      />
+    );
+
+    // 90000 seconds = 1 day + 1 hour (86400 + 3600)
+    expect((screen.getByLabelText(/^Days$/i) as HTMLInputElement).value).toBe('1');
+    expect((screen.getByLabelText(/^Hours$/i) as HTMLInputElement).value).toBe('1');
+    expect((screen.getByLabelText(/^Minutes$/i) as HTMLInputElement).value).toBe('');
   });
 });

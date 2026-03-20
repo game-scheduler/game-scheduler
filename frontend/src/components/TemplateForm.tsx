@@ -47,6 +47,7 @@ import {
   TemplateUpdateRequest,
 } from '../types';
 import { UI } from '../constants/ui';
+import { Time } from '../constants/time';
 import { validateMaxPlayers, validateCharacterLimit } from '../utils/fieldValidation';
 import { DurationSelector } from './DurationSelector';
 import { ReminderSelector } from './ReminderSelector';
@@ -78,6 +79,10 @@ export const TemplateForm: FC<TemplateFormProps> = ({
   const [reminderMinutesArray, setReminderMinutesArray] = useState<number[]>([]);
   const [where, setWhere] = useState('');
   const [signupInstructions, setSignupInstructions] = useState('');
+  const [archiveChannelId, setArchiveChannelId] = useState<string>('');
+  const [archiveDelayDays, setArchiveDelayDays] = useState<string>('');
+  const [archiveDelayHours, setArchiveDelayHours] = useState<string>('');
+  const [archiveDelayMinutes, setArchiveDelayMinutes] = useState<string>('');
   const [notifyRoleIds, setNotifyRoleIds] = useState<string[]>([]);
   const [allowedPlayerRoleIds, setAllowedPlayerRoleIds] = useState<string[]>([]);
   const [allowedHostRoleIds, setAllowedHostRoleIds] = useState<string[]>([]);
@@ -101,9 +106,25 @@ export const TemplateForm: FC<TemplateFormProps> = ({
       setReminderMinutesArray(template.reminder_minutes || []);
       setWhere(template.where || '');
       setSignupInstructions(template.signup_instructions || '');
+      setArchiveChannelId(template.archive_channel_id || '');
       setNotifyRoleIds(template.notify_role_ids || []);
       setAllowedPlayerRoleIds(template.allowed_player_role_ids || []);
       setAllowedHostRoleIds(template.allowed_host_role_ids || []);
+      if (template.archive_delay_seconds !== null && template.archive_delay_seconds !== undefined) {
+        const totalSeconds = template.archive_delay_seconds;
+        const days = Math.floor(totalSeconds / Time.SECONDS_PER_DAY);
+        const hours = Math.floor((totalSeconds % Time.SECONDS_PER_DAY) / Time.SECONDS_PER_HOUR);
+        const minutes = Math.floor(
+          (totalSeconds % Time.SECONDS_PER_HOUR) / Time.SECONDS_PER_MINUTE
+        );
+        setArchiveDelayDays(days > 0 ? String(days) : '');
+        setArchiveDelayHours(hours > 0 ? String(hours) : '');
+        setArchiveDelayMinutes(minutes > 0 ? String(minutes) : '');
+      } else {
+        setArchiveDelayDays('');
+        setArchiveDelayHours('');
+        setArchiveDelayMinutes('');
+      }
     } else {
       // Reset for new template
       setName('');
@@ -115,6 +136,10 @@ export const TemplateForm: FC<TemplateFormProps> = ({
       setReminderMinutesArray([]);
       setWhere('');
       setSignupInstructions('');
+      setArchiveChannelId('');
+      setArchiveDelayDays('');
+      setArchiveDelayHours('');
+      setArchiveDelayMinutes('');
       setNotifyRoleIds([]);
       setAllowedPlayerRoleIds([]);
       setAllowedHostRoleIds([]);
@@ -154,15 +179,36 @@ export const TemplateForm: FC<TemplateFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  const computeArchiveDelaySeconds = (
+    days: string,
+    hours: string,
+    minutes: string
+  ): number | null => {
+    const d = days ? parseInt(days, 10) : 0;
+    const h = hours ? parseInt(hours, 10) : 0;
+    const m = minutes ? parseInt(minutes, 10) : 0;
+    const total =
+      d * Time.SECONDS_PER_DAY + h * Time.SECONDS_PER_HOUR + m * Time.SECONDS_PER_MINUTE;
+    return total > 0 ? total : null;
+  };
+
   const handleSubmit = async () => {
     if (!validate()) return;
 
     setSubmitting(true);
     try {
+      const archiveDelaySecs = computeArchiveDelaySeconds(
+        archiveDelayDays,
+        archiveDelayHours,
+        archiveDelayMinutes
+      );
+
       const data: any = {
         name: name.trim(),
         description: description.trim() || null,
         channel_id: channelId,
+        archive_channel_id: archiveChannelId || null,
+        archive_delay_seconds: archiveDelaySecs,
         notify_role_ids: notifyRoleIds.length > 0 ? notifyRoleIds : null,
         allowed_player_role_ids: allowedPlayerRoleIds.length > 0 ? allowedPlayerRoleIds : null,
         allowed_host_role_ids: allowedHostRoleIds.length > 0 ? allowedHostRoleIds : null,
@@ -300,6 +346,62 @@ export const TemplateForm: FC<TemplateFormProps> = ({
             </Select>
             {errors.channelId && <FormHelperText>{errors.channelId}</FormHelperText>}
           </FormControl>
+
+          <FormControl fullWidth>
+            <InputLabel>Archive Channel</InputLabel>
+            <Select
+              value={archiveChannelId}
+              onChange={(e) => setArchiveChannelId(e.target.value)}
+              label="Archive Channel"
+            >
+              <MenuItem value="">
+                <em>None (delete announcement only)</em>
+              </MenuItem>
+              {channels.map((channel) => (
+                <MenuItem key={channel.id} value={channel.id}>
+                  {channel.channel_name}
+                </MenuItem>
+              ))}
+            </Select>
+            <FormHelperText>
+              Channel where completed announcements are reposted (leave empty to delete only)
+            </FormHelperText>
+          </FormControl>
+
+          <Box>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Archive Delay
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                label="Days"
+                type="number"
+                value={archiveDelayDays}
+                onChange={(e) => setArchiveDelayDays(e.target.value)}
+                inputProps={{ min: 0 }}
+                sx={{ flex: 1 }}
+              />
+              <TextField
+                label="Hours"
+                type="number"
+                value={archiveDelayHours}
+                onChange={(e) => setArchiveDelayHours(e.target.value)}
+                inputProps={{ min: 0, max: 23 }}
+                sx={{ flex: 1 }}
+              />
+              <TextField
+                label="Minutes"
+                type="number"
+                value={archiveDelayMinutes}
+                onChange={(e) => setArchiveDelayMinutes(e.target.value)}
+                inputProps={{ min: 0, max: 59 }}
+                sx={{ flex: 1 }}
+              />
+            </Box>
+            <Typography variant="caption" color="text.secondary">
+              How long after completion before archiving (leave empty to archive immediately)
+            </Typography>
+          </Box>
 
           <FormControl fullWidth>
             <InputLabel>Notify Roles</InputLabel>
