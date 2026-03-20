@@ -130,20 +130,18 @@ repos:
 
       # Python unit tests without coverage (randomized order)
       - id: pytest-random
-        name: Python unit tests (no coverage)
+        name: Python unit tests (random order, without coverage)
         entry: bash -c 'output=$(uv run pytest --timeout=30 -qq 2>&1); if [ $? -ne 0 ]; then echo "$output"; exit 1; fi'
         language: system
         pass_filenames: false
         files: ^(services|shared|tests)/.*\.py$
-        verbose: true
 
       - id: pytest-coverage
-        name: Python unit tests with coverage
+        name: Python unit tests (fixed order, with coverage)
         entry: bash -c 'output=$(uv run pytest --timeout=30 -p no:randomly --cov --cov-report=xml --cov-report= -qq 2>&1); if [ $? -ne 0 ]; then echo "$output"; exit 1; fi'
         language: system
         pass_filenames: false
         files: ^(services|shared|tests)/.*\.py$
-        verbose: true
 
       # Diff coverage check for modified Python code
       - id: diff-coverage
@@ -152,7 +150,6 @@ repos:
         language: python
         pass_filenames: false
         files: ^(services|shared|tests)/.*\.py$
-        verbose: true
         additional_dependencies: ['diff-cover~=9.2.0']
 
   # TypeScript/Frontend: linting, formatting, type checking, build, testing, and coverage
@@ -193,7 +190,6 @@ repos:
         language: python
         pass_filenames: false
         files: ^frontend/.*\.(ts|tsx|js|jsx)$
-        verbose: true
         additional_dependencies: ['diff-cover~=9.2.0']
 
   # Complexity checking
@@ -236,7 +232,6 @@ repos:
         language: python
         pass_filenames: false
         types_or: [python, ts, tsx, javascript]
-        verbose: true
         additional_dependencies: ['pathspec>=1.0.4']
 
       # Block bare/blanket lint suppressions and gate specific suppressions behind APPROVED_OVERRIDES
@@ -266,7 +261,6 @@ repos:
         language: system
         pass_filenames: false
         stages: [manual]
-        verbose: true
 
       # All frontend tests
       - id: vitest-all
@@ -275,7 +269,6 @@ repos:
         language: system
         pass_filenames: false
         stages: [manual]
-        verbose: true
 
       # Run CI/CD workflow locally (requires Docker)
       - id: ci-cd-workflow
@@ -285,4 +278,3 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [manual]
-        verbose: true
