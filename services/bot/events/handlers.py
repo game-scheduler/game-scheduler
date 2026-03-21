@@ -1241,6 +1241,11 @@ class EventHandlers:
             config = get_config()
             edit_url = f"{config.frontend_url}/games/{game.id}/edit"
             message = DMFormats.rewards_reminder(game.title, edit_url)
+            logger.info(
+                "Sending rewards reminder DM for game %s to host %s",
+                game.id,
+                game.host.discord_id,
+            )
             await self._send_dm(game.host.discord_id, message)
 
         if target_status != GameStatus.ARCHIVED.value:

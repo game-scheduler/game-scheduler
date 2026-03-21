@@ -1140,6 +1140,71 @@ async def test_build_game_session_timezone_normalization_naive(
 
 
 @pytest.mark.asyncio
+async def test_build_game_session_remind_host_rewards_request_overrides_template(
+    game_service,
+    sample_template,
+    sample_guild,
+):
+    """Test _build_game_session uses game_data.remind_host_rewards when set."""
+    host_user = user_model.User(id=str(uuid.uuid4()), discord_id="123456")
+    sample_template.remind_host_rewards = False
+
+    game_data = game_schemas.GameCreateRequest(
+        template_id=sample_template.id,
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime(2026, 6, 15, 12, 0, 0, tzinfo=UTC),
+        remind_host_rewards=True,
+    )
+    resolved_fields = {
+        "max_players": 5,
+        "reminder_minutes": [60],
+        "expected_duration_minutes": 120,
+        "where": "Online",
+        "signup_instructions": "Sign up here",
+        "signup_method": SignupMethod.SELF_SIGNUP.value,
+    }
+
+    game = await game_service._build_game_session(
+        game_data, sample_template, sample_guild, host_user, resolved_fields, GameMediaAttachments()
+    )
+
+    assert game.remind_host_rewards is True
+
+
+@pytest.mark.asyncio
+async def test_build_game_session_remind_host_rewards_falls_back_to_template(
+    game_service,
+    sample_template,
+    sample_guild,
+):
+    """Test _build_game_session falls back to template.remind_host_rewards when not in request."""
+    host_user = user_model.User(id=str(uuid.uuid4()), discord_id="123456")
+    sample_template.remind_host_rewards = True
+
+    game_data = game_schemas.GameCreateRequest(
+        template_id=sample_template.id,
+        title="Test Game",
+        description="Test description",
+        scheduled_at=datetime.datetime(2026, 6, 15, 12, 0, 0, tzinfo=UTC),
+    )
+    resolved_fields = {
+        "max_players": 5,
+        "reminder_minutes": [60],
+        "expected_duration_minutes": 120,
+        "where": "Online",
+        "signup_instructions": "Sign up here",
+        "signup_method": SignupMethod.SELF_SIGNUP.value,
+    }
+
+    game = await game_service._build_game_session(
+        game_data, sample_template, sample_guild, host_user, resolved_fields, GameMediaAttachments()
+    )
+
+    assert game.remind_host_rewards is True
+
+
+@pytest.mark.asyncio
 async def test_setup_game_schedules_with_reminders_and_duration(
     game_service,
     mock_db,

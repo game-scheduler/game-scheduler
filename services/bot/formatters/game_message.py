@@ -41,7 +41,7 @@ from services.bot.utils.discord_format import (
 )
 from services.bot.views.game_view import GameView
 from shared.models import GameStatus
-from shared.utils.limits import DISCORD_EMBED_TOTAL_SAFE_LIMIT
+from shared.utils.limits import DISCORD_EMBED_TOTAL_SAFE_LIMIT, EMBED_FIELD_REWARDS
 
 logger = logging.getLogger(__name__)
 
@@ -287,7 +287,7 @@ class GameMessageFormatter:
         )
 
         if rewards:
-            embed.add_field(name="🏆 Rewards", value=f"||{rewards}||", inline=False)
+            embed.add_field(name=EMBED_FIELD_REWARDS, value=f"||{rewards}||", inline=False)
 
         GameMessageFormatter._add_footer_and_links(embed, status, calendar_url)
 

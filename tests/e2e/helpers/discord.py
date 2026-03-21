@@ -38,6 +38,7 @@ class DMType(StrEnum):
     REMOVAL = "removal"
     PROMOTION = "promotion"
     CLONE_CONFIRMATION = "clone_confirmation"
+    REWARDS_REMINDER = "rewards_reminder"
 
 
 async def wait_for_condition[T](
@@ -649,6 +650,7 @@ class DiscordTestHelper:
             DMType.REMOVAL: DMPredicates.removal(game_title),
             DMType.PROMOTION: DMPredicates.promotion(game_title),
             DMType.CLONE_CONFIRMATION: DMPredicates.clone_confirmation(game_title),
+            DMType.REWARDS_REMINDER: DMPredicates.rewards_reminder(game_title),
         }
 
         return await self.wait_for_dm_matching(
