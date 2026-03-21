@@ -518,6 +518,7 @@ class GameService:
             channel_id=channel_id,
             archive_delay_seconds=template.archive_delay_seconds,
             archive_channel_id=template.archive_channel_id,
+            remind_host_rewards=template.remind_host_rewards,
             host_id=host_user.id,
             max_players=resolved_fields["max_players"],
             reminder_minutes=resolved_fields["reminder_minutes"],
@@ -811,6 +812,8 @@ class GameService:
             message_id=None,
             thumbnail_id=source_game.thumbnail_id,
             banner_image_id=source_game.banner_image_id,
+            remind_host_rewards=source_game.remind_host_rewards,
+            rewards=None,
         )
         self.db.add(new_game)
         await increment_image_ref(self.db, source_game.thumbnail_id)
@@ -1064,6 +1067,8 @@ class GameService:
             game.signup_instructions = update_data.signup_instructions
         if update_data.where is not None:
             game.where = update_data.where
+        if update_data.rewards is not None:
+            game.rewards = update_data.rewards
 
     def _update_scheduled_at_field(
         self,
@@ -1120,7 +1125,8 @@ class GameService:
         update_data: game_schemas.GameUpdateRequest,
     ) -> bool:
         """
-        Update remaining fields (max_players, duration, roles, status, signup_method).
+        Update remaining fields (max_players, duration, roles, status, signup_method,
+        remind_host_rewards, archive_delay_seconds).
 
         Args:
             game: Game session to update
@@ -1143,6 +1149,11 @@ class GameService:
             status_schedule_needs_update = True
         if update_data.signup_method is not None:
             game.signup_method = update_data.signup_method
+        if update_data.remind_host_rewards is not None:
+            game.remind_host_rewards = update_data.remind_host_rewards
+        if update_data.archive_delay_seconds is not None:
+            game.archive_delay_seconds = update_data.archive_delay_seconds
+            status_schedule_needs_update = True
 
         return status_schedule_needs_update
 

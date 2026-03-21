@@ -377,3 +377,53 @@ def test_update_game_fields_reminder_only_affects_notification_schedule(game_ser
 
     assert schedule_needs_update is True
     assert status_schedule_needs_update is False
+
+
+def test_update_simple_text_fields_updates_rewards(game_service):
+    game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        rewards=None,
+        scheduled_at=datetime.datetime.now(UTC).replace(tzinfo=None),
+        status="SCHEDULED",
+    )
+
+    update_data = game_schemas.GameUpdateRequest(rewards="a bag of gold")
+
+    game_service._update_simple_text_fields(game, update_data)
+
+    assert game.rewards == "a bag of gold"
+
+
+def test_update_remaining_fields_updates_remind_host_rewards(game_service):
+    game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        remind_host_rewards=False,
+        scheduled_at=datetime.datetime.now(UTC).replace(tzinfo=None),
+        status="SCHEDULED",
+    )
+
+    update_data = game_schemas.GameUpdateRequest(remind_host_rewards=True)
+
+    result = game_service._update_remaining_fields(game, update_data)
+
+    assert game.remind_host_rewards is True
+    assert result is False
+
+
+def test_update_remaining_fields_archive_delay_triggers_status_schedule(game_service):
+    game = game_model.GameSession(
+        id=str(uuid.uuid4()),
+        title="Test Game",
+        archive_delay_seconds=None,
+        scheduled_at=datetime.datetime.now(UTC).replace(tzinfo=None),
+        status="COMPLETED",
+    )
+
+    update_data = game_schemas.GameUpdateRequest(archive_delay_seconds=1)
+
+    result = game_service._update_remaining_fields(game, update_data)
+
+    assert game.archive_delay_seconds == 1
+    assert result is True

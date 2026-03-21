@@ -66,12 +66,12 @@ Add a `rewards` field with spoiler display to games, a `remind_host_rewards` fla
 - [x] Task 2.2: Update game and template schemas
   - Details: .copilot-tracking/planning/details/20260321-02-rewards-feature-details.md (Lines 50-68)
 
-### [ ] Phase 3: API Service & Routes
+### [x] Phase 3: API Service & Routes
 
-- [ ] Task 3.1: Update game service layer functions
+- [x] Task 3.1: Update game service layer functions
   - Details: .copilot-tracking/planning/details/20260321-02-rewards-feature-details.md (Lines 71-87)
 
-- [ ] Task 3.2: Update game API routes and response builder
+- [x] Task 3.2: Update game API routes and response builder
   - Details: .copilot-tracking/planning/details/20260321-02-rewards-feature-details.md (Lines 88-103)
 
 ### [ ] Phase 4: Bot Formatters & Handlers
