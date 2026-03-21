@@ -7,6 +7,12 @@ applyTo: '**/*.py,**/*.ts,**/*.tsx,**/*.js,**/*.jsx'
 
 TDD applies to writing **new production code and enhancing existing production code**. Writing the failing test first forces a clear definition of the required interface and behavior before any implementation decisions are made. The RED phase — seeing the test fail — proves the test is actually capable of detecting the regression it guards against, preventing false-confidence tests that always pass regardless of implementation. Tests written this way become executable documentation of intended behavior from day one.
 
+| Scenario                            | Stub?                       | `xfail`? | Why                                             |
+| ----------------------------------- | --------------------------- | -------- | ----------------------------------------------- |
+| New feature                         | Yes (`NotImplementedError`) | Yes      | Implementation doesn't exist yet                |
+| Bug fix                             | No                          | Yes      | Correct behavior not yet achieved               |
+| Retrofitting tests for correct code | No                          | No       | Code is already correct; tests pass immediately |
+
 ## Applicability
 
 **TDD methodology applies ONLY to languages with mature unit testing frameworks:**
@@ -22,9 +28,53 @@ TDD applies to writing **new production code and enhancing existing production c
 - ❌ **YAML/JSON configuration files** (no unit tests)
 - ❌ **SQL migration scripts** (use integration tests instead)
 - ❌ **Infrastructure-as-Code** without test frameworks
-- ❌ **Writing tests for already-implemented code** (any level — unit, integration, or e2e): the implementation already exists, so there is no stub to create and no xfail marker needed; tests should pass immediately
+- ❌ **Writing tests for already-correct code** (retrofitting coverage at any level — unit, integration, or e2e): the correct behavior already exists, so there is no stub to create and no xfail marker needed; tests should pass immediately. Note: a bug fix is **not** this case — see [TDD for Bug Fixes](#tdd-for-bug-fixes) below.
 
 **For non-testable file types:** Create and verify functionality through integration tests, manual testing, or other appropriate validation methods.
+
+## TDD for Bug Fixes
+
+Bug fixes follow a modified Red-Green-Refactor cycle. There is no stub to create — the buggy code already exists — but you still need the RED phase to prove the test actually detects the bug.
+
+### Bug Fix Workflow
+
+**Step 1: Write the regression test and mark it `xfail`**
+
+Write a test that asserts the _correct_ (post-fix) behavior. It will fail because the bug still exists. Mark it `xfail` with `strict=True` and a reason describing the bug:
+
+```python
+@pytest.mark.xfail(reason="Bug: completed schedule deleted when IN_PROGRESS game is updated", strict=True)
+def test_updating_in_progress_game_preserves_completed_schedule():
+    # ... test asserting correct behavior ...
+    assert completed_schedule is not None
+```
+
+**Step 2: Run the test to confirm it shows as `xfailed`**
+
+This proves the test is actually capable of detecting the bug. If it unexpectedly passes, the bug may already be fixed or the test is wrong.
+
+**Step 3: Fix the bug**
+
+Implement the fix in production code. Do NOT modify the test assertions.
+
+**Step 4: Remove the `xfail` marker**
+
+With the bug fixed the test should now pass. Remove only the `@pytest.mark.xfail` decorator — the assertion is unchanged. With `strict=True`, if you forget to remove the marker after the fix, the suite will error on an unexpected pass, which prevents the marker from lingering.
+
+```python
+# xfail removed — the only change
+def test_updating_in_progress_game_preserves_completed_schedule():
+    # ... same assertions, unchanged ...
+    assert completed_schedule is not None
+```
+
+**❌ WRONG — Do not skip the RED phase:**
+
+```python
+# WRONG: written after the fix, so you never verified the test can catch a regression
+def test_updating_in_progress_game_preserves_completed_schedule():
+    assert completed_schedule is not None
+```
 
 ## Core TDD Principle
 
@@ -311,9 +361,9 @@ Every implementation phase MUST follow this pattern:
 - Test cross-service interactions and realistic user scenarios
 - Do NOT use stubs, NotImplementedError, or xfail markers
 
-### Writing Tests for Already-Implemented Code (TDD NOT Required)
+### Writing Tests for Already-Correct Code (TDD NOT Required)
 
-When the task is **adding tests for code that already has an implementation** — at any test level — TDD does not apply.
+When the task is **adding tests for code that is already correctly implemented** — at any test level — TDD does not apply. This does NOT cover bug fixes; see [TDD for Bug Fixes](#tdd-for-bug-fixes).
 
 TDD's Red-Green-Refactor cycle works because you can stub the _production code_ and write a failing test against it. But when the task itself is writing tests, there is no production code to stub: you cannot stub the _tests_ and write test-tests. The test you are writing is the artifact, and it should either pass or fail against the existing implementation immediately.
 
