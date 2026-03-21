@@ -53,9 +53,9 @@ Add a `rewards` field with spoiler display to games, a `remind_host_rewards` fla
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Database Migration
+### [x] Phase 1: Database Migration
 
-- [ ] Task 1.1: Create Alembic migration adding rewards and remind_host_rewards columns
+- [x] Task 1.1: Create Alembic migration adding rewards and remind_host_rewards columns
   - Details: .copilot-tracking/planning/details/20260321-02-rewards-feature-details.md (Lines 13-30)
 
 ### [ ] Phase 2: Backend Models & Schemas
