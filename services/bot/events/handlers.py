@@ -32,6 +32,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from services.bot.config import get_config
 from services.bot.dependencies.discord_client import get_discord_client
 from services.bot.events.publisher import get_bot_publisher
 from services.bot.formatters.game_message import format_game_announcement
@@ -1231,6 +1232,17 @@ class EventHandlers:
 
     async def _handle_post_transition_actions(self, game: GameSession, target_status: str) -> None:
         """Run follow-up actions after a status transition commit."""
+        if (
+            target_status == GameStatus.COMPLETED.value
+            and game.remind_host_rewards
+            and not game.rewards
+            and game.host
+        ):
+            config = get_config()
+            edit_url = f"{config.frontend_url}/games/{game.id}/edit"
+            message = DMFormats.rewards_reminder(game.title, edit_url)
+            await self._send_dm(game.host.discord_id, message)
+
         if target_status != GameStatus.ARCHIVED.value:
             return
 
@@ -1335,6 +1347,7 @@ class EventHandlers:
             thumbnail_id=str(game.thumbnail_id) if game.thumbnail_id else None,
             banner_image_id=str(game.banner_image_id) if game.banner_image_id else None,
             guild_id=game.guild.guild_id if game.guild else None,
+            rewards=game.rewards,
         )
 
     async def _get_game_with_participants(

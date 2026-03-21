@@ -231,6 +231,7 @@ class GameMessageFormatter:
         host_avatar_url: str | None = None,
         thumbnail_url: str | None = None,
         image_url: str | None = None,
+        rewards: str | None = None,
     ) -> discord.Embed:
         """Create an embed for a game session.
 
@@ -284,6 +285,9 @@ class GameMessageFormatter:
         GameMessageFormatter._add_participant_fields(
             embed, participant_ids, overflow_ids, current_count, max_players
         )
+
+        if rewards:
+            embed.add_field(name="🏆 Rewards", value=f"||{rewards}||", inline=False)
 
         GameMessageFormatter._add_footer_and_links(embed, status, calendar_url)
 
@@ -372,6 +376,7 @@ def format_game_announcement(
     thumbnail_id: str | None = None,
     banner_image_id: str | None = None,
     guild_id: str | None = None,
+    rewards: str | None = None,
 ) -> tuple[str | None, discord.Embed, GameView]:
     """Format a complete game announcement with embed and buttons.
 
@@ -431,6 +436,7 @@ def format_game_announcement(
         host_avatar_url=host_avatar_url,
         thumbnail_url=thumbnail_url,
         image_url=image_url,
+        rewards=rewards,
     )
 
     view = GameView.from_game_data(

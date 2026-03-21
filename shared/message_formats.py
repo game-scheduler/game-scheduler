@@ -155,6 +155,24 @@ class DMFormats:
             f"If you don't confirm in time you'll be automatically removed."
         )
 
+    @staticmethod
+    def rewards_reminder(game_title: str, edit_url: str) -> str:
+        """
+        Format rewards reminder DM sent to the host when a game completes with no rewards set.
+
+        Args:
+            game_title: Title of the game
+            edit_url: Full URL to the edit page for this game
+
+        Returns:
+            Formatted rewards reminder message
+        """
+        return (
+            f"🏆 **{game_title}** has completed! "
+            f"Don't forget to add rewards for your players.\n\n"
+            f"[Edit game to add rewards]({edit_url})"
+        )
+
 
 class DMPredicates:
     """Predicates for matching Discord DMs in tests."""
@@ -246,5 +264,27 @@ class DMPredicates:
 
         def predicate(dm: DiscordMessage) -> bool:
             return bool(dm.content and game_title in dm.content and "confirm" in dm.content.lower())
+
+        return predicate
+
+    @staticmethod
+    def rewards_reminder(game_title: str) -> Callable[[DiscordMessage], bool]:
+        """
+        Predicate to match rewards reminder DMs sent to hosts on game completion.
+
+        Args:
+            game_title: Title of the game
+
+        Returns:
+            Predicate function for wait_for_dm_matching
+        """
+
+        def predicate(dm: DiscordMessage) -> bool:
+            return bool(
+                dm.content
+                and game_title in dm.content
+                and "rewards" in dm.content.lower()
+                and "completed" in dm.content.lower()
+            )
 
         return predicate

@@ -74,12 +74,12 @@ Add a `rewards` field with spoiler display to games, a `remind_host_rewards` fla
 - [x] Task 3.2: Update game API routes and response builder
   - Details: .copilot-tracking/planning/details/20260321-02-rewards-feature-details.md (Lines 88-103)
 
-### [ ] Phase 4: Bot Formatters & Handlers
+### [x] Phase 4: Bot Formatters & Handlers
 
-- [ ] Task 4.1: Add rewards spoiler field to Discord embed formatter
+- [x] Task 4.1: Add rewards spoiler field to Discord embed formatter
   - Details: .copilot-tracking/planning/details/20260321-02-rewards-feature-details.md (Lines 106-121)
 
-- [ ] Task 4.2: Add DMFormats.rewards_reminder and COMPLETED handler DM
+- [x] Task 4.2: Add DMFormats.rewards_reminder and COMPLETED handler DM
   - Details: .copilot-tracking/planning/details/20260321-02-rewards-feature-details.md (Lines 122-141)
 
 ### [ ] Phase 5: Frontend

@@ -243,7 +243,9 @@ async def test_update_message_discord_not_found_is_handled(handlers):
     _, ctx = _db_ctx()
     with (
         patch.object(
-            handlers, "_get_game_with_participants", new=AsyncMock(return_value=mock_game)
+            handlers,
+            "_get_game_with_participants",
+            new=AsyncMock(return_value=mock_game),
         ),
         patch.object(
             handlers,
@@ -269,7 +271,9 @@ async def test_update_message_general_exception_is_handled(handlers):
     _, ctx = _db_ctx()
     with (
         patch.object(
-            handlers, "_get_game_with_participants", new=AsyncMock(return_value=mock_game)
+            handlers,
+            "_get_game_with_participants",
+            new=AsyncMock(return_value=mock_game),
         ),
         patch.object(
             handlers,
@@ -335,6 +339,71 @@ async def test_handle_post_transition_actions_triggers_archive(handlers):
     with patch.object(handlers, "_archive_game_announcement", new=AsyncMock()) as mock_archive:
         await handlers._handle_post_transition_actions(game, GameStatus.ARCHIVED.value)
     mock_archive.assert_called_once_with(game)
+
+
+async def test_handle_post_transition_actions_sends_rewards_dm_on_completed(handlers):
+    """Sends rewards reminder DM to host when game completes with no rewards set."""
+    game = MagicMock()
+    game.remind_host_rewards = True
+    game.rewards = None
+    game.title = "Test Game"
+    game.id = str(uuid4())
+    game.host = MagicMock()
+    game.host.discord_id = "123456789"
+
+    with (
+        patch.object(handlers, "_send_dm", new=AsyncMock()) as mock_dm,
+        patch.object(handlers, "_archive_game_announcement", new=AsyncMock()),
+        patch("services.bot.events.handlers.get_config") as mock_cfg,
+    ):
+        mock_cfg.return_value.frontend_url = "https://example.com"
+        await handlers._handle_post_transition_actions(game, GameStatus.COMPLETED.value)
+
+    mock_dm.assert_called_once()
+    call_args = mock_dm.call_args
+    assert call_args[0][0] == "123456789"
+    assert "Test Game" in call_args[0][1]
+    assert "rewards" in call_args[0][1].lower()
+
+
+async def test_handle_post_transition_actions_no_dm_when_rewards_set(handlers):
+    """Does not send DM when game already has rewards set."""
+    game = MagicMock()
+    game.remind_host_rewards = True
+    game.rewards = "Gold coins for everyone"
+    game.host = MagicMock()
+
+    with patch.object(handlers, "_send_dm", new=AsyncMock()) as mock_dm:
+        await handlers._handle_post_transition_actions(game, GameStatus.COMPLETED.value)
+
+    mock_dm.assert_not_called()
+
+
+async def test_handle_post_transition_actions_no_dm_when_flag_false(handlers):
+    """Does not send DM when remind_host_rewards is False."""
+    game = MagicMock()
+    game.remind_host_rewards = False
+    game.rewards = None
+    game.host = MagicMock()
+
+    with patch.object(handlers, "_send_dm", new=AsyncMock()) as mock_dm:
+        await handlers._handle_post_transition_actions(game, GameStatus.COMPLETED.value)
+
+    mock_dm.assert_not_called()
+
+
+async def test_handle_post_transition_actions_non_terminal_status_skips_archive(
+    handlers,
+):
+    """Does not call archive for statuses that are not COMPLETED or ARCHIVED."""
+    game = MagicMock()
+    game.remind_host_rewards = False
+    game.rewards = None
+
+    with patch.object(handlers, "_archive_game_announcement", new=AsyncMock()) as mock_archive:
+        await handlers._handle_post_transition_actions(game, GameStatus.IN_PROGRESS.value)
+
+    mock_archive.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
