@@ -72,7 +72,7 @@ export const TemplateManagement: FC = () => {
 
       const [templatesResponse, channelsResponse, rolesResponse] = await Promise.all([
         templateApi.getTemplates(guildId),
-        apiClient.get<Channel[]>(`/api/v1/guilds/${guildId}/channels`),
+        apiClient.get<Channel[]>(`/api/v1/guilds/${guildId}/channels?refresh=true`),
         apiClient.get<DiscordRole[]>(`/api/v1/guilds/${guildId}/roles`),
       ]);
 

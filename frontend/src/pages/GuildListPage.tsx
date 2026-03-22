@@ -165,7 +165,7 @@ export const GuildListPage: FC = () => {
           onClick={handleSyncGuilds}
           disabled={syncing}
         >
-          {syncing ? 'Syncing...' : 'Sync Servers and Channels'}
+          {syncing ? 'Syncing...' : 'Sync Guilds'}
         </Button>
         {syncMessage && (
           <Alert severity="success" sx={{ mt: 2 }} onClose={() => setSyncMessage(null)}>
@@ -205,7 +205,7 @@ export const GuildListPage: FC = () => {
             onClick={handleSyncGuilds}
             disabled={syncing}
           >
-            {syncing ? 'Syncing...' : 'Sync Servers and Channels'}
+            {syncing ? 'Syncing...' : 'Sync Guilds'}
           </Button>
         </Box>
       </Box>

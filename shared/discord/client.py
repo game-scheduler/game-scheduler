@@ -504,12 +504,16 @@ class DiscordAPIClient:
         # Should never reach here, but just in case
         raise DiscordAPIError(429, "Rate limit exceeded after max retries", {})
 
-    async def get_guild_channels(self, guild_id: str) -> list[dict[str, Any]]:
+    async def get_guild_channels(
+        self, guild_id: str, force_refresh: bool = False
+    ) -> list[dict[str, Any]]:
         """
         Fetch all channels in a guild using bot token with Redis caching.
 
         Args:
             guild_id: Discord guild (server) ID
+            force_refresh: When True, bypass cache and fetch directly from Discord.
+                           Use when channel list may have changed since last cache write.
 
         Returns:
             List of channel objects with id, name, type, etc.
@@ -520,11 +524,11 @@ class DiscordAPIClient:
         cache_key = cache_keys.CacheKeys.discord_guild_channels(guild_id)
         redis = await cache_client.get_redis_client()
 
-        # Check cache first
-        cached = await redis.get(cache_key)
-        if cached:
-            logger.debug("Cache hit for guild channels: %s", guild_id)
-            return json.loads(cached)
+        if not force_refresh:
+            cached = await redis.get(cache_key)
+            if cached:
+                logger.debug("Cache hit for guild channels: %s", guild_id)
+                return json.loads(cached)
 
         # Fetch from Discord API
         session = await self._get_session()

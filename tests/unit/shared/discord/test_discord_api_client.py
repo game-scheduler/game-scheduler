@@ -715,6 +715,42 @@ class TestGuildMethods:
             # Verify no Discord API call was made
             assert discord_client._session is None
 
+    @pytest.mark.asyncio
+    async def test_get_guild_channels_force_refresh_bypasses_cache(self, discord_client):
+        """Test get_guild_channels() skips cache when force_refresh=True."""
+        cached_data = [{"id": "channel1", "name": "stale-channel", "type": 0}]
+        fresh_data = [{"id": "channel2", "name": "new-channel", "type": 0}]
+
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.headers = {"x-ratelimit-remaining": "50"}
+        mock_response.json = AsyncMock(return_value=fresh_data)
+
+        mock_session = MagicMock()
+        mock_session.closed = False
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_cm.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_cm)
+        discord_client._session = mock_session
+
+        with patch("shared.cache.client.get_redis_client") as mock_get_redis:
+            mock_redis = AsyncMock()
+            mock_redis.get = AsyncMock(return_value=json.dumps(cached_data))
+            mock_redis.set = AsyncMock()
+            mock_get_redis.return_value = mock_redis
+
+            result = await discord_client.get_guild_channels(
+                guild_id="guild123", force_refresh=True
+            )
+
+            assert len(result) == 1
+            assert result[0]["name"] == "new-channel"
+            # Cache was not read
+            mock_redis.get.assert_not_called()
+            # Fresh data was written back to cache
+            mock_redis.set.assert_called_once()
+
 
 class TestUnifiedTokenFunctionality:
     """Test that unified methods work with both bot and OAuth tokens."""

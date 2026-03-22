@@ -165,7 +165,7 @@ describe('GuildListPage', () => {
       data: { new_guilds: 1, new_channels: 2 },
     });
 
-    const syncButton = screen.getByRole('button', { name: /Sync Servers and Channels/i });
+    const syncButton = screen.getByRole('button', { name: /Sync Guilds/i });
     await userEvent.click(syncButton);
 
     await waitFor(() => {
@@ -183,7 +183,7 @@ describe('GuildListPage', () => {
       data: { new_guilds: 0, new_channels: 1 },
     });
 
-    const syncButton = screen.getByRole('button', { name: /Sync Servers and Channels/i });
+    const syncButton = screen.getByRole('button', { name: /Sync Guilds/i });
     await userEvent.click(syncButton);
 
     await waitFor(() => {
@@ -201,7 +201,7 @@ describe('GuildListPage', () => {
       data: { new_guilds: 0, new_channels: 0 },
     });
 
-    const syncButton = screen.getByRole('button', { name: /Sync Servers and Channels/i });
+    const syncButton = screen.getByRole('button', { name: /Sync Guilds/i });
     await userEvent.click(syncButton);
 
     await waitFor(() => {
@@ -219,7 +219,7 @@ describe('GuildListPage', () => {
       data: { new_guilds: 2, new_channels: 1 },
     });
 
-    const syncButton = screen.getByRole('button', { name: /Sync Servers and Channels/i });
+    const syncButton = screen.getByRole('button', { name: /Sync Guilds/i });
     await userEvent.click(syncButton);
 
     await waitFor(() => {
