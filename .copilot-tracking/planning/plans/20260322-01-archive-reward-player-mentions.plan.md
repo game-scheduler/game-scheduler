@@ -40,18 +40,18 @@ When a game with rewards is archived to an archive channel, @mention the confirm
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Write Failing Tests (TDD RED Phase)
+### [x] Phase 1: Write Failing Tests (TDD RED Phase)
 
-- [ ] Task 1.1: Add four xfail unit tests to `test_handlers_misc.py`
+- [x] Task 1.1: Add four xfail unit tests to `test_handlers_misc.py`
   - Details: .copilot-tracking/planning/details/20260322-01-archive-reward-player-mentions-details.md (Lines 11–37)
 
-- [ ] Task 1.2: Mark existing archive test as xfail in `test_handlers.py`
+- [x] Task 1.2: Mark existing archive test as xfail in `test_handlers.py`
   - Details: .copilot-tracking/planning/details/20260322-01-archive-reward-player-mentions-details.md (Lines 38–59)
 
-- [ ] Task 1.3: Modify e2e test to add player mention assertion (xfail)
+- [x] Task 1.3: Modify e2e test to add player mention assertion (xfail)
   - Details: .copilot-tracking/planning/details/20260322-01-archive-reward-player-mentions-details.md (Lines 60–87)
 
-- [ ] Task 1.4: Run unit tests to confirm RED / xfail state
+- [x] Task 1.4: Run unit tests to confirm RED / xfail state
   - Details: .copilot-tracking/planning/details/20260322-01-archive-reward-player-mentions-details.md (Lines 88–100)
 
 ### [ ] Phase 2: Implement Production Code (TDD GREEN Phase)

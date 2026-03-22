@@ -105,6 +105,7 @@ async def _ensure_archive_channel(
 
 @pytest.mark.timeout(180)
 @pytest.mark.asyncio
+@pytest.mark.xfail(strict=True)
 async def test_save_and_archive_archives_game_within_seconds(
     authenticated_admin_client,
     admin_db,
@@ -112,6 +113,7 @@ async def test_save_and_archive_archives_game_within_seconds(
     discord_channel_id,
     discord_archive_channel_id,
     discord_guild_id,
+    discord_user_id,
     synced_guild,
     test_timeouts,
 ):
@@ -148,6 +150,7 @@ async def test_save_and_archive_archives_game_within_seconds(
             "title": game_title,
             "scheduled_at": (datetime.now(UTC) + timedelta(minutes=1)).isoformat(),
             "max_players": "4",
+            "initial_participants": f'["<@{discord_user_id}>"]',
         },
     )
     assert response.status_code == 201, response.text
@@ -210,6 +213,10 @@ async def test_save_and_archive_archives_game_within_seconds(
         f"Rewards field should use spoiler tags: {rewards_field_value}"
     )
     print(f"[TEST] ✓ Archive message contains spoiler rewards field: {rewards_field_value}")
+
+    assert f"<@{discord_user_id}>" in archive_message.content, (
+        f"Archive post should @mention confirmed player. Got: {archive_message.content!r}"
+    )
 
 
 @pytest.mark.timeout(300)

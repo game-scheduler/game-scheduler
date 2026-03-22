@@ -452,3 +452,174 @@ async def test_archive_announcement_delete_exception_is_handled(handlers):
 
     with patch.object(handlers, "_get_bot_channel", new=AsyncMock(return_value=mock_channel)):
         await handlers._archive_game_announcement(game)
+
+
+# ---------------------------------------------------------------------------
+# _archive_game_announcement — player @mention logic (rewards)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.xfail(strict=True)
+async def test_archive_announcement_with_rewards_mentions_confirmed_players(handlers):
+    """Archive post content contains <@uid> for each confirmed real player when rewards are set."""
+    player_id = "111222333444555666"
+    game = MagicMock()
+    game.message_id = "999"
+    game.channel = MagicMock()
+    game.channel.channel_id = "aaa"
+    game.archive_channel_id = "bbb"
+    game.archive_channel = MagicMock()
+    game.archive_channel.channel_id = "ccc"
+    game.rewards = "magic sword"
+    game.participants = []
+    game.max_players = 4
+
+    mock_active_channel = AsyncMock()
+    mock_active_channel.fetch_message = AsyncMock(return_value=AsyncMock())
+    mock_archive_channel = AsyncMock()
+
+    mock_partitioned = MagicMock()
+    mock_partitioned.confirmed_real_user_ids = [player_id]
+
+    with (
+        patch.object(
+            handlers,
+            "_get_bot_channel",
+            new=AsyncMock(side_effect=[mock_active_channel, mock_archive_channel]),
+        ),
+        patch.object(
+            handlers,
+            "_create_game_announcement",
+            new=AsyncMock(return_value=("<@role_123>", "embed", "view")),
+        ),
+        patch(
+            "services.bot.events.handlers.partition_participants",
+            return_value=mock_partitioned,
+        ),
+    ):
+        await handlers._archive_game_announcement(game)
+
+    call_kwargs = mock_archive_channel.send.call_args.kwargs
+    assert f"<@{player_id}>" in call_kwargs["content"]
+
+
+@pytest.mark.xfail(strict=True)
+async def test_archive_announcement_with_rewards_ignores_role_mention_content(handlers):
+    """Archive post ignores role-mention content from _create_game_announcement when rewards set."""
+    player_id = "777888999000111222"
+    game = MagicMock()
+    game.message_id = "999"
+    game.channel = MagicMock()
+    game.channel.channel_id = "aaa"
+    game.archive_channel_id = "bbb"
+    game.archive_channel = MagicMock()
+    game.archive_channel.channel_id = "ccc"
+    game.rewards = "gold"
+    game.participants = []
+    game.max_players = 4
+
+    mock_active_channel = AsyncMock()
+    mock_active_channel.fetch_message = AsyncMock(return_value=AsyncMock())
+    mock_archive_channel = AsyncMock()
+
+    mock_partitioned = MagicMock()
+    mock_partitioned.confirmed_real_user_ids = [player_id]
+
+    with (
+        patch.object(
+            handlers,
+            "_get_bot_channel",
+            new=AsyncMock(side_effect=[mock_active_channel, mock_archive_channel]),
+        ),
+        patch.object(
+            handlers,
+            "_create_game_announcement",
+            new=AsyncMock(return_value=("<@&role_999>", "embed", "view")),
+        ),
+        patch(
+            "services.bot.events.handlers.partition_participants",
+            return_value=mock_partitioned,
+        ),
+    ):
+        await handlers._archive_game_announcement(game)
+
+    call_kwargs = mock_archive_channel.send.call_args.kwargs
+    assert "<@&role_999>" not in (call_kwargs.get("content") or "")
+    assert f"<@{player_id}>" in call_kwargs["content"]
+
+
+@pytest.mark.xfail(strict=True)
+async def test_archive_announcement_without_rewards_sends_no_content(handlers):
+    """Archive post content is None when game.rewards is not set."""
+    game = MagicMock()
+    game.message_id = "999"
+    game.channel = MagicMock()
+    game.channel.channel_id = "aaa"
+    game.archive_channel_id = "bbb"
+    game.archive_channel = MagicMock()
+    game.archive_channel.channel_id = "ccc"
+    game.rewards = None
+    game.participants = []
+    game.max_players = 4
+
+    mock_active_channel = AsyncMock()
+    mock_active_channel.fetch_message = AsyncMock(return_value=AsyncMock())
+    mock_archive_channel = AsyncMock()
+
+    with (
+        patch.object(
+            handlers,
+            "_get_bot_channel",
+            new=AsyncMock(side_effect=[mock_active_channel, mock_archive_channel]),
+        ),
+        patch.object(
+            handlers,
+            "_create_game_announcement",
+            new=AsyncMock(return_value=("content", "embed", "view")),
+        ),
+    ):
+        await handlers._archive_game_announcement(game)
+
+    mock_archive_channel.send.assert_awaited_once_with(content=None, embed="embed")
+
+
+@pytest.mark.xfail(strict=True)
+async def test_archive_announcement_with_rewards_no_confirmed_players(handlers):
+    """Archive post content is None when rewards are set but no confirmed real players exist."""
+    game = MagicMock()
+    game.message_id = "999"
+    game.channel = MagicMock()
+    game.channel.channel_id = "aaa"
+    game.archive_channel_id = "bbb"
+    game.archive_channel = MagicMock()
+    game.archive_channel.channel_id = "ccc"
+    game.rewards = "treasure"
+    game.participants = []
+    game.max_players = 4
+
+    mock_active_channel = AsyncMock()
+    mock_active_channel.fetch_message = AsyncMock(return_value=AsyncMock())
+    mock_archive_channel = AsyncMock()
+
+    mock_partitioned = MagicMock()
+    mock_partitioned.confirmed_real_user_ids = []
+
+    with (
+        patch.object(
+            handlers,
+            "_get_bot_channel",
+            new=AsyncMock(side_effect=[mock_active_channel, mock_archive_channel]),
+        ),
+        patch.object(
+            handlers,
+            "_create_game_announcement",
+            new=AsyncMock(return_value=("content", "embed", "view")),
+        ),
+        patch(
+            "services.bot.events.handlers.partition_participants",
+            return_value=mock_partitioned,
+        ),
+    ):
+        await handlers._archive_game_announcement(game)
+
+    mock_archive_channel.send.assert_awaited_once_with(content=None, embed="embed")
