@@ -2,6 +2,9 @@
 
 ## General Guidelines
 
+- Do **not** read `AGENTS.md` files. They are for Codex and only redirect to
+  the Copilot instruction files you already have. Reading them wastes time and
+  tokens without providing any new information.
 - When generating code or making suggestions, prioritize minimizing the number
   of changes and the impact on existing code. Focus on small, targeted
   modifications rather than large refactorings or extensive additions, unless
