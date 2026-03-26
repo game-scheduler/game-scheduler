@@ -74,23 +74,23 @@ and partition logic completely unchanged.
 - [x] Task 2.3: Update Pydantic schemas (max-8 validator) and `TemplateResponse`
   - Details: .copilot-tracking/planning/details/20260324-01-role-based-scheduling-details.md (Lines 103-120)
 
-### [ ] Phase 3: Core Logic (TDD)
+### [x] Phase 3: Core Logic (TDD)
 
-- [ ] Task 3.1: TDD `resolve_role_position` pure function in `shared/utils/participant_sorting.py`
+- [x] Task 3.1: TDD `resolve_role_position` pure function in `shared/utils/participant_sorting.py`
   - Details: .copilot-tracking/planning/details/20260324-01-role-based-scheduling-details.md (Lines 123-152)
 
-- [ ] Task 3.2: TDD `seed_user_roles` method on `RoleChecker`
+- [x] Task 3.2: TDD `seed_user_roles` method on `RoleChecker`
   - Details: .copilot-tracking/planning/details/20260324-01-role-based-scheduling-details.md (Lines 153-175)
 
-### [ ] Phase 4: Join Path Updates
+### [x] Phase 4: Join Path Updates
 
-- [ ] Task 4.1: Update `GameService.join_game` to accept optional `position_type`/`position` params
+- [x] Task 4.1: Update `GameService.join_game` to accept optional `position_type`/`position` params
   - Details: .copilot-tracking/planning/details/20260324-01-role-based-scheduling-details.md (Lines 178-197)
 
-- [ ] Task 4.2: Update API `join_game` route to resolve role priority and pass to service
+- [x] Task 4.2: Update API `join_game` route to resolve role priority and pass to service
   - Details: .copilot-tracking/planning/details/20260324-01-role-based-scheduling-details.md (Lines 198-221)
 
-- [ ] Task 4.3: Update bot `handle_join_game` to resolve role priority from interaction payload
+- [x] Task 4.3: Update bot `handle_join_game` to resolve role priority from interaction payload
   - Details: .copilot-tracking/planning/details/20260324-01-role-based-scheduling-details.md (Lines 222-248)
 
 ### [ ] Phase 5: Frontend Updates

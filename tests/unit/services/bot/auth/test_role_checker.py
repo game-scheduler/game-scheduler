@@ -435,3 +435,14 @@ async def test_check_administrator_permission_exception(role_checker, mock_bot):
     result = await role_checker.check_administrator_permission("123", "456")
 
     assert result is False
+
+
+@pytest.mark.asyncio
+async def test_seed_user_roles_writes_to_cache(role_checker):
+    """seed_user_roles stores roles so a subsequent get_user_role_ids returns them."""
+    role_checker.cache.set_user_roles = AsyncMock()
+    role_checker.cache.get_user_roles = AsyncMock(return_value=["111", "222"])
+
+    await role_checker.seed_user_roles("user123", "guild456", ["111", "222"])
+
+    role_checker.cache.set_user_roles.assert_called_once_with("user123", "guild456", ["111", "222"])

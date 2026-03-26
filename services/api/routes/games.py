@@ -260,6 +260,30 @@ def _handle_game_operation_errors(
     ) from e
 
 
+async def _resolve_role_position_for_user(
+    priority_role_ids: list[str],
+    user_discord_id: str,
+    guild_discord_id: str,
+    role_service: roles_module.RoleVerificationService,
+) -> tuple[int, int]:
+    """Fetch user role IDs from cache and resolve priority position.
+
+    The cache is warmed by verify_game_access before this is called, so this
+    is typically a cache hit with no extra Discord API call.
+
+    Args:
+        priority_role_ids: Ordered role IDs from the game template
+        user_discord_id: Joining user's Discord ID
+        guild_discord_id: Discord guild snowflake ID
+        role_service: Role verification service for cache access
+
+    Returns:
+        (position_type, position) tuple from resolve_role_position
+    """
+    user_role_ids = await role_service.get_user_role_ids(user_discord_id, guild_discord_id)
+    return participant_sorting.resolve_role_position(user_role_ids, priority_role_ids)
+
+
 @router.post(
     "",
     response_model=game_schemas.GameResponse,
@@ -654,9 +678,23 @@ async def join_game(
     )
 
     try:
+        priority_role_ids = (game.template.signup_priority_role_ids or []) if game.template else []
+        position_type, position = (
+            await _resolve_role_position_for_user(
+                priority_role_ids,
+                current_user.user.discord_id,
+                game.guild.guild_id,
+                role_service,
+            )
+            if priority_role_ids
+            else (ParticipantType.SELF_ADDED, 0)
+        )
+
         participant = await game_service.join_game(
             game_id=game_id,
             user_discord_id=current_user.user.discord_id,
+            position_type=position_type,
+            position=position,
         )
 
         # Resolve display name and avatar for the participant

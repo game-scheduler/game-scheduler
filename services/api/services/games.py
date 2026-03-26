@@ -739,6 +739,7 @@ class GameService:
                 selectinload(game_model.GameSession.host),
                 selectinload(game_model.GameSession.guild),
                 selectinload(game_model.GameSession.channel),
+                selectinload(game_model.GameSession.template),
                 selectinload(game_model.GameSession.participants).selectinload(
                     participant_model.GameParticipant.user
                 ),
@@ -1845,6 +1846,8 @@ class GameService:
         self,
         game_id: str,
         user_discord_id: str,
+        position_type: int = ParticipantType.SELF_ADDED,
+        position: int = 0,
     ) -> participant_model.GameParticipant:
         """
         Join game as participant.
@@ -1854,6 +1857,8 @@ class GameService:
         Args:
             game_id: Game session UUID
             user_discord_id: User's Discord ID
+            position_type: Participant priority tier (default SELF_ADDED)
+            position: Position within the tier (default 0)
 
         Returns:
             Created participant record
@@ -1931,8 +1936,8 @@ class GameService:
             game_session_id=game_id,
             user_id=user.id,
             display_name=None,
-            position_type=ParticipantType.SELF_ADDED,
-            position=0,
+            position_type=position_type,
+            position=position,
         )
         self.db.add(participant)
         await self.db.flush()

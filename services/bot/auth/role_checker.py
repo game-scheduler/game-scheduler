@@ -123,6 +123,19 @@ class RoleChecker:
             logger.error("Error fetching guild roles: %s", e)
             return []
 
+    async def seed_user_roles(self, user_id: str, guild_id: str, role_ids: list[str]) -> None:
+        """Populate the role cache with caller-supplied role IDs.
+
+        Used by the bot path to warm the cache from the interaction payload,
+        avoiding an extra Discord API call.
+
+        Args:
+            user_id: Discord user ID
+            guild_id: Discord guild ID
+            role_ids: Role IDs to store for the user
+        """
+        await self.cache.set_user_roles(user_id, guild_id, role_ids)
+
     async def check_manage_guild_permission(self, user_id: str, guild_id: str) -> bool:
         """
         Check if user has MANAGE_GUILD permission.

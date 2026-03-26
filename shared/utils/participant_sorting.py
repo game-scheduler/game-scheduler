@@ -24,10 +24,11 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from shared.models.participant import ParticipantType
+from shared.utils.games import DEFAULT_MAX_PLAYERS
+
 if TYPE_CHECKING:
     from shared.models.participant import GameParticipant
-
-from shared.utils.games import DEFAULT_MAX_PLAYERS
 
 
 @dataclass
@@ -75,6 +76,28 @@ class PartitionedParticipants:
             for discord_id in previous.overflow_real_user_ids
             if discord_id in self.confirmed_real_user_ids
         }
+
+
+def resolve_role_position(
+    user_role_ids: list[str], priority_role_ids: list[str]
+) -> tuple[int, int]:
+    """Determine position_type and position for a joining user based on role priority.
+
+    Checks priority_role_ids in order and returns the index of the first match.
+    Returns SELF_ADDED when there is no match or when priority_role_ids is empty.
+
+    Args:
+        user_role_ids: Role IDs the user holds in the guild
+        priority_role_ids: Ordered list of priority role IDs from the game template
+
+    Returns:
+        (ROLE_MATCHED, index) on a match, (SELF_ADDED, 0) otherwise
+    """
+    user_role_set = set(user_role_ids)
+    for index, role_id in enumerate(priority_role_ids):
+        if role_id in user_role_set:
+            return (ParticipantType.ROLE_MATCHED, index)
+    return (ParticipantType.SELF_ADDED, 0)
 
 
 def sort_participants(participants: list["GameParticipant"]) -> list["GameParticipant"]:

@@ -29,7 +29,9 @@ import discord
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from services.bot.auth.role_checker import RoleChecker
 from services.bot.events.publisher import BotEventPublisher
 from services.bot.handlers.utils import (
     get_participant_count,
@@ -43,6 +45,7 @@ from shared.models.notification_schedule import NotificationSchedule
 from shared.models.participant import GameParticipant, ParticipantType
 from shared.models.user import User
 from shared.utils.games import resolve_max_players
+from shared.utils.participant_sorting import resolve_role_position
 
 logger = logging.getLogger(__name__)
 
@@ -81,12 +84,15 @@ async def handle_join_game(
         user_result = result["user"]
         participant_count = result["participant_count"]
 
+        role_checker = RoleChecker(bot=interaction.client, db_session=db)
+        position_type, position = await _resolve_bot_role_position(interaction, game, role_checker)
+
         # Create participant in database
         participant = GameParticipant(
             game_session_id=str(game_id),
             user_id=user_result.id,
-            position_type=ParticipantType.SELF_ADDED,
-            position=0,
+            position_type=position_type,
+            position=position,
         )
         db.add(participant)
         try:
@@ -137,10 +143,14 @@ async def _validate_join_game(db: AsyncSession, game_id: uuid.UUID, user_discord
         - can_join: bool
         - error: str (if can_join is False)
         - user: User
-        - game: GameSession
+        - game: GameSession (with template eagerly loaded)
         - participant_count: int
     """
-    result_game = await db.execute(select(GameSession).where(GameSession.id == str(game_id)))
+    result_game = await db.execute(
+        select(GameSession)
+        .options(selectinload(GameSession.template))
+        .where(GameSession.id == str(game_id))
+    )
     game = result_game.scalar_one_or_none()
 
     if not game:
@@ -165,3 +175,33 @@ async def _validate_join_game(db: AsyncSession, game_id: uuid.UUID, user_discord
         "game": game,
         "participant_count": participant_count,
     }
+
+
+async def _resolve_bot_role_position(
+    interaction: discord.Interaction,
+    game: GameSession,
+    role_checker: RoleChecker,
+) -> tuple[int, int]:
+    """Resolve position_type and position from the interaction payload.
+
+    Extracts role IDs from the Discord member object (zero extra API calls)
+    and seeds the role cache as a side effect.
+
+    Args:
+        interaction: Discord interaction containing member role data
+        game: GameSession with template loaded
+        role_checker: RoleChecker for cache seeding
+
+    Returns:
+        (position_type, position) tuple
+    """
+    priority_role_ids = (game.template.signup_priority_role_ids or []) if game.template else []
+    if not priority_role_ids or not isinstance(interaction.user, discord.Member):
+        return (ParticipantType.SELF_ADDED, 0)
+
+    guild_discord_id = str(interaction.guild_id)
+    user_discord_id = str(interaction.user.id)
+    user_role_ids = [str(r.id) for r in interaction.user.roles if str(r.id) != guild_discord_id]
+
+    await role_checker.seed_user_roles(user_discord_id, guild_discord_id, user_role_ids)
+    return resolve_role_position(user_role_ids, priority_role_ids)

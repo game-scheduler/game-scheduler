@@ -31,6 +31,7 @@ from shared.utils.games import DEFAULT_MAX_PLAYERS
 from shared.utils.participant_sorting import (
     PartitionedParticipants,
     partition_participants,
+    resolve_role_position,
     sort_participants,
 )
 
@@ -651,3 +652,32 @@ def test_role_matched_participant_type_value():
     """ROLE_MATCHED must sit between HOST_ADDED and SELF_ADDED."""
     assert ParticipantType.ROLE_MATCHED == 16000
     assert ParticipantType.HOST_ADDED < ParticipantType.ROLE_MATCHED < ParticipantType.SELF_ADDED
+
+
+class TestResolveRolePosition:
+    """Tests for resolve_role_position pure function."""
+
+    def test_highest_priority_role_returns_role_matched_index_0(self):
+        """User with the top-ranked role gets (ROLE_MATCHED, 0)."""
+        result = resolve_role_position(["role_a", "role_b"], ["role_a", "role_c"])
+        assert result == (ParticipantType.ROLE_MATCHED, 0)
+
+    def test_second_priority_role_returns_role_matched_index_1(self):
+        """User with only the second-ranked role gets (ROLE_MATCHED, 1)."""
+        result = resolve_role_position(["role_b"], ["role_a", "role_b"])
+        assert result == (ParticipantType.ROLE_MATCHED, 1)
+
+    def test_no_matching_role_returns_self_added(self):
+        """User with no matching role gets (SELF_ADDED, 0)."""
+        result = resolve_role_position(["role_x"], ["role_a", "role_b"])
+        assert result == (ParticipantType.SELF_ADDED, 0)
+
+    def test_empty_priority_list_returns_self_added(self):
+        """Empty priority_role_ids always yields (SELF_ADDED, 0)."""
+        result = resolve_role_position(["role_a"], [])
+        assert result == (ParticipantType.SELF_ADDED, 0)
+
+    def test_multiple_matching_roles_first_match_wins(self):
+        """When user has multiple priority roles, the lowest-index one wins."""
+        result = resolve_role_position(["role_b", "role_a"], ["role_a", "role_b"])
+        assert result == (ParticipantType.ROLE_MATCHED, 0)
