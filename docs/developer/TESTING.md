@@ -308,6 +308,33 @@ TEST_DISCORD_USER_ID=123456789012345678
 TEST_ENVIRONMENT=true
 ```
 
+#### 6. Role-Based Signup E2E Test Roles
+
+`tests/e2e/test_role_based_signup.py` requires two roles in Guild A:
+
+| Role                    | Who holds it             | Purpose                                          |
+| ----------------------- | ------------------------ | ------------------------------------------------ |
+| **E2E Priority Role A** | Admin Bot A              | Used as the "matched" role in parametrized cases |
+| **E2E Priority Role B** | Nobody (not Admin Bot A) | Used as the "unmatched" role                     |
+
+**Setup steps:**
+
+1. In Discord, open Guild A → Server Settings → Roles
+2. Create role **"E2E Priority Role A"** (any color/permissions; it is only used in tests)
+3. Create role **"E2E Priority Role B"** (same; do not assign it to the bot)
+4. Assign **"E2E Priority Role A"** to Admin Bot A in Guild A
+5. Enable Developer Mode (Settings → Advanced → Developer Mode)
+6. Right-click each role → **Copy Role ID**
+7. Set the values in `config/env.e2e`:
+
+```bash
+DISCORD_TEST_ROLE_A_ID=<id of "E2E Priority Role A">
+DISCORD_TEST_ROLE_B_ID=<id of "E2E Priority Role B">
+```
+
+If either variable is absent, the four parametrized cases in `test_role_based_signup.py`
+will **fail** with a clear error message pointing to this section.
+
 ### Running E2E Tests
 
 ```bash

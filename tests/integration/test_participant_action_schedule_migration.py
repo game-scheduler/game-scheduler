@@ -162,4 +162,5 @@ def test_participant_action_schedule_downgrade_removes_table(db_session):
         "c3d4e5f6a7b8",
         "c3e4f5a6b7c8",
         "074a6da9da32",
+        "b7c8d9e0f1a2",
     }, f"Expected migration f3a2c1d8e9b7 or later to be applied, got: {result[0]}"

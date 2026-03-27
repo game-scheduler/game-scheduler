@@ -22,7 +22,7 @@
 """add_signup_priority_role_ids
 
 Revision ID: b7c8d9e0f1a2
-Revises: f3a2c1d8e9b7
+Revises: 074a6da9da32
 Create Date: 2026-03-26 00:00:00.000000
 
 """
@@ -35,7 +35,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "b7c8d9e0f1a2"
-down_revision: str | None = "f3a2c1d8e9b7"
+down_revision: str | None = "074a6da9da32"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

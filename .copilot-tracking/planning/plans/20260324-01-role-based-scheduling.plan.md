@@ -98,9 +98,9 @@ and partition logic completely unchanged.
 - [x] Task 5.2: Add draggable role-priority list to `TemplateForm.tsx` (locked settings section)
   - Details: .copilot-tracking/planning/details/20260324-01-role-based-scheduling-details.md (Lines 251-275)
 
-### [ ] Phase 6: E2E Test
+### [x] Phase 6: E2E Test
 
-- [ ] Task 6.1: Write `tests/e2e/test_role_based_signup.py` with 4 parametrized cases
+- [x] Task 6.1: Write `tests/e2e/test_role_based_signup.py` with 4 parametrized cases
   - Details: .copilot-tracking/planning/details/20260324-01-role-based-scheduling-details.md (Lines 278-315)
 
 ## Dependencies

@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1, 2, 3, and 4 complete. Phases 5–6 pending.
+Phases 1–6 complete.
 
 ## Added
 
@@ -24,6 +24,9 @@ Phases 1, 2, 3, and 4 complete. Phases 5–6 pending.
 - `tests/unit/shared/models/test_signup_method.py` — Added `test_role_based_signup_method`; updated `test_signup_method_members` count from 2 to 3; added `import pytest`
 - `tests/unit/schemas/test_schemas_template_schema.py` — Added three tests for `signup_priority_role_ids` acceptance, max-8 enforcement, and `TemplateResponse` exposure; added `import pytest`
 - `tests/unit/services/bot/auth/test_role_checker.py` — Added `test_seed_user_roles_writes_to_cache`
+- `tests/e2e/test_role_based_signup.py` — New E2E test with 4 parametrized cases covering role at index 0, role at index 1, no matching role, and empty priority list; skipped (not failed) when `DISCORD_TEST_ROLE_A_ID`/`DISCORD_TEST_ROLE_B_ID` are absent
+- `config/env.e2e` — Added `DISCORD_TEST_ROLE_A_ID` and `DISCORD_TEST_ROLE_B_ID` placeholder vars with comments
+- `docs/developer/TESTING.md` — Added "Role-Based Signup E2E Test Roles" section (step 6) documenting required Guild A roles and env setup
 
 ## Removed
 
