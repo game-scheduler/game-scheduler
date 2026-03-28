@@ -39,7 +39,9 @@ services:
       retry-daemon:
         condition: service_healthy
     environment:
-      NGINX_LOG_LEVEL: debug
+      LOG_LEVEL: debug
+    volumes:
+      - ${HOST_WORKSPACE_FOLDER:-.}/docker/Caddyfile.staging:/etc/caddy/Caddyfile:ro
 
   postgres:
     command: [

@@ -39,36 +39,36 @@ Replace the existing `nginx:1.28-alpine` frontend container with Caddy, providin
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Update frontend.Dockerfile
+### [x] Phase 1: Update frontend.Dockerfile
 
-- [ ] Task 1.1: Replace `nginx:1.28-alpine` production stage with `caddy:2-alpine`
+- [x] Task 1.1: Replace `nginx:1.28-alpine` production stage with `caddy:2-alpine`
   - Details: .copilot-tracking/planning/details/20260328-01-caddy-frontend-details.md (Lines 11-55)
 
-### [ ] Phase 2: Create Caddyfiles
+### [x] Phase 2: Create Caddyfiles
 
-- [ ] Task 2.1: Create `docker/Caddyfile.staging` — HTTP-only, mirrors current nginx behavior
+- [x] Task 2.1: Create `docker/Caddyfile.staging` — HTTP-only, mirrors current nginx behavior
   - Details: .copilot-tracking/planning/details/20260328-01-caddy-frontend-details.md (Lines 59-115)
 
-- [ ] Task 2.2: Create `docker/Caddyfile.prod` — automatic HTTPS via Let's Encrypt
+- [x] Task 2.2: Create `docker/Caddyfile.prod` — automatic HTTPS via Let's Encrypt
   - Details: .copilot-tracking/planning/details/20260328-01-caddy-frontend-details.md (Lines 117-155)
 
-### [ ] Phase 3: Update Compose Files
+### [x] Phase 3: Update Compose Files
 
-- [ ] Task 3.1: Update `compose.yaml` frontend service
+- [x] Task 3.1: Update `compose.yaml` frontend service
   - Details: .copilot-tracking/planning/details/20260328-01-caddy-frontend-details.md (Lines 159-195)
 
-- [ ] Task 3.2: Update `compose.staging.yaml` frontend service
+- [x] Task 3.2: Update `compose.staging.yaml` frontend service
   - Details: .copilot-tracking/planning/details/20260328-01-caddy-frontend-details.md (Lines 197-220)
 
-- [ ] Task 3.3: Update `compose.prod.yaml` frontend service and volumes
+- [x] Task 3.3: Update `compose.prod.yaml` frontend service and volumes
   - Details: .copilot-tracking/planning/details/20260328-01-caddy-frontend-details.md (Lines 222-270)
 
-- [ ] Task 3.4: Add `DOMAIN` variable to `config/env/env.prod`
+- [x] Task 3.4: Add `DOMAIN` variable to `config/env/env.prod`
   - Details: .copilot-tracking/planning/details/20260328-01-caddy-frontend-details.md (Lines 272-290)
 
-### [ ] Phase 4: Cleanup
+### [x] Phase 4: Cleanup
 
-- [ ] Task 4.1: Remove `docker/frontend-nginx.conf`
+- [x] Task 4.1: Remove `docker/frontend-nginx.conf`
   - Details: .copilot-tracking/planning/details/20260328-01-caddy-frontend-details.md (Lines 294-305)
 
 ## Dependencies

@@ -25,6 +25,14 @@ services:
   frontend:
     build:
       target: production
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ${HOST_WORKSPACE_FOLDER:-.}/docker/Caddyfile.prod:/etc/caddy/Caddyfile:ro
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
     depends_on:
       api:
         condition: service_healthy
@@ -38,3 +46,7 @@ networks:
     name: ${CONTAINER_PREFIX:-gamebot-prod}-network
     driver: bridge
     external: true
+
+volumes:
+  caddy_data:
+  caddy_config:

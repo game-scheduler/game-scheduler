@@ -47,28 +47,23 @@ ARG VITE_API_URL
 # Build the application with environment variables
 RUN npm run build
 
-# Production stage using nginx
-FROM nginx:1.28-alpine AS production
+# Production stage using Caddy
+FROM caddy:2-alpine AS production
 
 # Install curl for healthcheck
 RUN apk add --no-cache curl
 
-# Copy custom nginx config
-COPY docker/frontend-nginx.conf /etc/nginx/conf.d/default.conf
-
 # Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist /srv
 
 # Copy config template and entrypoint script
-COPY docker/frontend-config.template.js /etc/nginx/templates/config.template.js
-COPY docker/frontend-entrypoint.sh /docker-entrypoint.d/40-generate-config.sh
-RUN chmod +x /docker-entrypoint.d/40-generate-config.sh
+COPY docker/frontend-config.template.js /srv/templates/config.template.js
+COPY docker/frontend-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:80/ || exit 1
 
-EXPOSE 80
-
-# Run nginx in foreground
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

@@ -374,7 +374,9 @@ services:
     restart: always
     environment:
       BACKEND_URL: ${BACKEND_URL:-}
-      NGINX_LOG_LEVEL: ${NGINX_LOG_LEVEL:-info}
+      LOG_LEVEL: ${FRONTEND_LOG_LEVEL:-info}
+    volumes:
+      - ${HOST_WORKSPACE_FOLDER:-.}/docker/Caddyfile.staging:/etc/caddy/Caddyfile:ro
     depends_on:
       api:
         condition: service_healthy
