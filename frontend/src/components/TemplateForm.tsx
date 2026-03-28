@@ -257,13 +257,13 @@ export const TemplateForm: FC<TemplateFormProps> = ({
     setter(typeof value === 'string' ? value.split(',') : value);
   };
 
-  const handleAddPriorityRole = () => {
+  const handleAddPriorityRole = (roleId: string) => {
     if (
-      priorityRoleSelectorValue &&
-      !signupPriorityRoleIds.includes(priorityRoleSelectorValue) &&
+      roleId &&
+      !signupPriorityRoleIds.includes(roleId) &&
       signupPriorityRoleIds.length < UI.MAX_SIGNUP_PRIORITY_ROLES
     ) {
-      setSignupPriorityRoleIds([...signupPriorityRoleIds, priorityRoleSelectorValue]);
+      setSignupPriorityRoleIds([...signupPriorityRoleIds, roleId]);
       setPriorityRoleSelectorValue('');
     }
   };
@@ -534,7 +534,7 @@ export const TemplateForm: FC<TemplateFormProps> = ({
                   labelId="priority-role-select-label"
                   inputProps={{ 'aria-label': 'Add Priority Role' }}
                   value={priorityRoleSelectorValue}
-                  onChange={(e) => setPriorityRoleSelectorValue(e.target.value)}
+                  onChange={(e) => handleAddPriorityRole(e.target.value)}
                   input={<OutlinedInput label="Add Priority Role" />}
                   disabled={signupPriorityRoleIds.length >= UI.MAX_SIGNUP_PRIORITY_ROLES}
                 >
@@ -547,17 +547,6 @@ export const TemplateForm: FC<TemplateFormProps> = ({
                     ))}
                 </Select>
               </FormControl>
-              <Button
-                variant="outlined"
-                aria-label="Add Role"
-                onClick={handleAddPriorityRole}
-                disabled={
-                  !priorityRoleSelectorValue ||
-                  signupPriorityRoleIds.length >= UI.MAX_SIGNUP_PRIORITY_ROLES
-                }
-              >
-                Add
-              </Button>
             </Box>
             <List dense disablePadding>
               {signupPriorityRoleIds.map((id, index) => {

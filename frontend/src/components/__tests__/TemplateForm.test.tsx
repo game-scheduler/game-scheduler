@@ -754,7 +754,7 @@ describe('TemplateForm - Role Priority Section', () => {
     expect(screen.getByLabelText(/add priority role/i)).toBeInTheDocument();
   });
 
-  it('adds a role to the priority list', async () => {
+  it('adds a role to the priority list on selection', async () => {
     const user = userEvent.setup();
     render(
       <TemplateForm
@@ -771,7 +771,6 @@ describe('TemplateForm - Role Priority Section', () => {
     const select = screen.getByLabelText(/add priority role/i);
     await user.click(select);
     await user.click(screen.getByRole('option', { name: /@Mage/i }));
-    await user.click(screen.getByRole('button', { name: /add role/i }));
 
     expect(screen.getByText('@Mage')).toBeInTheDocument();
   });
@@ -804,7 +803,7 @@ describe('TemplateForm - Role Priority Section', () => {
     });
   });
 
-  it('disables Add Role button when 8 roles are already selected', async () => {
+  it('disables the role dropdown when 8 roles are already selected', async () => {
     const eightRoles = Array.from({ length: 8 }, (_, i) => `role-extra-${i}`);
     const templateWith8 = {
       ...baseTemplate,
@@ -833,8 +832,8 @@ describe('TemplateForm - Role Priority Section', () => {
       />
     );
 
-    const addButton = screen.getByRole('button', { name: /add role/i });
-    expect(addButton).toBeDisabled();
+    const select = screen.getByLabelText(/add priority role/i);
+    expect(select).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('initializes priority role list from existing template', () => {
