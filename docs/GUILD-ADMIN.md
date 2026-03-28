@@ -122,9 +122,12 @@ If your server hosts different types of games, create a separate template for ea
    - **Description**: What this template is for
 4. Configure the locked settings (hosts cannot change these):
    - **Channel**: Where games using this template will be announced
+   - **Archive Channel**: Channel where completed announcements are reposted when the game is archived (optional; leave empty to delete the original post without reposting)
+   - **Archive Delay**: How long after completion to wait before archiving (days/hours/minutes; leave empty to archive immediately)
    - **Notify Roles**: Discord roles to ping when a game is created
    - **Allowed Player Roles**: Roles that can join games (empty = everyone)
    - **Allowed Host Roles**: Roles that can create games from this template (empty = all bot managers)
+   - **Signup Priority Roles**: Ordered list of Discord roles that determines join priority when the game fills up (up to 8 roles, drag to reorder). Earlier positions take higher priority. Changing this list does not affect existing games — priority is captured per-participant at the moment they join.
 5. Optionally, configure the pre-populated defaults (hosts can override these):
    - **Max Players**: Default participant limit
    - **Expected Duration**: How long games typically last

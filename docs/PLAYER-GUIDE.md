@@ -9,6 +9,7 @@ Game announcements appear in Discord channels configured by your guild administr
 ### Game Announcement Format
 
 Game announcements include:
+
 - **Game Title**: The name of the session (e.g., "D&D Campaign Session", "Board Game Night")
 - **Scheduled Time**: When the game starts (displayed in your local timezone)
 - **Participant Count**: Current signups vs maximum (e.g., "3/5" means 3 signed up, 5 maximum)
@@ -18,6 +19,7 @@ Game announcements include:
 - **Join/Leave Buttons**: Interactive buttons to signup or withdraw
 
 Example message:
+
 ```
 🎮 D&D Campaign Session
 
@@ -54,6 +56,7 @@ Most games use "Self Signup" which allows you to join directly from Discord:
 ### Host-Selected Games
 
 Some games use "Host Selected" signup method:
+
 - The "Join Game" button is **disabled** (grayed out)
 - Only the host can add participants
 - You cannot join these games yourself - contact the host directly if interested
@@ -97,6 +100,12 @@ When a game reaches its maximum player capacity, additional players are automati
 - **Automatic Promotion**: If a confirmed player leaves, the first person on the waitlist is automatically promoted
 - **Promotion Notification**: You receive a DM when you're promoted from waitlist to confirmed participant
 
+### Role-Based Priority
+
+Some games use **Role Based** signup, where your Discord roles determine your position in the participant list. When you click Join, the bot checks your roles against the template's priority list and places you ahead of players without a matching role.
+
+Important: priority is captured **at the moment you join**. If your Discord roles change after you've signed up, your position in the list does not change. To get a new priority position after a role change, you would need to leave the game and rejoin.
+
 ### Checking Your Status
 
 - **Game Details Page**: Shows whether you're confirmed or waitlisted
@@ -117,6 +126,7 @@ The bot sends Direct Messages (DMs) for important game events:
 ### Join Confirmation (1 Minute Delay)
 
 After joining a game, you'll receive a DM **one minute later** with:
+
 - Confirmation message: "✅ You've joined [Game Title]"
 - Signup instructions (if the host provided any)
 - When the game starts (e.g., "Game starts in 2 days")
@@ -126,6 +136,7 @@ After joining a game, you'll receive a DM **one minute later** with:
 ### Reminder Notification
 
 Before the game starts, you'll receive a reminder DM:
+
 - Sent at the reminder time configured by the host (typically 24 hours before)
 - Includes game title, time, location, and participant list
 - Helps you remember upcoming games
@@ -133,6 +144,7 @@ Before the game starts, you'll receive a reminder DM:
 ### Waitlist Promotion
 
 If you're promoted from the waitlist to a confirmed participant:
+
 - You receive a DM immediately
 - Message explains that a spot opened up
 - You're now guaranteed a spot in the game
@@ -140,6 +152,7 @@ If you're promoted from the waitlist to a confirmed participant:
 ### Game Cancellation
 
 If the host cancels a game:
+
 - All participants receive a DM immediately
 - Message explains the game was canceled
 - Game status changes to "CANCELLED" in Discord
@@ -147,6 +160,7 @@ If the host cancels a game:
 ### Game Updates
 
 If the host makes significant changes to a game (time, location, etc.):
+
 - Participants may receive an update notification
 - Major changes (time/date) always trigger notifications
 - Minor description updates may not trigger notifications
@@ -168,6 +182,7 @@ You can download game sessions to your personal calendar (Google Calendar, Outlo
 ### Calendar Event Details
 
 The calendar event includes:
+
 - **Title**: Game session name
 - **Date/Time**: Scheduled start time (in your timezone)
 - **Duration**: Expected game length
@@ -178,6 +193,7 @@ The calendar event includes:
 ### Supported Calendar Apps
 
 The `.ics` format works with:
+
 - Google Calendar
 - Microsoft Outlook
 - Apple Calendar (macOS, iOS)
@@ -189,6 +205,7 @@ The `.ics` format works with:
 ### Why didn't I receive a DM?
 
 Check the following:
+
 1. **Discord Privacy Settings**: Ensure you allow DMs from server members
    - Go to Privacy & Safety → Direct Messages → "Allow direct messages from server members"
 2. **Blocked Bot**: Verify you haven't blocked the Game Scheduler bot
@@ -202,6 +219,7 @@ Yes! You can join as many games as you want. There's no limit on concurrent game
 ### What if the game time changes?
 
 If the host changes the game time:
+
 - You'll receive an update notification in your DMs
 - The Discord announcement is updated automatically
 - Your calendar event does NOT update automatically - download a new .ics file if needed
@@ -213,6 +231,7 @@ Contact the game host directly via Discord DM. Only hosts can edit games through
 ### What happens if I forget to leave a game?
 
 If you don't show up:
+
 - The host may manually remove you from the participant list
 - This could affect your ability to join future games (at the host's discretion)
 - Best practice: Leave games as soon as you know you can't attend
@@ -220,15 +239,19 @@ If you don't show up:
 ### Why is the "Join Game" button disabled?
 
 The join button is disabled when:
+
 - **Game has started**: Status is "IN_PROGRESS" or "COMPLETED"
 - **Game is canceled**: Status is "CANCELLED"
 - **Host-Selected signup method**: Only the host can add players
+
+Note: Role Based games use the same button as Self Signup — clicking it still works, your position in the list just depends on your Discord roles at that moment.
 
 Note: If the game is full but not started, you can still join and you'll be waitlisted automatically.
 
 ### Can I see all games in my guild?
 
 Yes! Use the web dashboard:
+
 1. Log in with your Discord account
 2. Select your guild
 3. Click "Browse Games"

@@ -23,6 +23,7 @@ This guide is for Discord guild members who want to create and manage game sessi
 ### OAuth Login Process
 
 The login process uses Discord's OAuth2 authentication:
+
 - Your login session is secure and expires after 24 hours
 - Access tokens are stored server-side, never exposed to the browser
 - You can revoke application access anytime via Discord's "Authorized Apps" settings
@@ -57,11 +58,13 @@ Game templates provide pre-filled defaults to speed up game creation. Your guild
 ### Filling Out Game Details
 
 Required fields:
+
 - **Title**: Name of your game session (e.g., "D&D Session 5", "Board Game Night")
 - **Scheduled Time**: When the game starts (DateTimePicker uses your browser's timezone)
 - **Channel**: Discord channel where the announcement will be posted
 
 Optional fields:
+
 - **Description**: Additional details about the game
 - **Location**: Where the game takes place (e.g., "Discord Voice Channel", "Local Game Store")
   - Defaults to template value if not specified
@@ -76,6 +79,7 @@ Optional fields:
 - **Signup Method**: How players can join the game
   - **Self Signup**: Players click Discord buttons to join/leave
   - **Host Selected**: Only you can add players (buttons disabled)
+  - **Role Based**: Players click Discord buttons to join, but their position in the participant list is determined by their Discord roles at the time they sign up. Members whose roles match the template's priority list are sorted ahead of other players. This is useful when a game is likely to fill up and you want certain role groups to have guaranteed spots over others.
   - Defaults to template's default method if not specified
 - **Initial Participants**: Pre-fill the participant list with Discord mentions or placeholders
   - Enter Discord usernames (e.g., `@PlayerName`) or plain text placeholders
@@ -83,12 +87,14 @@ Optional fields:
   - Invalid mentions will show suggestions for disambiguation
 
 **Bot Manager Exclusive Feature**:
+
 - **Host**: Bot managers can specify another user as the game host by entering their Discord mention
 - Regular users cannot access this field - games are automatically hosted by the creator
 
 ### Image Attachments (Optional)
 
 You can attach images to your game announcement:
+
 - **Thumbnail**: Small image displayed in the game card (max 5MB, PNG/JPEG/GIF/WebP)
 - **Full Image**: Larger image shown in detailed views (max 5MB, PNG/JPEG/GIF/WebP)
 
@@ -125,15 +131,34 @@ You can attach images to your game announcement:
 ### Managing Participants
 
 During game creation or editing, you can:
+
 - Add participants using Discord @mentions
 - Add placeholder participants (text without @mention)
 - Reorder participants using drag-and-drop
 - Remove participants before the game starts
 
 After game creation:
+
 - Players can join/leave using Discord buttons (if signup method is "Self Signup")
 - You can see who's joined in the game details page
 - Waitlist is automatically managed when max players is reached
+
+### Recording Rewards
+
+After a game completes, you can record what was awarded to participants:
+
+1. Open the game details page for a completed game
+2. Click "Edit Game"
+3. Enter reward details in the **Rewards** field (e.g., "Magic sword +1, 500 gold")
+4. Click "Update Game" to save
+
+Rewards are displayed as a spoiler in the archived game announcement so players can choose when to reveal them.
+
+If you checked **"Remind me to add rewards"** when creating the game, the bot will send you a DM when the game completes as a prompt to fill this in.
+
+### Save and Archive
+
+If your guild has an archive channel configured on the template, a **Save and Archive** button appears on the edit form once you have entered a rewards value for a completed game. Clicking it saves the rewards and immediately moves the game to the archive channel in a single step.
 
 ### Canceling Games
 
@@ -150,6 +175,7 @@ After game creation:
 ### Automatic Notifications
 
 The bot sends notifications to participants:
+
 - **Game Creation**: Announcement posted in the configured channel
 - **Reminder**: Sent at the time specified in "Reminder Time" (e.g., 24 hours before)
 - **Waitlist Promotion**: Players are notified if they move from waitlist to confirmed
@@ -159,6 +185,7 @@ The bot sends notifications to participants:
 ### Notification Roles
 
 Templates can specify Discord roles to ping when games are created:
+
 - Guild administrators configure which roles receive notifications
 - These roles are notified in addition to individual participants
 - Useful for game-type specific announcement roles (e.g., @RPG-Players, @BoardGamers)
@@ -182,6 +209,7 @@ Host permissions are configured by guild administrators in two ways:
 ### Checking Your Permissions
 
 If you can't see the "Create Game" button or templates:
+
 1. Check with your guild administrator about host permissions
 2. Verify you have the required roles
 3. Confirm the guild has configured game templates
