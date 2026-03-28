@@ -25,6 +25,9 @@ services:
   frontend:
     build:
       target: production
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
     volumes:
       - caddy_data:/data
       - caddy_config:/config
@@ -45,7 +48,6 @@ networks:
   app-network:
     name: ${CONTAINER_PREFIX:-gamebot-prod}-network
     driver: bridge
-    external: true
 
 volumes:
   caddy_data:
