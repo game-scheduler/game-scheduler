@@ -50,8 +50,8 @@ RUN npm run build
 # Production stage using Caddy
 FROM caddy:2-alpine AS production
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# Install curl for healthcheck; gettext provides envsubst used by the entrypoint
+RUN apk add --no-cache curl gettext
 
 # Copy built assets from builder stage
 COPY --from=builder /app/dist /srv
