@@ -1,54 +1,50 @@
 {
-    log {
-        level {$LOG_LEVEL:info}
-    }
-    email {$ACME_EMAIL}
+	log {
+		level {$LOG_LEVEL:info}
+	}
+	email {$ACME_EMAIL}
 }
 
 {$DOMAIN} {
-    root * /srv
-    encode gzip
+	root * /srv
+	encode gzip
 
-    # No-cache for runtime config injected at startup
-    @config_js path /config.js
-    header @config_js Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
-    header @config_js Expires "0"
+	# No-cache for runtime config injected at startup
+	@config_js path /config.js
+	header @config_js Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+	header @config_js Expires "0"
 
-    # Security headers
-    header X-Frame-Options "SAMEORIGIN"
-    header X-Content-Type-Options "nosniff"
-    header X-XSS-Protection "1; mode=block"
+	# Security headers
+	header X-Frame-Options "SAMEORIGIN"
+	header X-Content-Type-Options "nosniff"
+	header X-XSS-Protection "1; mode=block"
 
-    # SSE endpoint — must not buffer; long-lived connections
-    handle /api/v1/sse/* {
-        reverse_proxy api:8000 {
-            flush_interval -1
-            header_up Host {host}
-            header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
-            header_up X-Forwarded-Proto {scheme}
-        }
-    }
+	# SSE endpoint — must not buffer; long-lived connections
+	handle /api/v1/sse/* {
+		reverse_proxy api:8000 {
+			flush_interval -1
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
 
-    # API proxy with WebSocket upgrade support
-    handle /api/* {
-        reverse_proxy api:8000 {
-            header_up Host {host}
-            header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
-            header_up X-Forwarded-Proto {scheme}
-            header_up Upgrade {http.request.header.Upgrade}
-            header_up Connection {http.request.header.Connection}
-        }
-    }
+	# API proxy with WebSocket upgrade support
+	handle /api/* {
+		reverse_proxy api:8000 {
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up Upgrade {http.request.header.Upgrade}
+			header_up Connection {http.request.header.Connection}
+		}
+	}
 
-    # Static assets — 1-year immutable cache
-    @static_assets path_regexp \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$
-    header @static_assets Cache-Control "public, max-age=31536000, immutable"
+	# Static assets — 1-year immutable cache
+	@static_assets path_regexp \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$
+	header @static_assets Cache-Control "public, max-age=31536000, immutable"
 
-    # React Router — serve index.html for all unmatched paths
-    handle {
-        try_files {path} {path}/ /index.html
-        file_server
-    }
+	# React Router — serve index.html for all unmatched paths
+	handle {
+		try_files {path} {path}/ /index.html
+		file_server
+	}
 }
