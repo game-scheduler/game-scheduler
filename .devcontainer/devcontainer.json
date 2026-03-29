@@ -12,7 +12,8 @@
   "mounts": [
     "source=${localWorkspaceFolderBasename}-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume",
     "source=/etc/timezone,target=/etc/timezone,type=bind,readonly",
-    "source=/etc/localtime,target=/etc/localtime,type=bind,readonly"
+    "source=/etc/localtime,target=/etc/localtime,type=bind,readonly",
+    "source=/home/mckee/src/github.com/bretmckee/game-scheduler/main/.git,target=/home/mckee/src/github.com/bretmckee/game-scheduler/main/.git,type=bind"
   ],
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
@@ -52,7 +53,11 @@
             "args": ["-l"]
           }
         },
-        "terminal.integrated.cwd": "${workspaceFolder}"
+        "terminal.integrated.cwd": "${workspaceFolder}",
+        "files.watcherExclude": {
+          "**/frontend/node_modules/**": true,
+          "**/node_modules/**": true
+        }
       }
     }
   },
