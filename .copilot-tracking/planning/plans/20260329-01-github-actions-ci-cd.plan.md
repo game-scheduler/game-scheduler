@@ -47,10 +47,10 @@ Replace the existing `ci-cd.yml` workflow with a complete, pre-commit-parity pip
 - [x] Task 1.2: Implement `--compare-branch` in `check_commit_duplicates.py`
   - Details: .copilot-tracking/planning/details/20260329-01-github-actions-ci-cd-details.md (Lines 53-74)
 
-- [ ] Task 1.3: Write failing tests for `check_lint_suppressions.py --compare-branch` and `--ci`
+- [x] Task 1.3: Write failing tests for `check_lint_suppressions.py --compare-branch` and `--ci`
   - Details: .copilot-tracking/planning/details/20260329-01-github-actions-ci-cd-details.md (Lines 75-95)
 
-- [ ] Task 1.4: Implement `--compare-branch` and `--ci` in `check_lint_suppressions.py`
+- [x] Task 1.4: Implement `--compare-branch` and `--ci` in `check_lint_suppressions.py`
   - Details: .copilot-tracking/planning/details/20260329-01-github-actions-ci-cd-details.md (Lines 96-97)
 
 ### [ ] Phase 2: Rewrite GitHub Actions Workflow

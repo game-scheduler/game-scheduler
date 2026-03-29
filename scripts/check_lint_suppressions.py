@@ -26,6 +26,7 @@ Phase A: Permanently blocked patterns (bare/blanket suppressions) — fail immed
 Phase B: Counted patterns (specific suppressions) — fail if count exceeds APPROVED_OVERRIDES.
 """
 
+import argparse
 import os
 import re
 import shutil
@@ -58,13 +59,17 @@ _SCANNED_EXTENSIONS = frozenset({".py", ".ts", ".tsx", ".js", ".jsx"})
 _EXCLUDED_PATH_PREFIXES = ("tests/",)
 
 
-def _get_added_lines() -> list[tuple[str, int, str]]:
+def _get_added_lines(compare_branch: str | None = None) -> list[tuple[str, int, str]]:
     """Return (filename, lineno, text) for every added line in the staged diff."""
     git = shutil.which("git")
     if git is None:
         return []
+    if compare_branch is not None:
+        cmd = [git, "diff", f"{compare_branch}...HEAD", "--unified=0"]
+    else:
+        cmd = [git, "diff", "--cached", "--unified=0"]
     result = subprocess.run(  # noqa: S603 - Hardcoded args, shell=False, no user input
-        [git, "diff", "--cached", "--unified=0"],
+        cmd,
         capture_output=True,
         text=True,
         check=False,
@@ -94,7 +99,12 @@ def _get_added_lines() -> list[tuple[str, int, str]]:
 
 
 def main() -> None:
-    added_lines = _get_added_lines()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--compare-branch", dest="compare_branch", default=None)
+    parser.add_argument("--ci", action="store_true", default=False)
+    args = parser.parse_args()
+
+    added_lines = _get_added_lines(compare_branch=args.compare_branch)
 
     violations: list[tuple[str, int, str]] = [
         (filename, lineno, text.strip())
@@ -112,6 +122,10 @@ def main() -> None:
 
     count = sum(1 for _, _, text in added_lines if any(p.search(text) for p in COUNTED_PATTERNS))
     approved = int(os.environ.get("APPROVED_OVERRIDES", "0"))
+
+    if args.ci:
+        print(f"SUPPRESSION_COUNT={count}")
+        return
 
     if count > approved:
         print(f"ERROR: {count} quality check suppression(s) added in staged changes.")

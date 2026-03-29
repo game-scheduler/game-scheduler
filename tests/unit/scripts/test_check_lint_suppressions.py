@@ -24,6 +24,7 @@
 import importlib.util
 import io
 import os
+import sys
 from pathlib import Path
 from types import ModuleType
 from unittest import mock
@@ -60,13 +61,14 @@ def _run_main(diff: str, approved_overrides: str | None = None) -> tuple[int, st
     stdout_buf = io.StringIO()
     with mock.patch.object(check_lint_suppressions.subprocess, "run", return_value=mock_result):
         with mock.patch.dict(os.environ, env_patch, clear=clear):
-            with mock.patch("sys.stdout", stdout_buf):
-                try:
-                    check_lint_suppressions.main()
-                    return 0, stdout_buf.getvalue()
-                except SystemExit as exc:
-                    code = exc.code if isinstance(exc.code, int) else 1
-                    return code, stdout_buf.getvalue()
+            with mock.patch.object(sys, "argv", ["check_lint_suppressions.py"]):
+                with mock.patch("sys.stdout", stdout_buf):
+                    try:
+                        check_lint_suppressions.main()
+                        return 0, stdout_buf.getvalue()
+                    except SystemExit as exc:
+                        code = exc.code if isinstance(exc.code, int) else 1
+                        return code, stdout_buf.getvalue()
 
 
 def test_clean_diff_exits_zero():
@@ -217,3 +219,151 @@ def test_line_matching_blocked_and_counted_is_treated_as_blocked():
     assert code != 0
     assert "Bare/blanket" in out
     assert "file.py:1:" in out
+
+
+# ---------------------------------------------------------------------------
+# Task 1.3 tests: --compare-branch and --ci  (must fail before Task 1.4)
+# ---------------------------------------------------------------------------
+
+
+def _run_main_with_args(diff: str, argv: list[str]) -> tuple[int, str]:
+    """Run main() with explicit sys.argv and a mocked diff; return (exit_code, stdout)."""
+    mock_result = mock.Mock(stdout=diff)
+    captured = io.StringIO()
+    with mock.patch.object(check_lint_suppressions.subprocess, "run", return_value=mock_result):
+        with mock.patch.object(sys, "argv", ["check_lint_suppressions.py", *argv]):
+            with mock.patch("sys.stdout", captured):
+                try:
+                    check_lint_suppressions.main()
+                    return 0, captured.getvalue()
+                except SystemExit as exc:
+                    code = exc.code if isinstance(exc.code, int) else 1
+                    return code, captured.getvalue()
+
+
+def test_get_added_lines_with_compare_branch_uses_three_dot_diff():
+    """_get_added_lines(compare_branch=...) invokes git diff <branch>...HEAD, not --cached."""
+    diff = _make_added_diff("services/api/main.py", "x = 1")
+    mock_result = mock.Mock(stdout=diff)
+
+    with mock.patch.object(
+        check_lint_suppressions.subprocess, "run", return_value=mock_result
+    ) as mock_run:
+        check_lint_suppressions._get_added_lines(compare_branch="origin/main")
+
+    args = mock_run.call_args[0][0]
+    assert "origin/main...HEAD" in args
+    assert "--cached" not in args
+    assert "--unified=0" in args
+
+
+def test_get_added_lines_without_compare_branch_uses_cached():
+    """_get_added_lines() without compare_branch uses --cached (pre-commit behaviour)."""
+    diff = _make_added_diff("services/api/main.py", "x = 1")
+    mock_result = mock.Mock(stdout=diff)
+
+    with mock.patch.object(
+        check_lint_suppressions.subprocess, "run", return_value=mock_result
+    ) as mock_run:
+        check_lint_suppressions._get_added_lines()
+
+    args = mock_run.call_args[0][0]
+    assert "--cached" in args
+    assert "--unified=0" in args
+
+
+def test_ci_flag_counted_pattern_exits_zero_and_outputs_count():
+    """With --ci and a COUNTED suppression, exits 0 and prints SUPPRESSION_COUNT=1 to stdout."""
+    diff = _make_added_diff("services/api/main.py", "x = 1  # noqa: E501")
+    exit_code, stdout = _run_main_with_args(diff, ["--ci"])
+    assert exit_code == 0
+    assert "SUPPRESSION_COUNT=1" in stdout
+
+
+def test_ci_flag_zero_suppressions_outputs_zero_count():
+    """With --ci and no suppressions, exits 0 and prints SUPPRESSION_COUNT=0."""
+    diff = _make_added_diff("services/api/main.py", "x = 1")
+    exit_code, stdout = _run_main_with_args(diff, ["--ci"])
+    assert exit_code == 0
+    assert "SUPPRESSION_COUNT=0" in stdout
+
+
+def test_ci_flag_counted_multiple_suppressions_accurate_count():
+    """With --ci and multiple COUNTED suppressions, SUPPRESSION_COUNT reflects all of them."""
+    diff = _make_added_diff(
+        "services/api/main.py",
+        "x = 1  # noqa: E501",
+        "y = 2  # noqa: W503",
+        "z: int = 3  # type: ignore[assignment]",
+    )
+    exit_code, stdout = _run_main_with_args(diff, ["--ci"])
+    assert exit_code == 0
+    assert "SUPPRESSION_COUNT=3" in stdout
+
+
+def test_no_ci_flag_counted_pattern_exits_nonzero():
+    """Without --ci, a COUNTED suppression causes non-zero exit (pre-commit behaviour unchanged)."""
+    diff = _make_added_diff("services/api/main.py", "x = 1  # noqa: E501")
+    exit_code, _stdout = _run_main_with_args(diff, [])
+    assert exit_code != 0
+
+
+def test_blocked_pattern_exits_one_with_ci_flag():
+    """BLOCKED bare suppression exits 1 even when --ci is passed."""
+    diff = _make_added_diff("services/api/main.py", "x = 1  # noqa")
+    exit_code, _stdout = _run_main_with_args(diff, ["--ci"])
+    assert exit_code == 1
+
+
+def test_ts_ignore_blocked_exits_one_with_ci():
+    """TypeScript @ts-ignore (BLOCKED) exits 1 even with --ci."""
+    diff = _make_added_diff("frontend/src/foo.ts", "  // @ts-ignore")
+    exit_code, _stdout = _run_main_with_args(diff, ["--ci"])
+    assert exit_code == 1
+
+
+def test_compare_branch_arg_forwarded_to_diff():
+    """--compare-branch <ref> causes git diff to use <ref>...HEAD instead of --cached."""
+    diff = _make_added_diff("services/api/main.py", "x = 1")
+    mock_result = mock.Mock(stdout=diff)
+
+    with mock.patch.object(
+        check_lint_suppressions.subprocess, "run", return_value=mock_result
+    ) as mock_run:
+        with mock.patch.object(
+            sys, "argv", ["check_lint_suppressions.py", "--compare-branch", "origin/main"]
+        ):
+            with mock.patch("sys.stdout", io.StringIO()):
+                try:
+                    check_lint_suppressions.main()
+                except SystemExit:
+                    pass
+
+    args = mock_run.call_args[0][0]
+    assert "origin/main...HEAD" in args
+    assert "--cached" not in args
+
+
+def test_compare_branch_and_ci_together():
+    """--compare-branch and --ci can be combined: branch diff source with CI exit behaviour."""
+    diff = _make_added_diff("services/api/main.py", "x = 1  # noqa: E501")
+    mock_result = mock.Mock(stdout=diff)
+
+    with mock.patch.object(
+        check_lint_suppressions.subprocess, "run", return_value=mock_result
+    ) as mock_run:
+        captured = io.StringIO()
+        with mock.patch.object(
+            sys, "argv", ["check_lint_suppressions.py", "--compare-branch", "origin/main", "--ci"]
+        ):
+            with mock.patch("sys.stdout", captured):
+                try:
+                    check_lint_suppressions.main()
+                    exit_code = 0
+                except SystemExit as exc:
+                    exit_code = exc.code if isinstance(exc.code, int) else 1
+
+    args = mock_run.call_args[0][0]
+    assert "origin/main...HEAD" in args
+    assert exit_code == 0
+    assert "SUPPRESSION_COUNT=1" in captured.getvalue()
