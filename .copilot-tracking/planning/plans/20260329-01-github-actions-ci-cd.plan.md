@@ -53,12 +53,12 @@ Replace the existing `ci-cd.yml` workflow with a complete, pre-commit-parity pip
 - [x] Task 1.4: Implement `--compare-branch` and `--ci` in `check_lint_suppressions.py`
   - Details: .copilot-tracking/planning/details/20260329-01-github-actions-ci-cd-details.md (Lines 96-97)
 
-### [ ] Phase 2: Rewrite GitHub Actions Workflow
+### [x] Phase 2: Rewrite GitHub Actions Workflow
 
-- [ ] Task 2.1: Replace `.github/workflows/ci-cd.yml` with the complete new workflow
+- [x] Task 2.1: Replace `.github/workflows/ci-cd.yml` with the complete new workflow
   - Details: .copilot-tracking/planning/details/20260329-01-github-actions-ci-cd-details.md (Lines 100-266)
 
-- [ ] Task 2.2: Document `lint-suppression-review` environment prerequisite
+- [x] Task 2.2: Document `lint-suppression-review` environment prerequisite
   - Details: .copilot-tracking/planning/details/20260329-01-github-actions-ci-cd-details.md (Lines 267-286)
 
 ## Dependencies

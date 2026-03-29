@@ -1,10 +1,16 @@
+# CI/CD Pipeline
+#
+# PREREQUISITE: The `suppression-gate` job requires a GitHub Environment named
+# `lint-suppression-review` with designated required reviewers. This environment
+# must be created manually in repository Settings → Environments before the
+# workflow functions correctly. See docs/developer/ci-cd.md for setup steps.
+
 name: CI/CD Pipeline
 
 on:
   push:
     branches: [main, develop]
-    tags:
-      - 'v*.*.*'
+    tags: ['v*.*.*']
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
@@ -18,6 +24,82 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Python dependencies
+        run: uv sync --dev
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Check copyright headers
+        run: |
+          uv run autocopyright -s "#" -l ./templates/mit-template.jinja2 services/ shared/ scripts/ tests/
+          uv run autocopyright -s "//" -l ./templates/mit-template.jinja2 frontend/src/
+          git diff --exit-code
+
+      - name: Python compilation check
+        run: uv run python -m compileall -q services shared tests
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Mypy type check
+        run: uv run mypy shared/ services/
+
+      - name: Prettier format check
+        working-directory: frontend
+        run: npm run format:check
+
+      - name: ESLint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: TypeScript type check
+        working-directory: frontend
+        run: npm run type-check
+
+      - name: Complexipy cognitive complexity
+        run: uv run complexipy .
+
+      - name: Lizard TypeScript complexity
+        run: uv run lizard -l typescript frontend/src/ --CCN 15 --warnings_only
+
+      - name: Check for blocked lint suppressions
+        run: uv run python scripts/check_lint_suppressions.py
+
+      - name: Check for merge conflict markers
+        run: |
+          if grep -rn '<<<<<<< ' --include='*.py' --include='*.ts' --include='*.tsx' .; then
+            echo "ERROR: Merge conflict markers found"
+            exit 1
+          fi
+
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -35,23 +117,111 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: |
-          uv sync --dev
-          uv add pytest pytest-asyncio pytest-cov
+        run: uv sync --dev
 
       - name: Run unit tests
         env:
           TESTING: true
-        run: |
-          uv run pytest tests/services/ tests/shared/ --cov=shared --cov=services --cov-report=xml --cov-report=term-missing
+        run: uv run pytest --timeout=30 -p no:randomly --cov --cov-report=xml -qq
 
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        if: matrix.python-version == '3.11'
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
         with:
-          file: ./coverage.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
-        continue-on-error: true
+          name: python-coverage
+          path: coverage.xml
+          retention-days: 1
+
+  diff-coverage:
+    name: Python Diff Coverage
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: python-coverage
+
+      - name: Check diff coverage
+        run: >
+          uv run diff-cover coverage.xml
+          --compare-branch=origin/${{ github.base_ref }}
+          --fail-under=90
+          --ignore-whitespace
+
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests with coverage
+        working-directory: frontend
+        run: npm run test:coverage
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Fix lcov paths for diff-cover
+        if: github.event_name == 'pull_request'
+        working-directory: frontend
+        run: |
+          sed "s|^SF:src/|SF:frontend/src/|g" coverage/lcov.info > coverage/lcov-fixed.info
+
+      - name: Install uv
+        if: github.event_name == 'pull_request'
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        if: github.event_name == 'pull_request'
+        run: uv python install 3.13
+
+      - name: Install Python dependencies
+        if: github.event_name == 'pull_request'
+        run: uv sync --dev
+
+      - name: Check frontend diff coverage
+        if: github.event_name == 'pull_request'
+        run: >
+          uv run diff-cover frontend/coverage/lcov-fixed.info
+          --compare-branch=origin/${{ github.base_ref }}
+          --fail-under=90
+          --ignore-whitespace
 
   integration-tests:
     name: Integration Tests
@@ -107,8 +277,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: |
-          uv sync --dev
+        run: uv sync --dev
 
       - name: Initialize database schema
         env:
@@ -117,15 +286,13 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: test_db
-        run: |
-          uv run alembic upgrade head
+        run: uv run alembic upgrade head
 
       - name: Initialize RabbitMQ infrastructure
         env:
           RABBITMQ_URL: amqp://test:test@localhost:5672/
           PYTHONPATH: .
-        run: |
-          uv run python -m services.init.rabbitmq
+        run: uv run python -m services.init.rabbitmq
 
       - name: Start retry daemon
         env:
@@ -148,23 +315,20 @@ jobs:
           RABBITMQ_DEFAULT_USER: test
           RABBITMQ_DEFAULT_PASS: test
           TESTING: true
-        run: |
-          uv run pytest tests/integration/ --cov=shared --cov=services --cov-report=xml --cov-report=term-missing
+        run: uv run pytest tests/integration/ -m integration
 
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
-        continue-on-error: true
-
-  lint:
-    name: Run Linters
+  check-suppressions:
+    name: Check Lint Suppressions
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    outputs:
+      suppression_count: ${{ steps.scan.outputs.suppression_count }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
@@ -177,19 +341,105 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
 
-      - name: Run ruff linter
-        run: uv run ruff check .
+      - name: Scan for counted suppressions
+        id: scan
+        run: |
+          output=$(uv run python scripts/check_lint_suppressions.py \
+            --compare-branch origin/${{ github.base_ref }} \
+            --ci)
+          count=$(echo "$output" | grep '^SUPPRESSION_COUNT=' | cut -d= -f2)
+          echo "suppression_count=${count:-0}" >> "$GITHUB_OUTPUT"
 
-      - name: Run ruff formatter
-        run: uv run ruff format --check .
+  suppression-gate:
+    name: Suppression Gate
+    runs-on: ubuntu-latest
+    needs: check-suppressions
+    if: >
+      github.event_name == 'pull_request' &&
+      needs.check-suppressions.outputs.suppression_count > 0
+    environment: lint-suppression-review
 
-      - name: Run mypy type checker
-        run: uv run mypy shared/ services/
+    steps:
+      - name: Suppression gate passed by reviewer
+        run: echo "Suppression gate passed by reviewer"
+
+  jscpd-check:
+    name: Duplicate Code Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Generate duplicate code report
+        run: >
+          npx jscpd services shared frontend/src
+          --config .jscpd.json
+          --threshold 100
+          --reporters json
+          --output .jscpd-report
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install Python dependencies
+        run: uv sync --dev
+
+      - name: Check duplicates against PR diff
+        run: >
+          uv run python scripts/check_commit_duplicates.py
+          .jscpd-report/jscpd-report.json
+          --compare-branch origin/${{ github.base_ref }}
+
+  docker-build:
+    name: Docker Build (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, frontend-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    strategy:
+      matrix:
+        service: [api, bot, scheduler, frontend, init, retry]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/${{ matrix.service }}.Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   build-and-publish:
-    name: Build and Publish Containers
+    name: Build and Publish (${{ matrix.service }})
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, lint, frontend-test]
+    needs: [code-quality, unit-tests, frontend-tests, integration-tests]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
 
     permissions:
@@ -198,14 +448,11 @@ jobs:
 
     strategy:
       matrix:
-        service: [api, bot, scheduler, frontend, init]
+        service: [api, bot, scheduler, frontend, init, retry]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
@@ -225,6 +472,9 @@ jobs:
             type=semver,pattern={{major}}
             type=raw,value=latest
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -236,34 +486,3 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
-
-  frontend-test:
-    name: Frontend Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Run frontend linter
-        working-directory: frontend
-        run: npm run lint
-
-      - name: Run frontend tests
-        working-directory: frontend
-        run: npm run test:ci
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
