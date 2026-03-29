@@ -367,7 +367,7 @@ export const TemplateForm: FC<TemplateFormProps> = ({
             error={!!descriptionError}
             helperText={getDescriptionHelperText()}
             multiline
-            rows={2}
+            minRows={6}
             fullWidth
           />
 
@@ -645,7 +645,7 @@ export const TemplateForm: FC<TemplateFormProps> = ({
             error={!!signupInstructionsError}
             helperText={getSignupInstructionsHelperText()}
             multiline
-            rows={3}
+            minRows={6}
             fullWidth
           />
         </Box>

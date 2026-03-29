@@ -753,7 +753,7 @@ export const GameForm: FC<GameFormProps> = ({
             fullWidth
             required
             multiline
-            rows={3}
+            minRows={6}
             label="Description"
             name="description"
             value={formData.description}
@@ -772,7 +772,7 @@ export const GameForm: FC<GameFormProps> = ({
           <TextField
             fullWidth
             multiline
-            rows={2}
+            minRows={6}
             label="Signup Instructions"
             name="signupInstructions"
             value={formData.signupInstructions}
