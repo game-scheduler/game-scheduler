@@ -505,6 +505,12 @@ def test_render_where_display_none_input():
     assert result is None
 
 
+def test_render_where_display_plain_text_returns_none():
+    """render_where_display returns None for plain text with no channel tokens."""
+    result = resolver_module.render_where_display("The Rusty Flagon, table 3", [])
+    assert result is None
+
+
 def test_render_where_display_replaces_tokens():
     """render_where_display replaces <#id> tokens with #name using provided channel list."""
     channels = [

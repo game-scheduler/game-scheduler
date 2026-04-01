@@ -114,6 +114,7 @@ export interface GameSession {
   rewards?: string | null;
   remind_host_rewards?: boolean;
   archive_channel_id?: string | null;
+  where_display?: string | null;
 }
 
 export interface Participant {

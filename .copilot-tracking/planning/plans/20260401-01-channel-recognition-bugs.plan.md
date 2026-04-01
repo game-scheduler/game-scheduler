@@ -83,15 +83,15 @@ the web UI renders human-readable channel names instead of raw `<#id>` tokens.
 - [x] Task 3.2: Add resolver to `update_game` (GREEN)
   - Details: .copilot-tracking/planning/details/20260401-01-channel-recognition-bugs-details.md (Lines 162-179)
 
-### [ ] Phase 4: Frontend — Types and Display
+### [x] Phase 4: Frontend — Types and Display
 
-- [ ] Task 4.1: Add `where_display` to `GameSession` type
+- [x] Task 4.1: Add `where_display` to `GameSession` type
   - Details: .copilot-tracking/planning/details/20260401-01-channel-recognition-bugs-details.md (Lines 182-195)
 
-- [ ] Task 4.2: Render `where_display` in `GameCard` and `GameDetails`
+- [x] Task 4.2: Render `where_display` in `GameCard` and `GameDetails`
   - Details: .copilot-tracking/planning/details/20260401-01-channel-recognition-bugs-details.md (Lines 196-213)
 
-- [ ] Task 4.3: Update `GameForm` pre-populate and suggestion click handler (Bug 3 GREEN)
+- [x] Task 4.3: Update `GameForm` pre-populate and suggestion click handler (Bug 3 GREEN)
   - Details: .copilot-tracking/planning/details/20260401-01-channel-recognition-bugs-details.md (Lines 214-237)
 
 ### [ ] Phase 5: Frontend — EditGame 422 Handling

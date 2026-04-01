@@ -308,9 +308,9 @@ export const GameDetails: FC = () => {
               </Typography>
             )}
           </Box>
-          {game.where && (
+          {(game.where_display ?? game.where) && (
             <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem' }}>
-              <strong>Where:</strong> {game.where}
+              <strong>Where:</strong> {game.where_display ?? game.where}
             </Typography>
           )}
           <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem' }}>

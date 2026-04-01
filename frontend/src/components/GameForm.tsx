@@ -195,7 +195,7 @@ export const GameForm: FC<GameFormProps> = ({
     description: initialData?.description || '',
     signupInstructions: initialData?.signup_instructions || '',
     scheduledAt: initialData?.scheduled_at ? new Date(initialData.scheduled_at) : getNextHalfHour(),
-    where: initialData?.where || '',
+    where: initialData?.where_display ?? initialData?.where ?? '',
     channelId: initialData?.channel_id || '',
     maxPlayers: initialData?.max_players?.toString() || '10',
     reminderMinutes: initialData?.reminder_minutes?.join(', ') || '',
@@ -244,7 +244,7 @@ export const GameForm: FC<GameFormProps> = ({
         scheduledAt: initialData.scheduled_at
           ? new Date(initialData.scheduled_at)
           : getNextHalfHour(),
-        where: initialData.where || '',
+        where: initialData.where_display ?? initialData.where ?? '',
         channelId: initialData.channel_id || '',
         maxPlayers: initialData.max_players?.toString() || '10',
         reminderMinutes: initialData.reminder_minutes?.join(', ') || '',
@@ -509,6 +509,14 @@ export const GameForm: FC<GameFormProps> = ({
     }));
   };
 
+  const handleChannelSuggestionClick = (originalInput: string, newChannelName: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      where: prev.where.trim() === originalInput.trim() ? newChannelName : prev.where,
+    }));
+    onChannelValidationErrorClick?.(originalInput, newChannelName);
+  };
+
   const handleSuggestionClick = (originalInput: string, newUsername: string) => {
     const updatedParticipants = formData.participants.map((p) =>
       p.mention.trim() === originalInput.trim()
@@ -580,10 +588,10 @@ export const GameForm: FC<GameFormProps> = ({
           <ValidationErrors errors={validationErrors} onSuggestionClick={handleSuggestionClick} />
         )}
 
-        {channelValidationErrors && onChannelValidationErrorClick && (
+        {channelValidationErrors && (
           <ChannelValidationErrors
             errors={channelValidationErrors}
-            onSuggestionClick={onChannelValidationErrorClick}
+            onSuggestionClick={handleChannelSuggestionClick}
           />
         )}
 

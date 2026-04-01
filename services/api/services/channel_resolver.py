@@ -159,12 +159,15 @@ def render_where_display(where: str | None, channels: list[dict]) -> str | None:
     """
     Replace `<#id>` tokens in a stored location string with `#name`.
 
-    Returns None if `where` is None. Leaves tokens with unknown IDs unchanged.
+    Returns None if `where` is None or contains no `<#id>` tokens (plain text).
+    Leaves tokens with unknown IDs unchanged.
     """
     if where is None:
         return None
-    id_to_name = {ch["id"]: ch["name"] for ch in channels}
     pattern = re.compile(r"<#(\d+)>")
+    if not pattern.search(where):
+        return None
+    id_to_name = {ch["id"]: ch["name"] for ch in channels}
 
     def _replace(m: re.Match) -> str:
         name = id_to_name.get(m.group(1))
