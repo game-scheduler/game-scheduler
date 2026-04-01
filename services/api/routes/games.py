@@ -44,7 +44,11 @@ from services.api.services import display_names as display_names_module
 from services.api.services import games as games_service
 from services.api.services import participant_resolver as resolver_module
 from shared import database
-from shared.discord.client import fetch_channel_name_safe, fetch_guild_name_safe
+from shared.discord.client import (
+    fetch_channel_name_safe,
+    fetch_guild_name_safe,
+    get_guild_channels_safe,
+)
 from shared.messaging import deferred_publisher as messaging_deferred_publisher
 from shared.messaging import publisher as messaging_publisher
 from shared.models import game as game_model
@@ -910,6 +914,11 @@ async def _build_game_response(
     participant_responses = _build_participant_responses(partitioned, display_data_map)
     host_response = _build_host_response(game, host_discord_id, display_data_map)
 
+    where_display = None
+    if game.guild:
+        channels = await get_guild_channels_safe(game.guild.guild_id)
+        where_display = channel_resolver_module.render_where_display(game.where, channels)
+
     return game_schemas.GameResponse(
         id=game.id,
         title=game.title,
@@ -917,6 +926,7 @@ async def _build_game_response(
         signup_instructions=game.signup_instructions,
         scheduled_at=datetime_utils.format_datetime_as_utc(game.scheduled_at),
         where=game.where,
+        where_display=where_display,
         max_players=game.max_players,
         guild_id=game.guild_id,
         guild_name=guild_name,

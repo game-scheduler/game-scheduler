@@ -186,6 +186,9 @@ class GameResponse(BaseModel):
     )
     scheduled_at: str = Field(..., description="Game start time (ISO 8601 UTC timestamp)")
     where: str | None = Field(None, description="Game location")
+    where_display: str | None = Field(
+        None, description="Game location with channel IDs resolved to display names"
+    )
     max_players: int | None = Field(None, description="Max players (resolved)")
     guild_id: str = Field(..., description="Guild ID (UUID)")
     guild_name: str | None = Field(None, description="Guild name")

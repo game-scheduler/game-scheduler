@@ -39,6 +39,7 @@ from shared.discord.client import (
     fetch_channel_name_safe,
     fetch_guild_name_safe,
     fetch_user_display_name_safe,
+    get_guild_channels_safe,
 )
 
 
@@ -2134,3 +2135,38 @@ class TestHelperFunctions:
             result = await fetch_guild_name_safe("guild_id")
 
         assert result == "Global Server"
+
+    @pytest.mark.asyncio
+    async def test_get_guild_channels_safe_success(self):
+        """get_guild_channels_safe() returns channel list on success."""
+        channels = [{"id": "111", "name": "general", "type": 0}]
+        mock_client = MagicMock()
+        mock_client.get_guild_channels = AsyncMock(return_value=channels)
+
+        result = await get_guild_channels_safe("guild123", client=mock_client)
+
+        assert result == channels
+
+    @pytest.mark.asyncio
+    async def test_get_guild_channels_safe_error(self):
+        """get_guild_channels_safe() returns empty list on DiscordAPIError."""
+        mock_client = MagicMock()
+        mock_client.get_guild_channels = AsyncMock(
+            side_effect=DiscordAPIError(500, "Internal Error")
+        )
+
+        result = await get_guild_channels_safe("guild123", client=mock_client)
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_get_guild_channels_safe_uses_global_client_when_none(self):
+        """get_guild_channels_safe() calls _get_global_client() when no client provided."""
+        channels = [{"id": "222", "name": "announcements", "type": 0}]
+        mock_client = MagicMock()
+        mock_client.get_guild_channels = AsyncMock(return_value=channels)
+
+        with patch("shared.discord.client._get_global_client", return_value=mock_client):
+            result = await get_guild_channels_safe("guild_id")
+
+        assert result == channels

@@ -34,6 +34,7 @@ import pytest
 from fastapi import HTTPException, UploadFile
 
 from services.api.routes.games import (
+    _build_game_response,
     _build_host_response,
     _build_participant_responses,
     _fetch_discord_names,
@@ -42,6 +43,7 @@ from services.api.routes.games import (
     _resolve_display_data,
 )
 from shared.models.participant import ParticipantType
+from shared.schemas.participant import ParticipantResponse
 
 
 class TestParseUpdateFormData:
@@ -382,6 +384,79 @@ class TestBuildGameResponseHelpers:
         assert response.discord_id == "host_discord"
         assert response.display_name is None
         assert response.avatar_url is None
+
+
+class TestBuildGameResponse:
+    """Tests for the full _build_game_response function."""
+
+    @patch("services.api.routes.games.get_guild_channels_safe", new_callable=AsyncMock)
+    @patch("services.api.routes.games.channel_resolver_module.render_where_display")
+    @patch("services.api.routes.games._build_host_response")
+    @patch("services.api.routes.games._build_participant_responses")
+    @patch("services.api.routes.games.participant_sorting.partition_participants")
+    @patch("services.api.routes.games._fetch_discord_names", new_callable=AsyncMock)
+    @patch("services.api.routes.games._resolve_display_data", new_callable=AsyncMock)
+    @patch("services.api.routes.games.datetime_utils.format_datetime_as_utc")
+    async def test_where_display_populated_when_where_contains_snowflake_token(
+        self,
+        mock_format_dt,
+        mock_resolve,
+        mock_fetch_discord,
+        mock_partition,
+        mock_build_participants,
+        mock_build_host,
+        mock_render,
+        mock_get_channels,
+    ):
+        """_build_game_response populates where_display by resolving <#id> tokens."""
+        game = MagicMock()
+        game.id = "game123"
+        game.participants = []
+        game.max_players = 6
+        game.where = "<#123456>"
+        game.title = "Test Game"
+        game.description = None
+        game.signup_instructions = None
+        game.guild_id = "guild123"
+        game.channel_id = "channel_db_id"
+        game.message_id = None
+        game.reminder_minutes = None
+        game.expected_duration_minutes = None
+        game.notify_role_ids = None
+        game.status = "SCHEDULED"
+        game.signup_method = "SELF_SIGNUP"
+        game.thumbnail_id = None
+        game.banner_image_id = None
+        game.rewards = None
+        game.remind_host_rewards = False
+        game.archive_channel_id = None
+        game.guild = MagicMock()
+        game.guild.guild_id = "guild_discord_123"
+
+        mock_format_dt.return_value = "2026-01-01T00:00:00Z"
+        mock_resolve.return_value = ({}, None)
+        mock_fetch_discord.return_value = (None, None)
+        mock_partition.return_value = MagicMock(all_sorted=[])
+        mock_build_participants.return_value = []
+        mock_build_host.return_value = ParticipantResponse(
+            id="host123",
+            game_session_id="game123",
+            user_id="host123",
+            discord_id=None,
+            display_name=None,
+            avatar_url=None,
+            joined_at="2026-01-01T00:00:00Z",
+            position_type=ParticipantType.SELF_ADDED,
+            position=0,
+        )
+        channels = [{"id": "123456", "name": "general", "type": 0}]
+        mock_get_channels.return_value = channels
+        mock_render.return_value = "#general"
+
+        response = await _build_game_response(game)
+
+        assert response.where_display == "#general"
+        mock_render.assert_called_once_with("<#123456>", channels)
 
 
 @pytest.fixture

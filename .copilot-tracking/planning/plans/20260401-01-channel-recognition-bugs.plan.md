@@ -64,15 +64,15 @@ the web UI renders human-readable channel names instead of raw `<#id>` tokens.
 - [x] Task 1.4: Add `render_where_display` function (GREEN)
   - Details: .copilot-tracking/planning/details/20260401-01-channel-recognition-bugs-details.md (Lines 63-85)
 
-### [ ] Phase 2: Backend Schema and API Response (TDD)
+### [x] Phase 2: Backend Schema and API Response (TDD)
 
-- [ ] Task 2.1: Write xfail test for `where_display` in `_build_game_response`
+- [x] Task 2.1: Write xfail test for `where_display` in `_build_game_response`
   - Details: .copilot-tracking/planning/details/20260401-01-channel-recognition-bugs-details.md (Lines 88-102)
 
-- [ ] Task 2.2: Add `where_display` field to `GameResponse`
+- [x] Task 2.2: Add `where_display` field to `GameResponse`
   - Details: .copilot-tracking/planning/details/20260401-01-channel-recognition-bugs-details.md (Lines 103-119)
 
-- [ ] Task 2.3: Populate `where_display` in `_build_game_response` (GREEN)
+- [x] Task 2.3: Populate `where_display` in `_build_game_response` (GREEN)
   - Details: .copilot-tracking/planning/details/20260401-01-channel-recognition-bugs-details.md (Lines 120-142)
 
 ### [ ] Phase 3: Backend — Edit Path (TDD)

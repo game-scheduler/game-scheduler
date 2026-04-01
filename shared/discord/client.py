@@ -909,3 +909,25 @@ async def fetch_guild_name_safe(guild_id: str, client: DiscordAPIClient | None =
     except DiscordAPIError as e:
         logger.warning("Could not fetch guild name for %s: %s", guild_id, e)
         return guild_id
+
+
+async def get_guild_channels_safe(
+    guild_id: str, client: DiscordAPIClient | None = None
+) -> list[dict]:
+    """
+    Fetch guild channels from Discord API with error handling.
+
+    Args:
+        guild_id: Discord guild ID
+        client: DiscordAPIClient instance (optional, uses global if not provided)
+
+    Returns:
+        List of channel dicts, or empty list on error
+    """
+    if client is None:
+        client = _get_global_client()
+    try:
+        return await client.get_guild_channels(guild_id)
+    except DiscordAPIError as e:
+        logger.warning("Could not fetch guild channels for %s: %s", guild_id, e)
+        return []
