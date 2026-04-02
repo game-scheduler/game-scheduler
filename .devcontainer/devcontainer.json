@@ -13,7 +13,7 @@
     "source=${localWorkspaceFolderBasename}-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume",
     "source=/etc/timezone,target=/etc/timezone,type=bind,readonly",
     "source=/etc/localtime,target=/etc/localtime,type=bind,readonly",
-    "source=/home/mckee/src/github.com/bretmckee/game-scheduler/main/.git,target=/home/mckee/src/github.com/bretmckee/game-scheduler/main/.git,type=bind"
+    "source=${localWorkspaceFolder}/..,target=${localWorkspaceFolder}/..,type=bind"
   ],
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
@@ -34,7 +34,7 @@
         "dbaeumer.vscode-eslint"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.defaultInterpreterPath": "/usr/bin/python3.13",
         "python.formatting.provider": "none",
         "[python]": {
           "editor.defaultFormatter": "charliermarsh.ruff",

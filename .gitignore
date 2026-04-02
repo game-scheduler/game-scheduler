@@ -85,3 +85,6 @@ complexipy.json
 # Tee'd command output files
 output*.txt
 output*.log
+
+# Git worktrees
+trees/
