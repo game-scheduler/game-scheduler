@@ -1,9 +1,24 @@
 # Development Container for Game Scheduler
 # Optimized for VS Code Dev Containers with full tooling
-FROM python:3.13-slim
+FROM ubuntu:24.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install prerequisites for adding PPAs
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    gnupg \
+    software-properties-common \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add git-core PPA (git 2.48+ for relative worktree path support) and deadsnakes PPA (Python 3.13)
+RUN add-apt-repository -y ppa:git-core/ppa \
+    && add-apt-repository -y ppa:deadsnakes/ppa \
+    && apt-get update
 
 # Install system dependencies and development tools
-RUN apt-get update && apt-get install -y \
+RUN apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     make \
@@ -14,6 +29,9 @@ RUN apt-get update && apt-get install -y \
     less \
     sudo \
     locales \
+    python3.13 \
+    python3.13-venv \
+    python3.13-dev \
     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
     && locale-gen \
     && rm -rf /var/lib/apt/lists/*
@@ -22,6 +40,11 @@ RUN apt-get update && apt-get install -y \
 ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8
+
+# Set python3.13 as the default python3/python and bootstrap pip
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1 \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.13 1 \
+    && python3.13 -m ensurepip --upgrade
 
 # Install nektos/act for local GitHub Actions testing
 ARG ACT_VERSION=0.2.83
@@ -32,7 +55,7 @@ RUN curl -L "https://github.com/nektos/act/releases/download/v${ACT_VERSION}/act
 WORKDIR /app
 
 # Install uv for dependency management
-RUN pip install --no-cache-dir uv
+RUN python3.13 -m pip install --no-cache-dir uv
 
 # Copy dependency files
 COPY pyproject.toml ./
@@ -42,10 +65,13 @@ RUN uv pip install --system . && \
     uv pip install --system --group dev
 
 # Create non-root user with sudo access for development
-RUN groupadd --gid 1000 vscode && \
-    useradd --uid 1000 --gid 1000 -m -s /bin/bash vscode && \
-    echo "vscode ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/vscode && \
-    chmod 0440 /etc/sudoers.d/vscode
+# ubuntu:24.04 ships a default 'ubuntu' user at UID/GID 1000; remove it first.
+RUN userdel -r ubuntu 2>/dev/null || true \
+    && groupdel ubuntu 2>/dev/null || true \
+    && groupadd --gid 1000 vscode \
+    && useradd --uid 1000 --gid 1000 -m -s /bin/bash vscode \
+    && echo "vscode ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/vscode \
+    && chmod 0440 /etc/sudoers.d/vscode
 
 # Set up workspace ownership
 RUN chown -R vscode:vscode /app
