@@ -57,6 +57,7 @@ from shared.schemas import auth as auth_schemas
 from shared.schemas import game as game_schemas
 from shared.schemas import participant as participant_schemas
 from shared.utils import datetime_utils, participant_sorting
+from shared.utils.games import resolve_max_players
 
 logger = logging.getLogger(__name__)
 
@@ -906,7 +907,7 @@ async def _build_game_response(
     Returns:
         Game response schema with resolved display names and sorted participants
     """
-    participant_count = len(game.participants)
+    participant_count = min(len(game.participants), resolve_max_players(game.max_players))
     partitioned = participant_sorting.partition_participants(game.participants, game.max_players)
 
     display_data_map, host_discord_id = await _resolve_display_data(game, partitioned)
