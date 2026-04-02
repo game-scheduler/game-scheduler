@@ -28,7 +28,7 @@ from uuid import uuid4
 import discord
 import pytest
 
-from services.bot.events.handlers import EventHandlers
+from services.bot.events.handlers import _MAX_EDIT_ATTEMPTS, EventHandlers
 from shared.messaging.events import EventType, NotificationDueEvent
 from shared.models import GameStatus, GameStatusSchedule
 from shared.models import participant as participant_model
@@ -2735,3 +2735,216 @@ async def test_handle_game_cancelled_not_found_handled_gracefully(event_handlers
         await event_handlers._handle_game_cancelled(data)
 
     mock_message.delete.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# _edit_with_backoff
+# ---------------------------------------------------------------------------
+
+
+class TestEditWithBackoff:
+    @pytest.mark.asyncio
+    async def test_returns_t_cut_on_success(self, event_handlers):
+        """Returns a datetime when _try_edit_game_message succeeds."""
+        with patch.object(
+            event_handlers, "_try_edit_game_message", new=AsyncMock(return_value=True)
+        ):
+            result = await event_handlers._edit_with_backoff("chan1", "game1", 0)
+
+        assert result is not None
+        assert isinstance(result, datetime)
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_try_edit_returns_false(self, event_handlers):
+        """Returns None when _try_edit_game_message returns False (e.g. 404)."""
+        with patch.object(
+            event_handlers, "_try_edit_game_message", new=AsyncMock(return_value=False)
+        ):
+            result = await event_handlers._edit_with_backoff("chan1", "game1", 0)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_returns_none_on_non_429_http_exception(self, event_handlers):
+        """Returns None on non-retryable HTTP errors (e.g. 403, 500)."""
+        resp = MagicMock()
+        resp.status = 500
+        resp.reason = "Internal Server Error"
+        exc = discord.HTTPException(resp, "error")
+
+        with patch.object(
+            event_handlers,
+            "_try_edit_game_message",
+            new=AsyncMock(side_effect=exc),
+        ):
+            result = await event_handlers._edit_with_backoff("chan1", "game1", 0)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_retries_on_429(self, event_handlers):
+        """Retries after the retry_after delay on 429, then succeeds."""
+        resp = MagicMock()
+        resp.status = 429
+        resp.reason = "Too Many Requests"
+        rate_limit_exc = discord.HTTPException(resp, "rate limited")
+        rate_limit_exc.retry_after = 0.01
+
+        call_count = 0
+
+        async def side_effect(*_args, **_kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise rate_limit_exc
+            return True
+
+        with patch.object(event_handlers, "_try_edit_game_message", side_effect=side_effect):
+            result = await event_handlers._edit_with_backoff("chan1", "game1", 0)
+
+        assert result is not None
+        assert call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_returns_none_on_unexpected_exception(self, event_handlers):
+        """Returns None on an unexpected non-Discord exception."""
+        with patch.object(
+            event_handlers,
+            "_try_edit_game_message",
+            new=AsyncMock(side_effect=RuntimeError("unexpected")),
+        ):
+            result = await event_handlers._edit_with_backoff("chan1", "game1", 0)
+
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
+# _channel_worker
+# ---------------------------------------------------------------------------
+
+
+class TestChannelWorker:
+    def _make_db_ctx(self):
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock()
+        mock_db.commit = AsyncMock()
+        ctx = MagicMock()
+        ctx.__aenter__ = AsyncMock(return_value=mock_db)
+        ctx.__aexit__ = AsyncMock(return_value=False)
+        return mock_db, ctx
+
+    @pytest.mark.asyncio
+    async def test_deletes_queue_entry_on_success(self, event_handlers):
+        """Queue row is deleted after a successful edit."""
+        game_id = str(uuid4())
+        mock_db, db_ctx = self._make_db_ctx()
+
+        with (
+            patch.object(
+                event_handlers,
+                "_fetch_next_queued_game",
+                new=AsyncMock(side_effect=[game_id, None]),
+            ),
+            patch.object(
+                event_handlers,
+                "_edit_with_backoff",
+                new=AsyncMock(return_value=datetime.now(tz=UTC)),
+            ),
+            patch(
+                "services.bot.events.handlers.get_redis_client",
+                new=AsyncMock(
+                    return_value=AsyncMock(claim_channel_rate_limit_slot=AsyncMock(return_value=0))
+                ),
+            ),
+            patch("services.bot.events.handlers.get_db_session", return_value=db_ctx),
+        ):
+            await event_handlers._channel_worker("chan1")
+
+        mock_db.execute.assert_awaited_once()
+        mock_db.commit.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_drops_queue_entry_after_max_attempts(self, event_handlers):
+        """Queue row is deleted after _MAX_EDIT_ATTEMPTS failures."""
+        game_id = str(uuid4())
+        mock_db, db_ctx = self._make_db_ctx()
+
+        # Return game_id for MAX_EDIT_ATTEMPTS calls, then None to end the loop
+        fetch_side_effects = [game_id] * _MAX_EDIT_ATTEMPTS + [None]
+
+        with (
+            patch.object(
+                event_handlers,
+                "_fetch_next_queued_game",
+                new=AsyncMock(side_effect=fetch_side_effects),
+            ),
+            patch.object(event_handlers, "_edit_with_backoff", new=AsyncMock(return_value=None)),
+            patch(
+                "services.bot.events.handlers.get_redis_client",
+                new=AsyncMock(
+                    return_value=AsyncMock(claim_channel_rate_limit_slot=AsyncMock(return_value=0))
+                ),
+            ),
+            patch("services.bot.events.handlers.get_db_session", return_value=db_ctx),
+        ):
+            await event_handlers._channel_worker("chan1")
+
+        mock_db.execute.assert_awaited_once()
+        mock_db.commit.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_retries_before_dropping(self, event_handlers):
+        """Worker retries up to _MAX_EDIT_ATTEMPTS before dropping the entry."""
+        game_id = str(uuid4())
+        mock_db, db_ctx = self._make_db_ctx()
+
+        fetch_side_effects = [game_id] * _MAX_EDIT_ATTEMPTS + [None]
+        mock_fetch = AsyncMock(side_effect=fetch_side_effects)
+
+        with (
+            patch.object(event_handlers, "_fetch_next_queued_game", new=mock_fetch),
+            patch.object(event_handlers, "_edit_with_backoff", new=AsyncMock(return_value=None)),
+            patch(
+                "services.bot.events.handlers.get_redis_client",
+                new=AsyncMock(
+                    return_value=AsyncMock(claim_channel_rate_limit_slot=AsyncMock(return_value=0))
+                ),
+            ),
+            patch("services.bot.events.handlers.get_db_session", return_value=db_ctx),
+        ):
+            await event_handlers._channel_worker("chan1")
+
+        assert mock_fetch.await_count == _MAX_EDIT_ATTEMPTS + 1
+
+    @pytest.mark.asyncio
+    async def test_removes_channel_from_workers_on_completion(self, event_handlers):
+        """_channel_workers entry is cleaned up when the worker finishes."""
+        event_handlers._channel_workers["chan1"] = MagicMock()
+        mock_db, db_ctx = self._make_db_ctx()
+
+        with (
+            patch.object(
+                event_handlers,
+                "_fetch_next_queued_game",
+                new=AsyncMock(return_value=None),
+            ),
+            patch("services.bot.events.handlers.get_db_session", return_value=db_ctx),
+        ):
+            await event_handlers._channel_worker("chan1")
+
+        assert "chan1" not in event_handlers._channel_workers
+
+    @pytest.mark.asyncio
+    async def test_removes_channel_from_workers_on_exception(self, event_handlers):
+        """_channel_workers entry is cleaned up even if the worker raises."""
+        event_handlers._channel_workers["chan1"] = MagicMock()
+
+        with patch.object(
+            event_handlers,
+            "_fetch_next_queued_game",
+            new=AsyncMock(side_effect=RuntimeError("boom")),
+        ):
+            with pytest.raises(RuntimeError):
+                await event_handlers._channel_worker("chan1")
+
+        assert "chan1" not in event_handlers._channel_workers

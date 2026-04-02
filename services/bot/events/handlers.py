@@ -64,6 +64,7 @@ from shared.utils.participant_sorting import partition_participants
 from shared.utils.status_transitions import GameStatus, is_valid_transition
 
 _HTTP_TOO_MANY_REQUESTS = 429
+_MAX_EDIT_ATTEMPTS = 3
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -1406,6 +1407,7 @@ class EventHandlers:
         Args:
             discord_channel_id: Discord channel snowflake string.
         """
+        attempt_counts: dict[str, int] = {}
         try:
             while True:
                 game_id = await self._fetch_next_queued_game(discord_channel_id)
@@ -1416,8 +1418,17 @@ class EventHandlers:
                 wait_ms = await redis.claim_channel_rate_limit_slot(discord_channel_id)
                 t_cut = await self._edit_with_backoff(discord_channel_id, game_id, wait_ms)
                 if t_cut is None:
-                    continue
+                    attempt_counts[game_id] = attempt_counts.get(game_id, 0) + 1
+                    if attempt_counts[game_id] < _MAX_EDIT_ATTEMPTS:
+                        continue
+                    logger.error(
+                        "Dropping game %s from refresh queue after %d failed attempts",
+                        game_id,
+                        _MAX_EDIT_ATTEMPTS,
+                    )
+                    t_cut = datetime.now(tz=UTC)
 
+                attempt_counts.pop(game_id, None)
                 async with get_db_session() as db:
                     await db.execute(
                         delete(MessageRefreshQueue).where(
