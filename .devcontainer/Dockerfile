@@ -36,6 +36,15 @@ RUN apt-get install -y --no-install-recommends \
     && locale-gen \
     && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user with sudo access for development
+# ubuntu:24.04 ships a default 'ubuntu' user at UID/GID 1000; remove it first.
+RUN userdel -r ubuntu 2>/dev/null || true \
+    && groupdel ubuntu 2>/dev/null || true \
+    && groupadd --gid 1000 vscode \
+    && useradd --uid 1000 --gid 1000 -m -s /bin/bash vscode \
+    && echo "vscode ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/vscode \
+    && chmod 0440 /etc/sudoers.d/vscode
+
 # Set locale environment variables
 ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
@@ -55,26 +64,8 @@ RUN curl -L "https://github.com/nektos/act/releases/download/v${ACT_VERSION}/act
 WORKDIR /app
 
 # Install uv for dependency management
-RUN python3.13 -m pip install --no-cache-dir uv
-
-# Copy dependency files
-COPY pyproject.toml ./
-
-# Install Python dependencies including dev dependencies
-RUN uv pip install --system . && \
-    uv pip install --system --group dev
-
-# Create non-root user with sudo access for development
-# ubuntu:24.04 ships a default 'ubuntu' user at UID/GID 1000; remove it first.
-RUN userdel -r ubuntu 2>/dev/null || true \
-    && groupdel ubuntu 2>/dev/null || true \
-    && groupadd --gid 1000 vscode \
-    && useradd --uid 1000 --gid 1000 -m -s /bin/bash vscode \
-    && echo "vscode ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/vscode \
-    && chmod 0440 /etc/sudoers.d/vscode
-
-# Set up workspace ownership
-RUN chown -R vscode:vscode /app
+ARG UV_VERSION=0.11.3
+RUN python3.13 -m pip install --no-cache-dir uv==${UV_VERSION}
 
 # Create common directories with proper permissions
 RUN mkdir -p \
@@ -84,6 +75,16 @@ RUN mkdir -p \
     /home/vscode/.vscode-server/bin && \
     chown -R vscode:vscode /home/vscode && \
     chmod -R 755 /home/vscode
+
+# Copy dependency files
+COPY pyproject.toml ./
+
+# Install Python dependencies including dev dependencies
+RUN uv pip install --system . && \
+    uv pip install --system --group dev
+
+# Set up workspace ownership
+RUN chown -R vscode:vscode /app
 
 # Configure bash to start in workspace directory and enable git wrapper
 RUN echo '# Enable git wrapper for quality check enforcement' >> /home/vscode/.bashrc_devcontainer && \

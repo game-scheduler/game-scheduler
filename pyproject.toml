@@ -240,3 +240,6 @@ min-lines = 0
 
 [tool.setuptools_scm]
 fallback_version = "0.0.0+unknown"
+
+[tool.uv]
+required-version = "==0.11.3"
