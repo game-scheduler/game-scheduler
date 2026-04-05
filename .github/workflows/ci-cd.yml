@@ -31,6 +31,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
@@ -48,46 +50,70 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Python dependencies
-        run: uv sync --dev
+        run: uv sync --extra dev
 
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
+      - name: Get changed files
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          elif [ -z "${{ github.event.before }}" ] || [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            BASE="HEAD^"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+          PY=$(git diff --name-only --diff-filter=d "$BASE" HEAD -- '*.py' | tr '\n' ' ')
+          TS=$(git diff --name-only --diff-filter=d "$BASE" HEAD -- '*.ts' '*.tsx' | tr '\n' ' ')
+          FE=$(git diff --name-only --diff-filter=d "$BASE" HEAD -- 'frontend/' | tr '\n' ' ')
+          echo "py_files=${PY}" >> "$GITHUB_OUTPUT"
+          echo "has_py=$([ -n "${PY}" ] && echo 'true' || echo 'false')" >> "$GITHUB_OUTPUT"
+          echo "ts_files=${TS}" >> "$GITHUB_OUTPUT"
+          echo "has_ts=$([ -n "${TS}" ] && echo 'true' || echo 'false')" >> "$GITHUB_OUTPUT"
+          echo "has_frontend=$([ -n "${FE}" ] && echo 'true' || echo 'false')" >> "$GITHUB_OUTPUT"
 
       - name: Check copyright headers
         run: |
-          uv run autocopyright -s "#" -l ./templates/mit-template.jinja2 services/ shared/ scripts/ tests/
-          uv run autocopyright -s "//" -l ./templates/mit-template.jinja2 frontend/src/
+          uv run autocopyright -s "#" -l ./templates/mit-template.jinja2 -d services -g "*.py" -d shared -g "*.py" -d tests -g "*.py"
+          uv run autocopyright -s "#" -l ./templates/mit-template.jinja2 -d scripts -g "*.sh"
+          uv run autocopyright -s "//" -l ./templates/mit-template.jinja2 -d frontend/src -g "*.ts" -d frontend/src -g "*.tsx"
           git diff --exit-code
 
       - name: Python compilation check
+        if: steps.changed.outputs.has_py == 'true'
         run: uv run python -m compileall -q services shared tests
 
       - name: Ruff format check
-        run: uv run ruff format --check .
+        if: steps.changed.outputs.has_py == 'true'
+        run: uv run ruff format --check ${{ steps.changed.outputs.py_files }}
 
       - name: Ruff lint
-        run: uv run ruff check .
+        if: steps.changed.outputs.has_py == 'true'
+        run: uv run ruff check ${{ steps.changed.outputs.py_files }}
 
       - name: Mypy type check
+        if: steps.changed.outputs.has_py == 'true'
         run: uv run mypy shared/ services/
 
       - name: Prettier format check
-        working-directory: frontend
-        run: npm run format:check
+        if: steps.changed.outputs.has_frontend == 'true'
+        run: npx prettier --check --config frontend/.prettierrc ${{ steps.changed.outputs.ts_files }}
 
       - name: ESLint
+        if: steps.changed.outputs.has_ts == 'true'
         working-directory: frontend
         run: npm run lint
 
       - name: TypeScript type check
+        if: steps.changed.outputs.has_ts == 'true'
         working-directory: frontend
         run: npm run type-check
 
       - name: Complexipy cognitive complexity
+        if: steps.changed.outputs.has_py == 'true'
         run: uv run complexipy .
 
       - name: Lizard TypeScript complexity
+        if: steps.changed.outputs.has_ts == 'true'
         run: uv run lizard -l typescript frontend/src/ --CCN 15 --warnings_only
 
       - name: Check for blocked lint suppressions
@@ -117,7 +143,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync --extra dev
 
       - name: Run unit tests
         env:
@@ -152,7 +178,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync --extra dev
 
       - name: Download coverage artifact
         uses: actions/download-artifact@v4
@@ -213,7 +239,7 @@ jobs:
 
       - name: Install Python dependencies
         if: github.event_name == 'pull_request'
-        run: uv sync --dev
+        run: uv sync --extra dev
 
       - name: Check frontend diff coverage
         if: github.event_name == 'pull_request'
@@ -223,99 +249,67 @@ jobs:
           --fail-under=90
           --ignore-whitespace
 
-  integration-tests:
-    name: Integration Tests
+  build-test-publish:
+    name: Build, Test, and Publish
     runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, frontend-tests, diff-coverage, check-suppressions, suppression-gate, jscpd-check]
+    if: >-
+      always() &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
 
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: valkey/valkey:9.0.1-alpine
-        options: >-
-          --health-cmd "valkey-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
-      rabbitmq:
-        image: rabbitmq:4.2-management-alpine
-        env:
-          RABBITMQ_DEFAULT_USER: test
-          RABBITMQ_DEFAULT_PASS: test
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5672:5672
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "latest"
-
-      - name: Set up Python
-        run: uv python install 3.13
-
-      - name: Install dependencies
-        run: uv sync --dev
-
-      - name: Initialize database schema
-        env:
-          DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/test_db
-          POSTGRES_HOST: localhost
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-        run: uv run alembic upgrade head
-
-      - name: Initialize RabbitMQ infrastructure
-        env:
-          RABBITMQ_URL: amqp://test:test@localhost:5672/
-          PYTHONPATH: .
-        run: uv run python -m services.init.rabbitmq
-
-      - name: Start retry daemon
-        env:
-          RABBITMQ_URL: amqp://test:test@localhost:5672/
-          RETRY_INTERVAL_SECONDS: 5
-          LOG_LEVEL: INFO
-          PYTHONPATH: .
-        run: |
-          uv run python -m services.retry.retry_daemon_wrapper &
-          echo $! > retry_daemon.pid
-          sleep 3
-
       - name: Run integration tests
+        run: scripts/run-integration-tests.sh
+
+      - name: Log in to Container Registry
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.repository == 'game-scheduler/game-scheduler'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag and push images
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.repository == 'game-scheduler/game-scheduler'
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          REDIS_URL: redis://localhost:6379
-          RABBITMQ_URL: amqp://test:test@localhost:5672/
-          RABBITMQ_HOST: localhost
-          RABBITMQ_PORT: 5672
-          RABBITMQ_DEFAULT_USER: test
-          RABBITMQ_DEFAULT_PASS: test
-          TESTING: true
-        run: uv run pytest tests/integration/ -m integration
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          VERSION="${REF_NAME#v}"
+          MAJOR="${VERSION%%.*}"
+          MINOR="${VERSION#*.}"; MINOR="${MINOR%%.*}"
+
+          TAGS=("$VERSION" "$MAJOR.$MINOR" "$MAJOR")
+          [[ "$REF_NAME" != *-* ]] && TAGS+=("latest")
+
+          # service name → local compose image name
+          PAIRS=(
+            "api:game-scheduler-api"
+            "bot:game-scheduler-bot"
+            "scheduler:game-scheduler-scheduler"
+            "frontend:game-scheduler-frontend"
+            "init:game-scheduler-init"
+            "retry:game-scheduler-retry-daemon"
+          )
+
+          for pair in "${PAIRS[@]}"; do
+            service="${pair%%:*}"
+            local_image="${pair#*:}:latest"
+            remote_base="${REGISTRY}/${IMAGE_NAME}-${service}"
+            for tag in "${TAGS[@]}"; do
+              docker tag "$local_image" "${remote_base}:${tag}"
+              docker push "${remote_base}:${tag}"
+            done
+          done
 
   check-suppressions:
     name: Check Lint Suppressions
@@ -339,7 +333,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync --extra dev
 
       - name: Scan for counted suppressions
         id: scan
@@ -402,87 +396,10 @@ jobs:
         run: uv python install 3.13
 
       - name: Install Python dependencies
-        run: uv sync --dev
+        run: uv sync --extra dev
 
       - name: Check duplicates against PR diff
         run: >
           uv run python scripts/check_commit_duplicates.py
           .jscpd-report/jscpd-report.json
           --compare-branch origin/${{ github.base_ref }}
-
-  docker-build:
-    name: Docker Build (${{ matrix.service }})
-    runs-on: ubuntu-latest
-    needs: [code-quality, unit-tests, frontend-tests]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    strategy:
-      matrix:
-        service: [api, bot, scheduler, frontend, init, retry]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image (no push)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./docker/${{ matrix.service }}.Dockerfile
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  build-and-publish:
-    name: Build and Publish (${{ matrix.service }})
-    runs-on: ubuntu-latest
-    needs: [code-quality, unit-tests, frontend-tests, integration-tests]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-
-    permissions:
-      contents: read
-      packages: write
-
-    strategy:
-      matrix:
-        service: [api, bot, scheduler, frontend, init, retry]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./docker/${{ matrix.service }}.Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
