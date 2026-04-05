@@ -63,7 +63,7 @@ services:
       RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit log_levels [{connection,${RABBITMQ_LOG_LEVEL:-info}}]
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-      - ${HOST_WORKSPACE_FOLDER:-.}/config/rabbitmq:/etc/rabbitmq:ro
+      - ${HOST_WORKSPACE_FOLDER:-.}/config.template/rabbitmq:/etc/rabbitmq:ro
     healthcheck:
       test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
       interval: 10s

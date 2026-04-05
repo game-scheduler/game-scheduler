@@ -464,12 +464,9 @@ async def test_create_template_invalid_channel_id(
             assert response_data["channel_id"] == fake_channel_id
             assert "channel_name" in response_data, "Response should include channel_name field"
         elif response.status_code == 500:
-            # Database foreign key constraint violation is acceptable
-            response_data = response.json()
-            assert (
-                "foreign key" in response_data.get("message", "").lower()
-                or "constraint" in response_data.get("message", "").lower()
-            ), "500 error should indicate foreign key constraint violation"
+            # Database foreign key constraint violation is acceptable.
+            # Error messages are sanitized so body content is not checked.
+            pass
 
     finally:
         await cleanup_test_session(session_token)
