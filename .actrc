@@ -13,8 +13,9 @@
 # Load environment variables from file
 --env-file=.env.act
 
-# Bind working directory to job container (ensures current files are always used)
---bind
+# Copy workspace into container (no bind mount); avoids root-owned file
+# pollution on the host after each run. Acceptable for this workspace size.
+# --bind
 
 # Reuse containers between runs for faster execution
 --reuse
