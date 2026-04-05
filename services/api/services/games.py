@@ -1439,17 +1439,26 @@ class GameService:
             await self._ensure_completed_schedule(game, status_schedules)
         elif game.status == game_model.GameStatus.IN_PROGRESS.value:
             await self._ensure_completed_schedule(game, status_schedules)
-            for schedule in status_schedules:
-                if schedule.target_status == game_model.GameStatus.IN_PROGRESS.value:
-                    await self.db.delete(schedule)
+            await self._delete_schedules_with_target(
+                status_schedules, game_model.GameStatus.IN_PROGRESS.value
+            )
         elif game.status == game_model.GameStatus.COMPLETED.value:
             await self._ensure_archived_schedule_if_configured(game, status_schedules)
-            for schedule in status_schedules:
-                if schedule.target_status == game_model.GameStatus.COMPLETED.value:
-                    await self.db.delete(schedule)
+            await self._delete_schedules_with_target(
+                status_schedules, game_model.GameStatus.COMPLETED.value
+            )
         else:
             # ARCHIVED, CANCELLED — no future transitions
             for schedule in status_schedules:
+                await self.db.delete(schedule)
+
+    async def _delete_schedules_with_target(
+        self,
+        status_schedules: Sequence[game_status_schedule_model.GameStatusSchedule],
+        target_status: str,
+    ) -> None:
+        for schedule in status_schedules:
+            if schedule.target_status == target_status:
                 await self.db.delete(schedule)
 
     async def _ensure_in_progress_schedule(
