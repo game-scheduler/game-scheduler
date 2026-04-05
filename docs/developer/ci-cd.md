@@ -2,22 +2,20 @@
 
 ## Overview
 
-The CI/CD pipeline runs on every push to `main`/`develop`, on pull requests targeting those branches, and on version tag pushes. It mirrors all pre-commit quality gates and adds diff-aware coverage and duplication checks for PRs.
+The CI/CD pipeline runs on every push to `main`/`develop`, on pull requests targeting those branches, and on version tag pushes. It mirrors all pre-commit quality gates and adds diff-aware coverage and duplication checks for PRs. Build, integration-test, and image publish behavior is consolidated into the `build-test-publish` job rather than separate `integration-tests`, `docker-build`, and `build-and-publish` jobs.
 
 ## Jobs
 
-| Job                  | Triggers            | Description                                                                 |
-| -------------------- | ------------------- | --------------------------------------------------------------------------- |
-| `code-quality`       | all                 | Copyright headers, Python/TS linting, formatting, type checking, complexity |
-| `unit-tests`         | all                 | pytest with coverage; uploads `coverage.xml` artifact                       |
-| `diff-coverage`      | PR only             | Fails if diff coverage < 90% for changed Python files                       |
-| `frontend-tests`     | all                 | vitest coverage + build; diff coverage check on PRs                         |
-| `integration-tests`  | all                 | Full stack tests with Postgres, Redis, RabbitMQ                             |
-| `check-suppressions` | PR only             | Scans PR diff for counted lint suppressions; outputs count                  |
-| `suppression-gate`   | PR only (count > 0) | Pauses for human reviewer approval via GitHub Environment                   |
-| `jscpd-check`        | PR only             | Detects duplicated code overlapping changed lines                           |
-| `docker-build`       | push to `main`      | Builds all 6 images without pushing (smoke test)                            |
-| `build-and-publish`  | tag push            | Builds and pushes all 6 images to `ghcr.io`                                 |
+| Job                  | Triggers                      | Description                                                                 |
+| -------------------- | ----------------------------- | --------------------------------------------------------------------------- |
+| `code-quality`       | all                           | Copyright headers, Python/TS linting, formatting, type checking, complexity |
+| `unit-tests`         | all                           | pytest with coverage; uploads `coverage.xml` artifact                       |
+| `diff-coverage`      | PR only                       | Fails if diff coverage < 90% for changed Python files                       |
+| `frontend-tests`     | all                           | vitest coverage + build; diff coverage check on PRs                         |
+| `build-test-publish` | push/PR/tag (behavior varies) | Consolidated full-stack build/test job; publishes images on version tags    |
+| `check-suppressions` | PR only                       | Scans PR diff for counted lint suppressions; outputs count                  |
+| `suppression-gate`   | PR only (count > 0)           | Pauses for human reviewer approval via GitHub Environment                   |
+| `jscpd-check`        | PR only                       | Detects duplicated code overlapping changed lines                           |
 
 ## Required Setup: `lint-suppression-review` Environment
 
