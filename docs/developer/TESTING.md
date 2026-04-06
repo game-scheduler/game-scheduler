@@ -610,7 +610,6 @@ Test Discord OAuth2 authentication flow with the web dashboard.
 
 2. **Environment Configuration:**
    ```bash
-   DISCORD_CLIENT_ID=your_client_id
    DISCORD_CLIENT_SECRET=your_client_secret
    FRONTEND_URL=http://localhost:3000
    BACKEND_URL=http://localhost:8000

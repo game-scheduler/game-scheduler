@@ -23,7 +23,6 @@ FRONTEND_URL=http://your-server-ip:3000
 
 # Set your Discord credentials
 DISCORD_BOT_TOKEN=your_bot_token
-DISCORD_CLIENT_ID=your_client_id
 DISCORD_CLIENT_SECRET=your_client_secret
 
 # Change default passwords!

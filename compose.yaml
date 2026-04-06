@@ -361,7 +361,6 @@ services:
       context: .
       dockerfile: docker/frontend.Dockerfile
       args:
-        VITE_DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
         VITE_BACKEND_URL: ${BACKEND_URL}
       tags:
         - ${IMAGE_REGISTRY:-}game-scheduler-frontend:${IMAGE_TAG:-latest}

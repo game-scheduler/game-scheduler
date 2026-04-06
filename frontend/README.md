@@ -39,7 +39,6 @@ Edit `.env`:
 
 ```
 VITE_API_URL=http://localhost:8000
-VITE_DISCORD_CLIENT_ID=your_discord_client_id
 ```
 
 ### Development

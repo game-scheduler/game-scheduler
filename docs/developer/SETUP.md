@@ -108,7 +108,6 @@ Edit `config/env/env.dev` and add your Discord bot token:
 
 ```bash
 DISCORD_BOT_TOKEN=your-bot-token-here
-DISCORD_CLIENT_ID=your-client-id
 DISCORD_CLIENT_SECRET=your-client-secret
 ```
 
