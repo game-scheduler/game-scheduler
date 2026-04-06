@@ -88,7 +88,11 @@ def _parse_diff_lines(stdout: str) -> list[tuple[str, int, str]]:
 
 
 def _get_added_lines(compare_branch: str | None = None) -> list[tuple[str, int, str]]:
-    """Return (filename, lineno, text) for every added line in the staged diff."""
+    """Return (filename, lineno, text) for every added line in the diff.
+
+    When compare_branch is provided (CI mode), diffs compare_branch...HEAD.
+    Otherwise diffs the staged index (pre-commit mode).
+    """
     git = shutil.which("git")
     if git is None:
         return []

@@ -109,7 +109,11 @@ def _process_diff_line(
 
 def get_changed_line_ranges(compare_branch: str | None = None) -> dict[str, set[int]]:
     """
-    Get the specific line numbers changed in each staged file.
+    Get the specific line numbers changed in the diff.
+
+    When compare_branch is provided (CI mode), diffs compare_branch...HEAD.
+    Otherwise diffs the staged index (pre-commit mode).
+
     Returns: Dict mapping file paths to sets of changed line numbers.
     """
     git_path = shutil.which("git")
