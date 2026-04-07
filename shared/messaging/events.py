@@ -43,6 +43,7 @@ class EventType(StrEnum):
     GAME_CANCELLED = "game.cancelled"
     GAME_STARTED = "game.started"
     GAME_COMPLETED = "game.completed"
+    EMBED_DELETED = "game.embed_deleted"
 
     # Participant events
     PLAYER_JOINED = "game.player_joined"

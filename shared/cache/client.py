@@ -85,6 +85,77 @@ end
 return wait_ms
 """
 
+# Atomic Lua script that claims one global token AND one per-channel slot in a
+# single round-trip, preventing partial-claim races.
+#
+# KEYS[1] = global sorted-set key  ("discord:global_rate_limit")
+# KEYS[2] = channel sorted-set key ("channel_rate_limit:{channel_id}")
+# ARGV[1]  = current time in ms
+# ARGV[2]  = per-channel max (default 5; pass a very large value for global-only callers)
+#
+# Global budget: 25 requests per 1000ms window (leaky bucket).
+# Channel budget: ARGV[2] per 5000ms with inter-edit spacing.
+#
+# Returns 0 and records both timestamps when both budgets have capacity.
+# Returns the larger wait (ms) and records nothing when either is exhausted.
+_GLOBAL_AND_CHANNEL_RATE_LIMIT_LUA = """
+local global_key    = KEYS[1]
+local channel_key   = KEYS[2]
+local now_ms        = tonumber(ARGV[1])
+local ch_max        = tonumber(ARGV[2] or '5')
+
+-- Global: 25 req per 1000ms sliding window
+local global_window = 1000
+local global_max    = 25
+redis.call('zremrangebyscore', global_key, 0, now_ms - global_window)
+local global_n      = redis.call('zcard', global_key)
+local global_wait   = 0
+if global_n >= global_max then
+    local oldest_ts = tonumber(redis.call('zrange', global_key, 0, 0)[1])
+    global_wait = oldest_ts + global_window - now_ms
+    if global_wait < 1 then global_wait = 1 end
+end
+
+-- Channel: ch_max per 5000ms with inter-edit spacing (mirrors _CHANNEL_RATE_LIMIT_LUA)
+local ch_window = 5000
+redis.call('zremrangebyscore', channel_key, 0, now_ms - ch_window)
+local ch_n = redis.call('zcard', channel_key)
+
+local spacing_ms
+if     ch_n == 0 then spacing_ms = 0
+elseif ch_n == 1 then spacing_ms = 1000
+elseif ch_n == 2 then spacing_ms = 1000
+elseif ch_n == 3 then spacing_ms = 1500
+else               spacing_ms = 1500
+end
+
+local ch_wait = 0
+if ch_n > 0 then
+    local last_ts = tonumber(redis.call('zrange', channel_key, -1, -1)[1])
+    local spacing_wait = last_ts + spacing_ms - now_ms
+    if spacing_wait > ch_wait then ch_wait = spacing_wait end
+end
+if ch_n >= ch_max then
+    local oldest_ch = tonumber(redis.call('zrange', channel_key, 0, 0)[1])
+    local window_wait = oldest_ch + ch_window - now_ms
+    if window_wait > ch_wait then ch_wait = window_wait end
+end
+
+-- Return max wait; only record when both budgets are available
+local wait_ms = global_wait
+if ch_wait > wait_ms then wait_ms = ch_wait end
+
+if wait_ms <= 0 then
+    redis.call('zadd', global_key,  now_ms, tostring(now_ms))
+    redis.call('pexpire', global_key, 1001)
+    redis.call('zadd', channel_key, now_ms, tostring(now_ms))
+    redis.call('pexpire', channel_key, 5001)
+    return 0
+end
+
+return wait_ms
+"""
+
 
 class RedisClient:
     """Async Redis client wrapper with connection pooling."""
@@ -331,6 +402,84 @@ class RedisClient:
             return int(result)
         except Exception as e:
             logger.error("Redis EVAL error for channel %s: %s", channel_id, e)
+            return 0
+
+    async def claim_global_and_channel_slot(self, channel_id: str) -> int:
+        """
+        Atomically claim one global token and one per-channel slot.
+
+        Uses a single Lua round-trip to enforce:
+        - Global budget: 25 requests per 1000ms sliding window
+        - Per-channel budget: 5 per 5000ms with inter-edit spacing
+
+        Returns 0 and records both timestamps when both budgets have capacity.
+        Returns the larger wait (ms) and records nothing when either is full,
+        preventing partial-claim races.
+
+        Args:
+            channel_id: Discord channel snowflake string.
+
+        Returns:
+            Milliseconds to wait (0 = proceed immediately).
+        """
+        if not self._client:
+            await self.connect()
+
+        global_key = "discord:global_rate_limit"
+        channel_key = f"channel_rate_limit:{channel_id}"
+        now_ms = int(time.time() * 1000)
+
+        try:
+            raw = self._client.eval(
+                _GLOBAL_AND_CHANNEL_RATE_LIMIT_LUA,
+                2,
+                global_key,
+                channel_key,
+                str(now_ms),
+                "5",
+            )
+            result = await cast("Awaitable[Any]", raw)
+            return int(result)
+        except Exception as e:
+            logger.error(
+                "Redis EVAL error for global+channel slot (channel=%s): %s",
+                channel_id,
+                e,
+            )
+            return 0
+
+    async def claim_global_slot(self) -> int:
+        """
+        Claim one global Discord rate-limit token without per-channel constraint.
+
+        Uses the same combined Lua script as claim_global_and_channel_slot with
+        a sentinel channel key and an impossibly high per-channel limit so only
+        the 25 req/s global bucket is enforced.  Intended for API calls that
+        have no meaningful Discord channel context (OAuth, guild/user fetches).
+
+        Returns:
+            Milliseconds to wait (0 = proceed immediately).
+        """
+        if not self._client:
+            await self.connect()
+
+        global_key = "discord:global_rate_limit"
+        sentinel_key = "discord:_no_channel"
+        now_ms = int(time.time() * 1000)
+
+        try:
+            raw = self._client.eval(
+                _GLOBAL_AND_CHANNEL_RATE_LIMIT_LUA,
+                2,
+                global_key,
+                sentinel_key,
+                str(now_ms),
+                "999999",
+            )
+            result = await cast("Awaitable[Any]", raw)
+            return int(result)
+        except Exception as e:
+            logger.error("Redis EVAL error for global slot: %s", e)
             return 0
 
 

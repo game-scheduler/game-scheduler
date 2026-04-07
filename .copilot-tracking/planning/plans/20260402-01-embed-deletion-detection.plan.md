@@ -44,15 +44,15 @@ and recover from missed deletions that occurred while services were offline.
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Foundation (Shared Library Changes)
+### [x] Phase 1: Foundation (Shared Library Changes)
 
-- [ ] Task 1.1: Add `EventType.EMBED_DELETED` to `shared/messaging/events.py`
+- [x] Task 1.1: Add `EventType.EMBED_DELETED` to `shared/messaging/events.py`
   - Details: .copilot-tracking/planning/details/20260402-01-embed-deletion-detection-details.md (Lines 13-30)
 
-- [ ] Task 1.2: Add combined atomic Lua script `claim_global_and_channel_slot` to `shared/cache/client.py`
+- [x] Task 1.2: Add combined atomic Lua script `claim_global_and_channel_slot` to `shared/cache/client.py`
   - Details: .copilot-tracking/planning/details/20260402-01-embed-deletion-detection-details.md (Lines 31-58)
 
-- [ ] Task 1.3: Add global rate limiting call in `DiscordAPIClient._make_api_request`
+- [x] Task 1.3: Add global rate limiting call in `DiscordAPIClient._make_api_request`
   - Details: .copilot-tracking/planning/details/20260402-01-embed-deletion-detection-details.md (Lines 59-83)
 
 ### [ ] Phase 2: API Service Changes

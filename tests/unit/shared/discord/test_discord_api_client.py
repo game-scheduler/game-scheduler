@@ -59,6 +59,8 @@ def mock_redis():
     redis = AsyncMock()
     redis.get = AsyncMock(return_value=None)
     redis.set = AsyncMock()
+    redis.claim_global_slot = AsyncMock(return_value=0)
+    redis.claim_global_and_channel_slot = AsyncMock(return_value=0)
     return redis
 
 
@@ -444,6 +446,83 @@ class TestMakeAPIRequest:
 
         assert exc_info.value.status == 503
         assert "Non-JSON response" in exc_info.value.message
+
+
+class TestMakeAPIRequestRateLimit:
+    """Verify _make_api_request enforces global (and optionally per-channel) rate limits."""
+
+    def _make_mock_session(self, response_data: dict) -> MagicMock:
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.headers = {}
+        mock_response.json = AsyncMock(return_value=response_data)
+        ctx = MagicMock()
+        ctx.__aenter__ = AsyncMock(return_value=mock_response)
+        ctx.__aexit__ = AsyncMock(return_value=None)
+        session = MagicMock()
+        session.closed = False
+        session.request = MagicMock(return_value=ctx)
+        return session
+
+    @pytest.mark.asyncio
+    @patch("shared.cache.client.get_redis_client")
+    async def test_global_slot_claimed_before_http_when_no_channel(
+        self, mock_get_redis, discord_client, mock_redis
+    ):
+        """When no channel_id, claim_global_slot is awaited before the HTTP call."""
+        mock_get_redis.return_value = mock_redis
+        mock_redis.claim_global_slot = AsyncMock(return_value=0)
+        discord_client._session = self._make_mock_session({"id": "1"})
+
+        await discord_client._make_api_request(
+            method="GET",
+            url="https://discord.com/api/v10/users/1",
+            operation_name="test_op",
+            headers={"Authorization": "Bot token"},
+        )
+
+        mock_redis.claim_global_slot.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("shared.cache.client.get_redis_client")
+    async def test_global_and_channel_slot_claimed_when_channel_id_provided(
+        self, mock_get_redis, discord_client, mock_redis
+    ):
+        """When channel_id is provided, claim_global_and_channel_slot is used."""
+        mock_get_redis.return_value = mock_redis
+        mock_redis.claim_global_and_channel_slot = AsyncMock(return_value=0)
+        discord_client._session = self._make_mock_session({"id": "1"})
+
+        await discord_client._make_api_request(
+            method="GET",
+            url="https://discord.com/api/v10/users/1",
+            operation_name="test_op",
+            headers={"Authorization": "Bot token"},
+            channel_id="123456789",
+        )
+
+        mock_redis.claim_global_and_channel_slot.assert_awaited_once_with("123456789")
+
+    @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("shared.cache.client.get_redis_client")
+    async def test_sleeps_when_rate_limit_returns_nonzero(
+        self, mock_get_redis, mock_sleep, discord_client, mock_redis
+    ):
+        """When rate limiter returns > 0, asyncio.sleep is called with wait_s before HTTP."""
+        mock_get_redis.return_value = mock_redis
+        mock_redis.claim_global_slot = AsyncMock(side_effect=[40, 0])
+        discord_client._session = self._make_mock_session({"id": "1"})
+
+        await discord_client._make_api_request(
+            method="GET",
+            url="https://discord.com/api/v10/users/1",
+            operation_name="test_op",
+            headers={"Authorization": "Bot token"},
+        )
+
+        mock_sleep.assert_awaited_once_with(pytest.approx(0.04, rel=1e-3))
+        assert discord_client._session.request.call_count == 1
 
 
 class TestOAuth2Methods:
