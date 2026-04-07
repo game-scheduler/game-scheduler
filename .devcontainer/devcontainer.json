@@ -11,6 +11,9 @@
   },
   "mounts": [
     "source=${localWorkspaceFolderBasename}-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume",
+    "source=${localEnv:HOME}/.profile,target=/home/vscode/.profile,type=bind,readonly",
+    "source=${localEnv:HOME}/.bashrc,target=/home/vscode/.bashrc,type=bind,readonly",
+    "source=${localEnv:HOME}/.bash_aliases,target=/home/vscode/.bash_aliases,type=bind,readonly",
     "source=/etc/timezone,target=/etc/timezone,type=bind,readonly",
     "source=/etc/localtime,target=/etc/localtime,type=bind,readonly",
     "source=${localWorkspaceFolder}/..,target=${localWorkspaceFolder}/..,type=bind"
