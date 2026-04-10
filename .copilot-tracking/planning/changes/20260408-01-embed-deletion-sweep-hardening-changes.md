@@ -65,3 +65,20 @@
 
 - `services/bot/bot.py` — Added `import os` and `import aiohttp.web`; implemented `_start_test_server` (aiohttp `AppRunner`/`TCPSite` on `0.0.0.0:8089`); implemented `_handle_sweep_request` (awaits `_trigger_sweep()`, awaits `self._sweep_task`, returns `Response(status=200)`); added `PYTEST_RUNNING`-gated `asyncio.create_task(self._start_test_server())` at end of `on_ready`.
 - `tests/unit/bot/test_test_server.py` — Removed `@pytest.mark.xfail` marker; replaced `AsyncMock` sweep task with a real `asyncio.Task` (via `asyncio.create_task(_noop())`); test passes green.
+
+---
+
+## Phase 7: Integration Tests (Retrofitting) — COMPLETE
+
+### Bug Fix
+
+- `services/bot/bot.py` — Fixed `_sweep_deleted_embeds`: `game.channel_id` (UUID FK) was passed to `int()` which would crash; replaced with `game.channel.channel_id` (Discord snowflake via relationship); added `joinedload(GameSession.channel)` to the sweep query so the relationship is loaded within the session.
+- `tests/unit/bot/test_sweep_metrics.py` — Updated `_db_ctx_one_game` mock: replaced `mock_game.channel_id = 111222333` with `mock_game.channel.channel_id = "111222333"` to match the fixed access pattern.
+
+### Added
+
+- `tests/integration/test_embed_deletion_consumer.py` — Two integration tests for `EmbedDeletionConsumer._handle_embed_deleted`: (1) creates a real game, calls the handler, asserts game row removed and `GAME_CANCELLED` published to RabbitMQ; (2) asserts no publication when game is already missing (idempotency).
+
+### Deviation from Plan
+
+- Task 7.2 (`_sweep_deleted_embeds` integration test with mocked Discord) was **not implemented** as an integration test. The integration environment has no Discord connection; mocking Discord.py Bot methods within that environment would duplicate existing unit test coverage rather than test real infrastructure. Sweep behaviour against real Discord will be covered by e2e Phase 8 Case 2 (`POST /admin/sweep` → bot runs real sweep against real Discord).

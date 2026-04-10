@@ -65,7 +65,7 @@ def _db_ctx_one_game():
     mock_game = MagicMock()
     mock_game.scheduled_at = datetime(2025, 1, 1)
     mock_game.id = "game-uuid-1"
-    mock_game.channel_id = 111222333
+    mock_game.channel.channel_id = "111222333"
     mock_game.message_id = "444555666"
 
     mock_result = MagicMock()

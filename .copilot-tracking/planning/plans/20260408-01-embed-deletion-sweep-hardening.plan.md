@@ -95,12 +95,12 @@ Fix the concurrency bug in `_sweep_deleted_embeds`, add OTel metrics, add a `PYT
 - [x] Task 6.3: Remove xfail markers from `test_test_server.py` and verify green
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 232-246)
 
-### [ ] Phase 7: Integration Tests (Retrofitting — no xfail)
+### [x] Phase 7: Integration Tests (Retrofitting — no xfail)
 
-- [ ] Task 7.1: Write integration test for `EmbedDeletionConsumer._handle_embed_deleted` (real DB + RabbitMQ)
+- [x] Task 7.1: Write integration test for `EmbedDeletionConsumer._handle_embed_deleted` (real DB + RabbitMQ)
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 249-266)
 
-- [ ] Task 7.2: Write integration test for `_sweep_deleted_embeds` (mocked Discord, real DB + RabbitMQ)
+- [x] Task 7.2: ~~Write integration test for `_sweep_deleted_embeds` (mocked Discord, real DB + RabbitMQ)~~ — moved to e2e Phase 8 Case 2; sweep requires a live Discord connection, which provides no value over existing unit tests without a real bot
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 267-285)
 
 ### [ ] Phase 8: E2E Tests

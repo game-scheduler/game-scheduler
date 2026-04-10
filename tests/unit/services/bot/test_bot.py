@@ -571,7 +571,7 @@ class TestGameSchedulerBot:
 
         mock_game = MagicMock()
         mock_game.id = "550e8400-e29b-41d4-a716-446655440001"
-        mock_game.channel_id = "111"
+        mock_game.channel.channel_id = "111"
         mock_game.message_id = "999"
         mock_game.scheduled_at = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -603,7 +603,7 @@ class TestGameSchedulerBot:
 
         mock_publisher.publish_embed_deleted.assert_awaited_once_with(
             game_id=str(mock_game.id),
-            channel_id=mock_game.channel_id,
+            channel_id=mock_game.channel.channel_id,
             message_id=mock_game.message_id,
         )
 
@@ -620,7 +620,7 @@ class TestGameSchedulerBot:
 
         mock_game = MagicMock()
         mock_game.id = "550e8400-e29b-41d4-a716-446655440002"
-        mock_game.channel_id = "222"
+        mock_game.channel.channel_id = "222"
         mock_game.message_id = "888"
         mock_game.scheduled_at = datetime(2026, 1, 2, tzinfo=UTC)
 

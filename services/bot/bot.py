@@ -34,6 +34,7 @@ import discord
 from discord.ext import commands
 from opentelemetry import metrics, trace
 from sqlalchemy import distinct, select
+from sqlalchemy.orm import joinedload
 
 from services.bot.config import BotConfig
 from services.bot.dependencies.discord_client import get_discord_client
@@ -328,6 +329,7 @@ class GameSchedulerBot(commands.Bot):
             async with get_bypass_db_session() as db:
                 result = await db.execute(
                     select(GameSession)
+                    .options(joinedload(GameSession.channel))
                     .where(GameSession.message_id.is_not(None))
                     .order_by(GameSession.scheduled_at.asc())
                 )
@@ -347,7 +349,7 @@ class GameSchedulerBot(commands.Bot):
             await queue.put((
                 game.scheduled_at,
                 str(game.id),
-                str(game.channel_id),
+                str(game.channel.channel_id),
                 game.message_id,
             ))
 
