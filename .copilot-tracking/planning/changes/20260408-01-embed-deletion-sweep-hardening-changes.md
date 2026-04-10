@@ -29,3 +29,39 @@
 **Out-of-plan deviation**: Added `meter`, `sweep_started_counter`, `sweep_interrupted_counter`, `sweep_messages_checked_counter`, `sweep_deletions_detected_counter`, and `sweep_duration_histogram` module-level OTel instruments to `services/bot/bot.py` as part of Phase 2. Reason: `sweep_interrupted_counter.add(1)` in `_trigger_sweep` triggered an `F821 Undefined name` ruff error; all 5 instruments were grouped together because they share the same `meter`. Phase 3 Task 3.1 (add metric instruments) is therefore already satisfied and only the tests need to be written.
 
 ---
+
+## Phase 3: OTel Metrics (TDD RED) — COMPLETE
+
+### Added
+
+- `tests/unit/bot/test_sweep_metrics.py` — Five xfail unit tests covering all metric increments: `sweep_started_counter` on entry, `sweep_interrupted_counter` on cancellation, `sweep_messages_checked_counter` on successful fetch, `sweep_deletions_detected_counter` on 404, and `sweep_duration_histogram` on completion.
+
+---
+
+## Phase 4: OTel Metrics (TDD GREEN) — COMPLETE
+
+### Modified
+
+- `services/bot/bot.py` — Added `sweep_started_counter.add(1)` and `start_time` in `_sweep_deleted_embeds`; `sweep_duration_histogram.record(time.time() - start_time)` at end of sweep; `sweep_messages_checked_counter.add(1)` and `sweep_deletions_detected_counter.add(1)` in `_run_sweep_worker`.
+- `tests/unit/bot/test_sweep_metrics.py` — Removed all `@pytest.mark.xfail(strict=True)` markers; all five metric tests pass green.
+
+---
+
+## Phase 5: Test Server (TDD RED) — COMPLETE
+
+### Added
+
+- `tests/unit/bot/test_test_server.py` — One xfail unit test verifying `_handle_sweep_request` calls `_trigger_sweep` and returns HTTP 200.
+
+### Modified
+
+- `services/bot/bot.py` — Added `_start_test_server` and `_handle_sweep_request` stubs both raising `NotImplementedError`.
+
+---
+
+## Phase 6: Test Server (TDD GREEN) — COMPLETE
+
+### Modified
+
+- `services/bot/bot.py` — Added `import os` and `import aiohttp.web`; implemented `_start_test_server` (aiohttp `AppRunner`/`TCPSite` on `0.0.0.0:8089`); implemented `_handle_sweep_request` (awaits `_trigger_sweep()`, awaits `self._sweep_task`, returns `Response(status=200)`); added `PYTEST_RUNNING`-gated `asyncio.create_task(self._start_test_server())` at end of `on_ready`.
+- `tests/unit/bot/test_test_server.py` — Removed `@pytest.mark.xfail` marker; replaced `AsyncMock` sweep task with a real `asyncio.Task` (via `asyncio.create_task(_noop())`); test passes green.

@@ -60,39 +60,39 @@ Fix the concurrency bug in `_sweep_deleted_embeds`, add OTel metrics, add a `PYT
 - [x] Task 2.3: Remove xfail markers from `test_trigger_sweep.py` and verify green
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 81-96)
 
-### [ ] Phase 3: OTel Metrics (TDD RED)
+### [x] Phase 3: OTel Metrics (TDD RED)
 
-- [ ] Task 3.1: Add module-level `meter` and five metric instruments to `bot.py`
+- [x] Task 3.1: Add module-level `meter` and five metric instruments to `bot.py`
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 99-112)
 
-- [ ] Task 3.2: Write xfail unit tests for metric increments
+- [x] Task 3.2: Write xfail unit tests for metric increments
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 113-127)
 
-### [ ] Phase 4: OTel Metrics (TDD GREEN)
+### [x] Phase 4: OTel Metrics (TDD GREEN)
 
-- [ ] Task 4.1: Add metric `.add()` calls in `_sweep_deleted_embeds`, `_run_sweep_worker`, and `_trigger_sweep`
+- [x] Task 4.1: Add metric `.add()` calls in `_sweep_deleted_embeds`, `_run_sweep_worker`, and `_trigger_sweep`
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 130-147)
 
-- [ ] Task 4.2: Remove xfail markers from `test_sweep_metrics.py` and verify green
+- [x] Task 4.2: Remove xfail markers from `test_sweep_metrics.py` and verify green
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 148-163)
 
-### [ ] Phase 5: Test Server (TDD RED)
+### [x] Phase 5: Test Server (TDD RED)
 
-- [ ] Task 5.1: Add `_start_test_server` and `_handle_sweep_request` stubs raising `NotImplementedError`
+- [x] Task 5.1: Add `_start_test_server` and `_handle_sweep_request` stubs raising `NotImplementedError`
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 166-179)
 
-- [ ] Task 5.2: Write xfail unit test for `_handle_sweep_request` calling `_trigger_sweep` and returning HTTP 200
+- [x] Task 5.2: Write xfail unit test for `_handle_sweep_request` calling `_trigger_sweep` and returning HTTP 200
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 180-195)
 
-### [ ] Phase 6: Test Server (TDD GREEN)
+### [x] Phase 6: Test Server (TDD GREEN)
 
-- [ ] Task 6.1: Implement `_start_test_server` (aiohttp, port 8089) and `_handle_sweep_request`
+- [x] Task 6.1: Implement `_start_test_server` (aiohttp, port 8089) and `_handle_sweep_request`
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 198-213)
 
-- [ ] Task 6.2: Gate test server launch on `PYTEST_RUNNING` in `on_ready`
+- [x] Task 6.2: Gate test server launch on `PYTEST_RUNNING` in `on_ready`
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 214-231)
 
-- [ ] Task 6.3: Remove xfail markers from `test_test_server.py` and verify green
+- [x] Task 6.3: Remove xfail markers from `test_test_server.py` and verify green
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 232-246)
 
 ### [ ] Phase 7: Integration Tests (Retrofitting — no xfail)

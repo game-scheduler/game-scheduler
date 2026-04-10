@@ -237,3 +237,48 @@ No compose changes needed. `app-network` already shared. `PYTEST_RUNNING=1` alre
   - E2E test deletes Discord message; asserts game row removed from DB
   - E2E test sets fake `message_id`, triggers sweep via `POST /admin/sweep`; asserts game row removed from DB
   - No changes to `bot.Dockerfile` healthcheck or `compose.e2e.yaml`
+
+---
+
+## Addendum: Remove Sweep from `on_resumed`
+
+### Finding
+
+The sweep (`_sweep_deleted_embeds`) is called in both `on_ready` and `on_resumed`. The `on_resumed` call is
+redundant and expensive.
+
+### Discord Gateway Resume Semantics (verified against official docs)
+
+When a session is successfully resumed, Discord **replays all missed events in sequence order**, finishing
+with the `RESUMED` event to signal replay is complete. discord.py fires `on_resumed` only after this replay
+is finished. The replay includes `MESSAGE_DELETE` events, which trigger `on_raw_message_delete` — the same
+handler that publishes `EMBED_DELETED` for real-time deletions.
+
+`MESSAGE_DELETE` is gated on the `GUILD_MESSAGES (1 << 9)` intent, which the bot already declares
+(`guild_messages=True`). So all message deletions that occurred during the disconnection window are
+delivered via replay before `on_resumed` fires.
+
+`on_ready` fires only on a **full reconnect** (session expired or could not be resumed). In this case
+Discord sends no replay; all missed events are lost. The sweep is the only mechanism to recover them.
+
+### Conclusion
+
+| Event        | Gateway behaviour                           | Sweep needed? |
+| ------------ | ------------------------------------------- | ------------- |
+| `on_ready`   | Full reconnect — no event replay            | **Yes**       |
+| `on_resumed` | Session resume — all missed events replayed | **No**        |
+
+The sweep call in `on_resumed` should be removed. `_recover_pending_workers` is unaffected — it recovers
+DB-queued `message_refresh_queue` work and belongs in both handlers regardless of Gateway replay.
+
+### Required Change
+
+In `services/bot/bot.py`, `on_resumed`:
+
+```python
+# Remove this line:
+await self._sweep_deleted_embeds()
+```
+
+The `on_ready` call site is unchanged. The existing `on_resumed` unit test should be updated to assert
+that `_sweep_deleted_embeds` is **not** called.

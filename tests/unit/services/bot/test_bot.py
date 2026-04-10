@@ -145,7 +145,8 @@ class TestGameSchedulerBot:
         with patch("services.bot.bot.logger") as mock_logger:
             with patch.object(type(bot), "user", new_callable=lambda: mock_user):
                 with patch.object(type(bot), "guilds", new_callable=lambda: mock_guilds):
-                    await bot.on_ready()
+                    with patch.object(bot, "_start_test_server", new_callable=AsyncMock):
+                        await bot.on_ready()
 
                     assert mock_logger.info.call_count >= 2
 

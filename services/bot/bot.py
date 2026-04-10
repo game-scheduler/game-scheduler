@@ -24,10 +24,12 @@
 import asyncio
 import contextlib
 import logging
+import os
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import aiohttp.web
 import discord
 from discord.ext import commands
 from opentelemetry import metrics, trace
@@ -199,6 +201,9 @@ class GameSchedulerBot(commands.Bot):
                 )
                 logger.info("Started message refresh listener task")
 
+            if os.getenv("PYTEST_RUNNING"):
+                self._test_server_task = asyncio.create_task(self._start_test_server())
+
     async def on_disconnect(self) -> None:
         """Handle Gateway disconnection."""
         logger.warning("Bot disconnected from Gateway")
@@ -250,6 +255,23 @@ class GameSchedulerBot(commands.Bot):
             with contextlib.suppress(asyncio.CancelledError):
                 await self._sweep_task
         self._sweep_task = asyncio.create_task(self._sweep_deleted_embeds())
+
+    async def _start_test_server(self) -> None:
+        """Start the aiohttp test server on port 8089 for e2e sweep triggering."""
+        app = aiohttp.web.Application()
+        app.router.add_post("/admin/sweep", self._handle_sweep_request)
+        runner = aiohttp.web.AppRunner(app)
+        await runner.setup()
+        site = aiohttp.web.TCPSite(runner, None, 8089)
+        await site.start()
+        logger.info("Test server started on port 8089")
+
+    async def _handle_sweep_request(self, _request: aiohttp.web.Request) -> aiohttp.web.Response:
+        """Handle POST /admin/sweep: trigger sweep and wait for completion."""
+        await self._trigger_sweep()
+        if self._sweep_task:
+            await self._sweep_task
+        return aiohttp.web.Response(status=200)
 
     async def _recover_pending_workers(self) -> None:
         """Spawn channel workers for any pending message_refresh_queue rows.
