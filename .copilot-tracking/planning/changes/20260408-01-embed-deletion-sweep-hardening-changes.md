@@ -82,3 +82,17 @@
 ### Deviation from Plan
 
 - Task 7.2 (`_sweep_deleted_embeds` integration test with mocked Discord) was **not implemented** as an integration test. The integration environment has no Discord connection; mocking Discord.py Bot methods within that environment would duplicate existing unit test coverage rather than test real infrastructure. Sweep behaviour against real Discord will be covered by e2e Phase 8 Case 2 (`POST /admin/sweep` → bot runs real sweep against real Discord).
+
+---
+
+## Phase 8: E2E Tests — COMPLETE
+
+### Modified
+
+- `tests/e2e/helpers/discord.py` — Added `delete_message(channel_id, message_id)` method that fetches the channel and message via the Discord REST API then calls `message.delete()`.
+
+### Added
+
+- `tests/e2e/test_embed_deletion.py` — Two e2e tests:
+  - `test_case1_real_time_deletion`: Creates a game, waits for `message_id`, deletes the Discord announcement via `discord_helper.delete_message`, then polls DB until the game row is absent (exercises `on_message_delete` → `EmbedDeletionConsumer` path).
+  - `test_case2_sweep_http_trigger`: Creates a game, waits for `message_id`, corrupts it to `9999999999999999999`, POSTs to `http://bot:8089/admin/sweep` (blocks until sweep completes), then asserts game row absent (exercises sweep path end-to-end).

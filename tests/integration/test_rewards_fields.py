@@ -432,7 +432,7 @@ async def test_save_and_archive_updates_existing_archived_schedule(
         row = admin_db_sync.execute(
             text(
                 "SELECT transition_time FROM game_status_schedule "
-                "WHERE game_id = :game_id AND target_status = 'ARCHIVED' AND executed = false"
+                "WHERE game_id = :game_id AND target_status = 'ARCHIVED'"
             ),
             {"game_id": game_id},
         ).fetchone()

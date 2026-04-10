@@ -103,15 +103,15 @@ Fix the concurrency bug in `_sweep_deleted_embeds`, add OTel metrics, add a `PYT
 - [x] Task 7.2: ~~Write integration test for `_sweep_deleted_embeds` (mocked Discord, real DB + RabbitMQ)~~ — moved to e2e Phase 8 Case 2; sweep requires a live Discord connection, which provides no value over existing unit tests without a real bot
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 267-285)
 
-### [ ] Phase 8: E2E Tests
+### [x] Phase 8: E2E Tests
 
-- [ ] Task 8.1: Add `delete_message(channel_id, message_id)` to `DiscordTestHelper`
+- [x] Task 8.1: Add `delete_message(channel_id, message_id)` to `DiscordTestHelper`
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 288-306)
 
-- [ ] Task 8.2: Write e2e test Case 1 — real-time Discord message deletion → game cancellation
+- [x] Task 8.2: Write e2e test Case 1 — real-time Discord message deletion → game cancellation
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 307-322)
 
-- [ ] Task 8.3: Write e2e test Case 2 — fake `message_id` + `POST /admin/sweep` → game cancellation
+- [x] Task 8.3: Write e2e test Case 2 — fake `message_id` + `POST /admin/sweep` → game cancellation
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 323-341)
 
 ## Dependencies

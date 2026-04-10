@@ -169,6 +169,18 @@ class DiscordTestHelper:
 
         return await channel.fetch_message(int(message_id))
 
+    async def delete_message(self, channel_id: str, message_id: str) -> None:
+        """
+        Delete a message from a Discord channel.
+
+        Args:
+            channel_id: Discord channel snowflake ID
+            message_id: Discord message snowflake ID
+        """
+        channel = await self.client.fetch_channel(int(channel_id))
+        message = await channel.fetch_message(int(message_id))
+        await message.delete()
+
     async def get_recent_messages(self, channel_id: str, limit: int = 10) -> list[discord.Message]:
         """
         Fetch recent messages from channel.
