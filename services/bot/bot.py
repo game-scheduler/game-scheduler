@@ -24,6 +24,7 @@
 import asyncio
 import contextlib
 import logging
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -298,6 +299,9 @@ class GameSchedulerBot(commands.Bot):
             logger.warning("Skipping embed deletion sweep: no event publisher")
             return
 
+        sweep_started_counter.add(1)
+        start_time = time.time()
+
         try:
             async with get_bypass_db_session() as db:
                 result = await db.execute(
@@ -331,6 +335,7 @@ class GameSchedulerBot(commands.Bot):
             self._run_sweep_worker(queue, redis, self.event_publisher) for _ in range(num_workers)
         ]
         await asyncio.gather(*workers)
+        sweep_duration_histogram.record(time.time() - start_time)
         logger.info("Embed deletion sweep complete")
 
     async def _run_sweep_worker(
@@ -364,7 +369,9 @@ class GameSchedulerBot(commands.Bot):
                     logger.warning("Sweep: channel %s is not a text channel, skipping", channel_id)
                     continue
                 await channel.fetch_message(int(message_id))
+                sweep_messages_checked_counter.add(1)
             except discord.NotFound:
+                sweep_deletions_detected_counter.add(1)
                 await publisher.publish_embed_deleted(
                     game_id=game_id,
                     channel_id=channel_id,
