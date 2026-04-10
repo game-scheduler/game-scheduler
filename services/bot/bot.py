@@ -22,13 +22,14 @@
 """Discord bot implementation with Gateway connection."""
 
 import asyncio
+import contextlib
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import discord
 from discord.ext import commands
-from opentelemetry import trace
+from opentelemetry import metrics, trace
 from sqlalchemy import distinct, select
 
 from services.bot.config import BotConfig
@@ -47,6 +48,33 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
+meter = metrics.get_meter(__name__)
+
+sweep_started_counter = meter.create_counter(
+    name="bot.sweep.started",
+    description="Number of embed deletion sweeps started",
+    unit="1",
+)
+sweep_interrupted_counter = meter.create_counter(
+    name="bot.sweep.interrupted",
+    description="Number of sweeps cancelled because a new sweep was triggered",
+    unit="1",
+)
+sweep_messages_checked_counter = meter.create_counter(
+    name="bot.sweep.messages_checked",
+    description="Total Discord messages fetched during sweeps",
+    unit="1",
+)
+sweep_deletions_detected_counter = meter.create_counter(
+    name="bot.sweep.deletions_detected",
+    description="Total EMBED_DELETED events published by sweeps",
+    unit="1",
+)
+sweep_duration_histogram = meter.create_histogram(
+    name="bot.sweep.duration",
+    description="Duration of completed embed deletion sweeps in seconds",
+    unit="s",
+)
 
 
 # Forward declarations to avoid circular imports
@@ -77,6 +105,7 @@ class GameSchedulerBot(commands.Bot):
         self.event_handlers: EventHandlers | None = None
         self.event_publisher: BotEventPublisher | None = None
         self.api_cache = None
+        self._sweep_task: asyncio.Task[None] | None = None
 
         intents = discord.Intents(guilds=True, guild_messages=True)
 
@@ -157,7 +186,7 @@ class GameSchedulerBot(commands.Bot):
                 logger.info("Started event consumer task")
 
             await self._recover_pending_workers()
-            await self._sweep_deleted_embeds()
+            await self._trigger_sweep()
 
             if not hasattr(self, "_refresh_listener_started"):
                 self._refresh_listener_started = True
@@ -177,7 +206,7 @@ class GameSchedulerBot(commands.Bot):
         """Handle Gateway reconnection after disconnect."""
         logger.info("Bot reconnected to Gateway")
         await self._recover_pending_workers()
-        await self._sweep_deleted_embeds()
+        await self._trigger_sweep()
 
     async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent) -> None:
         """Handle raw message delete event to detect embed deletions.
@@ -205,6 +234,21 @@ class GameSchedulerBot(commands.Bot):
                 )
         except Exception as e:
             logger.exception("Error handling message delete for message %s: %s", message_id, e)
+
+    async def _trigger_sweep(self) -> None:
+        """Cancel any in-progress sweep and start a fresh one.
+
+        If a sweep is already running, cancels it and waits for it to finish
+        before launching a new one. Back-to-back on_resumed events therefore
+        never run two concurrent sweeps.
+        """
+        if self._sweep_task and not self._sweep_task.done():
+            logger.warning("Embed deletion sweep interrupted: new sweep triggered")
+            sweep_interrupted_counter.add(1)
+            self._sweep_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._sweep_task
+        self._sweep_task = asyncio.create_task(self._sweep_deleted_embeds())
 
     async def _recover_pending_workers(self) -> None:
         """Spawn channel workers for any pending message_refresh_queue rows.

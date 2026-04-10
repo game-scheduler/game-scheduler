@@ -41,23 +41,23 @@ Fix the concurrency bug in `_sweep_deleted_embeds`, add OTel metrics, add a `PYT
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Concurrency Guard (TDD RED)
+### [x] Phase 1: Concurrency Guard (TDD RED)
 
-- [ ] Task 1.1: Add `_trigger_sweep` stub with `NotImplementedError` and initialize `self._sweep_task = None`
+- [x] Task 1.1: Add `_trigger_sweep` stub with `NotImplementedError` and initialize `self._sweep_task = None`
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 13-28)
 
-- [ ] Task 1.2: Write xfail unit tests for cancel-and-restart behaviour (4 tests)
+- [x] Task 1.2: Write xfail unit tests for cancel-and-restart behaviour (4 tests)
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 29-47)
 
-### [ ] Phase 2: Concurrency Guard (TDD GREEN)
+### [x] Phase 2: Concurrency Guard (TDD GREEN)
 
-- [ ] Task 2.1: Implement `_trigger_sweep` with cancel-and-restart logic
+- [x] Task 2.1: Implement `_trigger_sweep` with cancel-and-restart logic
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 50-65)
 
-- [ ] Task 2.2: Update `on_ready` and `on_resumed` to call `await self._trigger_sweep()`
+- [x] Task 2.2: Update `on_ready` and `on_resumed` to call `await self._trigger_sweep()`
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 66-80)
 
-- [ ] Task 2.3: Remove xfail markers from `test_trigger_sweep.py` and verify green
+- [x] Task 2.3: Remove xfail markers from `test_trigger_sweep.py` and verify green
   - Details: .copilot-tracking/planning/details/20260408-01-embed-deletion-sweep-hardening-details.md (Lines 81-96)
 
 ### [ ] Phase 3: OTel Metrics (TDD RED)
