@@ -163,7 +163,7 @@ async def test_publish_embed_deleted(bot_publisher, mock_publisher):
     assert event.data["game_id"] == game_id
     assert event.data["channel_id"] == channel_id
     assert event.data["message_id"] == message_id
-    assert call_args.kwargs["routing_key"] == "game.embed_deleted"
+    assert call_args.kwargs["routing_key"] == "embed.deleted"
 
 
 @pytest.mark.asyncio

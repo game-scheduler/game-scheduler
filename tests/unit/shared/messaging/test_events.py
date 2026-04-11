@@ -45,9 +45,9 @@ class TestEventType:
         assert EventType.NOTIFICATION_SEND_DM.value == "notification.send_dm"
 
     def test_embed_deleted_event_type(self):
-        """EMBED_DELETED is a member with the game.embed_deleted routing key."""
+        """EMBED_DELETED is a member with the embed.deleted routing key."""
         assert EventType.EMBED_DELETED in EventType
-        assert EventType.EMBED_DELETED.value == "game.embed_deleted"
+        assert EventType.EMBED_DELETED.value == "embed.deleted"
 
 
 class TestEvent:

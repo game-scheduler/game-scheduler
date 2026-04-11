@@ -42,7 +42,7 @@ class EmbedDeletionConsumer:
     """
     Cancels games when Discord embed deletion events arrive via RabbitMQ.
 
-    Subscribes to game.embed_deleted routing key. For each event the consumer
+    Subscribes to embed.deleted routing key. For each event the consumer
     looks up the game by ID and calls _delete_game_internal, which releases
     images, removes the DB row, and publishes game.cancelled — identical to the
     HTTP delete_game path but without an auth check.
