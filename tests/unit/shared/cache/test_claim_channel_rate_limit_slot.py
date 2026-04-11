@@ -25,7 +25,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from shared.cache.client import RedisClient
+from shared.cache.client import (
+    _REDIS_ERROR_BACKOFF_BASE_MS,
+    _REDIS_ERROR_BACKOFF_JITTER_MS,
+    RedisClient,
+)
 
 
 class TestClaimChannelRateLimitSlot:
@@ -166,11 +170,15 @@ class TestClaimChannelRateLimitSlot:
             assert client._client is not None
             assert result == 0
 
-    async def test_eval_error_returns_0(self, client_and_mock: tuple) -> None:
-        """On Redis error the method fails open and returns 0 (allow the edit)."""
+    async def test_eval_error_returns_jittered_backoff(self, client_and_mock: tuple) -> None:
+        """On Redis error the method fails closed with a jittered 1000-1250ms backoff."""
         client, mock_redis = client_and_mock
         mock_redis.eval.side_effect = Exception("connection lost")
 
         result = await client.claim_channel_rate_limit_slot("999")
 
-        assert result == 0
+        assert (
+            _REDIS_ERROR_BACKOFF_BASE_MS
+            <= result
+            <= _REDIS_ERROR_BACKOFF_BASE_MS + _REDIS_ERROR_BACKOFF_JITTER_MS
+        )

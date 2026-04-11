@@ -25,7 +25,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from shared.cache.client import RedisClient
+from shared.cache.client import (
+    _REDIS_ERROR_BACKOFF_BASE_MS,
+    _REDIS_ERROR_BACKOFF_JITTER_MS,
+    RedisClient,
+)
 
 
 class TestClaimGlobalAndChannelSlot:
@@ -118,14 +122,18 @@ class TestClaimGlobalAndChannelSlot:
         assert isinstance(result, int)
         assert result == 40
 
-    async def test_eval_error_returns_0(self, client_and_mock: tuple) -> None:
-        """On Redis error the method fails open and returns 0."""
+    async def test_eval_error_returns_jittered_backoff(self, client_and_mock: tuple) -> None:
+        """On Redis error the method fails closed with a jittered 1000-1250ms backoff."""
         client, mock_redis = client_and_mock
         mock_redis.eval.side_effect = Exception("connection lost")
 
         result = await client.claim_global_and_channel_slot("999")
 
-        assert result == 0
+        assert (
+            _REDIS_ERROR_BACKOFF_BASE_MS
+            <= result
+            <= _REDIS_ERROR_BACKOFF_BASE_MS + _REDIS_ERROR_BACKOFF_JITTER_MS
+        )
 
     async def test_lua_script_constant_exists(self) -> None:
         """_GLOBAL_AND_CHANNEL_RATE_LIMIT_LUA constant is importable."""
@@ -225,14 +233,18 @@ class TestClaimGlobalSlot:
         assert isinstance(result, int)
         assert result == 30
 
-    async def test_eval_error_returns_0(self, client_and_mock: tuple) -> None:
-        """On Redis error the method fails open and returns 0."""
+    async def test_eval_error_returns_jittered_backoff(self, client_and_mock: tuple) -> None:
+        """On Redis error the method fails closed with a jittered 1000-1250ms backoff."""
         client, mock_redis = client_and_mock
         mock_redis.eval.side_effect = Exception("timeout")
 
         result = await client.claim_global_slot()
 
-        assert result == 0
+        assert (
+            _REDIS_ERROR_BACKOFF_BASE_MS
+            <= result
+            <= _REDIS_ERROR_BACKOFF_BASE_MS + _REDIS_ERROR_BACKOFF_JITTER_MS
+        )
 
     async def test_auto_connects_when_no_client(self, mock_redis: AsyncMock) -> None:
         """claim_global_slot establishes connection if not yet connected."""

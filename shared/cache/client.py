@@ -24,6 +24,7 @@
 import json
 import logging
 import os
+import secrets
 import time
 from typing import TYPE_CHECKING, Any, cast
 
@@ -35,6 +36,10 @@ from redis.asyncio import Redis
 from redis.asyncio.connection import ConnectionPool
 
 logger = logging.getLogger(__name__)
+
+_REDIS_ERROR_BACKOFF_BASE_MS = 1000
+_REDIS_ERROR_BACKOFF_JITTER_MS = 250
+_REDIS_CONNECTION_POOL_SIZE = 100
 
 # Atomic Lua script for sliding-window rate limit tracking.
 #
@@ -182,7 +187,7 @@ class RedisClient:
         try:
             self._pool = ConnectionPool.from_url(
                 self.redis_url,
-                max_connections=10,
+                max_connections=_REDIS_CONNECTION_POOL_SIZE,
                 decode_responses=True,
             )
             self._client = Redis(connection_pool=self._pool)
@@ -402,7 +407,9 @@ class RedisClient:
             return int(result)
         except Exception as e:
             logger.error("Redis EVAL error for channel %s: %s", channel_id, e)
-            return 0
+            return _REDIS_ERROR_BACKOFF_BASE_MS + secrets.randbelow(
+                _REDIS_ERROR_BACKOFF_JITTER_MS + 1
+            )
 
     async def claim_global_and_channel_slot(self, channel_id: str) -> int:
         """
@@ -446,7 +453,9 @@ class RedisClient:
                 channel_id,
                 e,
             )
-            return 0
+            return _REDIS_ERROR_BACKOFF_BASE_MS + secrets.randbelow(
+                _REDIS_ERROR_BACKOFF_JITTER_MS + 1
+            )
 
     async def claim_global_slot(self) -> int:
         """
@@ -480,7 +489,9 @@ class RedisClient:
             return int(result)
         except Exception as e:
             logger.error("Redis EVAL error for global slot: %s", e)
-            return 0
+            return _REDIS_ERROR_BACKOFF_BASE_MS + secrets.randbelow(
+                _REDIS_ERROR_BACKOFF_JITTER_MS + 1
+            )
 
 
 _redis_client: RedisClient | None = None
