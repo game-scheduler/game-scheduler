@@ -78,7 +78,7 @@ async def test_get_user_role_ids_from_discord(role_checker, mock_bot):
     mock_member.roles = [mock_role1, mock_role2]
 
     mock_guild.fetch_member = AsyncMock(return_value=mock_member)
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     role_checker.cache.set_user_roles = AsyncMock()
 
@@ -92,7 +92,7 @@ async def test_get_user_role_ids_from_discord(role_checker, mock_bot):
 async def test_get_user_role_ids_guild_not_found(role_checker, mock_bot):
     """Test handling guild not found."""
     role_checker.cache.get_user_roles = AsyncMock(return_value=None)
-    mock_bot.fetch_guild = AsyncMock(return_value=None)
+    mock_bot.get_guild = MagicMock(return_value=None)
 
     result = await role_checker.get_user_role_ids("123", "456")
 
@@ -106,7 +106,7 @@ async def test_get_user_role_ids_member_not_found(role_checker, mock_bot):
 
     mock_guild = MagicMock()
     mock_guild.fetch_member = AsyncMock(side_effect=discord.NotFound(MagicMock(), ""))
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     result = await role_checker.get_user_role_ids("123", "456")
 
@@ -128,7 +128,7 @@ async def test_get_user_role_ids_force_refresh(role_checker, mock_bot):
     mock_member.roles = [mock_role1]
 
     mock_guild.fetch_member = AsyncMock(return_value=mock_member)
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     role_checker.cache.set_user_roles = AsyncMock()
 
@@ -150,7 +150,7 @@ async def test_check_manage_guild_permission_true(role_checker, mock_bot):
     mock_member.guild_permissions = mock_permissions
 
     mock_guild.fetch_member = AsyncMock(return_value=mock_member)
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     result = await role_checker.check_manage_guild_permission("123", "456")
 
@@ -169,7 +169,7 @@ async def test_check_manage_guild_permission_false(role_checker, mock_bot):
     mock_member.guild_permissions = mock_permissions
 
     mock_guild.fetch_member = AsyncMock(return_value=mock_member)
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     result = await role_checker.check_manage_guild_permission("123", "456")
 
@@ -188,7 +188,7 @@ async def test_check_manage_channels_permission_true(role_checker, mock_bot):
     mock_member.guild_permissions = mock_permissions
 
     mock_guild.fetch_member = AsyncMock(return_value=mock_member)
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     result = await role_checker.check_manage_channels_permission("123", "456")
 
@@ -207,7 +207,7 @@ async def test_check_administrator_permission_true(role_checker, mock_bot):
     mock_member.guild_permissions = mock_permissions
 
     mock_guild.fetch_member = AsyncMock(return_value=mock_member)
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     result = await role_checker.check_administrator_permission("123", "456")
 
@@ -272,7 +272,7 @@ async def test_get_guild_roles(role_checker, mock_bot):
     mock_guild = MagicMock()
     mock_guild.roles = [mock_role1, mock_role2]
 
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     result = await role_checker.get_guild_roles("456")
 
@@ -289,7 +289,7 @@ async def test_get_user_role_ids_member_returns_none(role_checker, mock_bot):
     mock_guild = MagicMock()
     mock_guild.id = 456
     mock_guild.fetch_member = AsyncMock(return_value=None)
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     result = await role_checker.get_user_role_ids("123", "456")
 
@@ -303,7 +303,7 @@ async def test_get_user_role_ids_forbidden(role_checker, mock_bot):
 
     mock_guild = MagicMock()
     mock_guild.fetch_member = AsyncMock(side_effect=discord.Forbidden(MagicMock(), ""))
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     result = await role_checker.get_user_role_ids("123", "456")
 
@@ -314,7 +314,7 @@ async def test_get_user_role_ids_forbidden(role_checker, mock_bot):
 async def test_get_user_role_ids_generic_exception(role_checker, mock_bot):
     """Test handling generic exception when fetching roles."""
     role_checker.cache.get_user_roles = AsyncMock(return_value=None)
-    mock_bot.fetch_guild = AsyncMock(side_effect=RuntimeError("connection error"))
+    mock_bot.get_guild = MagicMock(side_effect=RuntimeError("connection error"))
 
     result = await role_checker.get_user_role_ids("123", "456")
 
@@ -324,7 +324,7 @@ async def test_get_user_role_ids_generic_exception(role_checker, mock_bot):
 @pytest.mark.asyncio
 async def test_get_guild_roles_guild_not_found(role_checker, mock_bot):
     """Test getting guild roles when guild fetch returns None."""
-    mock_bot.fetch_guild = AsyncMock(return_value=None)
+    mock_bot.get_guild = MagicMock(return_value=None)
 
     result = await role_checker.get_guild_roles("456")
 
@@ -334,7 +334,7 @@ async def test_get_guild_roles_guild_not_found(role_checker, mock_bot):
 @pytest.mark.asyncio
 async def test_get_guild_roles_exception(role_checker, mock_bot):
     """Test handling exception when fetching guild roles."""
-    mock_bot.fetch_guild = AsyncMock(side_effect=RuntimeError("connection error"))
+    mock_bot.get_guild = MagicMock(side_effect=RuntimeError("connection error"))
 
     result = await role_checker.get_guild_roles("456")
 
@@ -344,7 +344,7 @@ async def test_get_guild_roles_exception(role_checker, mock_bot):
 @pytest.mark.asyncio
 async def test_check_manage_guild_permission_guild_not_found(role_checker, mock_bot):
     """Test MANAGE_GUILD check when guild fetch returns None."""
-    mock_bot.fetch_guild = AsyncMock(return_value=None)
+    mock_bot.get_guild = MagicMock(return_value=None)
 
     result = await role_checker.check_manage_guild_permission("123", "456")
 
@@ -356,7 +356,7 @@ async def test_check_manage_guild_permission_member_not_found(role_checker, mock
     """Test MANAGE_GUILD check when member fetch returns None."""
     mock_guild = MagicMock()
     mock_guild.fetch_member = AsyncMock(return_value=None)
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     result = await role_checker.check_manage_guild_permission("123", "456")
 
@@ -366,7 +366,7 @@ async def test_check_manage_guild_permission_member_not_found(role_checker, mock
 @pytest.mark.asyncio
 async def test_check_manage_guild_permission_exception(role_checker, mock_bot):
     """Test handling exception in MANAGE_GUILD check."""
-    mock_bot.fetch_guild = AsyncMock(side_effect=RuntimeError("connection error"))
+    mock_bot.get_guild = MagicMock(side_effect=RuntimeError("connection error"))
 
     result = await role_checker.check_manage_guild_permission("123", "456")
 
@@ -376,7 +376,7 @@ async def test_check_manage_guild_permission_exception(role_checker, mock_bot):
 @pytest.mark.asyncio
 async def test_check_manage_channels_permission_guild_not_found(role_checker, mock_bot):
     """Test MANAGE_CHANNELS check when guild fetch returns None."""
-    mock_bot.fetch_guild = AsyncMock(return_value=None)
+    mock_bot.get_guild = MagicMock(return_value=None)
 
     result = await role_checker.check_manage_channels_permission("123", "456")
 
@@ -388,7 +388,7 @@ async def test_check_manage_channels_permission_member_not_found(role_checker, m
     """Test MANAGE_CHANNELS check when member fetch returns None."""
     mock_guild = MagicMock()
     mock_guild.fetch_member = AsyncMock(return_value=None)
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     result = await role_checker.check_manage_channels_permission("123", "456")
 
@@ -398,7 +398,7 @@ async def test_check_manage_channels_permission_member_not_found(role_checker, m
 @pytest.mark.asyncio
 async def test_check_manage_channels_permission_exception(role_checker, mock_bot):
     """Test handling exception in MANAGE_CHANNELS check."""
-    mock_bot.fetch_guild = AsyncMock(side_effect=RuntimeError("connection error"))
+    mock_bot.get_guild = MagicMock(side_effect=RuntimeError("connection error"))
 
     result = await role_checker.check_manage_channels_permission("123", "456")
 
@@ -408,7 +408,7 @@ async def test_check_manage_channels_permission_exception(role_checker, mock_bot
 @pytest.mark.asyncio
 async def test_check_administrator_permission_guild_not_found(role_checker, mock_bot):
     """Test ADMINISTRATOR check when guild fetch returns None."""
-    mock_bot.fetch_guild = AsyncMock(return_value=None)
+    mock_bot.get_guild = MagicMock(return_value=None)
 
     result = await role_checker.check_administrator_permission("123", "456")
 
@@ -420,7 +420,7 @@ async def test_check_administrator_permission_member_not_found(role_checker, moc
     """Test ADMINISTRATOR check when member fetch returns None."""
     mock_guild = MagicMock()
     mock_guild.fetch_member = AsyncMock(return_value=None)
-    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
 
     result = await role_checker.check_administrator_permission("123", "456")
 
@@ -430,7 +430,7 @@ async def test_check_administrator_permission_member_not_found(role_checker, moc
 @pytest.mark.asyncio
 async def test_check_administrator_permission_exception(role_checker, mock_bot):
     """Test handling exception in ADMINISTRATOR check."""
-    mock_bot.fetch_guild = AsyncMock(side_effect=RuntimeError("connection error"))
+    mock_bot.get_guild = MagicMock(side_effect=RuntimeError("connection error"))
 
     result = await role_checker.check_administrator_permission("123", "456")
 
@@ -446,3 +446,104 @@ async def test_seed_user_roles_writes_to_cache(role_checker):
     await role_checker.seed_user_roles("user123", "guild456", ["111", "222"])
 
     role_checker.cache.set_user_roles.assert_called_once_with("user123", "guild456", ["111", "222"])
+
+
+@pytest.mark.asyncio
+async def test_get_user_role_ids_does_not_call_fetch_guild(role_checker, mock_bot):
+    """get_user_role_ids must use get_guild() (in-memory) not fetch_guild() (REST)."""
+    role_checker.cache.get_user_roles = AsyncMock(return_value=None)
+    mock_role = MagicMock()
+    mock_role.id = 123
+    mock_member = MagicMock()
+    mock_member.roles = [mock_role]
+    mock_guild = MagicMock()
+    mock_guild.id = 456
+    mock_guild.fetch_member = AsyncMock(return_value=mock_member)
+    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
+    role_checker.cache.set_user_roles = AsyncMock()
+
+    await role_checker.get_user_role_ids("123", "456")
+
+    mock_bot.fetch_guild.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_get_guild_roles_does_not_call_fetch_guild(role_checker, mock_bot):
+    """get_guild_roles must use get_guild() (in-memory) not fetch_guild() (REST)."""
+    mock_guild = MagicMock()
+    mock_guild.roles = [MagicMock()]
+    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
+
+    await role_checker.get_guild_roles("456")
+
+    mock_bot.fetch_guild.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_check_manage_guild_permission_does_not_call_fetch_guild(role_checker, mock_bot):
+    """check_manage_guild_permission must use get_guild() not fetch_guild()."""
+    mock_permissions = MagicMock()
+    mock_permissions.manage_guild = True
+    mock_member = AsyncMock()
+    mock_member.guild_permissions = mock_permissions
+    mock_guild = MagicMock()
+    mock_guild.fetch_member = AsyncMock(return_value=mock_member)
+    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
+
+    await role_checker.check_manage_guild_permission("123", "456")
+
+    mock_bot.fetch_guild.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_check_manage_channels_permission_does_not_call_fetch_guild(role_checker, mock_bot):
+    """check_manage_channels_permission must use get_guild() not fetch_guild()."""
+    mock_permissions = MagicMock()
+    mock_permissions.manage_channels = True
+    mock_member = AsyncMock()
+    mock_member.guild_permissions = mock_permissions
+    mock_guild = MagicMock()
+    mock_guild.fetch_member = AsyncMock(return_value=mock_member)
+    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
+
+    await role_checker.check_manage_channels_permission("123", "456")
+
+    mock_bot.fetch_guild.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_check_administrator_permission_does_not_call_fetch_guild(role_checker, mock_bot):
+    """check_administrator_permission must use get_guild() not fetch_guild()."""
+    mock_permissions = MagicMock()
+    mock_permissions.administrator = True
+    mock_member = AsyncMock()
+    mock_member.guild_permissions = mock_permissions
+    mock_guild = MagicMock()
+    mock_guild.fetch_member = AsyncMock(return_value=mock_member)
+    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
+
+    await role_checker.check_administrator_permission("123", "456")
+
+    mock_bot.fetch_guild.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_check_game_host_permission_does_not_call_fetch_guild(role_checker, mock_bot):
+    """check_game_host_permission must not call fetch_guild() (REST)."""
+    mock_permissions = MagicMock()
+    mock_permissions.manage_guild = True
+    mock_member = AsyncMock()
+    mock_member.guild_permissions = mock_permissions
+    mock_guild = MagicMock()
+    mock_guild.fetch_member = AsyncMock(return_value=mock_member)
+    mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
+    mock_bot.get_guild = MagicMock(return_value=mock_guild)
+
+    await role_checker.check_game_host_permission("123", "456")
+
+    mock_bot.fetch_guild.assert_not_called()

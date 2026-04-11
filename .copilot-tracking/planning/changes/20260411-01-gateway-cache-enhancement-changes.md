@@ -25,3 +25,20 @@
   `await self._rebuild_redis_from_gateway()` before `_recover_pending_workers`.
 
 ---
+
+## Phase 2: role_checker.py — Use In-Memory Cache — COMPLETE
+
+### Modified
+
+- `tests/unit/services/bot/auth/test_role_checker.py` — Added six tests verifying each
+  of the five methods (`get_user_role_ids`, `get_guild_roles`, `check_manage_guild_permission`,
+  `check_manage_channels_permission`, `check_administrator_permission`, `check_game_host_permission`)
+  does not call `fetch_guild()`; updated all existing tests that set up `fetch_guild` as
+  `AsyncMock` to instead set up `get_guild` as `MagicMock`.
+
+- `services/bot/auth/role_checker.py` — Replaced `await self.bot.fetch_guild(int(guild_id))`
+  with `self.bot.get_guild(int(guild_id))` (synchronous, in-memory, no `await`) in all five
+  methods: `get_user_role_ids` (line 78), `get_guild_roles` (line 114),
+  `check_manage_guild_permission` (line 151), `check_manage_channels_permission` (line 177),
+  `check_administrator_permission` (line 203). Eliminates at least one REST call per role
+  check that misses the `user_roles` Redis cache.

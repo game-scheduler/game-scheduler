@@ -49,12 +49,12 @@ Replace REST-based Discord cache population with gateway-driven Redis writes and
 - [x] Task 1.2: Implement on_ready Redis rebuild in bot.py
   - Details: .copilot-tracking/planning/details/20260411-01-gateway-cache-enhancement-details.md (Lines 33-57)
 
-### [ ] Phase 2: role_checker.py — Use In-Memory Cache
+### [x] Phase 2: role_checker.py — Use In-Memory Cache
 
-- [ ] Task 2.1: Write failing unit tests for get_guild() usage
+- [x] Task 2.1: Write failing unit tests for get_guild() usage
   - Details: .copilot-tracking/planning/details/20260411-01-gateway-cache-enhancement-details.md (Lines 61-81)
 
-- [ ] Task 2.2: Replace fetch_guild() with get_guild() in role_checker.py
+- [x] Task 2.2: Replace fetch_guild() with get_guild() in role_checker.py
   - Details: .copilot-tracking/planning/details/20260411-01-gateway-cache-enhancement-details.md (Lines 82-101)
 
 ### [ ] Phase 3: Remove Redundant fetch_channel in handlers.py
