@@ -101,6 +101,14 @@ Replace REST-based Discord cache population with gateway-driven Redis writes and
 - [x] Task 6.4: Wire role_checker.get_user_role_ids to use get_guild_member
   - Details: .copilot-tracking/planning/details/20260411-01-gateway-cache-enhancement-details.md (Lines 313-340)
 
+### [ ] Phase 7: E2E Gateway Cache Population Tests
+
+- [ ] Task 7.1: Write e2e tests for startup cache population
+  - Details: .copilot-tracking/planning/details/20260411-01-gateway-cache-enhancement-details.md (Lines 339-364)
+
+- [ ] Task 7.2: Write e2e test for known role ID in guild roles cache
+  - Details: .copilot-tracking/planning/details/20260411-01-gateway-cache-enhancement-details.md (Lines 365-385)
+
 ## Dependencies
 
 - discord.py (already a project dependency)
@@ -118,3 +126,5 @@ Replace REST-based Discord cache population with gateway-driven Redis writes and
 - `discord:member` keys expire on `DISCORD_MEMBER` TTL
 - `_validate_discord_channel` in `handlers.py` uses `get_channel()` only
 - All unit tests pass
+- E2e tests in `test_gateway_cache_e2e.py` verify all four key families populated at startup
+- E2e test confirms known role ID (`DISCORD_TEST_ROLE_A_ID`) appears in guild roles cache

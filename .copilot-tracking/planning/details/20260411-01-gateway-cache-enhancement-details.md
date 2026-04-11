@@ -332,6 +332,60 @@ into one cached call.
 
 ---
 
+---
+
+## Phase 7: E2E Gateway Cache Population Tests
+
+### Task 7.1: Write e2e tests for startup cache population
+
+Create `tests/e2e/test_gateway_cache_e2e.py` with four tests that read Redis directly
+and assert all four key families written by `_rebuild_redis_from_gateway` are populated
+correctly after bot startup.
+
+- **Files**:
+  - `tests/e2e/test_gateway_cache_e2e.py` — new file
+- **Test cases**:
+  - `test_startup_cache_guild_key_written`: reads `discord:guild:{guild_a_id}`; asserts it is a dict containing `id` and `name` fields
+  - `test_startup_cache_guild_channels_key_written`: reads `discord:guild_channels:{guild_a_id}`; asserts it is a non-empty list; each item contains `id`, `name`, `type`
+  - `test_startup_cache_channel_key_written`: reads `discord:channel:{channel_a_id}`; asserts it is a dict containing a `name` field
+  - `test_startup_cache_guild_roles_key_written`: reads `discord:guild_roles:{guild_a_id}`; asserts it is a non-empty list; each item contains `id`, `name`, `color`, `position`, `managed`
+- **Setup**:
+  - File-level: `pytestmark = [pytest.mark.e2e, pytest.mark.order(1)]`
+  - Use `discord_ids` fixture for `guild_a_id` and `channel_a_id`
+  - Use `await cache_client.get_redis_client()` then `CacheKeys.*` to read keys — matches the pattern in `test_guild_sync_e2e.py`
+  - No polling or waiting — `depends_on: bot: condition: service_healthy` guarantees `_rebuild_redis_from_gateway` completed before any e2e test runs
+- **Success**:
+  - All four tests pass against the live Redis instance in the e2e container
+- **Research References**:
+  - #file:../research/20260410-01-gateway-cache-enhancement-research.md (Lines 191-218) — e2e addendum Category 1 key assertions table
+- **Dependencies**:
+  - Phases 1–6 complete (bot must be writing the keys being asserted)
+  - `discord_ids` fixture and `cache_client` already wired in `test_guild_sync_e2e.py` — reuse without changes
+
+### Task 7.2: Write e2e test for known role ID in guild roles cache
+
+Add one test to the same file asserting that `DISCORD_TEST_ROLE_A_ID` appears in the
+`discord:guild_roles:{guild_a_id}` list written by `_rebuild_redis_from_gateway`. The
+test must skip gracefully (not fail) when the env var is absent.
+
+- **Files**:
+  - `tests/e2e/test_gateway_cache_e2e.py` — same file as Task 7.1
+- **Test case**:
+  - `test_startup_cache_known_role_id_in_guild_roles`:
+    - Read `DISCORD_TEST_ROLE_A_ID` from env; call `pytest.skip` if absent
+    - Read `discord:guild_roles:{guild_a_id}` from Redis
+    - Assert that the role ID appears in the list of `id` values from the cached role dicts
+- **Success**:
+  - Test passes when `DISCORD_TEST_ROLE_A_ID` is configured in the test environment
+  - Test skips (not fails or errors) when the env var is absent
+- **Research References**:
+  - #file:../research/20260410-01-gateway-cache-enhancement-research.md (Lines 218-229) — e2e addendum Category 2 and skip pattern guidance
+- **Dependencies**:
+  - Task 7.1 complete (guild roles key must be confirmed populated before asserting its contents)
+  - `DISCORD_TEST_ROLE_A_ID` already present in `compose.e2e.yaml` — same env var used by `test_role_based_signup.py`
+
+---
+
 ## Dependencies
 
 - discord.py (already a project dependency)
@@ -348,4 +402,5 @@ into one cached call.
 - `discord:channel`, `discord:guild`, `discord:guild_channels`, `discord:guild_roles` keys have no TTL
 - `discord:member` keys expire on `DISCORD_MEMBER` TTL
 - `_validate_discord_channel` in `handlers.py` uses `get_channel()` only
+- E2e tests in `test_gateway_cache_e2e.py` pass against the live Redis/bot instance
 - All unit tests pass

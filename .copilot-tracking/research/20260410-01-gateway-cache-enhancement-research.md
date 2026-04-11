@@ -167,3 +167,36 @@ Implement all six areas independently — they have no interdependencies and eac
   - `get_guild_member` results are cached in Redis
   - Channel and role changes in Discord are reflected in Redis immediately via gateway events; no TTL-driven expiry occurs
   - `discord:member` cache entries expire on their TTL since member events are privileged
+
+## Addendum: E2E Test Opportunities
+
+The unit tests verify the cache-writing logic in isolation, but there is currently no evidence that the gateway cache population actually works end-to-end against a real Discord environment. Two categories of e2e tests would close that gap.
+
+### Infrastructure available
+
+- The e2e test container receives `REDIS_URL` and the `shared.cache` client is already used in `test_guild_sync_e2e.py`, establishing a clear precedent for reading Redis directly from e2e tests.
+- By the time any e2e test runs, the `system-ready` container's `depends_on: bot: condition: service_healthy` guarantee means `_rebuild_redis_from_gateway` has already completed. No polling is needed.
+- `DISCORD_TEST_ROLE_A_ID` is already wired into `compose.e2e.yaml` and used by `test_role_based_signup.py`, making it available for role data assertions.
+
+### Category 1: Startup cache population
+
+Assert that all four key families are written correctly immediately after bot startup. These tests are direct validation of `_rebuild_redis_from_gateway` against real Discord data.
+
+Keys to assert per guild:
+
+| Key                                    | Expected content                                                           |
+| -------------------------------------- | -------------------------------------------------------------------------- |
+| `discord:guild:{guild_a_id}`           | dict with `id` and `name` fields                                           |
+| `discord:guild_channels:{guild_a_id}`  | non-empty list; each item has `id`, `name`, `type`                         |
+| `discord:channel:{guild_a_channel_id}` | dict with `name` field                                                     |
+| `discord:guild_roles:{guild_a_id}`     | non-empty list; each item has `id`, `name`, `color`, `position`, `managed` |
+
+This is the highest-value test category: it confirms the entire on_ready → Redis write path works with the real Discord gateway, which no unit test can do.
+
+### Category 2: Known role ID present in guild roles cache
+
+When `DISCORD_TEST_ROLE_A_ID` is set, assert that this role ID appears in the `discord:guild_roles:{guild_a_id}` list written by `_rebuild_redis_from_gateway`. This bridges "Redis has data" to "the data matches what Discord actually reports", and reuses infrastructure already in place for `test_role_based_signup.py`. The test should skip gracefully (not fail) when the env var is absent, following the same pattern as that file.
+
+### Suggested file
+
+`tests/e2e/test_gateway_cache_e2e.py` with `pytest.mark.order(1)` so it runs immediately after `test_00_bot_startup_sync.py`.
