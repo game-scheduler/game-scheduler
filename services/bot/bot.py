@@ -41,6 +41,8 @@ from services.bot.dependencies.discord_client import get_discord_client
 from services.bot.guild_sync import sync_all_bot_guilds
 from services.bot.message_refresh_listener import MessageRefreshListener
 from shared.cache.client import RedisClient, get_redis_client
+from shared.cache.keys import CacheKeys
+from shared.cache.ttl import CacheTTL
 from shared.database import get_bypass_db_session, get_db_session
 from shared.models.game import GameSession
 from shared.models.message_refresh_queue import MessageRefreshQueue
@@ -190,6 +192,7 @@ class GameSchedulerBot(commands.Bot):
                 self.loop.create_task(self.event_handlers.start_consuming())
                 logger.info("Started event consumer task")
 
+            await self._rebuild_redis_from_gateway()
             await self._recover_pending_workers()
             await self._trigger_sweep()
 
@@ -205,6 +208,56 @@ class GameSchedulerBot(commands.Bot):
 
             if os.getenv("PYTEST_RUNNING"):
                 self._test_server_task = asyncio.create_task(self._start_test_server())
+
+    async def _rebuild_redis_from_gateway(self) -> None:
+        """Populate Redis from the in-memory gateway cache after a full reconnect.
+
+        Writes guild, channel, and role data without any REST calls so the cache
+        is consistent immediately after on_ready fires.
+        """
+        redis = await get_redis_client()
+        for guild in self.guilds:
+            guild_id = str(guild.id)
+
+            await redis.set_json(
+                CacheKeys.discord_guild(guild_id),
+                {"id": guild_id, "name": guild.name},
+                CacheTTL.DISCORD_GUILD,
+            )
+
+            channels = [
+                {"id": str(c.id), "name": c.name, "type": c.type.value} for c in guild.channels
+            ]
+            await redis.set_json(
+                CacheKeys.discord_guild_channels(guild_id),
+                channels,
+                CacheTTL.DISCORD_GUILD_CHANNELS,
+            )
+
+            for channel in guild.channels:
+                await redis.set_json(
+                    CacheKeys.discord_channel(str(channel.id)),
+                    {"name": channel.name},
+                    CacheTTL.DISCORD_CHANNEL,
+                )
+
+            roles = [
+                {
+                    "id": str(r.id),
+                    "name": r.name,
+                    "color": r.color.value,
+                    "position": r.position,
+                    "managed": r.managed,
+                }
+                for r in guild.roles
+            ]
+            await redis.set_json(
+                CacheKeys.discord_guild_roles(guild_id),
+                roles,
+                CacheTTL.DISCORD_GUILD_ROLES,
+            )
+
+        logger.info("Redis cache rebuilt from gateway data for %d guilds", len(self.guilds))
 
     async def on_disconnect(self) -> None:
         """Handle Gateway disconnection."""

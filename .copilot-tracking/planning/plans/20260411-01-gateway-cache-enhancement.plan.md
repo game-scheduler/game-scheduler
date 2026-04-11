@@ -41,12 +41,12 @@ Replace REST-based Discord cache population with gateway-driven Redis writes and
 
 ## Implementation Checklist
 
-### [ ] Phase 1: on_ready Redis Cache Rebuild
+### [x] Phase 1: on_ready Redis Cache Rebuild
 
-- [ ] Task 1.1: Write failing unit tests for on_ready cache rebuild
+- [x] Task 1.1: Write failing unit tests for on_ready cache rebuild
   - Details: .copilot-tracking/planning/details/20260411-01-gateway-cache-enhancement-details.md (Lines 13-32)
 
-- [ ] Task 1.2: Implement on_ready Redis rebuild in bot.py
+- [x] Task 1.2: Implement on_ready Redis rebuild in bot.py
   - Details: .copilot-tracking/planning/details/20260411-01-gateway-cache-enhancement-details.md (Lines 33-57)
 
 ### [ ] Phase 2: role_checker.py — Use In-Memory Cache

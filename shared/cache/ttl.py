@@ -35,5 +35,6 @@ class CacheTTL:
     DISCORD_CHANNEL: int = 300  # 5 minutes - Discord channel objects
     DISCORD_GUILD: int = 600  # 10 minutes - Discord guild objects
     DISCORD_GUILD_CHANNELS: int = 300  # 5 minutes - Discord guild channels list
+    DISCORD_GUILD_ROLES: int = 300  # 5 minutes - Discord guild roles list
     DISCORD_USER: int = 300  # 5 minutes - Discord user objects
     APP_INFO: int = 3600  # 1 hour - Discord application info
