@@ -259,6 +259,51 @@ class GameSchedulerBot(commands.Bot):
 
         logger.info("Redis cache rebuilt from gateway data for %d guilds", len(self.guilds))
 
+    async def on_guild_channel_create(self, channel: discord.abc.GuildChannel) -> None:
+        """Write the new channel to Redis and invalidate the guild channel list."""
+        redis = await get_redis_client()
+        await redis.set_json(
+            CacheKeys.discord_channel(str(channel.id)),
+            {"name": channel.name},
+            None,
+        )
+        await redis.delete(CacheKeys.discord_guild_channels(str(channel.guild.id)))
+
+    async def on_guild_channel_update(
+        self,
+        _before: discord.abc.GuildChannel,
+        after: discord.abc.GuildChannel,
+    ) -> None:
+        """Update the channel entry in Redis and invalidate the guild channel list."""
+        redis = await get_redis_client()
+        await redis.set_json(
+            CacheKeys.discord_channel(str(after.id)),
+            {"name": after.name},
+            None,
+        )
+        await redis.delete(CacheKeys.discord_guild_channels(str(after.guild.id)))
+
+    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:
+        """Remove the deleted channel from Redis and invalidate the guild channel list."""
+        redis = await get_redis_client()
+        await redis.delete(CacheKeys.discord_channel(str(channel.id)))
+        await redis.delete(CacheKeys.discord_guild_channels(str(channel.guild.id)))
+
+    async def on_guild_role_create(self, role: discord.Role) -> None:
+        """Invalidate the guild roles cache so the next read fetches fresh data."""
+        redis = await get_redis_client()
+        await redis.delete(CacheKeys.discord_guild_roles(str(role.guild.id)))
+
+    async def on_guild_role_update(self, _before: discord.Role, after: discord.Role) -> None:
+        """Invalidate the guild roles cache so the next read fetches fresh data."""
+        redis = await get_redis_client()
+        await redis.delete(CacheKeys.discord_guild_roles(str(after.guild.id)))
+
+    async def on_guild_role_delete(self, role: discord.Role) -> None:
+        """Invalidate the guild roles cache so the next read fetches fresh data."""
+        redis = await get_redis_client()
+        await redis.delete(CacheKeys.discord_guild_roles(str(role.guild.id)))
+
     async def on_disconnect(self) -> None:
         """Handle Gateway disconnection."""
         logger.warning("Bot disconnected from Gateway")

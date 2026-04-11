@@ -58,3 +58,24 @@
   `get_discord_client()` / `await discord_api.fetch_channel(channel_id)` pre-check and
   replaced with `self.bot.get_channel(int(channel_id))`. This eliminates one REST call per
   `game.created` event that previously validated the channel before processing.
+
+---
+
+## Phase 4: Gateway Event Handlers — COMPLETE
+
+### Added
+
+- `tests/unit/bot/test_bot_events.py` — Nine unit tests verifying the six new gateway
+  event handlers correctly write/invalidate Redis keys:
+  - `on_guild_channel_create`: writes `discord:channel:{id}` and deletes `discord:guild_channels:{guild_id}`
+  - `on_guild_channel_update`: updates `discord:channel:{id}` and deletes `discord:guild_channels:{guild_id}`
+  - `on_guild_channel_delete`: deletes both `discord:channel:{id}` and `discord:guild_channels:{guild_id}`
+  - `on_guild_role_create`, `on_guild_role_update`, `on_guild_role_delete`: each deletes `discord:guild_roles:{guild_id}`
+
+### Modified
+
+- `services/bot/bot.py` — Added six new gateway event handler methods between
+  `_rebuild_redis_from_gateway` and `on_disconnect`. Channel handlers use
+  `redis.set_json(..., None)` (no TTL) for individual channel keys and `redis.delete` for
+  the guild channel list. Role handlers use invalidation-only (`redis.delete`) so the next
+  `fetch_guild_roles` call rebuilds from Discord rather than storing stale role data.

@@ -65,15 +65,15 @@ Replace REST-based Discord cache population with gateway-driven Redis writes and
 - [x] Task 3.2: Remove redundant fetch_channel call in handlers.py
   - Details: .copilot-tracking/planning/details/20260411-01-gateway-cache-enhancement-details.md (Lines 123-142)
 
-### [ ] Phase 4: Gateway Event Handlers
+### [x] Phase 4: Gateway Event Handlers
 
-- [ ] Task 4.1: Write failing unit tests for gateway event handlers
+- [x] Task 4.1: Write failing unit tests for gateway event handlers
   - Details: .copilot-tracking/planning/details/20260411-01-gateway-cache-enhancement-details.md (Lines 146-166)
 
-- [ ] Task 4.2: Implement channel event handlers in bot.py
+- [x] Task 4.2: Implement channel event handlers in bot.py
   - Details: .copilot-tracking/planning/details/20260411-01-gateway-cache-enhancement-details.md (Lines 167-185)
 
-- [ ] Task 4.3: Implement role event handlers in bot.py
+- [x] Task 4.3: Implement role event handlers in bot.py
   - Details: .copilot-tracking/planning/details/20260411-01-gateway-cache-enhancement-details.md (Lines 186-204)
 
 ### [ ] Phase 5: Fix \_make_api_request Guard + Remove TTLs
