@@ -44,6 +44,7 @@ from shared.cache.client import RedisClient, get_redis_client
 from shared.database import get_bypass_db_session, get_db_session
 from shared.models.game import GameSession
 from shared.models.message_refresh_queue import MessageRefreshQueue
+from shared.utils.status_transitions import GameStatus
 
 if TYPE_CHECKING:
     from services.bot.events.handlers import EventHandlers
@@ -331,6 +332,13 @@ class GameSchedulerBot(commands.Bot):
                     select(GameSession)
                     .options(joinedload(GameSession.channel))
                     .where(GameSession.message_id.is_not(None))
+                    .where(
+                        GameSession.status.not_in([
+                            GameStatus.COMPLETED,
+                            GameStatus.CANCELLED,
+                            GameStatus.ARCHIVED,
+                        ])
+                    )
                     .order_by(GameSession.scheduled_at.asc())
                 )
                 games = result.scalars().all()
