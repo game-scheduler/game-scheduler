@@ -53,9 +53,9 @@ Implement automated 12-hour Postgres backups to S3-compatible storage and a scri
 - [x] Task 2.3: Create Alembic migration for backup_metadata
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 73-88)
 
-### [ ] Phase 3: Backup Infrastructure
+### [x] Phase 3: Backup Infrastructure
 
-- [ ] Task 3.1: Create backup Dockerfile and scripts
+- [x] Task 3.1: Create backup Dockerfile and scripts
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 91-111)
 
 ### [ ] Phase 4: Compose Changes

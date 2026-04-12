@@ -32,13 +32,13 @@ Implement automated 12-hour Postgres backups to S3-compatible storage and a scri
 
 ---
 
-## Phase 3: Backup Infrastructure — NOT STARTED
+## Phase 3: Backup Infrastructure — COMPLETE
 
 ### Added
 
-### Modified
-
-### Removed
+- `docker/backup.Dockerfile` — postgres:18.1-alpine base with aws-cli and dcron installed; copies and execs backup-entrypoint.sh.
+- `docker/backup-entrypoint.sh` — Writes runtime env vars to /etc/backup-env (chmod 600), installs cron job sourcing that file, then execs crond -f.
+- `docker/backup-script.sh` — Inserts backup_metadata row, then pg_dump | gzip | aws s3 cp using 14-slot rotation; BACKUP_S3_ENDPOINT optional.
 
 ---
 
