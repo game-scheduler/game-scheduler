@@ -93,6 +93,9 @@ RUN echo '# Enable git wrapper for quality check enforcement' >> /home/vscode/.b
     echo 'elif [ -d "$WORKSPACE_ROOT/scripts/wrappers" ]; then' >> /home/vscode/.bashrc_devcontainer && \
     echo '    export PATH="$WORKSPACE_ROOT/scripts/wrappers:$PATH"' >> /home/vscode/.bashrc_devcontainer && \
     echo 'fi' >> /home/vscode/.bashrc_devcontainer && \
+    echo '' >> /home/vscode/.bashrc_devcontainer && \
+    echo '# pre-commit cache shared across all worktrees, mounted via parent-dir bind mount' >> /home/vscode/.bashrc_devcontainer && \
+    echo 'export PRE_COMMIT_HOME="${WORKSPACE_ROOT%/*}/.cache/pre-commit"' >> /home/vscode/.bashrc_devcontainer && \
     chown vscode:vscode /home/vscode/.bashrc_devcontainer && \
     echo '' >> /home/vscode/.bashrc && \
     echo '# Source devcontainer-specific configuration' >> /home/vscode/.bashrc && \
