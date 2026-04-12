@@ -28,15 +28,30 @@ Provides async HTTP client for Discord REST API operations.
 import asyncio
 import json
 import logging
-from typing import Any
+import time
+from collections.abc import Awaitable, Callable
+from typing import Any, TypeVar
 
 import aiohttp
+from opentelemetry import metrics
 from starlette import status
 
 from shared.cache import client as cache_client
 from shared.cache import keys as cache_keys
 from shared.cache import ttl
+from shared.cache.operations import CacheOperation
 from shared.utils.discord_tokens import DISCORD_BOT_TOKEN_DOT_COUNT
+
+_T = TypeVar("_T")
+
+_cache_meter = metrics.get_meter(__name__)
+_cache_hit_counter = _cache_meter.create_counter(
+    "discord.cache.hits", description="Discord cache hits", unit="1"
+)
+_cache_miss_counter = _cache_meter.create_counter(
+    "discord.cache.misses", description="Discord cache misses", unit="1"
+)
+_cache_duration_histogram = _cache_meter.create_histogram("discord.cache.duration", unit="s")
 
 logger = logging.getLogger(__name__)
 
@@ -411,6 +426,40 @@ class DiscordAPIClient:
         # No caching for bot tokens or OAuth tokens without user_id
         # Bot tokens honor rate limits with retry logic in _fetch_guilds_uncached
         return await self._fetch_guilds_uncached(use_token)
+
+    async def _get_or_fetch(
+        self,
+        cache_key: str,
+        cache_ttl: int,
+        fetch_fn: Callable[[], Awaitable[_T]],
+        operation: CacheOperation,
+    ) -> _T:
+        """
+        Read-through cache helper with hit/miss counters and latency histogram.
+
+        Checks Redis for cache_key; on hit returns the cached value; on miss
+        calls fetch_fn(), writes the result to Redis with cache_ttl, and returns it.
+        Records discord.cache.hits / discord.cache.misses and discord.cache.duration.
+        """
+        redis = await cache_client.get_redis_client()
+        t0 = time.monotonic()
+        cached = await redis.get(cache_key)
+        if cached:
+            _cache_hit_counter.add(1, {"operation": operation})
+            _cache_duration_histogram.record(
+                time.monotonic() - t0,
+                attributes={"operation": operation, "result": "hit"},
+            )
+            return json.loads(cached)
+
+        result = await fetch_fn()
+        _cache_miss_counter.add(1, {"operation": operation})
+        _cache_duration_histogram.record(
+            time.monotonic() - t0,
+            attributes={"operation": operation, "result": "miss"},
+        )
+        await redis.set(cache_key, json.dumps(result), ttl=cache_ttl)
+        return result
 
     def _get_error_message(
         self,

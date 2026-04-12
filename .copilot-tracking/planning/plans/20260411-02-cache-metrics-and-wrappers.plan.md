@@ -50,12 +50,12 @@ Eliminate copy-pasted read-through cache patterns in `shared/discord/client.py` 
 - [x] Task 1.2: Implement `shared/cache/operations.py`
   - Details: .copilot-tracking/planning/details/20260411-02-cache-metrics-and-wrappers-details.md (Lines 34-60)
 
-### [ ] Phase 2: Add `_get_or_fetch` to `DiscordAPIClient`
+### [x] Phase 2: Add `_get_or_fetch` to `DiscordAPIClient`
 
-- [ ] Task 2.1: Write failing unit tests for `_get_or_fetch`
+- [x] Task 2.1: Write failing unit tests for `_get_or_fetch`
   - Details: .copilot-tracking/planning/details/20260411-02-cache-metrics-and-wrappers-details.md (Lines 63-80)
 
-- [ ] Task 2.2: Add OTel meters and `_get_or_fetch` to `shared/discord/client.py`
+- [x] Task 2.2: Add OTel meters and `_get_or_fetch` to `shared/discord/client.py`
   - Details: .copilot-tracking/planning/details/20260411-02-cache-metrics-and-wrappers-details.md (Lines 81-108)
 
 ### [ ] Phase 3: Replace Copy-Pasted Read-Through Sites

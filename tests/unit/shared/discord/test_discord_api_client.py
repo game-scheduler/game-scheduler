@@ -31,6 +31,7 @@ import pytest
 
 import shared.discord.client as discord_client_module
 from shared.cache.keys import CacheKeys
+from shared.cache.operations import CacheOperation
 from shared.cache.ttl import CacheTTL
 from shared.discord.client import (
     DiscordAPIClient,
@@ -2367,3 +2368,137 @@ class TestHelperFunctions:
             result = await get_guild_channels_safe("guild_id")
 
         assert result == channels
+
+
+class TestGetOrFetch:
+    """Tests for DiscordAPIClient._get_or_fetch cache helper."""
+
+    @pytest.fixture
+    def client(self):
+        return DiscordAPIClient(
+            client_id="cid",
+            client_secret="csecret",
+            bot_token="tok.en.val",
+        )
+
+    @pytest.fixture
+    def mock_redis(self):
+        redis = AsyncMock()
+        redis.get = AsyncMock(return_value=None)
+        redis.set = AsyncMock()
+        return redis
+
+    @pytest.mark.asyncio
+    async def test_cache_hit_returns_cached_value(self, client, mock_redis):
+        """On a cache hit, _get_or_fetch returns the cached value without calling fetch_fn."""
+        cached_data = {"id": "guild1", "name": "My Guild"}
+        mock_redis.get = AsyncMock(return_value=json.dumps(cached_data))
+        fetch_fn = AsyncMock()
+
+        with patch(
+            "shared.discord.client.cache_client.get_redis_client",
+            new=AsyncMock(return_value=mock_redis),
+        ):
+            with patch("shared.discord.client._cache_hit_counter") as hit_ctr:
+                result = await client._get_or_fetch(
+                    cache_key="key:1",
+                    cache_ttl=300,
+                    fetch_fn=fetch_fn,
+                    operation=CacheOperation.FETCH_GUILD,
+                )
+
+        assert result == cached_data
+        fetch_fn.assert_not_called()
+        hit_ctr.add.assert_called_once_with(1, {"operation": CacheOperation.FETCH_GUILD})
+
+    @pytest.mark.asyncio
+    async def test_cache_miss_calls_fetch_fn(self, client, mock_redis):
+        """On a cache miss, _get_or_fetch calls fetch_fn and returns its result."""
+        fetched_data = {"id": "ch1", "name": "general"}
+        mock_redis.get = AsyncMock(return_value=None)
+        fetch_fn = AsyncMock(return_value=fetched_data)
+
+        with (
+            patch("shared.discord.client._cache_miss_counter") as miss_ctr,
+            patch(
+                "shared.discord.client.cache_client.get_redis_client",
+                new=AsyncMock(return_value=mock_redis),
+            ),
+        ):
+            result = await client._get_or_fetch(
+                cache_key="key:2",
+                cache_ttl=60,
+                fetch_fn=fetch_fn,
+                operation=CacheOperation.FETCH_CHANNEL,
+            )
+
+        assert result == fetched_data
+        miss_ctr.add.assert_called_once_with(1, {"operation": CacheOperation.FETCH_CHANNEL})
+
+    @pytest.mark.asyncio
+    async def test_cache_miss_writes_result_to_redis(self, client, mock_redis):
+        """After a miss, _get_or_fetch writes the fetched result back to Redis."""
+        fetched_data = {"id": "role1", "name": "Admin"}
+        mock_redis.get = AsyncMock(return_value=None)
+        fetch_fn = AsyncMock(return_value=fetched_data)
+
+        with patch(
+            "shared.discord.client.cache_client.get_redis_client",
+            new=AsyncMock(return_value=mock_redis),
+        ):
+            await client._get_or_fetch(
+                cache_key="key:3",
+                cache_ttl=120,
+                fetch_fn=fetch_fn,
+                operation=CacheOperation.FETCH_GUILD_ROLES,
+            )
+
+        mock_redis.set.assert_called_once_with("key:3", json.dumps(fetched_data), ttl=120)
+
+    @pytest.mark.asyncio
+    async def test_duration_recorded_on_hit(self, client, mock_redis):
+        """_get_or_fetch records discord.cache.duration histogram on a cache hit."""
+        cached_data = {"id": "u1"}
+        mock_redis.get = AsyncMock(return_value=json.dumps(cached_data))
+
+        with (
+            patch(
+                "shared.discord.client.cache_client.get_redis_client",
+                new=AsyncMock(return_value=mock_redis),
+            ),
+            patch("shared.discord.client._cache_duration_histogram") as hist,
+        ):
+            await client._get_or_fetch(
+                cache_key="key:4",
+                cache_ttl=300,
+                fetch_fn=AsyncMock(),
+                operation=CacheOperation.FETCH_USER,
+            )
+
+        assert hist.record.called
+        _, kwargs = hist.record.call_args
+        assert kwargs.get("attributes", {}).get("result") == "hit"
+
+    @pytest.mark.asyncio
+    async def test_duration_recorded_on_miss(self, client, mock_redis):
+        """_get_or_fetch records discord.cache.duration histogram on a cache miss."""
+        mock_redis.get = AsyncMock(return_value=None)
+        fetch_fn = AsyncMock(return_value={"id": "u2"})
+
+        with (
+            patch(
+                "shared.discord.client.cache_client.get_redis_client",
+                new=AsyncMock(return_value=mock_redis),
+            ),
+            patch("shared.discord.client._cache_duration_histogram") as hist,
+        ):
+            await client._get_or_fetch(
+                cache_key="key:5",
+                cache_ttl=300,
+                fetch_fn=fetch_fn,
+                operation=CacheOperation.FETCH_USER,
+            )
+
+        assert hist.record.called
+        _, kwargs = hist.record.call_args
+        assert kwargs.get("attributes", {}).get("result") == "miss"
