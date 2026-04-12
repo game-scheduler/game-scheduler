@@ -82,15 +82,15 @@ Implement automated 12-hour Postgres backups to S3-compatible storage and a scri
 - [x] Task 6.2 (Implement): Add \_sweep_orphaned_embeds to services/bot/bot.py
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 197-217)
 
-### [ ] Phase 7: pytest backup Marker and E2E Test Infrastructure
+### [x] Phase 7: pytest backup Marker and E2E Test Infrastructure
 
-- [ ] Task 7.1: Add backup pytest marker to pyproject.toml
+- [x] Task 7.1: Add backup pytest marker to pyproject.toml
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 239-253)
 
-- [ ] Task 7.2: Add MinIO service and init container to compose.e2e.yaml
+- [x] Task 7.2: Add MinIO service and init container to compose.e2e.yaml
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 254-268)
 
-- [ ] Task 7.3: Add backup env vars to config/env.e2e
+- [x] Task 7.3: Add backup env vars to config/env.e2e
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 269-283)
 
 ### [ ] Phase 8: Backup Test Files

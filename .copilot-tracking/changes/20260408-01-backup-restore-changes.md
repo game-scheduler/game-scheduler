@@ -66,3 +66,11 @@ Implement automated 12-hour Postgres backups to S3-compatible storage and a scri
 #### Modified
 
 - `services/bot/bot.py` — added \_sweep_orphaned_embeds coroutine that deletes Discord embeds for games absent from the DB after a restore, called from on_ready and on_resumed via \_trigger_sweep
+
+### Phase 7: pytest backup Marker and E2E Test Infrastructure
+
+#### Modified
+
+- `pyproject.toml` — added `backup` pytest marker and excluded it from default addopts filter alongside `e2e` and `integration`
+- `compose.e2e.yaml` — added `minio` (always-on S3-compatible storage) and `minio-init` (creates test bucket idempotently) services to the e2e stack
+- `config/env.e2e` — backup env vars already present pointing at MinIO; no additional changes needed (Task 7.3 was pre-implemented)

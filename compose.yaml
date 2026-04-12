@@ -472,8 +472,6 @@ services:
     labels:
       service: "backup"
       environment: "${ENVIRONMENT:-production}"
-    profiles:
-      - backup
 
 volumes:
   postgres_data:

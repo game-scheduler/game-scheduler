@@ -174,9 +174,10 @@ timeout = 30
 markers = [
     "integration: Integration tests requiring RabbitMQ, Postgres, Redis",
     "e2e: End-to-end tests requiring Discord bot and full stack",
+    "backup: Backup/restore tests requiring full stack, Discord bot, and MinIO",
     "order: Test execution order (used with pytest-order plugin)",
 ]
-addopts = "-m 'not e2e and not integration' --strict-markers"
+addopts = "-m 'not e2e and not integration and not backup' --strict-markers"
 filterwarnings = [
     "error",
     'ignore::DeprecationWarning:pika.data',
