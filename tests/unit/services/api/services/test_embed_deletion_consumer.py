@@ -28,6 +28,7 @@ import pytest
 
 from services.api.services.embed_deletion_consumer import EmbedDeletionConsumer
 from shared.messaging.events import Event, EventType
+from shared.utils.status_transitions import GameStatus
 
 
 @pytest.fixture
@@ -87,6 +88,37 @@ async def test_handle_embed_deleted_unknown_game_id_is_silently_dropped(embed_de
 
     mock_game_service = AsyncMock()
     mock_game_service.get_game = AsyncMock(return_value=None)
+    mock_game_service._delete_game_internal = AsyncMock()
+
+    mock_db = AsyncMock()
+    mock_db.__aenter__ = AsyncMock(return_value=mock_db)
+    mock_db.__aexit__ = AsyncMock(return_value=None)
+    mock_db.commit = AsyncMock()
+
+    with (
+        patch(
+            "services.api.services.embed_deletion_consumer.get_bypass_db_session",
+            return_value=mock_db,
+        ),
+        patch(
+            "services.api.services.embed_deletion_consumer.GameService",
+            return_value=mock_game_service,
+        ),
+    ):
+        await consumer._handle_embed_deleted(embed_deleted_event)
+
+    mock_game_service._delete_game_internal.assert_not_awaited()
+    mock_db.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_handle_embed_deleted_archived_game_is_skipped(mock_game, embed_deleted_event):
+    """EMBED_DELETED for an already-ARCHIVED game is silently dropped without cancellation."""
+    mock_game.status = GameStatus.ARCHIVED
+    consumer = EmbedDeletionConsumer()
+
+    mock_game_service = AsyncMock()
+    mock_game_service.get_game = AsyncMock(return_value=mock_game)
     mock_game_service._delete_game_internal = AsyncMock()
 
     mock_db = AsyncMock()
