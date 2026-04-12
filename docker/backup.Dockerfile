@@ -8,7 +8,8 @@ RUN apk add --no-cache python3 py3-pip && \
 
 COPY docker/backup-entrypoint.sh /usr/local/bin/backup-entrypoint.sh
 COPY docker/backup-script.sh /usr/local/bin/backup-script.sh
+COPY docker/restore-script.sh /usr/local/bin/restore-script.sh
 
-RUN chmod +x /usr/local/bin/backup-entrypoint.sh /usr/local/bin/backup-script.sh
+RUN chmod +x /usr/local/bin/backup-entrypoint.sh /usr/local/bin/backup-script.sh /usr/local/bin/restore-script.sh
 
 ENTRYPOINT ["/usr/local/bin/backup-entrypoint.sh"]

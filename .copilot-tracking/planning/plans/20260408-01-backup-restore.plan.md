@@ -69,9 +69,9 @@ Implement automated 12-hour Postgres backups to S3-compatible storage and a scri
 - [x] Task 4.3: Add backup env vars to config.template/env.template
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 144-158)
 
-### [ ] Phase 5: Restore Script
+### [x] Phase 5: Restore Script
 
-- [ ] Task 5.1: Create scripts/restore.sh
+- [x] Task 5.1: Create scripts/restore.sh
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 161-180)
 
 ### [ ] Phase 6: Orphaned Embed Sweep

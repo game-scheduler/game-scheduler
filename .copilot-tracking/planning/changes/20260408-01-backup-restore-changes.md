@@ -42,23 +42,29 @@ Implement automated 12-hour Postgres backups to S3-compatible storage and a scri
 
 ---
 
-## Phase 4: Compose Changes — NOT STARTED
+## Phase 4: Compose Changes — COMPLETE
 
 ### Added
 
+- `compose.restore.yaml` — Override compose file for restore; sets `INIT_ROLES_ONLY=true` on the `init` service and defines the `restore` service using the backup image with `restore-script.sh` entrypoint.
+- `config.template/env.template` — Added `BACKUP_S3_BUCKET`, `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY`, `BACKUP_S3_REGION`, `BACKUP_S3_ENDPOINT`, `BACKUP_RETENTION_COUNT`, and `BACKUP_SCHEDULE` env var entries.
+
 ### Modified
 
-### Removed
+- `compose.yaml` — Added `backup` service under the `backup` profile.
 
 ---
 
-## Phase 5: Restore Script — NOT STARTED
+## Phase 5: Restore Script — COMPLETE
 
 ### Added
 
+- `docker/restore-script.sh` — Runs inside the backup container to download a gzipped custom-format dump from S3 and restore it with `pg_restore`.
+- `scripts/restore.sh` — Interactive user-facing restore script: lists S3 backups using the backup container image, prompts for selection and `yes` confirmation, then runs the full destroy-and-restore sequence via `compose.restore.yaml`.
+
 ### Modified
 
-### Removed
+- `docker/backup.Dockerfile` — Added `COPY` and `chmod +x` for `restore-script.sh` so it is available inside the backup image at `/usr/local/bin/restore-script.sh`.
 
 ---
 
