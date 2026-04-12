@@ -1,4 +1,4 @@
-# Copyright 2025-2026 Bret McKee
+# Copyright 2026 Bret McKee
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,37 +19,26 @@
 # SOFTWARE.
 
 
-"""SQLAlchemy models for game scheduling system."""
+"""ORM model for backup metadata records."""
 
-from .backup_metadata import BackupMetadata
+from datetime import datetime
+
+from sqlalchemy import DateTime, Integer
+from sqlalchemy.orm import Mapped, mapped_column
+
 from .base import Base
-from .channel import ChannelConfiguration
-from .game import GameSession, GameStatus
-from .game_image import GameImage
-from .game_status_schedule import GameStatusSchedule
-from .guild import GuildConfiguration
-from .message_refresh_queue import MessageRefreshQueue
-from .notification_schedule import NotificationSchedule
-from .participant import GameParticipant
-from .participant_action_schedule import ParticipantActionSchedule
-from .signup_method import SignupMethod
-from .template import GameTemplate
-from .user import User
 
-__all__ = [
-    "BackupMetadata",
-    "Base",
-    "ChannelConfiguration",
-    "GameImage",
-    "GameParticipant",
-    "GameSession",
-    "GameStatus",
-    "GameStatusSchedule",
-    "GameTemplate",
-    "GuildConfiguration",
-    "MessageRefreshQueue",
-    "NotificationSchedule",
-    "ParticipantActionSchedule",
-    "SignupMethod",
-    "User",
-]
+
+class BackupMetadata(Base):
+    """
+    Records when each database backup was taken.
+
+    The backup script inserts one row immediately before running pg_dump, so the
+    timestamp is included in the dump itself. On bot startup after a restore,
+    the most recent backed_up_at is used as the cutoff for the orphaned embed sweep.
+    """
+
+    __tablename__ = "backup_metadata"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    backed_up_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

@@ -42,15 +42,15 @@ Implement automated 12-hour Postgres backups to S3-compatible storage and a scri
 - [x] Task 1.2 (Implement): Add INIT_ROLES_ONLY to services/init/main.py
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 27-43)
 
-### [ ] Phase 2: backup_metadata Model and Migration
+### [x] Phase 2: backup_metadata Model and Migration
 
-- [ ] Task 2.1 (Tests): Write tests for BackupMetadata model
+- [x] Task 2.1 (Tests): Write tests for BackupMetadata model
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 46-58)
 
-- [ ] Task 2.2 (Implement): Create BackupMetadata SQLAlchemy model
+- [x] Task 2.2 (Implement): Create BackupMetadata SQLAlchemy model
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 59-72)
 
-- [ ] Task 2.3: Create Alembic migration for backup_metadata
+- [x] Task 2.3: Create Alembic migration for backup_metadata
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 73-88)
 
 ### [ ] Phase 3: Backup Infrastructure

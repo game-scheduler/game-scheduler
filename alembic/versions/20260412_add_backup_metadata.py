@@ -1,4 +1,4 @@
-# Copyright 2025-2026 Bret McKee
+# Copyright 2026 Bret McKee
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,37 +19,37 @@
 # SOFTWARE.
 
 
-"""SQLAlchemy models for game scheduling system."""
+"""add_backup_metadata
 
-from .backup_metadata import BackupMetadata
-from .base import Base
-from .channel import ChannelConfiguration
-from .game import GameSession, GameStatus
-from .game_image import GameImage
-from .game_status_schedule import GameStatusSchedule
-from .guild import GuildConfiguration
-from .message_refresh_queue import MessageRefreshQueue
-from .notification_schedule import NotificationSchedule
-from .participant import GameParticipant
-from .participant_action_schedule import ParticipantActionSchedule
-from .signup_method import SignupMethod
-from .template import GameTemplate
-from .user import User
+Revision ID: 20260412_add_backup_metadata
+Revises: fd0d4f43e53a
+Create Date: 2026-04-12 00:00:00.000000
 
-__all__ = [
-    "BackupMetadata",
-    "Base",
-    "ChannelConfiguration",
-    "GameImage",
-    "GameParticipant",
-    "GameSession",
-    "GameStatus",
-    "GameStatusSchedule",
-    "GameTemplate",
-    "GuildConfiguration",
-    "MessageRefreshQueue",
-    "NotificationSchedule",
-    "ParticipantActionSchedule",
-    "SignupMethod",
-    "User",
-]
+"""
+
+from collections.abc import Sequence
+
+import sqlalchemy as sa
+
+from alembic import op
+
+# revision identifiers, used by Alembic.
+revision: str = "20260412_add_backup_metadata"
+down_revision: str | None = "fd0d4f43e53a"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
+
+
+def upgrade() -> None:
+    """Create backup_metadata table to record when each backup was taken."""
+    op.create_table(
+        "backup_metadata",
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("backed_up_at", sa.DateTime(timezone=True), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+
+def downgrade() -> None:
+    """Drop backup_metadata table."""
+    op.drop_table("backup_metadata")

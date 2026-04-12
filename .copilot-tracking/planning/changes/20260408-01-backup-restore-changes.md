@@ -18,13 +18,17 @@ Implement automated 12-hour Postgres backups to S3-compatible storage and a scri
 
 ---
 
-## Phase 2: backup_metadata Model and Migration — NOT STARTED
+## Phase 2: backup_metadata Model and Migration — COMPLETE
 
 ### Added
 
+- `shared/models/backup_metadata.py` — BackupMetadata ORM model mapping to backup_metadata table with integer PK and TIMESTAMPTZ backed_up_at column.
+- `alembic/versions/20260412_add_backup_metadata.py` — Migration creating the backup_metadata table; downgrade drops it.
+- `tests/unit/shared/models/test_backup_metadata.py` — Five unit tests covering table name, pk, column nullability, instantiation, and **all** export.
+
 ### Modified
 
-### Removed
+- `shared/models/__init__.py` — Added BackupMetadata import and export.
 
 ---
 
