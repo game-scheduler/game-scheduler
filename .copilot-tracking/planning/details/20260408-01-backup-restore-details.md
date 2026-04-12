@@ -231,3 +231,152 @@ Call from `on_ready` (line 177) and `on_resumed` (line 352).
 - Bot startup after restore deletes all Discord embeds whose game UUIDs are absent from the DB
 - Fresh installs (no `backup_metadata` rows) skip the embed sweep entirely
 - All new unit tests pass
+
+---
+
+## Phase 7: pytest backup Marker and E2E Test Infrastructure
+
+### Task 7.1: Add backup pytest marker to pyproject.toml
+
+Add a `backup` marker to the `[tool.pytest.ini_options]` markers list and exclude it from the default `addopts` filter alongside `e2e` and `integration`.
+
+- **Files**:
+  - `pyproject.toml` — update markers list and addopts
+- **Success**:
+  - `pytest --markers` shows the `backup` marker
+  - Default test run (`pytest`) does not execute tests marked `@pytest.mark.backup`
+  - `pytest -m backup` selects only backup tests
+- **Research References**:
+  - #file:../research/20260408-01-backup-restore-research.md (Lines 305-333) — marker definition and addopts update
+- **Dependencies**:
+  - None
+
+### Task 7.2: Add MinIO service and init container to compose.e2e.yaml
+
+Add `minio` (always-on) and `minio-init` (creates test bucket idempotently on each stack start) services to `compose.e2e.yaml`. MinIO is idle during normal e2e runs; backup tests activate the backup profile on top of it.
+
+- **Files**:
+  - `compose.e2e.yaml` — add minio and minio-init service blocks
+- **Success**:
+  - `docker compose -f compose.yaml -f compose.e2e.yaml config` validates without error
+  - `minio-init` creates the `test-backups` bucket idempotently on each stack start
+  - MinIO reachable at `http://minio:9000` from other services on `app-network`
+- **Research References**:
+  - #file:../research/20260408-01-backup-restore-research.md (Lines 363-408) — MinIO service spec and healthcheck
+- **Dependencies**:
+  - None
+
+### Task 7.3: Add backup env vars to config/env.e2e
+
+Add the MinIO-backed backup env vars block to `config/env.e2e` so backup tests use the local MinIO instance with no real AWS credentials.
+
+- **Files**:
+  - `config/env.e2e` — add BACKUP\_\* env var block
+- **Success**:
+  - All 7 backup env vars present and pointing at MinIO (`BACKUP_S3_ENDPOINT=http://minio:9000`, `BACKUP_S3_BUCKET=test-backups`, MinIO root credentials)
+- **Research References**:
+  - #file:../research/20260408-01-backup-restore-research.md (Lines 391-408) — env var values and defaults
+- **Dependencies**:
+  - Task 7.2
+
+---
+
+## Phase 8: Backup Test Files
+
+### Task 8.1: Create tests/backup/ package and conftest
+
+Create the `tests/backup/` Python package with `__init__.py` and `conftest.py`. The conftest imports shared fixtures from `tests/e2e/conftest.py` (db session, http client, Discord helper).
+
+- **Files**:
+  - `tests/backup/__init__.py` — empty package marker
+  - `tests/backup/conftest.py` — shared fixture imports
+- **Success**:
+  - `pytest tests/backup/` collects without import errors
+  - Fixtures from `tests/e2e/conftest.py` are accessible in backup tests
+- **Research References**:
+  - #file:../research/20260408-01-backup-restore-research.md (Lines 320-333) — conftest import pattern
+- **Dependencies**:
+  - Task 7.1
+
+### Task 8.2: Create test_backup_create_game_a.py (Phase 1)
+
+Test that creates gameA before the backup and asserts it is present in the DB. Run before the backup is triggered.
+
+- **Files**:
+  - `tests/backup/test_backup_create_game_a.py` — Phase 1 test
+- **Success**:
+  - gameA created via API and confirmed present in DB
+  - Marked `@pytest.mark.backup`
+- **Research References**:
+  - #file:../research/20260408-01-backup-restore-research.md (Lines 320-362) — test file layout and Phase 1 description
+- **Dependencies**:
+  - Task 8.1
+
+### Task 8.3: Create test_backup_create_game_b.py (Phase 2)
+
+Test that creates gameB after the backup, waits for the Discord embed to appear, records the embed `message_id` to the file path in `GAMEB_MESSAGE_ID_FILE`, and asserts the embed is visible.
+
+- **Files**:
+  - `tests/backup/test_backup_create_game_b.py` — Phase 2 test
+- **Success**:
+  - gameB created after backup; embed `message_id` written to `GAMEB_MESSAGE_ID_FILE`
+  - gameB's embed is visible in Discord at assertion time
+  - Marked `@pytest.mark.backup`
+- **Research References**:
+  - #file:../research/20260408-01-backup-restore-research.md (Lines 334-362) — Phase 2 description and shared state file pattern
+- **Dependencies**:
+  - Task 8.1
+
+### Task 8.4: Create test_backup_post_restore.py (Phases 3 and 4)
+
+Post-restore assertions: gameA present in DB, gameB absent, gameB embed deleted from Discord. Includes the cron test: start backup container with `BACKUP_SCHEDULE=* * * * *`, wait ≤90s, assert `backup_metadata` row inserted and `slot-0.dump.gz` present in MinIO.
+
+- **Files**:
+  - `tests/backup/test_backup_post_restore.py` — Phase 3/4 assertions and cron test
+- **Success**:
+  - gameA row exists in DB; gameB row is absent
+  - gameB's Discord embed (identified via `GAMEB_MESSAGE_ID_FILE`) is deleted
+  - Cron test: `backup-script.sh` runs within 90s; `backup_metadata` row inserted; `slot-0.dump.gz` present in MinIO
+  - Marked `@pytest.mark.backup`
+- **Research References**:
+  - #file:../research/20260408-01-backup-restore-research.md (Lines 334-362) — post-restore assertion sequence
+  - #file:../research/20260408-01-backup-restore-research.md (Lines 409-420) — cron test specification
+- **Dependencies**:
+  - Task 8.2, Task 8.3
+
+---
+
+## Phase 9: Test Runner and Operator Scripts
+
+### Task 9.1: Create scripts/run-backup-tests.sh
+
+Shell script that owns the full backup test lifecycle across four phases: bring up full stack → Phase 1 pytest → trigger one-shot backup → Phase 2 pytest → stop non-storage services → run restore compose → bring services back up → Phase 3/4 pytest.
+
+- **Files**:
+  - `scripts/run-backup-tests.sh` — new script (chmod +x)
+- **Success**:
+  - Implements the four-phase sequence from research exactly
+  - All three pytest invocations (`test_backup_create_game_a.py`, `test_backup_create_game_b.py`, `test_backup_post_restore.py`) pass
+  - Uses `tee` for full output capture before any filtering
+  - `set -e` exits non-zero on any failure
+  - Passes `GAMEB_MESSAGE_ID_FILE` env var between phases
+- **Research References**:
+  - #file:../research/20260408-01-backup-restore-research.md (Lines 334-362) — full four-phase script structure
+- **Dependencies**:
+  - Task 7.2, Tasks 8.1–8.4, Task 4.2 (compose.restore.yaml must exist)
+
+### Task 9.2: Create scripts/backup-now.sh
+
+One-shot operator script that triggers an immediate backup using the running backup container's credentials and environment.
+
+- **Files**:
+  - `scripts/backup-now.sh` — new script (chmod +x)
+- **Success**:
+  - `./scripts/backup-now.sh` invokes `backup-script.sh` inside the running backup container
+  - Produces a clear Docker error if the backup container is not running
+  - Marked executable
+- **Research References**:
+  - #file:../research/20260408-01-backup-restore-research.md (Lines 421-438) — backup-now.sh specification
+- **Dependencies**:
+  - Task 3.1 (backup container image exists)
+  - Task 4.1 (backup service in compose.yaml)

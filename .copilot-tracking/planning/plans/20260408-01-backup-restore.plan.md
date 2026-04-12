@@ -82,12 +82,47 @@ Implement automated 12-hour Postgres backups to S3-compatible storage and a scri
 - [x] Task 6.2 (Implement): Add \_sweep_orphaned_embeds to services/bot/bot.py
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 197-217)
 
+### [ ] Phase 7: pytest backup Marker and E2E Test Infrastructure
+
+- [ ] Task 7.1: Add backup pytest marker to pyproject.toml
+  - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 239-253)
+
+- [ ] Task 7.2: Add MinIO service and init container to compose.e2e.yaml
+  - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 254-268)
+
+- [ ] Task 7.3: Add backup env vars to config/env.e2e
+  - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 269-283)
+
+### [ ] Phase 8: Backup Test Files
+
+- [ ] Task 8.1: Create tests/backup/ package and conftest
+  - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 286-300)
+
+- [ ] Task 8.2: Create test_backup_create_game_a.py (Phase 1)
+  - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 301-314)
+
+- [ ] Task 8.3: Create test_backup_create_game_b.py (Phase 2)
+  - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 315-329)
+
+- [ ] Task 8.4: Create test_backup_post_restore.py (Phases 3 and 4)
+  - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 330-348)
+
+### [ ] Phase 9: Test Runner and Operator Scripts
+
+- [ ] Task 9.1: Create scripts/run-backup-tests.sh
+  - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 351-367)
+
+- [ ] Task 9.2: Create scripts/backup-now.sh
+  - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 368-382)
+
 ## Dependencies
 
 - `uv` for Python dependency management
 - `docker` and `docker compose` for container orchestration
 - AWS CLI (installed in backup Docker image) for S3 operations
 - S3-compatible storage bucket with credentials
+- MinIO Docker image (`minio/minio`) for local S3 in backup tests
+- MinIO Client image (`minio/mc`) for test bucket initialization
 
 ## Success Criteria
 
@@ -98,3 +133,8 @@ Implement automated 12-hour Postgres backups to S3-compatible storage and a scri
 - Bot startup after restore deletes all Discord embeds whose game UUIDs are absent from the DB
 - Fresh installs (no `backup_metadata` rows) skip the embed sweep entirely
 - All new unit tests pass
+- `scripts/run-backup-tests.sh` completes with all backup pytest phases passing
+- After restore, gameA row exists and gameB row is absent from DB
+- After restore, gameB's Discord embed is deleted (verified via Discord API)
+- Cron test confirms `backup-script.sh` runs within 90s with `* * * * *` schedule
+- No real AWS credentials required; MinIO serves all S3 operations locally

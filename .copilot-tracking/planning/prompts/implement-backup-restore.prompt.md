@@ -49,3 +49,8 @@ When ALL Phases are checked off (`[x]`) and completed you WILL do the following:
 - [ ] All new and modified code passes lint and has unit tests
 - [ ] Changes file updated continuously
 - [ ] Line numbers updated if any referenced files changed
+- [ ] `scripts/run-backup-tests.sh` completes with all backup pytest phases passing
+- [ ] After restore, gameA present and gameB absent from DB
+- [ ] After restore, gameB Discord embed deleted
+- [ ] Cron test passes within 90s
+- [ ] No real AWS credentials required (MinIO used for all S3 ops)

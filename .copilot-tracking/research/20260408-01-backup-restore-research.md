@@ -272,3 +272,174 @@ This was explicitly discussed and confirmed as the correct filter. The Discord d
 - Fresh installs (no `backup_metadata` rows) skip the sweep entirely
 - Live game embeds (game exists in DB) are not touched
 - Sweep runs without Discord rate-limit errors
+
+---
+
+## Testing Addendum (2026-04-12)
+
+### Overview
+
+Backup/restore tests require a full stack including the Discord bot (for embed verification)
+and a local S3-compatible service (MinIO). These tests are excluded from the regular e2e
+suite via a dedicated `backup` pytest marker and a separate `scripts/run-backup-tests.sh`
+script.
+
+MinIO is added directly to `compose.e2e.yaml` (always-on, idle during normal e2e runs) and
+`config/env.e2e` already contains the backup vars pointing at it (`BACKUP_S3_ENDPOINT=http://minio:9000`,
+`BACKUP_S3_BUCKET=test-backups`, MinIO root credentials). No separate compose overlay file is needed.
+
+### Local S3: MinIO
+
+**Selected**: MinIO (`minio/minio` official Docker image)
+
+Rationale: speaks native S3 protocol; AWS CLI works against it unchanged via
+`--endpoint-url`; the existing `BACKUP_S3_ENDPOINT` env var in `backup-script.sh` and
+`compose.yaml` is exactly the hook required. No code changes needed.
+
+Alternatives ruled out:
+
+- **LocalStack** — emulates the full AWS suite; far heavier than needed, and free tier
+  S3 support has degraded.
+- **fake-s3 / s3proxy** — older, less maintained, rougher AWS CLI compatibility.
+
+### pytest Marker
+
+Add `backup` to `pyproject.toml` markers and exclude it from the default `addopts` filter
+alongside `e2e` and `integration`:
+
+```toml
+markers = [
+    "integration: Integration tests requiring RabbitMQ, Postgres, Redis",
+    "e2e: End-to-end tests requiring Discord bot and full stack",
+    "backup: Backup/restore tests requiring full stack, Discord bot, and MinIO",
+    "order: Test execution order (used with pytest-order plugin)",
+]
+addopts = "-m 'not e2e and not integration and not backup' --strict-markers"
+```
+
+### Test File Layout
+
+```
+tests/backup/
+    __init__.py
+    conftest.py                        # shared fixtures (db session, http client, Discord helper)
+    test_backup_create_game_a.py       # Phase 1: create gameA, assert in DB
+    test_backup_create_game_b.py       # Phase 2: create gameB, wait for embed, record message_id
+    test_backup_post_restore.py        # Phase 3: gameA present, gameB absent, gameB embed deleted
+```
+
+`tests/backup/conftest.py` can import shared fixtures from `tests/e2e/conftest.py` directly
+(same `DATABASE_URL`, `BACKEND_URL`, Discord env vars).
+
+### Shell Script: `scripts/run-backup-tests.sh`
+
+The script owns all service lifecycle; pytest files are invoked at precise moments between
+docker operations. Pattern mirrors `run-e2e-tests.sh`.
+
+```
+Phase 1 — bring up full stack with backup profile
+  └─ docker compose --env-file config/env.e2e --profile backup up -d --build system-ready
+  └─ pytest tests/backup/test_backup_create_game_a.py
+
+Phase 2 — trigger one-shot backup
+  └─ docker compose --env-file config/env.e2e --profile backup run --no-deps backup /usr/local/bin/backup-script.sh
+  └─ pytest tests/backup/test_backup_create_game_b.py  (gameB created after backup)
+
+Phase 3 — restore
+  └─ docker compose --env-file config/env.e2e stop api bot scheduler retry init
+       (postgres and minio stay running — restore service must reach minio to download backup)
+  └─ docker compose --env-file config/env.e2e -f compose.yaml -f compose.restore.yaml up --exit-code-from restore
+  └─ docker compose --env-file config/env.e2e --profile backup up -d system-ready
+       (brings services back up; bot on_ready fires orphaned embed sweep)
+
+Phase 4 — assertions
+  └─ pytest tests/backup/test_backup_post_restore.py
+```
+
+Shared state between phases (gameB's Discord `message_id`) is written to a temp file by
+`test_backup_create_game_b.py` and read by `test_backup_post_restore.py`. The shell script
+passes the path as an env var (`GAMEB_MESSAGE_ID_FILE`).
+
+### MinIO in `compose.e2e.yaml`
+
+MinIO and its init container are added directly to `compose.e2e.yaml` — always present in
+the e2e stack, idle during normal e2e test runs. `config/env.e2e` already contains the backup
+vars with MinIO values. No separate overlay file (`compose.backup.yaml`) is needed.
+
+```yaml
+services:
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    networks:
+      - app-network
+
+  # mc (MinIO client) init container — creates the test bucket idempotently on each stack start
+  minio-init:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "mc alias set local http://minio:9000 minioadmin minioadmin &&
+             mc mb local/test-backups"
+    networks:
+      - app-network
+    restart: 'no'
+```
+
+`config/env.e2e` backup vars (already set):
+
+```
+BACKUP_S3_BUCKET=test-backups
+BACKUP_S3_ACCESS_KEY_ID=minioadmin
+BACKUP_S3_SECRET_ACCESS_KEY=minioadmin
+BACKUP_S3_REGION=us-east-1
+BACKUP_S3_ENDPOINT=http://minio:9000
+BACKUP_RETENTION_COUNT=14
+BACKUP_SCHEDULE=0 */12 * * *
+```
+
+The `backup` service in `compose.yaml` keeps `profiles: [backup]`; backup tests activate it
+by passing `--profile backup` to every `docker compose` call in `run-backup-tests.sh`.
+
+### Cron Test
+
+A second test in `test_backup_post_restore.py` (or a separate `test_backup_cron.py`) verifies
+the cron path:
+
+1. Start backup container with `BACKUP_SCHEDULE=* * * * *`
+2. Wait up to 90 seconds
+3. Assert a `backup_metadata` row exists in DB and `slot-0.dump.gz` is present in MinIO
+
+The slot file (`/var/lib/backup-slot`) resets on each container start, so slot 0 is
+predictable in tests.
+
+### `scripts/backup-now.sh`
+
+One-shot backup script for operators (no test dependency):
+
+```bash
+#!/bin/bash
+# Trigger an immediate backup using the running backup container's credentials.
+# Usage: scripts/backup-now.sh
+docker compose --profile backup exec backup /usr/local/bin/backup-script.sh
+```
+
+If the backup container is not running (i.e., the `backup` profile is not active), callers
+get a clear docker error. Alternative one-liner documented in README:
+
+```bash
+docker compose --profile backup run --no-deps --rm backup /usr/local/bin/backup-script.sh
+```
+
+### Success Criteria (Testing)
+
+- `scripts/run-backup-tests.sh` completes with all three pytest phases passing
+- After restore, gameA row exists and gameB row is absent from DB
+- After restore, gameB's Discord embed is deleted (verified via Discord API)
+- Cron test confirms `backup-script.sh` runs within 90s of container start with `* * * * *` schedule
+- No real AWS credentials required; MinIO serves all S3 operations locally
