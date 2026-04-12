@@ -58,15 +58,15 @@ Eliminate copy-pasted read-through cache patterns in `shared/discord/client.py` 
 - [x] Task 2.2: Add OTel meters and `_get_or_fetch` to `shared/discord/client.py`
   - Details: .copilot-tracking/planning/details/20260411-02-cache-metrics-and-wrappers-details.md (Lines 81-108)
 
-### [ ] Phase 3: Replace Copy-Pasted Read-Through Sites
+### [x] Phase 3: Replace Copy-Pasted Read-Through Sites
 
-- [ ] Task 3.1: Write failing unit tests asserting `_get_or_fetch` is used at all 7 sites
+- [x] Task 3.1: Write failing unit tests asserting `_get_or_fetch` is used at all 7 sites
   - Details: .copilot-tracking/planning/details/20260411-02-cache-metrics-and-wrappers-details.md (Lines 111-131)
 
-- [ ] Task 3.2: Replace 7 copy-pasted read-through blocks in `discord/client.py` with `_get_or_fetch`
+- [x] Task 3.2: Replace 7 copy-pasted read-through blocks in `discord/client.py` with `_get_or_fetch`
   - Details: .copilot-tracking/planning/details/20260411-02-cache-metrics-and-wrappers-details.md (Lines 132-162)
 
-- [ ] Task 3.3: Fix `get_guilds` inner slow-path to use `_get_or_fetch`; leave pre-lock read raw
+- [x] Task 3.3: Fix `get_guilds` inner slow-path to use `_get_or_fetch`; leave pre-lock read raw
   - Details: .copilot-tracking/planning/details/20260411-02-cache-metrics-and-wrappers-details.md (Lines 163-183)
 
 ### [ ] Phase 4: Replace Existence-Lookup Reads with `cache_get`

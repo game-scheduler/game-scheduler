@@ -1367,7 +1367,7 @@ class TestCachedResourceMethods:
         mock_context_manager = MagicMock()
         mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
         mock_context_manager.__aexit__ = AsyncMock(return_value=None)
-        mock_session.get = MagicMock(return_value=mock_context_manager)
+        mock_session.request = MagicMock(return_value=mock_context_manager)
         discord_client._session = mock_session
 
         with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
@@ -1755,32 +1755,22 @@ async def test_get_application_info_uses_correct_url(discord_client, mock_redis_
 
 @pytest.mark.asyncio
 async def test_get_application_info_uses_correct_cache_key(discord_client, mock_redis_cache_miss):
-    """Test that get_application_info uses the app_info() cache key."""
-    mock_request = AsyncMock(return_value={"id": "123", "name": "TestBot"})
-
-    with patch.object(discord_client, "_make_api_request", mock_request):
+    """Test that get_application_info passes app_info() cache key to _get_or_fetch."""
+    with patch.object(
+        discord_client, "_get_or_fetch", new=AsyncMock(return_value={"id": "123", "name": "Bot"})
+    ) as mock_gof:
         await discord_client.get_application_info()
-
-    call_kwargs = mock_request.call_args
-    actual_cache_key = call_kwargs.kwargs.get("cache_key") or next(
-        (a for a in call_kwargs.args if a == CacheKeys.app_info()), None
-    )
-    assert actual_cache_key == CacheKeys.app_info()
+    assert mock_gof.call_args.kwargs.get("cache_key") == CacheKeys.app_info()
 
 
 @pytest.mark.asyncio
 async def test_get_application_info_uses_correct_ttl(discord_client, mock_redis_cache_miss):
-    """Test that get_application_info uses the APP_INFO TTL."""
-    mock_request = AsyncMock(return_value={"id": "123", "name": "TestBot"})
-
-    with patch.object(discord_client, "_make_api_request", mock_request):
+    """Test that get_application_info passes APP_INFO TTL to _get_or_fetch."""
+    with patch.object(
+        discord_client, "_get_or_fetch", new=AsyncMock(return_value={"id": "123", "name": "Bot"})
+    ) as mock_gof:
         await discord_client.get_application_info()
-
-    call_kwargs = mock_request.call_args
-    actual_ttl = call_kwargs.kwargs.get("cache_ttl") or next(
-        (a for a in call_kwargs.args if a == CacheTTL.APP_INFO), None
-    )
-    assert actual_ttl == CacheTTL.APP_INFO
+    assert mock_gof.call_args.kwargs.get("cache_ttl") == CacheTTL.APP_INFO
 
 
 @pytest.mark.asyncio
@@ -2186,7 +2176,7 @@ class TestFetchChannelAndRolesErrorPaths:
         mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
         mock_cm.__aexit__ = AsyncMock(return_value=None)
 
-        mock_session.get = MagicMock(return_value=mock_cm)
+        mock_session.request = MagicMock(return_value=mock_cm)
         discord_client._session = mock_session
 
         with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
@@ -2208,7 +2198,7 @@ class TestFetchChannelAndRolesErrorPaths:
         mock_cm.__aenter__ = AsyncMock(side_effect=aiohttp.ClientError("Timeout"))
         mock_cm.__aexit__ = AsyncMock(return_value=None)
 
-        mock_session.get = MagicMock(return_value=mock_cm)
+        mock_session.request = MagicMock(return_value=mock_cm)
         discord_client._session = mock_session
 
         with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
@@ -2502,3 +2492,121 @@ class TestGetOrFetch:
         assert hist.record.called
         _, kwargs = hist.record.call_args
         assert kwargs.get("attributes", {}).get("result") == "miss"
+
+
+class TestReadThroughDelegatesToGetOrFetch:
+    """Phase 3: each read-through method must delegate to _get_or_fetch."""
+
+    CACHE_HIT = json.dumps({"id": "1", "name": "test"})
+
+    @pytest.fixture
+    def client(self):
+        return DiscordAPIClient(
+            client_id="cid",
+            client_secret="csecret",
+            bot_token="tok.en.val",
+        )
+
+    @pytest.fixture
+    def mock_redis(self):
+        redis = AsyncMock()
+        redis.get = AsyncMock(return_value=self.CACHE_HIT)
+        return redis
+
+    @pytest.mark.asyncio
+    async def test_get_application_info_delegates_to_get_or_fetch(self, client, mock_redis):
+        with (
+            patch(
+                "shared.discord.client.cache_client.get_redis_client",
+                new=AsyncMock(return_value=mock_redis),
+            ),
+            patch.object(
+                client, "_get_or_fetch", new=AsyncMock(return_value={"id": "app1"})
+            ) as mock_gof,
+        ):
+            await client.get_application_info()
+        mock_gof.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_guild_channels_delegates_to_get_or_fetch(self, client, mock_redis):
+        with (
+            patch(
+                "shared.discord.client.cache_client.get_redis_client",
+                new=AsyncMock(return_value=mock_redis),
+            ),
+            patch.object(
+                client, "_get_or_fetch", new=AsyncMock(return_value=[{"id": "ch1"}])
+            ) as mock_gof,
+        ):
+            await client.get_guild_channels("111")
+        mock_gof.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_fetch_channel_delegates_to_get_or_fetch(self, client, mock_redis):
+        with (
+            patch(
+                "shared.discord.client.cache_client.get_redis_client",
+                new=AsyncMock(return_value=mock_redis),
+            ),
+            patch.object(
+                client, "_get_or_fetch", new=AsyncMock(return_value={"id": "ch1"})
+            ) as mock_gof,
+        ):
+            await client.fetch_channel("123")
+        mock_gof.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_fetch_guild_delegates_to_get_or_fetch(self, client, mock_redis):
+        with (
+            patch(
+                "shared.discord.client.cache_client.get_redis_client",
+                new=AsyncMock(return_value=mock_redis),
+            ),
+            patch.object(
+                client, "_get_or_fetch", new=AsyncMock(return_value={"id": "g1"})
+            ) as mock_gof,
+        ):
+            await client.fetch_guild("111")
+        mock_gof.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_fetch_guild_roles_delegates_to_get_or_fetch(self, client, mock_redis):
+        with (
+            patch(
+                "shared.discord.client.cache_client.get_redis_client",
+                new=AsyncMock(return_value=mock_redis),
+            ),
+            patch.object(
+                client, "_get_or_fetch", new=AsyncMock(return_value=[{"id": "r1"}])
+            ) as mock_gof,
+        ):
+            await client.fetch_guild_roles("111")
+        mock_gof.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_fetch_user_delegates_to_get_or_fetch(self, client, mock_redis):
+        with (
+            patch(
+                "shared.discord.client.cache_client.get_redis_client",
+                new=AsyncMock(return_value=mock_redis),
+            ),
+            patch.object(
+                client, "_get_or_fetch", new=AsyncMock(return_value={"id": "u1"})
+            ) as mock_gof,
+        ):
+            await client.fetch_user("456")
+        mock_gof.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_guild_member_delegates_to_get_or_fetch(self, client, mock_redis):
+        with (
+            patch(
+                "shared.discord.client.cache_client.get_redis_client",
+                new=AsyncMock(return_value=mock_redis),
+            ),
+            patch.object(
+                client, "_get_or_fetch", new=AsyncMock(return_value={"user": {"id": "u1"}})
+            ) as mock_gof,
+        ):
+            await client.get_guild_member("111", "456")
+        mock_gof.assert_called_once()
