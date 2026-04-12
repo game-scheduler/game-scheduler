@@ -27,6 +27,7 @@ import logging
 import os
 import time
 from collections.abc import Iterable
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -45,6 +46,8 @@ from shared.cache.client import RedisClient, get_redis_client
 from shared.cache.keys import CacheKeys
 from shared.cache.ttl import CacheTTL
 from shared.database import get_bypass_db_session, get_db_session
+from shared.models.backup_metadata import BackupMetadata
+from shared.models.channel import ChannelConfiguration
 from shared.models.game import GameSession
 from shared.models.message_refresh_queue import MessageRefreshQueue
 from shared.utils.status_transitions import GameStatus
@@ -196,6 +199,7 @@ class GameSchedulerBot(commands.Bot):
             await self._rebuild_redis_from_gateway()
             await self._recover_pending_workers()
             await self._trigger_sweep()
+            await self._sweep_orphaned_embeds()
 
             if not hasattr(self, "_refresh_listener_started"):
                 self._refresh_listener_started = True
@@ -354,6 +358,7 @@ class GameSchedulerBot(commands.Bot):
         logger.info("Bot reconnected to Gateway")
         await self._recover_pending_workers()
         await self._trigger_sweep()
+        await self._sweep_orphaned_embeds()
 
     async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent) -> None:
         """Handle raw message delete event to detect embed deletions.
@@ -554,6 +559,81 @@ class GameSchedulerBot(commands.Bot):
                     message_id,
                     game_id,
                 )
+
+    @staticmethod
+    def _extract_game_id(message: discord.Message) -> str | None:
+        """Extract the game UUID from the first join_game_{uuid} button in a message."""
+        for row in message.components:
+            if not isinstance(row, discord.ActionRow):
+                continue
+            for child in row.children:
+                custom_id = getattr(child, "custom_id", None)
+                if custom_id and custom_id.startswith("join_game_"):
+                    return custom_id.removeprefix("join_game_")
+        return None
+
+    async def _sweep_orphaned_embeds(self) -> None:
+        """Delete Discord embeds whose game UUID is absent from the database after a restore.
+
+        Queries backup_metadata for the most recent backed_up_at; if no row exists
+        (fresh install with no backups), skips the sweep entirely. Uses
+        backed_up_at minus a 5-minute buffer as the channel.history() cutoff to
+        avoid false positives for games being created at backup time.
+        """
+        try:
+            async with get_bypass_db_session() as db:
+                result = await db.execute(
+                    select(BackupMetadata).order_by(BackupMetadata.backed_up_at.desc()).limit(1)
+                )
+                backup_row = result.scalar_one_or_none()
+        except Exception as e:
+            logger.exception("Orphaned embed sweep: failed to query backup_metadata: %s", e)
+            return
+
+        if backup_row is None:
+            logger.info("Orphaned embed sweep: no backup history, skipping")
+            return
+
+        cutoff = backup_row.backed_up_at - timedelta(minutes=5)
+
+        try:
+            async with get_bypass_db_session() as db:
+                ch_result = await db.execute(select(ChannelConfiguration))
+                channel_cfgs: list[ChannelConfiguration] = list(ch_result.scalars().all())
+        except Exception as e:
+            logger.exception("Orphaned embed sweep: failed to query channel_configurations: %s", e)
+            return
+
+        for cfg in channel_cfgs:
+            channel = self.get_channel(int(cfg.channel_id))
+            if not isinstance(channel, discord.TextChannel):
+                continue
+            try:
+                await self._scan_channel_for_orphaned_embeds(channel, cutoff)
+            except Exception as e:
+                logger.exception(
+                    "Orphaned embed sweep: error scanning channel %s: %s", cfg.channel_id, e
+                )
+
+    async def _scan_channel_for_orphaned_embeds(
+        self, channel: discord.TextChannel, cutoff: datetime
+    ) -> None:
+        """Scan a single channel for bot messages whose game no longer exists in the DB."""
+        async for message in channel.history(after=cutoff, limit=None):
+            if message.author.id != self.user.id:
+                continue
+
+            game_id = self._extract_game_id(message)
+            if game_id is None:
+                continue
+
+            try:
+                async with get_bypass_db_session() as db:
+                    r = await db.execute(select(GameSession).where(GameSession.id == game_id))
+                    if r.scalar_one_or_none() is None:
+                        await message.delete()
+            except Exception as e:
+                logger.exception("Orphaned embed sweep: error checking game %s: %s", game_id, e)
 
     async def on_interaction(self, interaction: discord.Interaction) -> None:
         """

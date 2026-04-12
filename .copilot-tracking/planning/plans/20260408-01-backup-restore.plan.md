@@ -74,12 +74,12 @@ Implement automated 12-hour Postgres backups to S3-compatible storage and a scri
 - [x] Task 5.1: Create scripts/restore.sh
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 161-180)
 
-### [ ] Phase 6: Orphaned Embed Sweep
+### [x] Phase 6: Orphaned Embed Sweep
 
-- [ ] Task 6.1 (Tests): Write tests for \_sweep_orphaned_embeds
+- [x] Task 6.1 (Tests): Write tests for \_sweep_orphaned_embeds
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 183-196)
 
-- [ ] Task 6.2 (Implement): Add \_sweep_orphaned_embeds to services/bot/bot.py
+- [x] Task 6.2 (Implement): Add \_sweep_orphaned_embeds to services/bot/bot.py
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 197-217)
 
 ## Dependencies
