@@ -61,6 +61,7 @@ dependencies = [
 dev = [
     "ruff==0.15.4",
     "mypy>=1.10.0",
+    "boto3>=1.34.0",
     "diff-cover>=9.2.0",
     "complexipy>=4.2.0",
     "lizard>=1.20.0",
@@ -147,8 +148,9 @@ exclude = []
     "SIM117",   # Nested with statements in test mocks
     "PT011",    # pytest.raises without match parameter
     "PT012",    # pytest.raises with multiple statements
-    "PT018",    # Compound assertions in tests
-    "DTZ001",   # datetime without tzinfo in test data
+    "PT018",    # Compound assertions in tests    "ASYNC230", # Blocking file I/O in async test functions (acceptable for small metadata files)
+    "ASYNC240", # os.path in async context (acceptable in test helpers)
+    "EM102",   # f-string in exception (acceptable in test assertions)    "DTZ001",   # datetime without tzinfo in test data
     "ASYNC109", # Async function with timeout parameter
     "ARG001",   # Unused function arguments in fixtures and test helpers
     "ARG002",   # Unused method arguments in test classes
@@ -215,6 +217,7 @@ dev = [
     "pre-commit~=4.0.0",
     "pytest-randomly>=4.0.1",
     "pytest-order>=1.3.0",
+    "boto3>=1.34.0",
 ]
 
 [tool.coverage.run]
