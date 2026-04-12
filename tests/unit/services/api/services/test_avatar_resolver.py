@@ -29,7 +29,7 @@ Tests verify avatar URL construction and resolution logic with mocked dependenci
 """
 
 import json
-from unittest.mock import AsyncMock
+from unittest.mock import ANY, AsyncMock, patch
 
 import pytest
 
@@ -177,8 +177,12 @@ class TestAvatarDataFlow:
             }
         ]
 
-        resolver = DisplayNameResolver(mock_discord_client, mock_cache_client)
-        await resolver.resolve_display_names_and_avatars(guild_id, [user_id])
+        with patch(
+            "services.api.services.display_names.cache_get",
+            new=AsyncMock(return_value=None),
+        ):
+            resolver = DisplayNameResolver(mock_discord_client, mock_cache_client)
+            await resolver.resolve_display_names_and_avatars(guild_id, [user_id])
 
         cache_key = cache_keys.display_name_avatar(user_id, guild_id)
         mock_cache_client.set.assert_called_once()
@@ -200,12 +204,15 @@ class TestAvatarDataFlow:
             "display_name": "CachedNick",
             "avatar_url": f"https://cdn.discordapp.com/avatars/{user_id}/cached_hash.png?size=64",
         }
-        mock_cache_client.get.return_value = json.dumps(cached_data)
 
-        resolver = DisplayNameResolver(mock_discord_client, mock_cache_client)
-        result = await resolver.resolve_display_names_and_avatars(guild_id, [user_id])
+        with patch(
+            "services.api.services.display_names.cache_get",
+            new=AsyncMock(return_value=cached_data),
+        ) as mock_cg:
+            resolver = DisplayNameResolver(mock_discord_client, mock_cache_client)
+            result = await resolver.resolve_display_names_and_avatars(guild_id, [user_id])
 
-        mock_cache_client.get.assert_called_once_with(cache_key)
+        mock_cg.assert_called_once_with(cache_key, ANY)
         mock_discord_client.get_guild_member.assert_not_called()
         assert result[user_id]["display_name"] == "CachedNick"
         assert result[user_id]["avatar_url"] == cached_data["avatar_url"]

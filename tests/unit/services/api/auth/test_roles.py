@@ -58,29 +58,36 @@ def mock_discord_client():
 @pytest.mark.asyncio
 async def test_get_user_role_ids_from_cache(role_service, mock_cache):
     """Test retrieving user roles from cache."""
-    mock_cache.get_json.return_value = ["role1", "role2"]
-
-    with patch.object(role_service, "_get_cache", return_value=mock_cache):
+    with (
+        patch.object(role_service, "_get_cache", return_value=mock_cache),
+        patch(
+            "services.api.auth.roles.cache_get",
+            new_callable=AsyncMock,
+            return_value=["role1", "role2"],
+        ),
+    ):
         role_ids = await role_service.get_user_role_ids("user123", "guild456")
 
     assert role_ids == ["role1", "role2"]
-    mock_cache.get_json.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_get_user_role_ids_from_api(role_service, mock_cache, mock_discord_client):
     """Test retrieving user roles from Discord API when not cached."""
-    mock_cache.get_json.return_value = None
     mock_discord_client.get_guild_member.return_value = {"roles": ["role1", "role2", "role3"]}
 
     with (
         patch.object(role_service, "_get_cache", return_value=mock_cache),
         patch.object(role_service, "discord_client", mock_discord_client),
+        patch(
+            "services.api.auth.roles.cache_get",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
     ):
         role_ids = await role_service.get_user_role_ids("user123", "guild456")
 
     assert role_ids == ["role1", "role2", "role3", "guild456"]
-    mock_cache.get_json.assert_called_once()
     mock_discord_client.get_guild_member.assert_called_once_with("guild456", "user123")
     mock_cache.set_json.assert_called_once()
 
@@ -93,18 +100,18 @@ async def test_get_user_role_ids_force_refresh(role_service, mock_cache, mock_di
     with (
         patch.object(role_service, "_get_cache", return_value=mock_cache),
         patch.object(role_service, "discord_client", mock_discord_client),
+        patch("services.api.auth.roles.cache_get", new_callable=AsyncMock) as mock_cg,
     ):
         role_ids = await role_service.get_user_role_ids("user123", "guild456", force_refresh=True)
 
     assert role_ids == ["role1", "guild456"]
-    mock_cache.get_json.assert_not_called()
+    mock_cg.assert_not_called()
     mock_discord_client.get_guild_member.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_get_user_role_ids_api_error(role_service, mock_cache, mock_discord_client):
     """Test handling Discord API error."""
-    mock_cache.get_json.return_value = None
     mock_discord_client.get_guild_member.side_effect = discord_client.DiscordAPIError(
         404, "Not found"
     )
@@ -112,6 +119,11 @@ async def test_get_user_role_ids_api_error(role_service, mock_cache, mock_discor
     with (
         patch.object(role_service, "_get_cache", return_value=mock_cache),
         patch.object(role_service, "discord_client", mock_discord_client),
+        patch(
+            "services.api.auth.roles.cache_get",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
     ):
         role_ids = await role_service.get_user_role_ids("user123", "guild456")
 

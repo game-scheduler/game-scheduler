@@ -139,14 +139,12 @@ async def test_get_user_tokens_returns_maintainer_flags():
         "can_be_maintainer": True,
         "is_maintainer": True,
     }
-    mock_redis = AsyncMock()
-    mock_redis.get_json = AsyncMock(return_value=session_in_redis)
 
     with (
         patch(
-            "services.api.auth.tokens.cache_client.get_redis_client",
+            "services.api.auth.tokens.cache_get",
             new_callable=AsyncMock,
-            return_value=mock_redis,
+            return_value=session_in_redis,
         ),
         patch("services.api.auth.tokens.decrypt_token", return_value="plain"),
     ):

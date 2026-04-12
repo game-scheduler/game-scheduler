@@ -55,15 +55,21 @@ class TestOAuth2Flow:
             assert "client_id=" in auth_url
             assert "scope=identify" in auth_url
             assert f"state={state}" in auth_url
-            mock_redis_instance.set.assert_called_once()
+            mock_redis_instance.set_json.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_validate_state_success(self):
         """Test successful state validation."""
-        with patch("services.api.auth.oauth2.cache_client.get_redis_client") as mock_redis:
+        with (
+            patch("services.api.auth.oauth2.cache_client.get_redis_client") as mock_redis,
+            patch(
+                "services.api.auth.oauth2.cache_get",
+                new_callable=AsyncMock,
+                return_value="http://localhost:3000/callback",
+            ),
+        ):
             mock_redis_instance = AsyncMock()
             mock_redis.return_value = mock_redis_instance
-            mock_redis_instance.get.return_value = "http://localhost:3000/callback"
 
             redirect_uri = await validate_state("test_state")
 
@@ -73,11 +79,14 @@ class TestOAuth2Flow:
     @pytest.mark.asyncio
     async def test_validate_state_invalid(self):
         """Test state validation with invalid token."""
-        with patch("services.api.auth.oauth2.cache_client.get_redis_client") as mock_redis:
-            mock_redis_instance = AsyncMock()
-            mock_redis.return_value = mock_redis_instance
-            mock_redis_instance.get.return_value = None
-
+        with (
+            patch("services.api.auth.oauth2.cache_client.get_redis_client"),
+            patch(
+                "services.api.auth.oauth2.cache_get",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+        ):
             with pytest.raises(OAuth2StateError):
                 await validate_state("invalid_state")
 

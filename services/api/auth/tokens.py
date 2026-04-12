@@ -35,6 +35,7 @@ from cryptography.fernet import Fernet
 from services.api import config
 from shared.cache import client as cache_client
 from shared.cache import ttl as cache_ttl
+from shared.cache.operations import CacheOperation, cache_get
 from shared.utils.security_constants import ENCRYPTION_KEY_LENGTH
 
 logger = logging.getLogger(__name__)
@@ -138,10 +139,8 @@ async def get_user_tokens(session_token: str) -> dict[str, Any] | None:
     Returns:
         Dictionary with user_id, access_token, refresh_token, expires_at or None
     """
-    redis = await cache_client.get_redis_client()
-
     session_key = f"session:{session_token}"
-    session_data_raw = await redis.get_json(session_key)
+    session_data_raw = await cache_get(session_key, CacheOperation.SESSION_LOOKUP)
 
     if session_data_raw is None:
         logger.warning("No session found for token %s", session_token)
@@ -177,10 +176,8 @@ async def refresh_user_tokens(
         new_access_token: New access token from refresh
         new_expires_in: New expiration time in seconds
     """
-    redis = await cache_client.get_redis_client()
-
     session_key = f"session:{session_token}"
-    session_data_raw = await redis.get_json(session_key)
+    session_data_raw = await cache_get(session_key, CacheOperation.SESSION_REFRESH)
 
     if session_data_raw is None:
         logger.warning("No session found for token %s", session_token)
@@ -191,6 +188,8 @@ async def refresh_user_tokens(
         return
 
     session_data: dict[str, Any] = session_data_raw
+
+    redis = await cache_client.get_redis_client()
 
     encrypted_access = encrypt_token(new_access_token)
     expiry = datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=new_expires_in)

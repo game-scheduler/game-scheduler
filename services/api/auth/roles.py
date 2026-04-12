@@ -34,6 +34,7 @@ from services.api.dependencies.discord import get_discord_client
 from shared.cache import client as cache_client
 from shared.cache import keys as cache_keys
 from shared.cache import ttl as cache_ttl
+from shared.cache.operations import CacheOperation, cache_get
 from shared.discord import client as discord_client
 from shared.models import guild as guild_model
 from shared.utils.discord import DiscordPermissions
@@ -73,7 +74,7 @@ class RoleVerificationService:
         cache_key = cache_keys.CacheKeys.user_roles(user_id, guild_id)
 
         if not force_refresh:
-            cached_roles_raw = await cache.get_json(cache_key)
+            cached_roles_raw = await cache_get(cache_key, CacheOperation.USER_ROLES_API)
             if cached_roles_raw is not None and isinstance(cached_roles_raw, list):
                 # Type narrowing: cached roles is a list (should contain string role IDs)
                 return cached_roles_raw

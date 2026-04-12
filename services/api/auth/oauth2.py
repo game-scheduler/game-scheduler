@@ -33,6 +33,7 @@ from typing import Any
 from services.api import config
 from services.api.dependencies.discord import get_discord_client
 from shared.cache import client as cache_client
+from shared.cache.operations import CacheOperation, cache_get
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ async def generate_authorization_url(redirect_uri: str) -> tuple[str, str]:
 
     redis = await cache_client.get_redis_client()
     state_key = f"oauth_state:{state}"
-    await redis.set(state_key, redirect_uri, ttl=600)
+    await redis.set_json(state_key, redirect_uri, ttl=600)
 
     params = {
         "client_id": api_config.discord_client_id,
@@ -93,7 +94,7 @@ async def validate_state(state: str) -> str:
     redis = await cache_client.get_redis_client()
     state_key = f"oauth_state:{state}"
 
-    redirect_uri = await redis.get(state_key)
+    redirect_uri = await cache_get(state_key, CacheOperation.OAUTH_STATE)
     if redirect_uri is None:
         logger.warning("Invalid or expired OAuth2 state: %s", state)
         msg = "Invalid or expired state token"

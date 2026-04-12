@@ -49,23 +49,28 @@ def role_cache(mock_redis):
 async def test_get_user_roles_cache_hit(role_cache, mock_redis):
     """Test getting user roles from cache."""
     role_ids = ["123456", "789012"]
-    mock_redis.get = AsyncMock(return_value=json.dumps(role_ids))
 
-    result = await role_cache.get_user_roles("user123", "guild456")
+    with patch(
+        "services.bot.auth.cache.cache_get",
+        new_callable=AsyncMock,
+        return_value=role_ids,
+    ):
+        result = await role_cache.get_user_roles("user123", "guild456")
 
     assert result == role_ids
-    mock_redis.get.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_get_user_roles_cache_miss(role_cache, mock_redis):
     """Test getting user roles with cache miss."""
-    mock_redis.get = AsyncMock(return_value=None)
-
-    result = await role_cache.get_user_roles("user123", "guild456")
+    with patch(
+        "services.bot.auth.cache.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await role_cache.get_user_roles("user123", "guild456")
 
     assert result is None
-    mock_redis.get.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -99,23 +104,28 @@ async def test_get_guild_roles_cache_hit(role_cache, mock_redis):
         {"id": "123", "name": "Admin"},
         {"id": "456", "name": "Member"},
     ]
-    mock_redis.get = AsyncMock(return_value=json.dumps(roles))
 
-    result = await role_cache.get_guild_roles("guild456")
+    with patch(
+        "services.bot.auth.cache.cache_get",
+        new_callable=AsyncMock,
+        return_value=roles,
+    ):
+        result = await role_cache.get_guild_roles("guild456")
 
     assert result == roles
-    mock_redis.get.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_get_guild_roles_cache_miss(role_cache, mock_redis):
     """Test getting guild roles with cache miss."""
-    mock_redis.get = AsyncMock(return_value=None)
-
-    result = await role_cache.get_guild_roles("guild456")
+    with patch(
+        "services.bot.auth.cache.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await role_cache.get_guild_roles("guild456")
 
     assert result is None
-    mock_redis.get.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -137,10 +147,12 @@ async def test_set_guild_roles(role_cache, mock_redis):
 
 @pytest.mark.asyncio
 async def test_get_user_roles_redis_error(role_cache, mock_redis):
-    """Test handling Redis error when getting user roles."""
-    mock_redis.get = AsyncMock(side_effect=Exception("Redis error"))
-
-    result = await role_cache.get_user_roles("user123", "guild456")
+    """Test handling error when getting user roles."""
+    with patch(
+        "services.bot.auth.cache.cache_get",
+        side_effect=Exception("Redis error"),
+    ):
+        result = await role_cache.get_user_roles("user123", "guild456")
 
     assert result is None
 
@@ -179,10 +191,12 @@ async def test_get_redis_lazy_initialization():
 
 @pytest.mark.asyncio
 async def test_get_guild_roles_redis_error(role_cache, mock_redis):
-    """Test handling Redis error when getting guild roles."""
-    mock_redis.get = AsyncMock(side_effect=Exception("Redis error"))
-
-    result = await role_cache.get_guild_roles("guild456")
+    """Test handling error when getting guild roles."""
+    with patch(
+        "services.bot.auth.cache.cache_get",
+        side_effect=Exception("Redis error"),
+    ):
+        result = await role_cache.get_guild_roles("guild456")
 
     assert result is None
 

@@ -29,6 +29,7 @@ import json
 import logging
 
 from shared.cache import client, keys, ttl
+from shared.cache.operations import CacheOperation, cache_get
 
 logger = logging.getLogger(__name__)
 
@@ -63,14 +64,12 @@ class RoleCache:
             List of role IDs if cached, None if not found
         """
         try:
-            redis = await self.get_redis()
             cache_key = keys.CacheKeys.user_roles(user_id, guild_id)
-            cached = await redis.get(cache_key)
+            cached = await cache_get(cache_key, CacheOperation.USER_ROLES_BOT)
 
-            if cached:
-                role_ids = json.loads(cached)
+            if cached is not None:
                 logger.debug("Cache hit for user roles: %s in guild %s", user_id, guild_id)
-                return role_ids
+                return cached
 
             logger.debug("Cache miss for user roles: %s in guild %s", user_id, guild_id)
             return None
@@ -125,14 +124,12 @@ class RoleCache:
             List of role dicts if cached, None if not found
         """
         try:
-            redis = await self.get_redis()
             cache_key = keys.CacheKeys.guild_config(guild_id)
-            cached = await redis.get(cache_key)
+            cached = await cache_get(cache_key, CacheOperation.GUILD_ROLES_BOT)
 
-            if cached:
-                roles = json.loads(cached)
+            if cached is not None:
                 logger.debug("Cache hit for guild roles: %s", guild_id)
-                return roles
+                return cached
 
             logger.debug("Cache miss for guild roles: %s", guild_id)
             return None

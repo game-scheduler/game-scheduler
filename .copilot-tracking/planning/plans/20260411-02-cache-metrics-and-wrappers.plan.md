@@ -69,12 +69,12 @@ Eliminate copy-pasted read-through cache patterns in `shared/discord/client.py` 
 - [x] Task 3.3: Fix `get_guilds` inner slow-path to use `_get_or_fetch`; leave pre-lock read raw
   - Details: .copilot-tracking/planning/details/20260411-02-cache-metrics-and-wrappers-details.md (Lines 163-183)
 
-### [ ] Phase 4: Replace Existence-Lookup Reads with `cache_get`
+### [x] Phase 4: Replace Existence-Lookup Reads with `cache_get`
 
-- [ ] Task 4.1: Write failing unit tests for `cache_get` usage at each existence-lookup site
+- [x] Task 4.1: Write failing unit tests for `cache_get` usage at each existence-lookup site
   - Details: .copilot-tracking/planning/details/20260411-02-cache-metrics-and-wrappers-details.md (Lines 186-212)
 
-- [ ] Task 4.2: Replace existence-lookup reads in `tokens.py`, `oauth2.py`, `roles.py`, `display_names.py`, `bot/auth/cache.py`
+- [x] Task 4.2: Replace existence-lookup reads in `tokens.py`, `oauth2.py`, `roles.py`, `display_names.py`, `bot/auth/cache.py`
   - Details: .copilot-tracking/planning/details/20260411-02-cache-metrics-and-wrappers-details.md (Lines 213-254)
 
 ## Dependencies

@@ -33,6 +33,7 @@ from services.api.dependencies.discord import get_discord_client
 from shared.cache import client as cache_client
 from shared.cache import keys as cache_keys
 from shared.cache import ttl as cache_ttl
+from shared.cache.operations import CacheOperation, cache_get
 from shared.discord import client as discord_client
 
 logger = logging.getLogger(__name__)
@@ -120,7 +121,7 @@ class DisplayNameResolver:
             result[user_id] = display_name
 
             cache_key = cache_keys.CacheKeys.display_name(user_id, guild_id)
-            await self.cache.set(cache_key, display_name, ttl=cache_ttl.CacheTTL.DISPLAY_NAME)
+            await self.cache.set_json(cache_key, display_name, ttl=cache_ttl.CacheTTL.DISPLAY_NAME)
 
         found_ids = {m["user"]["id"] for m in members}
         for user_id in uncached_ids:
@@ -147,7 +148,7 @@ class DisplayNameResolver:
 
         for user_id in user_ids:
             cache_key = cache_keys.CacheKeys.display_name(user_id, guild_id)
-            cached = await self.cache.get(cache_key)
+            cached = await cache_get(cache_key, CacheOperation.DISPLAY_NAME)
             if cached:
                 result[user_id] = cached
             else:
@@ -213,13 +214,10 @@ class DisplayNameResolver:
         for user_id in user_ids:
             cache_key = cache_keys.CacheKeys.display_name_avatar(user_id, guild_id)
             if self.cache:
-                cached = await self.cache.get(cache_key)
+                cached = await cache_get(cache_key, CacheOperation.DISPLAY_NAME_AVATAR)
                 if cached:
-                    try:
-                        cached_results[user_id] = json.loads(cached)
-                        continue
-                    except (json.JSONDecodeError, TypeError):
-                        pass
+                    cached_results[user_id] = cached
+                    continue
             uncached_ids.append(user_id)
 
         return cached_results, uncached_ids

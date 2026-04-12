@@ -21,8 +21,7 @@
 
 """Unit tests for display name resolution service."""
 
-import json
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -55,13 +54,14 @@ async def test_resolve_display_names_from_cache(resolver, mock_cache):
     guild_id = "123456789"
     user_ids = ["user1", "user2"]
 
-    # Mock cache hits
-    mock_cache.get = AsyncMock(side_effect=["CachedName1", "CachedName2"])
-
-    result = await resolver.resolve_display_names(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        side_effect=["CachedName1", "CachedName2"],
+    ):
+        result = await resolver.resolve_display_names(guild_id, user_ids)
 
     assert result == {"user1": "CachedName1", "user2": "CachedName2"}
-    assert mock_cache.get.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -69,9 +69,6 @@ async def test_resolve_display_names_from_api(resolver, mock_discord_api, mock_c
     """Test resolving display names from Discord API when not cached."""
     guild_id = "123456789"
     user_ids = ["user1", "user2"]
-
-    # Mock cache misses
-    mock_cache.get = AsyncMock(return_value=None)
 
     # Mock Discord API response
     mock_discord_api.get_guild_members_batch = AsyncMock(
@@ -95,10 +92,15 @@ async def test_resolve_display_names_from_api(resolver, mock_discord_api, mock_c
         ]
     )
 
-    result = await resolver.resolve_display_names(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await resolver.resolve_display_names(guild_id, user_ids)
 
     assert result == {"user1": "GuildNick1", "user2": "GlobalName2"}
-    assert mock_cache.set.call_count == 2
+    assert mock_cache.set_json.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -109,7 +111,6 @@ async def test_resolve_display_names_fallback_to_global_name(
     guild_id = "123456789"
     user_ids = ["user1"]
 
-    mock_cache.get = AsyncMock(return_value=None)
     mock_discord_api.get_guild_members_batch = AsyncMock(
         return_value=[
             {
@@ -123,7 +124,12 @@ async def test_resolve_display_names_fallback_to_global_name(
         ]
     )
 
-    result = await resolver.resolve_display_names(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await resolver.resolve_display_names(guild_id, user_ids)
 
     assert result == {"user1": "GlobalName1"}
 
@@ -134,7 +140,6 @@ async def test_resolve_display_names_fallback_to_username(resolver, mock_discord
     guild_id = "123456789"
     user_ids = ["user1"]
 
-    mock_cache.get = AsyncMock(return_value=None)
     mock_discord_api.get_guild_members_batch = AsyncMock(
         return_value=[
             {
@@ -144,7 +149,12 @@ async def test_resolve_display_names_fallback_to_username(resolver, mock_discord
         ]
     )
 
-    result = await resolver.resolve_display_names(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await resolver.resolve_display_names(guild_id, user_ids)
 
     assert result == {"user1": "username1"}
 
@@ -155,7 +165,6 @@ async def test_resolve_display_names_user_not_found(resolver, mock_discord_api, 
     guild_id = "123456789"
     user_ids = ["user1", "user2"]
 
-    mock_cache.get = AsyncMock(return_value=None)
     # Only user1 is returned (user2 left guild)
     mock_discord_api.get_guild_members_batch = AsyncMock(
         return_value=[
@@ -170,7 +179,12 @@ async def test_resolve_display_names_user_not_found(resolver, mock_discord_api, 
         ]
     )
 
-    result = await resolver.resolve_display_names(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await resolver.resolve_display_names(guild_id, user_ids)
 
     assert result == {"user1": "GuildNick1", "user2": "Unknown User"}
 
@@ -181,12 +195,16 @@ async def test_resolve_display_names_api_error(resolver, mock_discord_api, mock_
     guild_id = "123456789"
     user_ids = ["user1234"]
 
-    mock_cache.get = AsyncMock(return_value=None)
     mock_discord_api.get_guild_members_batch = AsyncMock(
         side_effect=discord_client.DiscordAPIError(500, "API Error")
     )
 
-    result = await resolver.resolve_display_names(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await resolver.resolve_display_names(guild_id, user_ids)
 
     # Should return fallback format: User#1234
     assert result == {"user1234": "User#1234"}
@@ -198,13 +216,10 @@ async def test_resolve_display_names_mixed_cache_and_api(resolver, mock_discord_
     guild_id = "123456789"
     user_ids = ["user1", "user2", "user3"]
 
-    # Mock cache: user1 cached, user2 and user3 not cached
-    async def cache_get(key):
+    async def mock_cache_get(key, operation):
         if "user1" in key:
             return "CachedName1"
         return None
-
-    mock_cache.get = AsyncMock(side_effect=cache_get)
 
     # Mock API response for uncached users
     mock_discord_api.get_guild_members_batch = AsyncMock(
@@ -224,7 +239,11 @@ async def test_resolve_display_names_mixed_cache_and_api(resolver, mock_discord_
         ]
     )
 
-    result = await resolver.resolve_display_names(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        side_effect=mock_cache_get,
+    ):
+        result = await resolver.resolve_display_names(guild_id, user_ids)
 
     assert result == {
         "user1": "CachedName1",
@@ -239,9 +258,12 @@ async def test_resolve_single(resolver, mock_cache):
     guild_id = "123456789"
     user_id = "user1"
 
-    mock_cache.get = AsyncMock(return_value="CachedName1")
-
-    result = await resolver.resolve_single(guild_id, user_id)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value="CachedName1",
+    ):
+        result = await resolver.resolve_single(guild_id, user_id)
 
     assert result == "CachedName1"
 
@@ -252,10 +274,14 @@ async def test_resolve_single_user_not_found(resolver, mock_discord_api, mock_ca
     guild_id = "123456789"
     user_id = "user1"
 
-    mock_cache.get = AsyncMock(return_value=None)
     mock_discord_api.get_guild_members_batch = AsyncMock(return_value=[])
 
-    result = await resolver.resolve_single(guild_id, user_id)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await resolver.resolve_single(guild_id, user_id)
 
     assert result == "Unknown User"
 
@@ -266,18 +292,18 @@ async def test_resolve_display_names_and_avatars_from_cache(resolver, mock_cache
     guild_id = "123456789"
     user_ids = ["user1", "user2"]
 
-    # Mock cache hits with JSON data
-    mock_cache.get = AsyncMock(
-        side_effect=[
-            json.dumps({
-                "display_name": "CachedName1",
-                "avatar_url": "https://cdn.example.com/avatar1.png",
-            }),
-            json.dumps({"display_name": "CachedName2", "avatar_url": None}),
-        ]
-    )
+    cached_user1 = {
+        "display_name": "CachedName1",
+        "avatar_url": "https://cdn.example.com/avatar1.png",
+    }
+    cached_user2 = {"display_name": "CachedName2", "avatar_url": None}
 
-    result = await resolver.resolve_display_names_and_avatars(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        side_effect=[cached_user1, cached_user2],
+    ):
+        result = await resolver.resolve_display_names_and_avatars(guild_id, user_ids)
 
     assert result == {
         "user1": {
@@ -286,7 +312,6 @@ async def test_resolve_display_names_and_avatars_from_cache(resolver, mock_cache
         },
         "user2": {"display_name": "CachedName2", "avatar_url": None},
     }
-    assert mock_cache.get.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -297,7 +322,6 @@ async def test_resolve_display_names_and_avatars_from_api_with_guild_avatar(
     guild_id = "123456789"
     user_ids = ["user1"]
 
-    mock_cache.get = AsyncMock(return_value=None)
     mock_discord_api.get_guild_members_batch = AsyncMock(
         return_value=[
             {
@@ -313,7 +337,12 @@ async def test_resolve_display_names_and_avatars_from_api_with_guild_avatar(
         ]
     )
 
-    result = await resolver.resolve_display_names_and_avatars(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await resolver.resolve_display_names_and_avatars(guild_id, user_ids)
 
     # Guild avatar should take priority
     expected_url = "https://cdn.discordapp.com/guilds/123456789/users/user1/avatars/guild_avatar_hash.png?size=64"
@@ -329,7 +358,6 @@ async def test_resolve_display_names_and_avatars_from_api_with_user_avatar(
     guild_id = "123456789"
     user_ids = ["user1"]
 
-    mock_cache.get = AsyncMock(return_value=None)
     mock_discord_api.get_guild_members_batch = AsyncMock(
         return_value=[
             {
@@ -345,7 +373,12 @@ async def test_resolve_display_names_and_avatars_from_api_with_user_avatar(
         ]
     )
 
-    result = await resolver.resolve_display_names_and_avatars(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await resolver.resolve_display_names_and_avatars(guild_id, user_ids)
 
     # User avatar should be used when no guild avatar
     expected_url = "https://cdn.discordapp.com/avatars/user1/user_avatar_hash.png?size=64"
@@ -358,7 +391,6 @@ async def test_resolve_display_names_and_avatars_no_avatar(resolver, mock_discor
     guild_id = "123456789"
     user_ids = ["user1"]
 
-    mock_cache.get = AsyncMock(return_value=None)
     mock_discord_api.get_guild_members_batch = AsyncMock(
         return_value=[
             {
@@ -374,7 +406,12 @@ async def test_resolve_display_names_and_avatars_no_avatar(resolver, mock_discor
         ]
     )
 
-    result = await resolver.resolve_display_names_and_avatars(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await resolver.resolve_display_names_and_avatars(guild_id, user_ids)
 
     assert result == {"user1": {"display_name": "username1", "avatar_url": None}}
 
@@ -385,12 +422,16 @@ async def test_resolve_display_names_and_avatars_api_error(resolver, mock_discor
     guild_id = "123456789"
     user_ids = ["user1234"]
 
-    mock_cache.get = AsyncMock(return_value=None)
     mock_discord_api.get_guild_members_batch = AsyncMock(
         side_effect=discord_client.DiscordAPIError(500, "API Error")
     )
 
-    result = await resolver.resolve_display_names_and_avatars(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await resolver.resolve_display_names_and_avatars(guild_id, user_ids)
 
     assert result == {"user1234": {"display_name": "User#1234", "avatar_url": None}}
 
@@ -443,14 +484,15 @@ async def test_check_cache_for_users_all_cached(resolver, mock_cache):
     guild_id = "guild123"
     user_ids = ["user1", "user2"]
 
-    mock_cache.get = AsyncMock(
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
         side_effect=[
-            json.dumps({"display_name": "Name1", "avatar_url": "url1"}),
-            json.dumps({"display_name": "Name2", "avatar_url": "url2"}),
-        ]
-    )
-
-    cached_results, uncached_ids = await resolver._check_cache_for_users(guild_id, user_ids)
+            {"display_name": "Name1", "avatar_url": "url1"},
+            {"display_name": "Name2", "avatar_url": "url2"},
+        ],
+    ):
+        cached_results, uncached_ids = await resolver._check_cache_for_users(guild_id, user_ids)
 
     assert cached_results == {
         "user1": {"display_name": "Name1", "avatar_url": "url1"},
@@ -465,15 +507,16 @@ async def test_check_cache_for_users_partial_cached(resolver, mock_cache):
     guild_id = "guild123"
     user_ids = ["user1", "user2", "user3"]
 
-    mock_cache.get = AsyncMock(
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
         side_effect=[
-            json.dumps({"display_name": "Name1", "avatar_url": "url1"}),
+            {"display_name": "Name1", "avatar_url": "url1"},
             None,
-            json.dumps({"display_name": "Name3", "avatar_url": "url3"}),
-        ]
-    )
-
-    cached_results, uncached_ids = await resolver._check_cache_for_users(guild_id, user_ids)
+            {"display_name": "Name3", "avatar_url": "url3"},
+        ],
+    ):
+        cached_results, uncached_ids = await resolver._check_cache_for_users(guild_id, user_ids)
 
     assert cached_results == {
         "user1": {"display_name": "Name1", "avatar_url": "url1"},
@@ -488,9 +531,12 @@ async def test_check_cache_for_users_none_cached(resolver, mock_cache):
     guild_id = "guild123"
     user_ids = ["user1", "user2"]
 
-    mock_cache.get = AsyncMock(return_value=None)
-
-    cached_results, uncached_ids = await resolver._check_cache_for_users(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        cached_results, uncached_ids = await resolver._check_cache_for_users(guild_id, user_ids)
 
     assert cached_results == {}
     assert uncached_ids == ["user1", "user2"]
@@ -498,13 +544,16 @@ async def test_check_cache_for_users_none_cached(resolver, mock_cache):
 
 @pytest.mark.asyncio
 async def test_check_cache_for_users_invalid_json(resolver, mock_cache):
-    """Test checking cache handles invalid JSON gracefully."""
+    """Test checking cache handles missing value gracefully."""
     guild_id = "guild123"
     user_ids = ["user1"]
 
-    mock_cache.get = AsyncMock(return_value="invalid json {")
-
-    cached_results, uncached_ids = await resolver._check_cache_for_users(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        cached_results, uncached_ids = await resolver._check_cache_for_users(guild_id, user_ids)
 
     assert cached_results == {}
     assert uncached_ids == ["user1"]
@@ -653,9 +702,12 @@ async def test_check_cache_for_display_names_all_cached(resolver, mock_cache):
     guild_id = "guild123"
     user_ids = ["user1", "user2"]
 
-    mock_cache.get = AsyncMock(side_effect=["CachedName1", "CachedName2"])
-
-    result, uncached_ids = await resolver._check_cache_for_display_names(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        side_effect=["CachedName1", "CachedName2"],
+    ):
+        result, uncached_ids = await resolver._check_cache_for_display_names(guild_id, user_ids)
 
     assert result == {"user1": "CachedName1", "user2": "CachedName2"}
     assert uncached_ids == []
@@ -667,9 +719,12 @@ async def test_check_cache_for_display_names_none_cached(resolver, mock_cache):
     guild_id = "guild123"
     user_ids = ["user1", "user2"]
 
-    mock_cache.get = AsyncMock(return_value=None)
-
-    result, uncached_ids = await resolver._check_cache_for_display_names(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result, uncached_ids = await resolver._check_cache_for_display_names(guild_id, user_ids)
 
     assert result == {}
     assert uncached_ids == ["user1", "user2"]
@@ -681,16 +736,18 @@ async def test_check_cache_for_display_names_partially_cached(resolver, mock_cac
     guild_id = "guild123"
     user_ids = ["user1", "user2", "user3"]
 
-    async def cache_get(key):
+    async def mock_cache_get(key, operation):
         if "user1" in key:
             return "CachedName1"
         if "user3" in key:
             return "CachedName3"
         return None
 
-    mock_cache.get = AsyncMock(side_effect=cache_get)
-
-    result, uncached_ids = await resolver._check_cache_for_display_names(guild_id, user_ids)
+    with patch(
+        "services.api.services.display_names.cache_get",
+        side_effect=mock_cache_get,
+    ):
+        result, uncached_ids = await resolver._check_cache_for_display_names(guild_id, user_ids)
 
     assert result == {"user1": "CachedName1", "user3": "CachedName3"}
     assert uncached_ids == ["user2"]
@@ -726,7 +783,7 @@ async def test_fetch_and_cache_display_names_all_found(resolver, mock_discord_ap
     result = await resolver._fetch_and_cache_display_names(guild_id, uncached_ids)
 
     assert result == {"user1": "GuildNick1", "user2": "username2"}
-    assert mock_cache.set.call_count == 2
+    assert mock_cache.set_json.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -751,7 +808,7 @@ async def test_fetch_and_cache_display_names_some_not_found(resolver, mock_disco
     result = await resolver._fetch_and_cache_display_names(guild_id, uncached_ids)
 
     assert result == {"user1": "GuildNick1", "user2": "Unknown User"}
-    assert mock_cache.set.call_count == 1
+    assert mock_cache.set_json.call_count == 1
 
 
 @pytest.mark.asyncio
