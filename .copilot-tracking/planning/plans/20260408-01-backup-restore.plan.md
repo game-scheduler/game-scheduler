@@ -58,15 +58,15 @@ Implement automated 12-hour Postgres backups to S3-compatible storage and a scri
 - [x] Task 3.1: Create backup Dockerfile and scripts
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 91-111)
 
-### [ ] Phase 4: Compose Changes
+### [x] Phase 4: Compose Changes
 
-- [ ] Task 4.1: Add backup service to compose.yaml
+- [x] Task 4.1: Add backup service to compose.yaml
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 114-128)
 
-- [ ] Task 4.2: Create compose.restore.yaml
+- [x] Task 4.2: Create compose.restore.yaml
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 129-143)
 
-- [ ] Task 4.3: Add backup env vars to config.template/env.template
+- [x] Task 4.3: Add backup env vars to config.template/env.template
   - Details: .copilot-tracking/planning/details/20260408-01-backup-restore-details.md (Lines 144-158)
 
 ### [ ] Phase 5: Restore Script

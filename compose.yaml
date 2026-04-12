@@ -438,6 +438,43 @@ services:
     profiles:
       - cloudflare
 
+  backup:
+    build:
+      context: .
+      dockerfile: docker/backup.Dockerfile
+      tags:
+        - ${IMAGE_REGISTRY:-}game-scheduler-backup:${IMAGE_TAG:-latest}
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    image: ${IMAGE_REGISTRY:-}game-scheduler-backup:${IMAGE_TAG:-latest}
+    container_name: ${CONTAINER_PREFIX:-gamebot}-backup
+    restart: always
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET}
+      BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-us-east-1}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_RETENTION_COUNT: ${BACKUP_RETENTION_COUNT:-14}
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 */12 * * *}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    logging: *logging-default
+    labels:
+      service: "backup"
+      environment: "${ENVIRONMENT:-production}"
+    profiles:
+      - backup
+
 volumes:
   postgres_data:
     driver: local

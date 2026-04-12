@@ -1,0 +1,37 @@
+# Restore override: use with compose.yaml to restore a backup
+#
+# Usage:
+#   docker compose -f compose.yaml -f compose.restore.yaml up --exit-code-from restore
+#
+# Requires:
+#   RESTORE_BACKUP_KEY — S3 key of the backup to restore (e.g. backup/slot-0.dump.gz)
+#   All BACKUP_S3_* and POSTGRES_* vars from the base env file
+
+services:
+  init:
+    environment:
+      INIT_ROLES_ONLY: "true"
+
+  restore:
+    image: ${IMAGE_REGISTRY:-}game-scheduler-backup:${IMAGE_TAG:-latest}
+    container_name: ${CONTAINER_PREFIX:-gamebot}-restore
+    entrypoint: /usr/local/bin/restore-script.sh
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET}
+      BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-us-east-1}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      RESTORE_BACKUP_KEY: ${RESTORE_BACKUP_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      init:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: "no"
