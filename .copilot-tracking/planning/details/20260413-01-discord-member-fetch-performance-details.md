@@ -166,9 +166,54 @@ Mark new tests `xfail(strict=True)`.
   - Phase 3 completion (`get_guild_members_batch` uses `asyncio.gather`)
   - Task 4.1 completion
 
+## Phase 5: Parallel Host Fetch in list_games
+
+### Task 5.1 (Tests): Write failing tests for prefetched_display_data and parallel host gathering
+
+Add tests to `tests/unit/services/api/routes/test_games_helpers.py` verifying:
+
+- `_build_game_response(game, prefetched_display_data={...})` does not call `_resolve_display_data` and uses the provided map instead
+- `_build_game_response(game)` default (no `prefetched_display_data`) still calls `_resolve_display_data` as before
+
+Add tests to `tests/unit/services/api/routes/test_games_routes.py` verifying:
+
+- `list_games` makes exactly one `resolve_display_names_and_avatars` call per guild (not one per game)
+- `list_games` passes `prefetched_display_data` into each `_build_game_response` call
+- A host appearing in multiple games is fetched only once
+
+Mark new tests `xfail(strict=True)`.
+
+- **Files**:
+  - `tests/unit/services/api/routes/test_games_helpers.py` - tests for `prefetched_display_data` parameter behaviour
+  - `tests/unit/services/api/routes/test_games_routes.py` - tests for batch collection and single-call-per-guild behaviour in `list_games`
+- **Success**:
+  - New tests exist and are marked `xfail(strict=True)`
+- **Research References**:
+  - #file:../research/20260413-01-discord-member-fetch-performance-research.md (Lines 176-260) - Addendum: problem statement, solution design, call chain, and key properties
+- **Dependencies**:
+  - Phase 4 completion (`_build_game_response` has `resolve_participants=False` pattern already)
+
+### Task 5.2 (Implement): Pre-batch host IDs and gather responses in list_games
+
+Add `prefetched_display_data: dict[str, dict[str, str | None]] | None = None` to `_build_game_response` (line 897 of `services/api/routes/games.py`); when provided, skip `_resolve_display_data` entirely and use the map to populate host display data. In `list_games` (line 403): collect unique host Discord IDs grouped by guild using `collections.defaultdict`; issue one `asyncio.gather` over `resolve_display_names_and_avatars(guild_id, host_ids)` per guild; merge results into a single `prefetched_display_data` dict; then gather all `_build_game_response(game, resolve_participants=False, prefetched_display_data=prefetched)` calls concurrently. Add `import asyncio` and `from collections import defaultdict` to `services/api/routes/games.py` if not already present. All existing callers (`get_game`, `join_game`, etc.) pass no `prefetched_display_data`, so the `None` default preserves their behavior.
+
+- **Files**:
+  - `services/api/routes/games.py` - `_build_game_response` (line 897), `list_games` (line 403)
+- **Success**:
+  - Tests from Task 5.1 pass (remove `xfail` markers)
+  - A host appearing in N games triggers exactly one Discord member fetch
+  - All host fetches across the game list are concurrent via a single `asyncio.gather`
+  - All existing route unit tests pass
+- **Research References**:
+  - #file:../research/20260413-01-discord-member-fetch-performance-research.md (Lines 176-260) - Addendum full specification including call chain and key properties
+- **Dependencies**:
+  - Phase 4 completion
+  - Task 5.1 completion
+
 ## Dependencies
 
 - `asyncio` is already imported in `shared/discord/client.py`
+- `asyncio` and `collections.defaultdict` need to be imported in `services/api/routes/games.py`
 - No new packages required
 
 ## Success Criteria
@@ -177,3 +222,4 @@ Mark new tests `xfail(strict=True)`.
 - `GET /api/v1/games/{id}` cold-cache completes in ~1.5s (parallel gather, 45 req/s budget)
 - No 429s from Discord under normal load
 - All existing unit tests pass; new tests cover `global_max` threading and gather error handling
+- A host appearing in multiple games in `list_games` is fetched exactly once (deduplication)

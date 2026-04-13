@@ -172,3 +172,39 @@ async def _build_game_response(
   - `GET /api/v1/games/{id}` cold-cache completes in ~1.5s (parallel gather, 45 req/s budget)
   - No 429s from Discord under normal load
   - All existing unit tests pass; new tests cover `global_max` threading and gather error handling
+
+## Addendum: Parallel Host Fetch in list_games (2026-04-13)
+
+### Problem
+
+After Fixes 1–3 were implemented, `list_games` was still making individual host Discord fetches sequentially — one `_build_game_response` awaited at a time. With `resolve_participants=False`, each game still called `_resolve_display_data` → `resolve_display_names_and_avatars` for the single host ID, serially across all games in the list.
+
+### Solution: Pre-batch All Host IDs, Then Gather
+
+Before building any responses, collect all unique host Discord IDs grouped by guild, issue one `resolve_display_names_and_avatars` call per guild (gathered in parallel if multiple guilds), then pass the resulting map into each `_build_game_response` call as `prefetched_display_data`. Response builds are themselves gathered so per-game Redis reads (channel/guild names) are also concurrent.
+
+**Key properties:**
+
+- A host appearing in N games is fetched exactly once — `get_guild_members_batch` deduplicates since host IDs are collected into a set per guild
+- `get_guild_members_batch` fires all host fetches concurrently via `asyncio.gather` in a single call, maximally parallelizing the Discord member fetches within the existing rate limit budget
+- `asyncio` import added to `services/api/routes/games.py`; `collections.defaultdict` used for grouping
+- `_build_game_response` gains `prefetched_display_data: dict[str, dict[str, str | None]] | None = None`; when provided it branches before `_resolve_display_data` so no Discord call is made per-game
+- All existing callers (`get_game`, `join_game`, etc.) are unaffected — `prefetched_display_data` defaults to `None`
+
+**Call chain after fix:**
+
+```
+list_games route
+  → collect unique host_discord_ids per guild
+  → asyncio.gather(
+      resolve_display_names_and_avatars(guild_id, [all_host_ids])  ← 1 call per guild
+        → get_guild_members_batch(...)
+          → asyncio.gather(get_guild_member for each host)  ← all parallel
+    )
+  → asyncio.gather(
+      _build_game_response(game, prefetched_display_data=prefetched)  ← for every game
+        [no Discord call; uses prefetched map directly]
+    )
+```
+
+**Files changed:** `services/api/routes/games.py` only.

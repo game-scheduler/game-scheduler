@@ -65,9 +65,18 @@ Eliminate ~27s cold-cache load on the game list by skipping participant Discord 
 - [ ] Task 4.2 (Implement): Add resolve_participants flag and wire interactive budget
   - Details: .copilot-tracking/planning/details/20260413-01-discord-member-fetch-performance-details.md (Lines 142-164)
 
+### [ ] Phase 5: Parallel Host Fetch in list_games
+
+- [ ] Task 5.1 (Tests): Write failing tests for prefetched_display_data and parallel host gathering
+  - Details: .copilot-tracking/planning/details/20260413-01-discord-member-fetch-performance-details.md (Lines 179-202)
+
+- [ ] Task 5.2 (Implement): Pre-batch host IDs and gather responses in list_games
+  - Details: .copilot-tracking/planning/details/20260413-01-discord-member-fetch-performance-details.md (Lines 204-232)
+
 ## Dependencies
 
 - `asyncio` already imported in `shared/discord/client.py`
+- `asyncio` and `collections.defaultdict` need to be imported in `services/api/routes/games.py`
 - No new packages required
 
 ## Success Criteria
@@ -76,3 +85,4 @@ Eliminate ~27s cold-cache load on the game list by skipping participant Discord 
 - `GET /api/v1/games/{id}` cold-cache completes in ~1.5s
 - No 429s from Discord under normal load
 - All existing unit tests pass; new tests cover gather error handling and `global_max` threading
+- A host appearing in multiple games in `list_games` is fetched exactly once (deduplication)
