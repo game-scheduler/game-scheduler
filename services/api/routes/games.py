@@ -44,6 +44,10 @@ from services.api.services import display_names as display_names_module
 from services.api.services import games as games_service
 from services.api.services import participant_resolver as resolver_module
 from shared import database
+from shared.cache.ttl import (
+    DISCORD_GLOBAL_RATE_LIMIT_BACKGROUND,
+    DISCORD_GLOBAL_RATE_LIMIT_INTERACTIVE,
+)
 from shared.discord.client import (
     fetch_channel_name_safe,
     fetch_guild_name_safe,
@@ -445,7 +449,9 @@ async def list_games(
             # User not authorized to see this game - skip it
             continue
 
-    game_responses = [await _build_game_response(game) for game in authorized_games]
+    game_responses = [
+        await _build_game_response(game, resolve_participants=False) for game in authorized_games
+    ]
 
     return game_schemas.GameListResponse(
         games=game_responses,
@@ -490,7 +496,9 @@ async def get_game(
     except HTTPException:
         can_manage = False
 
-    return await _build_game_response(game, can_manage=can_manage)
+    return await _build_game_response(
+        game, can_manage=can_manage, global_max=DISCORD_GLOBAL_RATE_LIMIT_INTERACTIVE
+    )
 
 
 @router.put("/{game_id}", response_model=game_schemas.GameResponse)
@@ -767,6 +775,8 @@ async def leave_game(
 async def _resolve_display_data(
     game: game_model.GameSession,
     partitioned: participant_sorting.PartitionedParticipants,
+    resolve_participants: bool = True,
+    global_max: int = DISCORD_GLOBAL_RATE_LIMIT_BACKGROUND,
 ) -> tuple[dict[str, dict[str, str | None]], str | None]:
     """
     Resolve display names and avatars for participants and host.
@@ -774,11 +784,16 @@ async def _resolve_display_data(
     Args:
         game: Game session model with guild loaded
         partitioned: Partitioned participant data
+        resolve_participants: When False, only the host is resolved (skips all participant IDs)
+        global_max: Discord global rate limit budget for concurrent requests
 
     Returns:
         Tuple of (display_data_map, host_discord_id)
     """
-    discord_user_ids = [p.user.discord_id for p in partitioned.all_sorted if p.user is not None]
+    if resolve_participants:
+        discord_user_ids = [p.user.discord_id for p in partitioned.all_sorted if p.user is not None]
+    else:
+        discord_user_ids = []
 
     host_discord_id = game.host.discord_id if game.host else None
     if host_discord_id and host_discord_id not in discord_user_ids:
@@ -789,7 +804,7 @@ async def _resolve_display_data(
         display_name_resolver = await display_names_module.get_display_name_resolver()
         guild_discord_id = game.guild.guild_id
         display_data_map = await display_name_resolver.resolve_display_names_and_avatars(
-            guild_discord_id, discord_user_ids
+            guild_discord_id, discord_user_ids, global_max=global_max
         )
 
     return display_data_map, host_discord_id
@@ -897,6 +912,8 @@ def _build_host_response(
 async def _build_game_response(
     game: game_model.GameSession,
     can_manage: bool = False,
+    resolve_participants: bool = True,
+    global_max: int = DISCORD_GLOBAL_RATE_LIMIT_BACKGROUND,
 ) -> game_schemas.GameResponse:
     """
     Build GameResponse from GameSession model with resolved display names.
@@ -910,7 +927,9 @@ async def _build_game_response(
     participant_count = min(len(game.participants), resolve_max_players(game.max_players))
     partitioned = participant_sorting.partition_participants(game.participants, game.max_players)
 
-    display_data_map, host_discord_id = await _resolve_display_data(game, partitioned)
+    display_data_map, host_discord_id = await _resolve_display_data(
+        game, partitioned, resolve_participants=resolve_participants, global_max=global_max
+    )
     channel_name, guild_name = await _fetch_discord_names(game)
     participant_responses = _build_participant_responses(partitioned, display_data_map)
     host_response = _build_host_response(game, host_discord_id, display_data_map)

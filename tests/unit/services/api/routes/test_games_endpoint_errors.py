@@ -147,7 +147,7 @@ class TestGetGame:
                 role_service=mock_role_service,
             )
 
-        mock_build.assert_called_once_with(mock_game, can_manage=False)
+        mock_build.assert_called_once_with(mock_game, can_manage=False, global_max=45)
 
 
 class TestUpdateGame:

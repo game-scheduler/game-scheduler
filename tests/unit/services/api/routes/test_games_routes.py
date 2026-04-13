@@ -30,6 +30,7 @@ from starlette import status as http_status
 
 from services.api.routes import games as games_routes
 from services.api.services import participant_resolver as resolver_module
+from shared.cache.ttl import DISCORD_GLOBAL_RATE_LIMIT_INTERACTIVE
 from shared.schemas import game as game_schemas
 
 
@@ -182,7 +183,7 @@ class TestGetGameCanManage:
                 role_service=role_service,
             )
 
-        mock_build.assert_called_once_with(game, can_manage=True)
+        mock_build.assert_called_once_with(game, can_manage=True, global_max=45)
         assert result is expected_response
 
     @pytest.mark.asyncio
@@ -219,7 +220,7 @@ class TestGetGameCanManage:
                 role_service=role_service,
             )
 
-        mock_build.assert_called_once_with(game, can_manage=False)
+        mock_build.assert_called_once_with(game, can_manage=False, global_max=45)
         assert result is expected_response
 
     @pytest.mark.asyncio
@@ -255,5 +256,105 @@ class TestGetGameCanManage:
                 role_service=role_service,
             )
 
-        mock_build.assert_called_once_with(game, can_manage=False)
+        mock_build.assert_called_once_with(game, can_manage=False, global_max=45)
         assert result is expected_response
+
+
+class TestListGamesResolvesParticipants:
+    """Tests for resolve_participants=False in list_games route."""
+
+    @pytest.mark.asyncio
+    async def test_list_games_calls_build_with_resolve_participants_false(self):
+        """list_games calls _build_game_response with resolve_participants=False."""
+        game = MagicMock()
+        current_user = MagicMock()
+        current_user.user.discord_id = "user123"
+        current_user.access_token = "token"
+        game_service = MagicMock()
+        game_service.list_games = AsyncMock(return_value=([game], 1))
+        game_service.db = MagicMock()
+        role_service = MagicMock()
+        expected_response = MagicMock()
+
+        with (
+            patch(
+                "services.api.routes.games.permissions_deps.verify_game_access",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "services.api.routes.games._build_game_response",
+                new_callable=AsyncMock,
+                return_value=expected_response,
+            ) as mock_build,
+            patch(
+                "services.api.routes.games.game_schemas.GameListResponse",
+                return_value=MagicMock(),
+            ),
+        ):
+            await games_routes.list_games(
+                guild_id=None,
+                channel_id=None,
+                status=None,
+                limit=50,
+                offset=0,
+                current_user=current_user,
+                game_service=game_service,
+                role_service=role_service,
+            )
+
+        mock_build.assert_called_once_with(game, resolve_participants=False)
+
+
+class TestGetGameInteractiveBudget:
+    """Tests for DISCORD_GLOBAL_RATE_LIMIT_INTERACTIVE budget in get_game route."""
+
+    def _make_game(self) -> MagicMock:
+        game = MagicMock()
+        game.host = MagicMock()
+        game.host.discord_id = "host_discord_id"
+        game.guild = MagicMock()
+        game.guild.guild_id = "guild_discord_id"
+        return game
+
+    def _make_current_user(self) -> MagicMock:
+        user = MagicMock()
+        user.user.discord_id = "user_discord_id"
+        user.access_token = "token"
+        return user
+
+    @pytest.mark.asyncio
+    async def test_get_game_calls_build_with_interactive_global_max(self):
+        """get_game passes the interactive budget as global_max to _build_game_response."""
+        game = self._make_game()
+        current_user = self._make_current_user()
+        game_service = MagicMock()
+        game_service.get_game = AsyncMock(return_value=game)
+        game_service.db = MagicMock()
+        role_service = MagicMock()
+        expected_response = MagicMock()
+
+        with (
+            patch(
+                "services.api.routes.games.permissions_deps.verify_game_access",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "services.api.routes.games.permissions_deps.can_manage_game",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch(
+                "services.api.routes.games._build_game_response",
+                new_callable=AsyncMock,
+                return_value=expected_response,
+            ) as mock_build,
+        ):
+            await games_routes.get_game(
+                game_id="game-123",
+                current_user=current_user,
+                game_service=game_service,
+                role_service=role_service,
+            )
+
+        call_kwargs = mock_build.call_args.kwargs
+        assert call_kwargs.get("global_max") == DISCORD_GLOBAL_RATE_LIMIT_INTERACTIVE

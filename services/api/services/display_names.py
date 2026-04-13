@@ -34,6 +34,7 @@ from shared.cache import client as cache_client
 from shared.cache import keys as cache_keys
 from shared.cache import ttl as cache_ttl
 from shared.cache.operations import CacheOperation, cache_get
+from shared.cache.ttl import DISCORD_GLOBAL_RATE_LIMIT_BACKGROUND
 from shared.discord import client as discord_client
 
 logger = logging.getLogger(__name__)
@@ -223,7 +224,10 @@ class DisplayNameResolver:
         return cached_results, uncached_ids
 
     async def _fetch_and_cache_display_names_avatars(
-        self, guild_id: str, uncached_ids: list[str]
+        self,
+        guild_id: str,
+        uncached_ids: list[str],
+        global_max: int = DISCORD_GLOBAL_RATE_LIMIT_BACKGROUND,
     ) -> dict[str, dict[str, str | None]]:
         """
         Fetch display names and avatars from Discord API and cache them.
@@ -236,7 +240,9 @@ class DisplayNameResolver:
             Dictionary mapping user IDs to display_name and avatar_url
         """
         result = {}
-        members = await self.discord_api.get_guild_members_batch(guild_id, uncached_ids)
+        members = await self.discord_api.get_guild_members_batch(
+            guild_id, uncached_ids, global_max=global_max
+        )
 
         for member in members:
             user_id = member["user"]["id"]
@@ -283,7 +289,10 @@ class DisplayNameResolver:
         }
 
     async def resolve_display_names_and_avatars(
-        self, guild_id: str, user_ids: list[str]
+        self,
+        guild_id: str,
+        user_ids: list[str],
+        global_max: int = DISCORD_GLOBAL_RATE_LIMIT_BACKGROUND,
     ) -> dict[str, dict[str, str | None]]:
         """
         Resolve Discord user IDs to display names and avatar URLs.
@@ -304,7 +313,7 @@ class DisplayNameResolver:
         if uncached_ids:
             try:
                 fetched_data = await self._fetch_and_cache_display_names_avatars(
-                    guild_id, uncached_ids
+                    guild_id, uncached_ids, global_max=global_max
                 )
                 result.update(fetched_data)
             except discord_client.DiscordAPIError as e:

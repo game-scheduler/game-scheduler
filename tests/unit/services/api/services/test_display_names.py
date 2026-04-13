@@ -27,6 +27,7 @@ import pytest
 
 from services.api.services import display_names
 from shared.cache import client as cache_client
+from shared.cache.ttl import DISCORD_GLOBAL_RATE_LIMIT_INTERACTIVE
 from shared.discord import client as discord_client
 
 
@@ -941,3 +942,27 @@ def test_resolve_display_name_missing_nick_field():
     result = display_names.DisplayNameResolver._resolve_display_name(member)
 
     assert result == "GlobalName"
+
+
+@pytest.mark.asyncio
+async def test_resolve_display_names_and_avatars_accepts_global_max(
+    resolver, mock_discord_api, mock_cache
+):
+    """Threads global_max through resolve_display_names_and_avatars to get_guild_members_batch."""
+    guild_id = "123456789"
+    user_ids = ["user1"]
+
+    mock_discord_api.get_guild_members_batch = AsyncMock(return_value=[])
+
+    with patch(
+        "services.api.services.display_names.cache_get",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        await resolver.resolve_display_names_and_avatars(
+            guild_id, user_ids, global_max=DISCORD_GLOBAL_RATE_LIMIT_INTERACTIVE
+        )
+
+    mock_discord_api.get_guild_members_batch.assert_called_once()
+    call_kwargs = mock_discord_api.get_guild_members_batch.call_args.kwargs
+    assert call_kwargs.get("global_max") == DISCORD_GLOBAL_RATE_LIMIT_INTERACTIVE

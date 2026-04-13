@@ -503,3 +503,99 @@ def sample_partitioned_participants():
     partitioned = MagicMock()
     partitioned.all_sorted = [part1, part2]
     return partitioned
+
+
+class TestResolveParcticipantsFlag:
+    """Tests for resolve_participants flag on _build_game_response / _resolve_display_data."""
+
+    @pytest.mark.asyncio
+    @patch("services.api.routes.games.display_names_module.get_display_name_resolver")
+    async def test_resolve_display_data_skips_participants_when_false(
+        self, mock_get_resolver, sample_game, sample_partitioned_participants
+    ):
+        """When resolve_participants=False only the host ID is resolved, not participants."""
+        mock_resolver = AsyncMock()
+        mock_resolver.resolve_display_names_and_avatars = AsyncMock(
+            return_value={
+                "host_discord": {"display_name": "Host", "avatar_url": None},
+            }
+        )
+        mock_get_resolver.return_value = mock_resolver
+
+        sample_game.host = MagicMock()
+        sample_game.host.discord_id = "host_discord"
+        sample_game.guild_id = "guild123"
+        sample_game.guild = MagicMock()
+        sample_game.guild.guild_id = "guild123"
+
+        display_data_map, host_discord_id = await _resolve_display_data(
+            sample_game, sample_partitioned_participants, resolve_participants=False
+        )
+
+        assert host_discord_id == "host_discord"
+        call_args = mock_resolver.resolve_display_names_and_avatars.call_args
+        resolved_ids = call_args.args[1] if call_args.args else call_args.kwargs.get("user_ids", [])
+        assert "discord123" not in resolved_ids
+        assert "discord456" not in resolved_ids
+        assert "host_discord" in resolved_ids
+
+    @pytest.mark.asyncio
+    @patch("services.api.routes.games.game_schemas.GameResponse")
+    @patch("services.api.routes.games.get_guild_channels_safe", new_callable=AsyncMock)
+    @patch("services.api.routes.games.channel_resolver_module.render_where_display")
+    @patch("services.api.routes.games._build_host_response")
+    @patch("services.api.routes.games._build_participant_responses")
+    @patch("services.api.routes.games.participant_sorting.partition_participants")
+    @patch("services.api.routes.games._fetch_discord_names", new_callable=AsyncMock)
+    @patch("services.api.routes.games._resolve_display_data", new_callable=AsyncMock)
+    @patch("services.api.routes.games.datetime_utils.format_datetime_as_utc")
+    async def test_build_game_response_passes_resolve_participants_false(
+        self,
+        mock_format_dt,
+        mock_resolve,
+        mock_fetch_discord,
+        mock_partition,
+        mock_build_participants,
+        mock_build_host,
+        mock_render,
+        mock_get_channels,
+        mock_game_response,
+    ):
+        """_build_game_response passes resolve_participants=False to _resolve_display_data."""
+        game = MagicMock()
+        game.id = "game1"
+        game.participants = []
+        game.max_players = 4
+        game.where = None
+        game.title = "Game"
+        game.description = None
+        game.signup_instructions = None
+        game.guild_id = "guild1"
+        game.channel_id = "ch1"
+        game.message_id = None
+        game.reminder_minutes = None
+        game.expected_duration_minutes = None
+        game.notify_role_ids = None
+        game.status = "SCHEDULED"
+        game.signup_method = "SELF_SIGNUP"
+        game.thumbnail_id = None
+        game.banner_image_id = None
+        game.rewards = None
+        game.remind_host_rewards = False
+        game.archive_channel_id = None
+        game.guild = None
+
+        mock_format_dt.return_value = "2026-01-01T00:00:00Z"
+        mock_resolve.return_value = ({}, None)
+        mock_fetch_discord.return_value = (None, None)
+        mock_partition.return_value = MagicMock(all_sorted=[])
+        mock_build_participants.return_value = []
+        mock_build_host.return_value = MagicMock()
+        mock_get_channels.return_value = []
+        mock_render.return_value = None
+
+        await _build_game_response(game, resolve_participants=False)
+
+        mock_resolve.assert_called_once()
+        call_kwargs = mock_resolve.call_args.kwargs
+        assert call_kwargs.get("resolve_participants") is False
