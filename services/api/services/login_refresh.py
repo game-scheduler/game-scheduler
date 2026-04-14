@@ -25,8 +25,11 @@ import logging
 
 from sqlalchemy import select
 
+from services.api.auth.oauth2 import get_user_guilds
+from services.api.database.queries import setup_rls_and_convert_guild_ids
 from services.api.dependencies.discord import get_discord_client
 from services.api.services.user_display_names import UserDisplayNameService
+from shared.data_access.guild_isolation import clear_current_guild_ids
 from shared.database import AsyncSessionLocal
 from shared.discord.client import DiscordAPIError
 from shared.models.guild import GuildConfiguration
@@ -61,33 +64,67 @@ async def refresh_display_name_on_login(
     block the login response. Uses the user's own OAuth token, leaving the bot
     token rate limit budget untouched.
     """
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(GuildConfiguration))
-        guilds = result.scalars().all()
+    logger.info("refresh_display_name_on_login: started for user %s", user_discord_id)
+    try:
+        user_guilds = await get_user_guilds(access_token, user_discord_id)
+        discord_guild_ids = [g["id"] for g in user_guilds]
+        async with AsyncSessionLocal() as db:
+            await setup_rls_and_convert_guild_ids(db, discord_guild_ids)
+            result = await db.execute(select(GuildConfiguration))
+            guilds = result.scalars().all()
 
-        if not guilds:
-            return
+            logger.info(
+                "refresh_display_name_on_login: found %d guild(s) for user %s",
+                len(guilds),
+                user_discord_id,
+            )
 
-        client = get_discord_client()
-        entries = []
+            if not guilds:
+                return
 
-        for guild_config in guilds:
-            try:
-                member = await client.get_current_user_guild_member(
-                    guild_config.guild_id, access_token
+            client = get_discord_client()
+            entries = []
+
+            for guild_config in guilds:
+                logger.info(
+                    "refresh_display_name_on_login: fetching member data from guild %s for user %s",
+                    guild_config.guild_id,
+                    user_discord_id,
                 )
-            except DiscordAPIError:
-                continue
+                try:
+                    member = await client.get_current_user_guild_member(
+                        guild_config.guild_id, access_token
+                    )
+                except DiscordAPIError as e:
+                    logger.info(
+                        "refresh_display_name_on_login: skipping guild %s for user %s (%s)",
+                        guild_config.guild_id,
+                        user_discord_id,
+                        e,
+                    )
+                    continue
 
-            entries.append({
-                "user_discord_id": user_discord_id,
-                "guild_discord_id": guild_config.guild_id,
-                "display_name": _resolve_member_display_name(member),
-                "avatar_url": _resolve_member_avatar_url(
-                    user_discord_id, guild_config.guild_id, member
-                ),
-            })
+                entries.append({
+                    "user_discord_id": user_discord_id,
+                    "guild_discord_id": guild_config.guild_id,
+                    "display_name": _resolve_member_display_name(member),
+                    "avatar_url": _resolve_member_avatar_url(
+                        user_discord_id, guild_config.guild_id, member
+                    ),
+                })
 
-        service = UserDisplayNameService(db=db)
-        await service.upsert_batch(entries)
-        await db.commit()
+            logger.info(
+                "refresh_display_name_on_login: upserting %d entries for user %s",
+                len(entries),
+                user_discord_id,
+            )
+            service = UserDisplayNameService(db=db)
+            await service.upsert_batch(entries)
+            await db.commit()
+            logger.info("refresh_display_name_on_login: completed for user %s", user_discord_id)
+    except Exception:
+        logger.exception(
+            "refresh_display_name_on_login: unhandled error for user %s", user_discord_id
+        )
+    finally:
+        clear_current_guild_ids()

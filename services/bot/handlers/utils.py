@@ -115,3 +115,4 @@ async def upsert_interaction_display_name(
         display_name,
         avatar_url,
     )
+    await db.commit()

@@ -274,6 +274,15 @@ class TestRefreshDisplayNameOnLogin:
         }
 
         with (
+            patch(
+                "services.api.services.login_refresh.get_user_guilds",
+                return_value=[{"id": "guild123"}],
+            ) as _,
+            patch(
+                "services.api.services.login_refresh.setup_rls_and_convert_guild_ids",
+                new=AsyncMock(),
+            ),
+            patch("services.api.services.login_refresh.clear_current_guild_ids"),
             patch("services.api.services.login_refresh.AsyncSessionLocal") as mock_session_local,
             patch("services.api.services.login_refresh.get_discord_client") as mock_get_client,
         ):
@@ -310,6 +319,15 @@ class TestRefreshDisplayNameOnLogin:
         mock_guild.guild_id = "guild123"
 
         with (
+            patch(
+                "services.api.services.login_refresh.get_user_guilds",
+                return_value=[{"id": "guild123"}],
+            ) as _,
+            patch(
+                "services.api.services.login_refresh.setup_rls_and_convert_guild_ids",
+                new=AsyncMock(),
+            ),
+            patch("services.api.services.login_refresh.clear_current_guild_ids"),
             patch("services.api.services.login_refresh.AsyncSessionLocal") as mock_session_local,
             patch("services.api.services.login_refresh.get_discord_client") as mock_get_client,
         ):
@@ -340,6 +358,12 @@ class TestRefreshDisplayNameOnLogin:
     @pytest.mark.asyncio
     async def test_no_guilds_skips_upsert(self):
         with (
+            patch("services.api.services.login_refresh.get_user_guilds", return_value=[]),
+            patch(
+                "services.api.services.login_refresh.setup_rls_and_convert_guild_ids",
+                new=AsyncMock(),
+            ),
+            patch("services.api.services.login_refresh.clear_current_guild_ids"),
             patch("services.api.services.login_refresh.AsyncSessionLocal") as mock_session_local,
             patch("services.api.services.login_refresh.get_discord_client"),
         ):
