@@ -2680,3 +2680,31 @@ class TestReadThroughDelegatesToGetOrFetch:
         ):
             await client.get_guild_member("111", "456")
         mock_gof.assert_called_once()
+
+
+class TestGetCurrentUserGuildMember:
+    """Tests for get_current_user_guild_member using Bearer token."""
+
+    @pytest.fixture
+    def client(self):
+        return DiscordAPIClient(
+            client_id="cid",
+            client_secret="csecret",
+            bot_token="bot.token.abc",
+        )
+
+    @pytest.mark.asyncio
+    async def test_uses_bearer_token_not_bot_token(self, client):
+        """get_current_user_guild_member must use Bearer token, not the bot token."""
+        captured_headers: dict = {}
+
+        async def _capture_request(method, url, operation_name, headers, **kwargs):
+            captured_headers.update(headers)
+            return {"user": {"id": "u1"}, "nick": "Nick"}
+
+        with patch.object(client, "_make_api_request", side_effect=_capture_request):
+            result = await client.get_current_user_guild_member("111222", "user-oauth-token")
+
+        assert result == {"user": {"id": "u1"}, "nick": "Nick"}
+        assert captured_headers.get("Authorization") == "Bearer user-oauth-token"
+        assert "Bot" not in captured_headers.get("Authorization", "")

@@ -859,6 +859,30 @@ class DiscordAPIClient:
         )
         return members
 
+    async def get_current_user_guild_member(self, guild_id: str, token: str) -> dict[str, Any]:
+        """
+        Fetch the current user's guild member object using their OAuth token.
+
+        Uses the user's own rate limit pool (Bearer token), leaving the bot token
+        budget untouched.
+
+        Args:
+            guild_id: Discord guild (server) ID
+            token: User's OAuth access token
+
+        Returns:
+            Discord guild member object
+
+        Raises:
+            DiscordAPIError: If the request fails
+        """
+        return await self._make_api_request(
+            method="GET",
+            url=f"{self._api_base_url}/users/@me/guilds/{guild_id}/member",
+            operation_name="get_current_user_guild_member",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
 
 # Global client instance for helper functions (lazy-initialized)
 _global_client_instance: DiscordAPIClient | None = None
