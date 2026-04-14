@@ -21,11 +21,12 @@
 
 """Unit tests for the join game bot handler."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
 import pytest
 
+from services.bot.handlers import join_game as join_game_module
 from services.bot.handlers.join_game import _resolve_bot_role_position
 from shared.models.participant import ParticipantType
 
@@ -148,3 +149,84 @@ class TestResolveBotRolePosition:
 
         assert result == (ParticipantType.SELF_ADDED, 0)
         checker.seed_user_roles.assert_called_once()
+
+
+def _make_join_interaction(nick=None, global_name=None, name="username", avatar_url=None):
+    interaction = MagicMock()
+    interaction.user = MagicMock(spec=discord.Member)
+    interaction.user.id = 12345
+    interaction.user.nick = nick
+    interaction.user.global_name = global_name
+    interaction.user.name = name
+    if avatar_url:
+        mock_avatar = MagicMock()
+        mock_avatar.url = avatar_url
+        interaction.user.display_avatar = mock_avatar
+    else:
+        interaction.user.display_avatar = None
+    interaction.user.guild = MagicMock()
+    interaction.user.guild.id = 99999
+    return interaction
+
+
+class TestJoinGameUpsertDisplayName:
+    """Tests verifying UserDisplayNameService.upsert_one is called on join."""
+
+    @pytest.mark.asyncio
+    async def test_upsert_called_after_successful_join(self):
+        """handle_join_game calls upsert_one with interaction.user data on success."""
+        interaction = _make_join_interaction(nick="ServerNick", avatar_url="https://cdn/a.png")
+        publisher = AsyncMock()
+
+        mock_db = AsyncMock()
+        mock_db.add = MagicMock()
+        mock_db.commit = AsyncMock()
+        mock_db.refresh = AsyncMock()
+
+        game = MagicMock()
+        game.guild_id = "99999"
+        game.max_players = 5
+        game.template = None
+        game.guild_id = "99999"
+
+        mock_participant = MagicMock()
+        mock_participant.id = "pid1"
+
+        validate_result = {
+            "can_join": True,
+            "game": game,
+            "user": MagicMock(id="uid1"),
+            "participant_count": 0,
+            "error": None,
+        }
+
+        async_cm = AsyncMock()
+        async_cm.__aenter__.return_value = mock_db
+        async_cm.__aexit__.return_value = None
+
+        with (
+            patch("services.bot.handlers.join_game.get_db_session", return_value=async_cm),
+            patch(
+                "services.bot.handlers.join_game._validate_join_game",
+                new=AsyncMock(return_value=validate_result),
+            ),
+            patch(
+                "services.bot.handlers.join_game._resolve_bot_role_position",
+                new=AsyncMock(return_value=(ParticipantType.SELF_ADDED, 0)),
+            ),
+            patch("services.bot.handlers.utils.UserDisplayNameService") as mock_svc_cls,
+        ):
+            mock_svc = AsyncMock()
+            mock_svc.upsert_one = AsyncMock()
+            mock_svc_cls.return_value = mock_svc
+
+            await join_game_module.handle_join_game(
+                interaction, "00000000-0000-0000-0000-000000000001", publisher
+            )
+
+        mock_svc.upsert_one.assert_awaited_once_with(
+            str(interaction.user.id),
+            str(interaction.user.guild.id),
+            "ServerNick",
+            "https://cdn/a.png",
+        )

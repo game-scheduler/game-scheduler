@@ -34,9 +34,13 @@ logger = logging.getLogger(__name__)
 
 
 class UserDisplayNameService:
-    """Wraps DisplayNameResolver with a DB read/write layer for persistence."""
+    """Wraps DisplayNameResolver with a DB read/write layer for persistence.
 
-    def __init__(self, db: AsyncSession, resolver: DisplayNameResolver) -> None:
+    The resolver is optional; bot handlers that only call upsert_one / upsert_batch
+    may pass None.
+    """
+
+    def __init__(self, db: AsyncSession, resolver: DisplayNameResolver | None = None) -> None:
         self._db = db
         self._resolver = resolver
 
@@ -69,6 +73,9 @@ class UserDisplayNameService:
 
         missing_ids = [uid for uid in user_discord_ids if uid not in cached]
         if missing_ids:
+            if self._resolver is None:
+                msg = "DisplayNameResolver required for resolve() but not provided"
+                raise RuntimeError(msg)
             fetched = await self._resolver.resolve_display_names_and_avatars(
                 guild_discord_id, missing_ids
             )

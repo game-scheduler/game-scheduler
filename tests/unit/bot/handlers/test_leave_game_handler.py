@@ -117,8 +117,17 @@ def _make_mock_db(mock_participant, mock_game, unsent_notification=None):
     notif_result = MagicMock()
     notif_result.scalar_one_or_none = MagicMock(return_value=unsent_notification)
 
+    upsert_result = MagicMock()
+
     mock_db.execute = AsyncMock(
-        side_effect=[game_result, user_result, participant_result, count_result, notif_result]
+        side_effect=[
+            game_result,
+            user_result,
+            participant_result,
+            count_result,
+            notif_result,
+            upsert_result,
+        ]
     )
     return mock_db
 

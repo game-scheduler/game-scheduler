@@ -34,6 +34,7 @@ from services.bot.handlers.utils import (
     send_deferred_response,
     send_error_message,
     send_success_message,
+    upsert_interaction_display_name,
 )
 from shared.database import get_db_session
 from shared.models.game import GameSession
@@ -90,6 +91,8 @@ async def handle_leave_game(
         # Delete participant from database
         await db.delete(participant)
         await db.commit()
+
+        await upsert_interaction_display_name(db, interaction, game.guild_id, user_discord_id)
 
         await publisher.publish_game_updated(
             game_id=game_id,
