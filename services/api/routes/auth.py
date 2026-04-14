@@ -27,7 +27,7 @@ Handles login, callback, refresh, logout, and user info endpoints.
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -35,6 +35,7 @@ from starlette import status
 from services.api.auth import oauth2, tokens
 from services.api.config import get_api_config
 from services.api.dependencies import auth as auth_deps
+from services.api.services.login_refresh import refresh_display_name_on_login
 from shared.database import get_db
 from shared.models import user as user_model
 from shared.schemas import auth as auth_schemas
@@ -74,6 +75,7 @@ async def callback(
     code: Annotated[str, Query(...)],
     state: Annotated[str, Query(...)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    background_tasks: BackgroundTasks,
 ) -> dict[str, bool | str]:
     """
     Handle Discord OAuth2 callback.
@@ -133,6 +135,8 @@ async def callback(
         token_data["expires_in"],
         can_be_maintainer=can_be_maintainer,
     )
+
+    background_tasks.add_task(refresh_display_name_on_login, discord_id, token_data["access_token"])
 
     config = get_api_config()
     is_production = config.environment == "production"

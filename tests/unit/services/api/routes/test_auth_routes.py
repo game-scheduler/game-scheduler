@@ -28,6 +28,8 @@ from fastapi import HTTPException
 from starlette import status
 
 from services.api.routes import auth as auth_routes
+from services.api.services.login_refresh import refresh_display_name_on_login
+from shared.discord.client import DiscordAPIError
 
 
 class TestLogin:
@@ -67,6 +69,7 @@ class TestCallback:
                     code="auth_code",
                     state="state_token",
                     db=mock_db,
+                    background_tasks=MagicMock(),
                 )
 
         assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -116,6 +119,7 @@ class TestCallback:
                 code="auth_code",
                 state="state_token",
                 db=mock_db,
+                background_tasks=MagicMock(),
             )
 
         assert result["success"] is True
@@ -196,3 +200,160 @@ class TestGetUserInfo:
 
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
         assert exc_info.value.detail == "Session expired"
+
+
+class TestCallbackEnqueuesDisplayNameRefresh:
+    @pytest.mark.asyncio
+    async def test_callback_enqueues_background_refresh_task(self):
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=MagicMock())
+        mock_response = MagicMock()
+        mock_bg_tasks = MagicMock()
+
+        with (
+            patch(
+                "services.api.auth.oauth2.validate_state",
+                new_callable=AsyncMock,
+                return_value="http://localhost/callback",
+            ),
+            patch(
+                "services.api.auth.oauth2.exchange_code_for_tokens",
+                new_callable=AsyncMock,
+                return_value={
+                    "access_token": "access-tok",
+                    "refresh_token": "refresh-tok",
+                    "expires_in": 3600,
+                },
+            ),
+            patch(
+                "services.api.auth.oauth2.get_user_from_token",
+                new_callable=AsyncMock,
+                return_value={"id": "usr-discord-123"},
+            ),
+            patch(
+                "services.api.auth.oauth2.is_app_maintainer",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "services.api.auth.tokens.store_user_tokens",
+                new_callable=AsyncMock,
+                return_value="session-tok",
+            ),
+            patch("services.api.routes.auth.get_api_config") as mock_config,
+        ):
+            mock_config.return_value.environment = "development"
+            mock_config.return_value.cookie_domain = None
+            await auth_routes.callback(
+                response=mock_response,
+                code="auth_code",
+                state="state_token",
+                db=mock_db,
+                background_tasks=mock_bg_tasks,
+            )
+
+        mock_bg_tasks.add_task.assert_called_once_with(
+            refresh_display_name_on_login, "usr-discord-123", "access-tok"
+        )
+
+
+class TestRefreshDisplayNameOnLogin:
+    @pytest.mark.asyncio
+    async def test_upserts_display_names_for_registered_guilds(self):
+        mock_guild = MagicMock()
+        mock_guild.guild_id = "guild123"
+        member_data = {
+            "nick": "TestNick",
+            "avatar": None,
+            "user": {
+                "id": "usr123",
+                "global_name": "TestGlobal",
+                "username": "testuser",
+                "avatar": "user_avatar_hash",
+            },
+        }
+
+        with (
+            patch("services.api.services.login_refresh.AsyncSessionLocal") as mock_session_local,
+            patch("services.api.services.login_refresh.get_discord_client") as mock_get_client,
+        ):
+            mock_session = AsyncMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session.__aexit__ = AsyncMock(return_value=None)
+            mock_session_local.return_value = mock_session
+            mock_execute_result = MagicMock()
+            mock_execute_result.scalars.return_value.all.return_value = [mock_guild]
+            mock_session.execute = AsyncMock(return_value=mock_execute_result)
+
+            mock_client = MagicMock()
+            mock_client.get_current_user_guild_member = AsyncMock(return_value=member_data)
+            mock_get_client.return_value = mock_client
+
+            with patch(
+                "services.api.services.login_refresh.UserDisplayNameService"
+            ) as mock_svc_cls:
+                mock_svc = AsyncMock()
+                mock_svc_cls.return_value = mock_svc
+
+                await refresh_display_name_on_login("usr123", "oauth-token")
+
+        mock_svc.upsert_batch.assert_called_once()
+        entries = mock_svc.upsert_batch.call_args[0][0]
+        assert len(entries) == 1
+        assert entries[0]["user_discord_id"] == "usr123"
+        assert entries[0]["guild_discord_id"] == "guild123"
+        assert entries[0]["display_name"] == "TestNick"
+
+    @pytest.mark.asyncio
+    async def test_skips_guild_when_discord_returns_error(self):
+        mock_guild = MagicMock()
+        mock_guild.guild_id = "guild123"
+
+        with (
+            patch("services.api.services.login_refresh.AsyncSessionLocal") as mock_session_local,
+            patch("services.api.services.login_refresh.get_discord_client") as mock_get_client,
+        ):
+            mock_session = AsyncMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session.__aexit__ = AsyncMock(return_value=None)
+            mock_session_local.return_value = mock_session
+            mock_execute_result = MagicMock()
+            mock_execute_result.scalars.return_value.all.return_value = [mock_guild]
+            mock_session.execute = AsyncMock(return_value=mock_execute_result)
+
+            mock_client = MagicMock()
+            mock_client.get_current_user_guild_member = AsyncMock(
+                side_effect=DiscordAPIError(403, "Not in guild")
+            )
+            mock_get_client.return_value = mock_client
+
+            with patch(
+                "services.api.services.login_refresh.UserDisplayNameService"
+            ) as mock_svc_cls:
+                mock_svc = AsyncMock()
+                mock_svc_cls.return_value = mock_svc
+
+                await refresh_display_name_on_login("usr123", "oauth-token")
+
+        mock_svc.upsert_batch.assert_called_once_with([])
+
+    @pytest.mark.asyncio
+    async def test_no_guilds_skips_upsert(self):
+        with (
+            patch("services.api.services.login_refresh.AsyncSessionLocal") as mock_session_local,
+            patch("services.api.services.login_refresh.get_discord_client"),
+        ):
+            mock_session = AsyncMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session.__aexit__ = AsyncMock(return_value=None)
+            mock_session_local.return_value = mock_session
+            mock_execute_result = MagicMock()
+            mock_execute_result.scalars.return_value.all.return_value = []
+            mock_session.execute = AsyncMock(return_value=mock_execute_result)
+
+            with patch(
+                "services.api.services.login_refresh.UserDisplayNameService"
+            ) as mock_svc_cls:
+                await refresh_display_name_on_login("usr123", "oauth-token")
+
+        mock_svc_cls.assert_not_called()
