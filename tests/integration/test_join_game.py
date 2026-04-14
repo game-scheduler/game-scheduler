@@ -53,6 +53,9 @@ def _make_interaction(discord_user_id: str) -> MagicMock:
     interaction = MagicMock()
     interaction.user = MagicMock()
     interaction.user.id = int(discord_user_id)
+    interaction.user.global_name = None
+    interaction.user.name = f"TestUser{discord_user_id[-4:]}"
+    interaction.user.display_avatar = None
     interaction.user.send = AsyncMock()
     interaction.response = MagicMock()
     interaction.response.is_done = MagicMock(return_value=False)

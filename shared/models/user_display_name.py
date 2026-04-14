@@ -45,6 +45,4 @@ class UserDisplayName(Base):
     guild_discord_id: Mapped[str] = mapped_column(String(20), primary_key=True)
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(
-        default=func.now, server_default=func.now(), onupdate=func.now
-    )
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now())

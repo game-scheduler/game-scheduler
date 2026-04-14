@@ -116,7 +116,7 @@ async def handle_join_game(
         db.add(schedule)
         await db.commit()
 
-        await upsert_interaction_display_name(db, interaction, game.guild_id, user_discord_id)
+        await upsert_interaction_display_name(db, interaction, game.guild.guild_id, user_discord_id)
 
         await publisher.publish_game_updated(
             game_id=game_id,
@@ -152,6 +152,7 @@ async def _validate_join_game(db: AsyncSession, game_id: uuid.UUID, user_discord
     result_game = await db.execute(
         select(GameSession)
         .options(selectinload(GameSession.template))
+        .options(selectinload(GameSession.guild))
         .where(GameSession.id == str(game_id))
     )
     game = result_game.scalar_one_or_none()

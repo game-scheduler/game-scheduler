@@ -27,6 +27,7 @@ import uuid
 import discord
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from services.bot.events.publisher import BotEventPublisher
 from services.bot.handlers.utils import (
@@ -92,7 +93,7 @@ async def handle_leave_game(
         await db.delete(participant)
         await db.commit()
 
-        await upsert_interaction_display_name(db, interaction, game.guild_id, user_discord_id)
+        await upsert_interaction_display_name(db, interaction, game.guild.guild_id, user_discord_id)
 
         await publisher.publish_game_updated(
             game_id=game_id,
@@ -126,7 +127,11 @@ async def _validate_leave_game(db: AsyncSession, game_id: uuid.UUID, user_discor
         - game: GameSession
         - participant_count: int
     """
-    result = await db.execute(select(GameSession).where(GameSession.id == str(game_id)))
+    result = await db.execute(
+        select(GameSession)
+        .options(selectinload(GameSession.guild))
+        .where(GameSession.id == str(game_id))
+    )
     game = result.scalar_one_or_none()
 
     if not game:

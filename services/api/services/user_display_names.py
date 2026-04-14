@@ -23,7 +23,7 @@
 
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -126,7 +126,7 @@ class UserDisplayNameService:
                 set_={
                     "display_name": insert(UserDisplayName).excluded.display_name,
                     "avatar_url": insert(UserDisplayName).excluded.avatar_url,
-                    "updated_at": insert(UserDisplayName).excluded.updated_at,
+                    "updated_at": func.now(),
                 },
             )
         )
