@@ -46,7 +46,7 @@ class BotConfig(BaseSettings):
         extra="ignore",
     )
 
-    # Make Discord tokens optional for integration tests
+    # Discord tokens are optional - integration test mode is detected via PYTEST_RUNNING env var
     discord_bot_token: str | None = Field(default=None, description="Discord bot token")
     discord_bot_client_id: str | None = Field(default=None, description="Discord application ID")
     discord_api_base_url: str = Field(

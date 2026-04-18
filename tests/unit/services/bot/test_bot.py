@@ -159,14 +159,17 @@ class TestGameSchedulerBot:
                             new_callable=AsyncMock,
                             return_value=mock_redis,
                         ),
+                        patch("services.bot.bot.Path") as mock_path,
                     ):
                         await bot.on_ready()
 
                     assert mock_logger.info.call_count >= 2
+                    mock_path.assert_called_once_with("/tmp/bot-ready")
+                    mock_path.return_value.touch.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_setup_hook_guild_sync_success(self, bot_config: BotConfig) -> None:
-        """Test setup_hook marks bot as ready when guild sync succeeds."""
+        """Test setup_hook completes guild sync without error."""
         bot_config.environment = "production"
         bot = GameSchedulerBot(bot_config)
 
@@ -193,13 +196,9 @@ class TestGameSchedulerBot:
                 new_callable=AsyncMock,
                 return_value={"new_guilds": 1, "new_channels": 2},
             ),
-            patch("services.bot.bot.Path") as mock_path,
             patch.object(bot.tree, "sync", new_callable=AsyncMock),
         ):
             await bot.setup_hook()
-
-            mock_path.assert_called_once_with("/tmp/bot-ready")
-            mock_path.return_value.touch.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_on_disconnect_event(self, bot_config: BotConfig) -> None:

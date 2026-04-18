@@ -165,9 +165,6 @@ class GameSchedulerBot(commands.Bot):
                     sync_results["new_guilds"],
                     sync_results["new_channels"],
                 )
-                # Mark bot as ready after successful sync
-                Path("/tmp/bot-ready").touch()  # noqa: S108, ASYNC240, RUF100
-                logger.info("Bot marked as healthy")
         except Exception as e:
             logger.exception("Failed to sync guilds on startup: %s", e)
 
@@ -226,6 +223,9 @@ class GameSchedulerBot(commands.Bot):
                 redis=redis,
                 reason="on_ready",
             )
+
+            Path("/tmp/bot-ready").touch()  # noqa: S108, ASYNC240, RUF100
+            logger.info("Bot marked as healthy")
 
             if os.getenv("PYTEST_RUNNING"):
                 self._test_server_task = asyncio.create_task(self._start_test_server())

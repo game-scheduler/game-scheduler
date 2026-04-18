@@ -24,8 +24,10 @@
 import asyncio
 import contextlib
 import logging
+import os
 import signal
 import sys
+from pathlib import Path
 
 from services.bot.bot import create_bot
 from services.bot.config import get_config
@@ -60,12 +62,16 @@ async def main() -> None:
     init_telemetry("bot-service")
 
     try:
-        # Check if running in test environment without Discord credentials
-        if not config.discord_bot_token or not config.discord_bot_client_id:
-            logger.warning(
-                "Discord credentials not configured. Bot will not start (integration test mode)."
-            )
-            return
+        # Check if running in test environment via explicit PYTEST_RUNNING flag
+        # (not by checking for empty credentials, which can vary)
+        if os.getenv("PYTEST_RUNNING"):
+            logger.warning("Running in integration test mode - skipping Discord bot startup")
+            # Mark bot as healthy for integration tests
+            Path("/tmp/bot-ready").touch()
+            logger.info("Bot marked as healthy (integration test mode)")
+            # Keep process alive so container doesn't exit
+            while True:
+                await asyncio.sleep(3600)
 
         logger.info("Starting Discord Game Scheduler Bot")
         logger.info("Environment: %s", config.environment)

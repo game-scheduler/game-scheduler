@@ -99,6 +99,10 @@ services:
       - app-network
     restart: "no"
 
+  bot:
+    environment:
+      PYTEST_RUNNING: "1"
+
   integration-tests:
     build:
       context: .
