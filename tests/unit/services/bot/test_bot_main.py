@@ -128,9 +128,11 @@ class TestMain:
             with patch("services.bot.main.setup_logging"):
                 with patch("services.bot.main.create_bot", return_value=mock_bot):
                     with patch("logging.getLogger"):
-                        await main()
+                        with patch.dict("os.environ", {}, clear=False) as env:
+                            env.pop("PYTEST_RUNNING", None)
+                            await main()
 
-                        mock_bot.start.assert_awaited_once_with("test_token")
+                            mock_bot.start.assert_awaited_once_with("test_token")
 
     @pytest.mark.asyncio
     async def test_main_keyboard_interrupt(self) -> None:
@@ -149,12 +151,16 @@ class TestMain:
             with patch("services.bot.main.setup_logging"):
                 with patch("services.bot.main.create_bot", return_value=mock_bot):
                     with patch("logging.getLogger") as mock_get_logger:
-                        mock_logger = MagicMock()
-                        mock_get_logger.return_value = mock_logger
+                        with patch.dict("os.environ", {}, clear=False) as env:
+                            env.pop("PYTEST_RUNNING", None)
+                            mock_logger = MagicMock()
+                            mock_get_logger.return_value = mock_logger
 
-                        await main()
+                            await main()
 
-                        mock_logger.info.assert_any_call("Received interrupt signal, shutting down")
+                            mock_logger.info.assert_any_call(
+                                "Received interrupt signal, shutting down"
+                            )
 
     @pytest.mark.asyncio
     async def test_main_exception_handling(self) -> None:
@@ -175,13 +181,15 @@ class TestMain:
                 with patch("services.bot.main.create_bot", return_value=mock_bot):
                     with patch("logging.getLogger") as mock_get_logger:
                         with patch("sys.exit") as mock_exit:
-                            mock_logger = MagicMock()
-                            mock_get_logger.return_value = mock_logger
+                            with patch.dict("os.environ", {}, clear=False) as env:
+                                env.pop("PYTEST_RUNNING", None)
+                                mock_logger = MagicMock()
+                                mock_get_logger.return_value = mock_logger
 
-                            await main()
+                                await main()
 
-                            mock_logger.exception.assert_called_once()
-                            mock_exit.assert_called_once_with(1)
+                                mock_logger.exception.assert_called_once()
+                                mock_exit.assert_called_once_with(1)
 
     @pytest.mark.asyncio
     async def test_main_logs_startup_information(self) -> None:
@@ -200,10 +208,12 @@ class TestMain:
             with patch("services.bot.main.setup_logging"):
                 with patch("services.bot.main.create_bot", return_value=mock_bot):
                     with patch("logging.getLogger") as mock_get_logger:
-                        mock_logger = MagicMock()
-                        mock_get_logger.return_value = mock_logger
+                        with patch.dict("os.environ", {}, clear=False) as env:
+                            env.pop("PYTEST_RUNNING", None)
+                            mock_logger = MagicMock()
+                            mock_get_logger.return_value = mock_logger
 
-                        await main()
+                            await main()
 
-                        mock_logger.info.assert_any_call("Starting Discord Game Scheduler Bot")
-                        mock_logger.info.assert_any_call("Environment: %s", "production")
+                            mock_logger.info.assert_any_call("Starting Discord Game Scheduler Bot")
+                            mock_logger.info.assert_any_call("Environment: %s", "production")
