@@ -62,16 +62,17 @@ async def main() -> None:
     init_telemetry("bot-service")
 
     try:
-        # Check if running in test environment via explicit PYTEST_RUNNING flag
-        # (not by checking for empty credentials, which can vary)
-        if os.getenv("PYTEST_RUNNING"):
-            logger.warning("Running in integration test mode - skipping Discord bot startup")
+        # Skip Discord connection in integration tests (no real bot token available).
+        # E2E tests use PYTEST_RUNNING but still need a real Discord connection,
+        # so they must NOT set BOT_SKIP_STARTUP.
+        if os.getenv("BOT_SKIP_STARTUP"):
+            logger.warning("BOT_SKIP_STARTUP set - skipping Discord bot startup")
             # Mark bot as healthy for integration tests
-            Path("/tmp/bot-ready").touch()
+            Path("/tmp/bot-ready").touch()  # noqa: S108, ASYNC240, RUF100
             logger.info("Bot marked as healthy (integration test mode)")
             # Keep process alive so container doesn't exit
-            while True:
-                await asyncio.sleep(3600)
+            stop_event = asyncio.Event()
+            await stop_event.wait()
 
         logger.info("Starting Discord Game Scheduler Bot")
         logger.info("Environment: %s", config.environment)

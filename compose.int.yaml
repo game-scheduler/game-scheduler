@@ -102,6 +102,7 @@ services:
   bot:
     environment:
       PYTEST_RUNNING: "1"
+      BOT_SKIP_STARTUP: "1"
 
   integration-tests:
     build:
