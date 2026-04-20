@@ -81,3 +81,8 @@ class TestCacheKeys:
         """Test bot last seen key."""
         key = CacheKeys.bot_last_seen()
         assert key == "bot:last_seen"
+
+    def test_proj_usernames_key(self):
+        """Test projection username sorted set key generation."""
+        key = CacheKeys.proj_usernames("gen123", "guild456")
+        assert key == "proj:usernames:gen123:guild456"

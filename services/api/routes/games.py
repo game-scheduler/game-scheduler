@@ -109,7 +109,7 @@ async def _get_game_service(
         event_publisher=base_publisher,
     )
     discord_client = get_discord_client()
-    participant_resolver = resolver_module.ParticipantResolver(discord_client)
+    participant_resolver = resolver_module.ParticipantResolver()
     channel_resolver = channel_resolver_module.ChannelResolver(discord_client)
 
     return games_service.GameService(

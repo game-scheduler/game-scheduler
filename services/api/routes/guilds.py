@@ -378,7 +378,6 @@ async def validate_mention(
     await permissions.verify_guild_membership(guild_config.guild_id, current_user, db)
 
     discord_guild_id = guild_config.guild_id
-    access_token = current_user.access_token
     mention = request.mention.strip()
     if not mention:
         return guild_schemas.ValidateMentionResponse(valid=False, error="Mention cannot be empty")
@@ -392,12 +391,11 @@ async def validate_mention(
         ParticipantResolver,
     )
 
-    discord_client_instance = get_discord_client()
-    resolver = ParticipantResolver(discord_client_instance)
+    resolver = ParticipantResolver()
 
     try:
         valid_participants, validation_errors = await resolver.resolve_initial_participants(
-            discord_guild_id, [mention], access_token
+            discord_guild_id, [mention]
         )
 
         if validation_errors:

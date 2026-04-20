@@ -124,3 +124,8 @@ class CacheKeys:
     def proj_guild_name(gen: str, guild_id: str) -> str:
         """Return cache key for projection guild name."""
         return f"proj:guild_name:{gen}:{guild_id}"
+
+    @staticmethod
+    def proj_usernames(gen: str, guild_id: str) -> str:
+        """Return cache key for projection username sorted set."""
+        return f"proj:usernames:{gen}:{guild_id}"

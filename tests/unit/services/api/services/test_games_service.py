@@ -1094,7 +1094,9 @@ async def test_build_game_session_timezone_normalization_aware(
 
     # Should be naive UTC
     assert game.scheduled_at.tzinfo is None
-    assert game.scheduled_at == datetime.datetime(2026, 6, 15, 12, 0, 0)
+    assert game.scheduled_at == datetime.datetime(2026, 6, 15, 12, 0, 0, tzinfo=UTC).replace(
+        tzinfo=None
+    )
 
 
 @pytest.mark.asyncio
@@ -1110,7 +1112,7 @@ async def test_build_game_session_timezone_normalization_naive(
     )
 
     # Create a naive datetime
-    scheduled_at_naive = datetime.datetime(2026, 6, 15, 12, 0, 0)
+    scheduled_at_naive = datetime.datetime(2026, 6, 15, 12, 0, 0, tzinfo=UTC).replace(tzinfo=None)
 
     game_data = game_schemas.GameCreateRequest(
         template_id=sample_template.id,
@@ -1980,7 +1982,9 @@ async def test_create_game_timezone_conversion(
         id=str(uuid.uuid4()),
         title="Timezone Test",
         description="Test timezone conversion",
-        scheduled_at=datetime.datetime(2025, 11, 20, 15, 0, 0).replace(tzinfo=None),  # Naive UTC
+        scheduled_at=datetime.datetime(2025, 11, 20, 15, 0, 0, tzinfo=UTC).replace(
+            tzinfo=None
+        ),  # Naive UTC
         guild_id=sample_guild.id,
         channel_id=sample_channel.id,
         host_id=sample_user.id,
@@ -4217,7 +4221,6 @@ async def test_resolve_and_validate_host_participant_success(game_service):
     """Test successful host participant resolution."""
     host_mention = "@testuser"
     guild_id = "guild123"
-    access_token = "token123"
 
     resolved_host = {
         "type": "discord",
@@ -4232,7 +4235,6 @@ async def test_resolve_and_validate_host_participant_success(game_service):
     result = await game_service._resolve_and_validate_host_participant(
         host_mention,
         guild_id,
-        access_token,
     )
 
     assert result == resolved_host
@@ -4243,7 +4245,6 @@ async def test_resolve_and_validate_host_participant_validation_error(game_servi
     """Test host resolution with validation errors."""
     host_mention = "@invaliduser"
     guild_id = "guild123"
-    access_token = "token123"
 
     validation_error = {
         "input": host_mention,
@@ -4259,7 +4260,6 @@ async def test_resolve_and_validate_host_participant_validation_error(game_servi
         await game_service._resolve_and_validate_host_participant(
             host_mention,
             guild_id,
-            access_token,
         )
 
 
@@ -4268,7 +4268,6 @@ async def test_resolve_and_validate_host_participant_no_results(game_service):
     """Test host resolution with no results."""
     host_mention = "@testuser"
     guild_id = "guild123"
-    access_token = "token123"
 
     game_service.participant_resolver.resolve_initial_participants = AsyncMock(
         return_value=([], [])
@@ -4278,7 +4277,6 @@ async def test_resolve_and_validate_host_participant_no_results(game_service):
         await game_service._resolve_and_validate_host_participant(
             host_mention,
             guild_id,
-            access_token,
         )
 
 
@@ -4287,7 +4285,6 @@ async def test_resolve_and_validate_host_participant_placeholder(game_service):
     """Test host resolution rejecting placeholder participants."""
     host_mention = "Placeholder Name"
     guild_id = "guild123"
-    access_token = "token123"
 
     resolved_host = {
         "type": "placeholder",
@@ -4302,7 +4299,6 @@ async def test_resolve_and_validate_host_participant_placeholder(game_service):
         await game_service._resolve_and_validate_host_participant(
             host_mention,
             guild_id,
-            access_token,
         )
 
     assert exc_info.value.invalid_mentions[0]["reason"] == (

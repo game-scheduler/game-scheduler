@@ -195,6 +195,17 @@ async def write_member(
     key = CacheKeys.proj_member(gen, guild_id, uid)
     await redis.set_json(key, member_data, ttl=None)
 
+    usernames_key = CacheKeys.proj_usernames(gen, guild_id)
+    names_seen: set[str] = set()
+    for name in [member.name, member.global_name, member.nick]:
+        if not name:
+            continue
+        name_lower = name.lower()
+        if name_lower in names_seen:
+            continue
+        names_seen.add(name_lower)
+        await redis._client.zadd(usernames_key, {f"{name_lower}\x00{uid}": 0})
+
 
 async def write_user_guilds(
     *,

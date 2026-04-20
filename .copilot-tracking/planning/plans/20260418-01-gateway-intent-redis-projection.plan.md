@@ -112,15 +112,15 @@ Eliminate all Discord REST API calls from the per-request API path by pre-popula
 - [x] Task 7.2: Replace `RoleVerificationService.has_permissions()` OAuth REST call with local bitfield computation from `discord_guild_roles` cache and `member_projection.get_user_roles()`
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 449–473)
 
-### [ ] Phase 8: Username Sorted Set Index for Member Search (Work Type C)
+### [x] Phase 8: Username Sorted Set Index for Member Search (Work Type C)
 
-- [ ] Task 8.1: Add `proj_usernames(gen, guild_id)` key constant to `shared/cache/keys.py`
+- [x] Task 8.1: Add `proj_usernames(gen, guild_id)` key constant to `shared/cache/keys.py`
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 478–492)
 
-- [ ] Task 8.2: Update `write_member()` in `guild_projection.py` to `ZADD` lowercased name entries (`{name}\x00{uid}`) to the `proj:usernames` sorted set; deduplicate when `global_name == username`
+- [x] Task 8.2: Update `write_member()` in `guild_projection.py` to `ZADD` lowercased name entries (`{name}\x00{uid}`) to the `proj:usernames` sorted set; deduplicate when `global_name == username`
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 493–509)
 
-- [ ] Task 8.3: Add `search_members_by_prefix()` to `member_projection.py`; replace `_search_guild_members()` in `participant_resolver.py` with `ZRANGEBYLEX` read on `proj:usernames`
+- [x] Task 8.3: Add `search_members_by_prefix()` to `member_projection.py`; replace `_search_guild_members()` in `participant_resolver.py` with `ZRANGEBYLEX` read on `proj:usernames`
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 510–530)
 
 ### [ ] Phase 9: Final Verification and Test Updates

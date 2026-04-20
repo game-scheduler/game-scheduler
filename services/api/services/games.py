@@ -145,7 +145,6 @@ class GameService:
         self,
         host_mention: str,
         guild_id: str,
-        access_token: str,
     ) -> dict[str, Any]:
         """Resolve host mention to a Discord user participant."""
         (
@@ -154,7 +153,6 @@ class GameService:
         ) = await self.participant_resolver.resolve_initial_participants(
             guild_id,
             [host_mention],
-            access_token,
         )
 
         if validation_errors:
@@ -240,7 +238,6 @@ class GameService:
                 resolved_host = await self._resolve_and_validate_host_participant(
                     game_data.host,
                     guild_config.guild_id,
-                    access_token,
                 )
 
                 host_discord_id = resolved_host["discord_id"]
@@ -643,7 +640,6 @@ class GameService:
             ) = await self.participant_resolver.resolve_initial_participants(
                 guild_config.guild_id,
                 game_data.initial_participants,
-                access_token,
             )
 
             if validation_errors:
@@ -1354,7 +1350,6 @@ class GameService:
         ) = await self.participant_resolver.resolve_initial_participants(
             game.guild.guild_id,
             mentions,
-            "",
         )
 
         if validation_errors:

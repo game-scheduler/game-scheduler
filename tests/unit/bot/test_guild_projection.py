@@ -99,6 +99,94 @@ class TestWriteMember:
         data = redis.set_json.call_args[0][1]
         assert data["avatar_url"] is None
 
+    @pytest.mark.asyncio
+    async def test_write_member_populates_username_sorted_set(self):
+        """write_member ZADDs username, global_name, and nick entries to sorted set."""
+        redis = AsyncMock()
+        mock_client = AsyncMock()
+        mock_client.zadd = AsyncMock()
+        redis._client = mock_client
+
+        member = MagicMock(spec=discord.Member)
+        member.roles = []
+        member.nick = "NickName"
+        member.global_name = "Global Name"
+        member.name = "username123"
+        member.avatar = None
+
+        await write_member(
+            redis=redis,
+            gen="gen1",
+            guild_id="guild1",
+            uid="user1",
+            member=member,
+        )
+
+        usernames_key = CacheKeys.proj_usernames("gen1", "guild1")
+        zadd_calls = mock_client.zadd.call_args_list
+        zadd_keys = [call[0][0] for call in zadd_calls]
+        assert all(k == usernames_key for k in zadd_keys)
+        all_entries = {next(iter(call[0][1].keys())) for call in zadd_calls}
+        assert "username123\x00user1" in all_entries
+        assert "global name\x00user1" in all_entries
+        assert "nickname\x00user1" in all_entries
+
+    @pytest.mark.asyncio
+    async def test_write_member_deduplicates_when_global_name_equals_username(self):
+        """When global_name == username (case-insensitive), only one sorted set entry."""
+        redis = AsyncMock()
+        mock_client = AsyncMock()
+        mock_client.zadd = AsyncMock()
+        redis._client = mock_client
+
+        member = MagicMock(spec=discord.Member)
+        member.roles = []
+        member.nick = None
+        member.global_name = "SameUser"
+        member.name = "sameuser"
+        member.avatar = None
+
+        await write_member(
+            redis=redis,
+            gen="gen1",
+            guild_id="guild1",
+            uid="user1",
+            member=member,
+        )
+
+        zadd_calls = mock_client.zadd.call_args_list
+        all_entries = {next(iter(call[0][1].keys())) for call in zadd_calls}
+        assert "sameuser\x00user1" in all_entries
+        assert len([e for e in all_entries if e.split("\x00")[0] == "sameuser"]) == 1
+
+    @pytest.mark.asyncio
+    async def test_write_member_skips_null_optional_name_fields(self):
+        """Null nick and global_name are skipped; only username is added."""
+        redis = AsyncMock()
+        mock_client = AsyncMock()
+        mock_client.zadd = AsyncMock()
+        redis._client = mock_client
+
+        member = MagicMock(spec=discord.Member)
+        member.roles = []
+        member.nick = None
+        member.global_name = None
+        member.name = "onlyuser"
+        member.avatar = None
+
+        await write_member(
+            redis=redis,
+            gen="gen1",
+            guild_id="guild1",
+            uid="user1",
+            member=member,
+        )
+
+        zadd_calls = mock_client.zadd.call_args_list
+        assert len(zadd_calls) == 1
+        entry = next(iter(zadd_calls[0][0][1].keys()))
+        assert entry == "onlyuser\x00user1"
+
 
 class TestWriteUserGuilds:
     """Test suite for write_user_guilds function."""

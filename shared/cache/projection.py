@@ -121,3 +121,47 @@ async def is_bot_fresh(*, redis: RedisClient) -> bool:
         return age < timedelta(seconds=_BOT_FRESHNESS_SECONDS)
     except ValueError:
         return False
+
+
+async def search_members_by_prefix(
+    guild_id: str,
+    query: str,
+    *,
+    redis: RedisClient,
+) -> list[dict]:
+    """
+    Search guild members whose username, global_name, or nick starts with query.
+
+    Uses ZRANGEBYLEX on the proj:usernames sorted set for O(log N + M) prefix
+    queries without any Discord REST calls. Deduplicates via seen_uids so a
+    member matching on multiple name fields appears only once.
+
+    Args:
+        guild_id: Discord guild ID
+        query: Prefix string to match (case-insensitive)
+        redis: Redis async client wrapper
+
+    Returns:
+        List of member dicts (with added "uid" field), empty list if gen absent
+        or no matches
+    """
+    gen = await redis.get(CacheKeys.proj_gen())
+    if not gen:
+        return []
+
+    key = CacheKeys.proj_usernames(gen, guild_id)
+    q = query.lower()
+    if not redis._client:
+        await redis.connect()
+    entries = await redis._client.zrangebylex(key, f"[{q}", f"[{q}\xff")
+
+    results: list[dict] = []
+    seen_uids: set[str] = set()
+    for entry in entries:
+        _name, uid = entry.rsplit("\x00", 1)
+        if uid not in seen_uids:
+            seen_uids.add(uid)
+            member = await get_member(guild_id, uid, redis=redis)
+            if member:
+                results.append({"uid": uid, **member})
+    return results

@@ -32,11 +32,9 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from starlette import status
 
 from shared.cache import client as cache_client
 from shared.cache import projection as member_projection
-from shared.discord import client as discord_client_module
 from shared.models import user as user_model
 
 logger = logging.getLogger(__name__)
@@ -61,14 +59,7 @@ class ValidationError(Exception):
 class ParticipantResolver:
     """Resolves initial participant list from @mentions and placeholders."""
 
-    def __init__(self, discord_client: discord_client_module.DiscordAPIClient) -> None:
-        """
-        Initialize participant resolver.
-
-        Args:
-            discord_client: Discord API client for member search
-        """
-        self.discord_client = discord_client
+    def __init__(self) -> None:
         # Pattern to match Discord mention format: <@123456789012345678>
         self._discord_mention_pattern = re.compile(r"^<@(\d{17,20})>$")
 
@@ -134,16 +125,14 @@ class ParticipantResolver:
         guild_discord_id: str,
         input_text: str,
         mention_text: str,
-        access_token: str,
     ) -> tuple[dict | None, dict | None]:
         """
-        Resolve user-friendly @username mention via search.
+        Resolve user-friendly @username mention via Redis sorted set prefix search.
 
         Args:
             guild_discord_id: Discord guild snowflake ID
             input_text: Original input text (@username)
             mention_text: Username to search (without @)
-            access_token: User's access token for Discord API calls
 
         Returns:
             Tuple of (valid_participant, validation_error)
@@ -151,7 +140,10 @@ class ParticipantResolver:
             Returns (None, error_dict) on no match, multiple matches, or error
         """
         try:
-            members = await self._search_guild_members(guild_discord_id, mention_text, access_token)
+            redis = await cache_client.get_redis_client()
+            members = await member_projection.search_members_by_prefix(
+                guild_discord_id, mention_text, redis=redis
+            )
 
             if len(members) == 0:
                 return (
@@ -166,7 +158,7 @@ class ParticipantResolver:
                 return (
                     {
                         "type": "discord",
-                        "discord_id": members[0]["user"]["id"],
+                        "discord_id": members[0]["uid"],
                         "original_input": input_text,
                     },
                     None,
@@ -175,11 +167,9 @@ class ParticipantResolver:
             # Multiple matches - disambiguation needed
             suggestions: list[dict[str, str]] = [
                 {
-                    "discordId": m["user"]["id"],
-                    "username": m["user"]["username"],
-                    "displayName": (
-                        m.get("nick") or m["user"].get("global_name") or m["user"]["username"]
-                    ),
+                    "discordId": m["uid"],
+                    "username": m["username"],
+                    "displayName": (m.get("nick") or m.get("global_name") or m["username"]),
                 }
                 for m in members[:5]
             ]
@@ -192,22 +182,6 @@ class ParticipantResolver:
                 },
             )
 
-        except discord_client_module.DiscordAPIError as e:
-            logger.error(
-                "Discord API error searching guild %s for query '%s': %s - %s",
-                guild_discord_id,
-                mention_text,
-                e.status,
-                e.message,
-            )
-            return (
-                None,
-                {
-                    "input": input_text,
-                    "reason": f"Discord API error: {e.message}",
-                    "suggestions": [],
-                },
-            )
         except Exception as e:
             logger.exception(
                 "Unexpected error searching guild members for '%s': %s",
@@ -243,7 +217,6 @@ class ParticipantResolver:
         self,
         guild_discord_id: str,
         input_text: str,
-        access_token: str,
     ) -> tuple[dict | None, dict | None]:
         """
         Process a single participant input and resolve to participant or error.
@@ -251,7 +224,6 @@ class ParticipantResolver:
         Args:
             guild_discord_id: Discord guild snowflake ID
             input_text: Single participant input (@mention, <@id>, or placeholder)
-            access_token: User's access token for Discord API calls
 
         Returns:
             Tuple of (participant_dict, error_dict) - one will be None
@@ -271,7 +243,7 @@ class ParticipantResolver:
         if input_text.startswith("@"):
             mention_text = input_text[1:].lower()
             return await self._resolve_user_friendly_mention(
-                guild_discord_id, input_text, mention_text, access_token
+                guild_discord_id, input_text, mention_text
             )
 
         return self._create_placeholder_participant(input_text), None
@@ -280,7 +252,6 @@ class ParticipantResolver:
         self,
         guild_discord_id: str,
         participant_inputs: list[str],
-        access_token: str,
     ) -> tuple[list[dict], list[dict]]:
         """
         Resolve initial participant list from @mentions and placeholders.
@@ -290,7 +261,6 @@ class ParticipantResolver:
         Args:
             guild_discord_id: Discord guild snowflake ID
             participant_inputs: List of @mentions, <@discord_id>, or placeholder strings
-            access_token: User's access token for Discord API calls
 
         Returns:
             Tuple of (valid_participants, validation_errors)
@@ -302,7 +272,7 @@ class ParticipantResolver:
 
         for input_text in participant_inputs:
             participant, error = await self._process_single_participant_input(
-                guild_discord_id, input_text, access_token
+                guild_discord_id, input_text
             )
 
             if participant:
@@ -311,66 +281,6 @@ class ParticipantResolver:
                 validation_errors.append(error)
 
         return valid_participants, validation_errors
-
-    async def _search_guild_members(
-        self,
-        guild_discord_id: str,
-        query: str,
-        _access_token: str,
-    ) -> list[dict]:
-        """
-        Search guild members by query string.
-
-        Args:
-            guild_discord_id: Discord guild snowflake ID
-            query: Search query (username, global_name, or nickname)
-            access_token: User's access token for Discord API calls
-
-        Returns:
-            List of member objects matching the query
-
-        Raises:
-            DiscordAPIError: If API call fails
-        """
-        url = f"https://discord.com/api/v10/guilds/{guild_discord_id}/members/search"
-        params: dict[str, str | int] = {"query": query, "limit": 10}
-
-        session = await self.discord_client._get_session()
-
-        try:
-            async with session.get(
-                url,
-                params=params,
-                headers={"Authorization": f"Bot {self.discord_client.bot_token}"},
-            ) as response:
-                if response.status != status.HTTP_200_OK:
-                    try:
-                        response_data = await response.json()
-                        error_msg = response_data.get("message", "Unknown error")
-                    except Exception:
-                        error_msg = f"HTTP {response.status}"
-
-                    logger.error(
-                        "Discord API error searching guild %s: %s - %s",
-                        guild_discord_id,
-                        response.status,
-                        error_msg,
-                    )
-                    raise discord_client_module.DiscordAPIError(response.status, error_msg)
-
-                return await response.json()
-
-        except discord_client_module.DiscordAPIError:
-            raise
-        except Exception as e:
-            logger.exception(
-                "Network error searching guild members in %s: %s",
-                guild_discord_id,
-                e,
-            )
-            raise discord_client_module.DiscordAPIError(
-                status.HTTP_500_INTERNAL_SERVER_ERROR, f"Network error: {e!s}"
-            ) from e
 
     async def ensure_user_exists(
         self,
