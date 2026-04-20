@@ -185,6 +185,90 @@ Eliminate Discord REST API calls from the per-request API path by enabling GUILD
 
 **Status**: ✅ COMPLETE
 
+### Task 5.1: Remove Dead Code
+
+**Files Deleted**:
+
+- `services/api/services/login_refresh.py` — deleted; no longer has any callers after `callback()` was migrated
+- `tests/unit/api/services/test_login_refresh.py` — deleted with source
+
+**Files Modified**:
+
+- `services/api/routes/auth.py` — removed `BackgroundTasks` import, `refresh_display_name_on_login` import, `background_tasks` parameter from `callback()`, and `background_tasks.add_task(...)` call
+- `services/api/dependencies/permissions.py` — removed `_get_user_guilds()` (defined but never called)
+- `services/api/auth/roles.py` — migrated `get_user_role_ids()` from REST (`get_guild_member`) to projection (`member_projection.get_user_roles()`); removed REST error handling; simplified to: fetch roles from projection, append @everyone guild_id if absent, cache and return
+- `services/api/services/participant_resolver.py` — migrated `_resolve_discord_mention_format()` from REST (`get_guild_member`) to projection (`member_projection.get_member()`); updated data access from nested REST format to flat projection format
+- `tests/unit/services/api/auth/test_roles.py` — updated tests for projection-based `get_user_role_ids`: patched `member_projection.get_user_roles`; renamed `test_get_user_role_ids_api_error` → `test_get_user_role_ids_absent_member`
+- `tests/unit/services/api/services/test_participant_resolver.py` — updated tests to patch `cache_client.get_redis_client` + `member_projection.get_member`; updated member data format from nested to flat
+- `tests/unit/services/api/routes/test_auth_routes.py` — removed `BackgroundTasks` / `background_tasks` from callback tests; deleted `TestCallbackEnqueuesDisplayNameRefresh` and `TestRefreshDisplayNameOnLogin` classes
+
+**Success Criteria**:
+
+- ✓ `grep -r "discord_api\|get_guild_member\|get_user_guilds.*oauth\|get_current_user_guild_member" services/api/` returns only config false-positives (`discord_api_base_url` URL string)
+- ✓ All 2174 unit tests passing
+
+### Task 5.1 Completion Summary
+
+**Status**: ✅ COMPLETE
+
+### Task 5.2: Drop user_display_names Table
+
+**Files Deleted**:
+
+- `services/api/services/user_display_names.py` — re-export shim, no longer needed
+- `shared/services/user_display_names.py` — `UserDisplayNameService` class; replaced by direct `DisplayNameResolver` usage
+- `shared/models/user_display_name.py` — SQLAlchemy model for dropped table
+- `tests/unit/services/api/services/test_user_display_names.py` — unit tests for deleted service
+
+**Files Added**:
+
+- `alembic/versions/20260419_drop_user_display_names.py` — migration to drop `user_display_names` table and `idx_user_display_names_updated_at` index; `downgrade()` recreates both
+
+**Files Modified**:
+
+- `services/api/routes/games.py` — replaced `UserDisplayNameService` with `DisplayNameResolver` throughout: removed import; replaced `_get_display_name_service` with `_get_display_name_resolver`; replaced `_DisplayNameServiceDep` with `_DisplayNameResolverDep`; all `.resolve()` calls → `.resolve_display_names_and_avatars()`; simplified `_resolve_display_data` (removed `display_name_service` param and fallback branch); updated `_build_game_response` parameter name
+- `services/bot/handlers/utils.py` — removed `UserDisplayNameService` import; deleted `upsert_interaction_display_name()` function
+- `services/bot/handlers/join_game.py` — removed `upsert_interaction_display_name` import and call
+- `services/bot/handlers/leave_game.py` — removed `upsert_interaction_display_name` import and call
+- `shared/models/__init__.py` — removed `UserDisplayName` import and `__all__` entry
+- `tests/unit/services/api/routes/test_games_routes.py` — removed `UserDisplayNameService` import; renamed `display_name_service` → `display_name_resolver` in all calls; updated `.resolve()` → `.resolve_display_names_and_avatars()`; replaced `TestListGamesUsesDisplayNameService` with `TestListGamesUsesDisplayNameResolver` containing a single direct-resolver test
+- `tests/unit/services/api/routes/test_games_endpoint_errors.py` — renamed `display_name_service` → `display_name_resolver` in all calls
+- `tests/unit/services/bot/handlers/test_join_game.py` — deleted `TestJoinGameUpsertDisplayName` class and `_make_join_interaction` helper (no longer needed)
+- `tests/unit/services/bot/handlers/test_leave_game.py` — deleted `TestLeaveGameUpsertDisplayName` class and `_make_leave_interaction` helper (no longer needed); removed unused `discord` import
+- `tests/unit/bot/handlers/test_leave_game_handler.py` — fixed `commit.call_count == 1` (was 2; second commit was from deleted `upsert_interaction_display_name`)
+
+**Success Criteria**:
+
+- ✓ `UserDisplayNameService` has zero callers in the codebase
+- ✓ `user_display_names` table drop migration created and recognized as Alembic head
+- ✓ All 2164 unit tests passing
+
+### Task 5.2 Completion Summary
+
+**Status**: ✅ COMPLETE
+
 ## Release Summary
 
-_To be completed after all phases are implemented._
+All five phases of the Discord Gateway Intent Redis Projection plan are complete.
+
+**What changed**: The Discord bot now subscribes to `GUILD_MEMBERS` privileged gateway intent and writes a Redis projection (`proj:gen:{n}:member:{guild}:{uid}`) on every member add/update/remove event and during `on_ready()` repopulation. The API service reads exclusively from this projection for all per-request member lookups — display name resolution, role checking, guild membership verification, and mention resolution.
+
+**Eliminated REST calls from the API per-request path**:
+
+- `GET /guilds/{id}/members/{uid}` — `get_guild_member()` (roles, display names, membership checks)
+- `GET /guilds/{id}/members/search` — user-friendly `@mention` resolution still uses bot REST (intentional)
+
+**Deleted**:
+
+- `services/api/services/login_refresh.py` — no longer needed after display name DB layer removed
+- `shared/services/user_display_names.py` — DB-backed display name cache replaced by Redis projection
+- `shared/models/user_display_name.py` — SQLAlchemy model for dropped table
+- `services/api/services/user_display_names.py` — re-export shim
+
+**Added infrastructure**:
+
+- Bot-side Redis writer: `services/bot/guild_projection.py`
+- Shared projection reader: `shared/cache/projection.py`
+- Projection cache keys: `shared/cache/keys.py` (`proj_gen`, `proj_member`, `proj_user_guilds`, `bot_last_seen`)
+- Gateway event handlers: `on_member_add`, `on_member_update`, `on_member_remove`, `_projection_heartbeat`
+- Alembic migration `20260419_drop_user_display_names` to drop the `user_display_names` table

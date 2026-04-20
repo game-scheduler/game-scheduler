@@ -52,27 +52,6 @@ from shared.utils.security_constants import (
 logger = logging.getLogger(__name__)
 
 
-async def _get_user_guilds(
-    current_user: auth_schemas.CurrentUser,
-    redis: RedisClient | None = None,
-) -> list[str] | None:
-    """Fetch the guild list for the current user from the Redis projection.
-
-    Returns None if bot projection is not fresh or guilds not found.
-    """
-    if redis is None:
-        redis = await get_redis_client()
-
-    if not await member_projection.is_bot_fresh(redis=redis):
-        logger.warning(
-            "Bot projection not fresh for user %s - returning None",
-            current_user.user.discord_id,
-        )
-        return None
-
-    return await member_projection.get_user_guilds(current_user.user.discord_id, redis=redis)
-
-
 async def _check_guild_membership(
     user_discord_id: str,
     guild_id: str,

@@ -107,7 +107,7 @@ class TestListGames:
                 current_user=mock_current_user_unit,
                 game_service=mock_game_service,
                 role_service=mock_role_service,
-                display_name_service=MagicMock(),
+                display_name_resolver=MagicMock(),
             )
 
         assert result.games == []
@@ -146,13 +146,11 @@ class TestGetGame:
                 current_user=mock_current_user_unit,
                 game_service=mock_game_service,
                 role_service=mock_role_service,
-                display_name_service=MagicMock(),
             )
 
         mock_build.assert_called_once_with(
             mock_game,
             can_manage=False,
-            display_name_service=mock_build.call_args.kwargs["display_name_service"],
         )
 
 
@@ -288,7 +286,7 @@ class TestJoinGame:
                     current_user=mock_current_user_unit,
                     game_service=mock_game_service,
                     role_service=mock_role_service,
-                    display_name_service=MagicMock(),
+                    display_name_resolver=MagicMock(),
                 )
 
         assert exc_info.value.status_code == http_status.HTTP_404_NOT_FOUND
@@ -310,7 +308,7 @@ class TestJoinGame:
                     current_user=mock_current_user_unit,
                     game_service=mock_game_service,
                     role_service=mock_role_service,
-                    display_name_service=MagicMock(),
+                    display_name_resolver=MagicMock(),
                 )
 
         assert exc_info.value.status_code == http_status.HTTP_400_BAD_REQUEST

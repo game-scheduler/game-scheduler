@@ -35,7 +35,6 @@ from .participant_action_schedule import ParticipantActionSchedule
 from .signup_method import SignupMethod
 from .template import GameTemplate
 from .user import User
-from .user_display_name import UserDisplayName
 
 __all__ = [
     "BackupMetadata",
@@ -53,5 +52,4 @@ __all__ = [
     "ParticipantActionSchedule",
     "SignupMethod",
     "User",
-    "UserDisplayName",
 ]

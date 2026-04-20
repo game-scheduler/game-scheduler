@@ -19,8 +19,9 @@
 # SOFTWARE.
 
 
-"""Unit tests for GameSchedulerBot.on_ready Redis cache rebuild from gateway data."""
+"""Unit tests for GameSchedulerBot.on_ready."""
 
+from contextlib import ExitStack
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
@@ -90,30 +91,141 @@ def mock_redis() -> AsyncMock:
     return redis
 
 
-async def _call_on_ready(bot: GameSchedulerBot, mock_redis: AsyncMock) -> MagicMock:
+@pytest.fixture
+def on_ready_env(bot, mock_redis):
+    """Apply all external patches needed to call on_ready, yielding the mock guild.
+
+    Tests that need an additional patch (e.g. repopulate_all) add it inside
+    the test body with a normal `with patch(...)` block — those patches nest
+    inside the ones applied here.
+    """
     guild = _make_guild(111, "Test Guild")
     mock_user = MagicMock()
     mock_user.id = 999
+
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch.object(type(bot), "guilds", new_callable=PropertyMock, return_value=[guild])
+        )
+        stack.enter_context(
+            patch.object(type(bot), "user", new_callable=PropertyMock, return_value=mock_user)
+        )
+        stack.enter_context(
+            patch(
+                "services.bot.bot.get_redis_client",
+                new_callable=AsyncMock,
+                return_value=mock_redis,
+            )
+        )
+        stack.enter_context(patch.object(bot, "_recover_pending_workers", new_callable=AsyncMock))
+        stack.enter_context(patch.object(bot, "_trigger_sweep", new_callable=AsyncMock))
+        stack.enter_context(patch.object(bot, "_sweep_orphaned_embeds", new_callable=AsyncMock))
+        stack.enter_context(patch("services.bot.bot.tracer"))
+        stack.enter_context(patch("services.bot.bot.os.getenv", return_value=None))
+        yield guild
+
+
+# ---------------------------------------------------------------------------
+# Delegation tests — each would fail if that step were removed from on_ready.
+# ---------------------------------------------------------------------------
+
+
+async def test_on_ready_calls_rebuild_redis_from_gateway(bot, mock_redis, on_ready_env) -> None:
+    """on_ready calls _rebuild_redis_from_gateway to populate guild/channel/role cache."""
     with (
-        patch.object(type(bot), "guilds", new_callable=PropertyMock, return_value=[guild]),
-        patch.object(type(bot), "user", new_callable=PropertyMock, return_value=mock_user),
-        patch(
-            "services.bot.bot.get_redis_client",
-            new_callable=AsyncMock,
-            return_value=mock_redis,
-        ),
-        patch.object(bot, "_recover_pending_workers", new_callable=AsyncMock),
-        patch.object(bot, "_trigger_sweep", new_callable=AsyncMock),
-        patch("services.bot.bot.tracer"),
-        patch("services.bot.bot.os.getenv", return_value=None),
+        patch.object(bot, "_rebuild_redis_from_gateway", new_callable=AsyncMock) as mock_rebuild,
+        patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock),
     ):
         await bot.on_ready()
-    return guild
+
+    mock_rebuild.assert_awaited_once()
 
 
-async def test_on_ready_writes_guild_key(bot: GameSchedulerBot, mock_redis: AsyncMock) -> None:
+async def test_on_ready_calls_recover_pending_workers(bot, mock_redis, on_ready_env) -> None:
+    """on_ready calls _recover_pending_workers."""
+    with patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock):
+        await bot.on_ready()
+
+    bot._recover_pending_workers.assert_awaited_once()
+
+
+async def test_on_ready_calls_trigger_sweep(bot, mock_redis, on_ready_env) -> None:
+    """on_ready calls _trigger_sweep."""
+    with patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock):
+        await bot.on_ready()
+
+    bot._trigger_sweep.assert_awaited_once()
+
+
+async def test_on_ready_calls_sweep_orphaned_embeds(bot, mock_redis, on_ready_env) -> None:
+    """on_ready calls _sweep_orphaned_embeds."""
+    with patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock):
+        await bot.on_ready()
+
+    bot._sweep_orphaned_embeds.assert_awaited_once()
+
+
+async def test_on_ready_calls_repopulate_all(bot, mock_redis, on_ready_env) -> None:
+    """on_ready calls guild_projection.repopulate_all with reason='on_ready'."""
+    with patch(
+        "services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock
+    ) as mock_repopulate:
+        await bot.on_ready()
+
+    mock_repopulate.assert_awaited_once_with(bot=bot, redis=mock_redis, reason="on_ready")
+
+
+async def test_on_ready_touches_bot_ready_file(bot, mock_redis, on_ready_env) -> None:
+    """on_ready touches /tmp/bot-ready after projection is populated."""
+    with (
+        patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock),
+        patch("services.bot.bot.Path") as mock_path,
+    ):
+        await bot.on_ready()
+
+    mock_path.assert_called_with("/tmp/bot-ready")
+    mock_path.return_value.touch.assert_called_once()
+
+
+async def test_on_ready_starts_message_refresh_listener(bot, mock_redis, on_ready_env) -> None:
+    """on_ready starts MessageRefreshListener task when not already running."""
+    del bot._refresh_listener_started
+    with (
+        patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock),
+        patch("services.bot.bot.MessageRefreshListener") as mock_listener_cls,
+    ):
+        mock_listener_cls.return_value.start = AsyncMock()
+        await bot.on_ready()
+
+    mock_listener_cls.assert_called_once()
+
+
+async def test_on_ready_does_not_restart_message_refresh_listener(
+    bot, mock_redis, on_ready_env
+) -> None:
+    """on_ready does not start a second MessageRefreshListener if already running."""
+    # bot._refresh_listener_started is set by _make_bot, so the flag is present
+    with (
+        patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock),
+        patch("services.bot.bot.MessageRefreshListener") as mock_listener_cls,
+    ):
+        await bot.on_ready()
+
+    mock_listener_cls.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Content tests — verify _rebuild_redis_from_gateway writes correct payloads.
+# repopulate_all is patched out so its own writes don't interfere with
+# the set_json assertions below.
+# ---------------------------------------------------------------------------
+
+
+async def test_on_ready_writes_guild_key(bot, mock_redis, on_ready_env) -> None:
     """on_ready writes discord:guild:{id} for each connected guild."""
-    guild = await _call_on_ready(bot, mock_redis)
+    guild = on_ready_env
+    with patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock):
+        await bot.on_ready()
 
     mock_redis.set_json.assert_any_call(
         CacheKeys.discord_guild(str(guild.id)),
@@ -122,25 +234,26 @@ async def test_on_ready_writes_guild_key(bot: GameSchedulerBot, mock_redis: Asyn
     )
 
 
-async def test_on_ready_writes_guild_channels_key(
-    bot: GameSchedulerBot, mock_redis: AsyncMock
-) -> None:
+async def test_on_ready_writes_guild_channels_key(bot, mock_redis, on_ready_env) -> None:
     """on_ready writes discord:guild_channels:{id} with the channel list for each guild."""
-    guild = await _call_on_ready(bot, mock_redis)
+    guild = on_ready_env
     ch = guild.channels[0]
-    expected = [{"id": str(ch.id), "name": ch.name, "type": ch.type.value}]
+    with patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock):
+        await bot.on_ready()
 
     mock_redis.set_json.assert_any_call(
         CacheKeys.discord_guild_channels(str(guild.id)),
-        expected,
+        [{"id": str(ch.id), "name": ch.name, "type": ch.type.value}],
         CacheTTL.DISCORD_GUILD_CHANNELS,
     )
 
 
-async def test_on_ready_writes_channel_key(bot: GameSchedulerBot, mock_redis: AsyncMock) -> None:
+async def test_on_ready_writes_channel_key(bot, mock_redis, on_ready_env) -> None:
     """on_ready writes discord:channel:{id} for every channel in every guild."""
-    guild = await _call_on_ready(bot, mock_redis)
+    guild = on_ready_env
     ch = guild.channels[0]
+    with patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock):
+        await bot.on_ready()
 
     mock_redis.set_json.assert_any_call(
         CacheKeys.discord_channel(str(ch.id)),
@@ -149,24 +262,23 @@ async def test_on_ready_writes_channel_key(bot: GameSchedulerBot, mock_redis: As
     )
 
 
-async def test_on_ready_writes_guild_roles_key(
-    bot: GameSchedulerBot, mock_redis: AsyncMock
-) -> None:
+async def test_on_ready_writes_guild_roles_key(bot, mock_redis, on_ready_env) -> None:
     """on_ready writes discord:guild_roles:{id} with correct role dict shape."""
-    guild = await _call_on_ready(bot, mock_redis)
+    guild = on_ready_env
     role = guild.roles[0]
-    expected = [
-        {
-            "id": str(role.id),
-            "name": role.name,
-            "color": role.color.value,
-            "position": role.position,
-            "managed": role.managed,
-        }
-    ]
+    with patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock):
+        await bot.on_ready()
 
     mock_redis.set_json.assert_any_call(
         CacheKeys.discord_guild_roles(str(guild.id)),
-        expected,
+        [
+            {
+                "id": str(role.id),
+                "name": role.name,
+                "color": role.color.value,
+                "position": role.position,
+                "managed": role.managed,
+            }
+        ],
         CacheTTL.DISCORD_GUILD_ROLES,
     )

@@ -146,6 +146,11 @@ async def repopulate_all(
     if prev_gen:
         await _delete_old_generation(redis, prev_gen)
 
+    # Mark bot as fresh immediately — projection is now fully populated.
+    # Without this, is_bot_fresh() returns False until the heartbeat task fires
+    # (up to 30 seconds after on_ready), causing membership checks to deny access.
+    await write_bot_last_seen(redis=redis)
+
     duration = (datetime.now(UTC) - start_time).total_seconds()
     repopulation_duration_histogram.record(duration, {"reason": reason})
     repopulation_members_written_histogram.record(total_members_written, {"reason": reason})

@@ -37,7 +37,6 @@ from services.bot.handlers.utils import (
     get_participant_count,
     send_deferred_response,
     send_error_message,
-    upsert_interaction_display_name,
 )
 from shared.database import get_db_session
 from shared.models.base import utc_now
@@ -115,8 +114,6 @@ async def handle_join_game(
         )
         db.add(schedule)
         await db.commit()
-
-        await upsert_interaction_display_name(db, interaction, game.guild.guild_id, user_discord_id)
 
         await publisher.publish_game_updated(
             game_id=game_id,

@@ -31,7 +31,6 @@ from starlette import status as http_status
 from services.api.routes import games as games_routes
 from services.api.services import participant_resolver as resolver_module
 from services.api.services.display_names import DisplayNameResolver
-from services.api.services.user_display_names import UserDisplayNameService
 from shared.schemas import game as game_schemas
 
 
@@ -182,13 +181,11 @@ class TestGetGameCanManage:
                 current_user=current_user,
                 game_service=game_service,
                 role_service=role_service,
-                display_name_service=MagicMock(),
             )
 
         mock_build.assert_called_once_with(
             game,
             can_manage=True,
-            display_name_service=mock_build.call_args.kwargs["display_name_service"],
         )
         assert result is expected_response
 
@@ -224,13 +221,11 @@ class TestGetGameCanManage:
                 current_user=current_user,
                 game_service=game_service,
                 role_service=role_service,
-                display_name_service=MagicMock(),
             )
 
         mock_build.assert_called_once_with(
             game,
             can_manage=False,
-            display_name_service=mock_build.call_args.kwargs["display_name_service"],
         )
         assert result is expected_response
 
@@ -265,13 +260,11 @@ class TestGetGameCanManage:
                 current_user=current_user,
                 game_service=game_service,
                 role_service=role_service,
-                display_name_service=MagicMock(),
             )
 
         mock_build.assert_called_once_with(
             game,
             can_manage=False,
-            display_name_service=mock_build.call_args.kwargs["display_name_service"],
         )
         assert result is expected_response
 
@@ -308,7 +301,7 @@ class TestListGamesResolvesParticipants:
             ),
         ):
             mock_display_svc = MagicMock()
-            mock_display_svc.resolve = AsyncMock(return_value={})
+            mock_display_svc.resolve_display_names_and_avatars = AsyncMock(return_value={})
 
             await games_routes.list_games(
                 guild_id=None,
@@ -319,7 +312,7 @@ class TestListGamesResolvesParticipants:
                 current_user=current_user,
                 game_service=game_service,
                 role_service=role_service,
-                display_name_service=mock_display_svc,
+                display_name_resolver=mock_display_svc,
             )
 
         mock_build.assert_called_once()
@@ -369,7 +362,7 @@ class TestListGamesPrefetchedDisplayData:
             ),
         ):
             mock_display_svc = MagicMock()
-            mock_display_svc.resolve = AsyncMock(return_value=prefetched)
+            mock_display_svc.resolve_display_names_and_avatars = AsyncMock(return_value=prefetched)
 
             await games_routes.list_games(
                 guild_id=None,
@@ -380,7 +373,7 @@ class TestListGamesPrefetchedDisplayData:
                 current_user=current_user,
                 game_service=game_service,
                 role_service=role_service,
-                display_name_service=mock_display_svc,
+                display_name_resolver=mock_display_svc,
             )
 
         call_kwargs = mock_build.call_args.kwargs
@@ -415,7 +408,7 @@ class TestListGamesPrefetchedDisplayData:
             ),
         ):
             mock_display_svc = MagicMock()
-            mock_display_svc.resolve = AsyncMock(return_value={})
+            mock_display_svc.resolve_display_names_and_avatars = AsyncMock(return_value={})
 
             await games_routes.list_games(
                 guild_id=None,
@@ -426,11 +419,11 @@ class TestListGamesPrefetchedDisplayData:
                 current_user=current_user,
                 game_service=game_service,
                 role_service=role_service,
-                display_name_service=mock_display_svc,
+                display_name_resolver=mock_display_svc,
             )
 
-        assert mock_display_svc.resolve.call_count == 1
-        call_args = mock_display_svc.resolve.call_args
+        assert mock_display_svc.resolve_display_names_and_avatars.call_count == 1
+        call_args = mock_display_svc.resolve_display_names_and_avatars.call_args
         resolved_ids = call_args.args[1] if call_args.args else call_args.kwargs.get("user_ids", [])
         assert resolved_ids.count("host1") == 1
 
@@ -463,7 +456,7 @@ class TestListGamesPrefetchedDisplayData:
             ),
         ):
             mock_display_svc = MagicMock()
-            mock_display_svc.resolve = AsyncMock(return_value={})
+            mock_display_svc.resolve_display_names_and_avatars = AsyncMock(return_value={})
 
             await games_routes.list_games(
                 guild_id=None,
@@ -474,14 +467,14 @@ class TestListGamesPrefetchedDisplayData:
                 current_user=current_user,
                 game_service=game_service,
                 role_service=role_service,
-                display_name_service=mock_display_svc,
+                display_name_resolver=mock_display_svc,
             )
 
-        assert mock_display_svc.resolve.call_count == 2
+        assert mock_display_svc.resolve_display_names_and_avatars.call_count == 2
 
 
-class TestListGamesUsesDisplayNameService:
-    """list_games should use UserDisplayNameService.resolve, not display_name_resolver directly."""
+class TestListGamesUsesDisplayNameResolver:
+    """list_games should call resolve_display_names_and_avatars on the resolver directly."""
 
     def _make_game(self, host_discord_id: str, guild_discord_id: str) -> MagicMock:
         game = MagicMock()
@@ -493,8 +486,8 @@ class TestListGamesUsesDisplayNameService:
         return game
 
     @pytest.mark.asyncio
-    async def test_list_games_calls_display_name_service_resolve(self):
-        """list_games should call UserDisplayNameService.resolve instead of direct resolver."""
+    async def test_list_games_calls_resolver_resolve_display_names_and_avatars(self):
+        """list_games calls resolver.resolve_display_names_and_avatars for host display names."""
         game = self._make_game("host1", "guild_discord_1")
         current_user = MagicMock()
         current_user.user.discord_id = "user123"
@@ -504,8 +497,8 @@ class TestListGamesUsesDisplayNameService:
         game_service.db = MagicMock()
         role_service = MagicMock()
 
-        mock_display_svc = MagicMock(spec=UserDisplayNameService)
-        mock_display_svc.resolve = AsyncMock(
+        mock_display_resolver = MagicMock(spec=DisplayNameResolver)
+        mock_display_resolver.resolve_display_names_and_avatars = AsyncMock(
             return_value={"host1": {"display_name": "Host", "avatar_url": None}}
         )
 
@@ -532,53 +525,9 @@ class TestListGamesUsesDisplayNameService:
                 current_user=current_user,
                 game_service=game_service,
                 role_service=role_service,
-                display_name_service=mock_display_svc,
+                display_name_resolver=mock_display_resolver,
             )
 
-        mock_display_svc.resolve.assert_awaited_once_with("guild_discord_1", ["host1"])
-
-    @pytest.mark.asyncio
-    async def test_list_games_db_hit_does_not_call_resolver(self):
-        """When all hosts are in DB, DisplayNameResolver should not be called."""
-        game = self._make_game("host1", "guild_discord_1")
-        current_user = MagicMock()
-        current_user.user.discord_id = "user123"
-        current_user.access_token = "token"
-        game_service = MagicMock()
-        game_service.list_games = AsyncMock(return_value=([game], 1))
-        game_service.db = MagicMock()
-        role_service = MagicMock()
-
-        mock_resolver = MagicMock(spec=DisplayNameResolver)
-        mock_resolver.resolve_display_names_and_avatars = AsyncMock(return_value={})
-        db_result = {"host1": {"display_name": "Host", "avatar_url": None}}
-        real_svc = UserDisplayNameService(db=game_service.db, resolver=mock_resolver)
-
-        with (
-            patch(
-                "services.api.routes.games.permissions_deps.verify_game_access",
-                new_callable=AsyncMock,
-            ),
-            patch(
-                "services.api.routes.games._build_game_response",
-                new_callable=AsyncMock,
-                return_value=MagicMock(),
-            ),
-            patch(
-                "services.api.routes.games.game_schemas.GameListResponse", return_value=MagicMock()
-            ),
-            patch.object(real_svc, "resolve", new=AsyncMock(return_value=db_result)),
-        ):
-            await games_routes.list_games(
-                guild_id=None,
-                channel_id=None,
-                status=None,
-                limit=50,
-                offset=0,
-                current_user=current_user,
-                game_service=game_service,
-                role_service=role_service,
-                display_name_service=real_svc,
-            )
-
-        mock_resolver.resolve_display_names_and_avatars.assert_not_called()
+        mock_display_resolver.resolve_display_names_and_avatars.assert_awaited_once_with(
+            "guild_discord_1", ["host1"]
+        )

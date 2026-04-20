@@ -340,6 +340,29 @@ class TestRepopulateAll:
         # (OTel metrics are recorded implicitly via decorators)
         assert True
 
+    @pytest.mark.asyncio
+    async def test_repopulate_all_writes_bot_last_seen(self):
+        """repopulate_all writes bot:last_seen so is_bot_fresh() is True immediately."""
+        redis = AsyncMock()
+        redis.get = AsyncMock(return_value=None)
+
+        mock_client = AsyncMock()
+        mock_client.scan = AsyncMock(return_value=(0, []))
+        mock_client.delete = AsyncMock()
+        redis._client = mock_client
+
+        bot = MagicMock(spec=discord.Client)
+        bot.guilds = []
+
+        await repopulate_all(bot=bot, redis=redis, reason="on_ready")
+
+        bot_last_seen_writes = [
+            call for call in redis.set.call_args_list if CacheKeys.bot_last_seen() in str(call)
+        ]
+        assert len(bot_last_seen_writes) == 1, (
+            "repopulate_all must write bot:last_seen to eliminate the freshness gap"
+        )
+
 
 class TestReadProjectionKey:
     """Tests for read_projection_key gen-rotation retry logic."""

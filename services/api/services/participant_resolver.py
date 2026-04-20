@@ -34,6 +34,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from starlette import status
 
+from shared.cache import client as cache_client
+from shared.cache import projection as member_projection
 from shared.discord import client as discord_client_module
 from shared.models import user as user_model
 
@@ -89,23 +91,9 @@ class ParticipantResolver:
             Returns (participant_dict, None) on success, (None, error_dict) on failure
         """
         try:
-            member = await self.discord_client.get_guild_member(guild_discord_id, discord_id)
-            return (
-                {
-                    "type": "discord",
-                    "discord_id": discord_id,
-                    "username": member["user"]["username"],
-                    "display_name": (
-                        member.get("nick")
-                        or member["user"].get("global_name")
-                        or member["user"]["username"]
-                    ),
-                    "original_input": input_text,
-                },
-                None,
-            )
-        except discord_client_module.DiscordAPIError as e:
-            if e.status == status.HTTP_404_NOT_FOUND:
+            redis = await cache_client.get_redis_client()
+            member = await member_projection.get_member(guild_discord_id, discord_id, redis=redis)
+            if member is None:
                 return (
                     None,
                     {
@@ -114,20 +102,17 @@ class ParticipantResolver:
                         "suggestions": [],
                     },
                 )
-            logger.error(
-                "Discord API error fetching member %s from guild %s: %s - %s",
-                discord_id,
-                guild_discord_id,
-                e.status,
-                e.message,
-            )
             return (
-                None,
                 {
-                    "input": input_text,
-                    "reason": f"Discord API error: {e.message}",
-                    "suggestions": [],
+                    "type": "discord",
+                    "discord_id": discord_id,
+                    "username": member["username"],
+                    "display_name": (
+                        member.get("nick") or member.get("global_name") or member["username"]
+                    ),
+                    "original_input": input_text,
                 },
+                None,
             )
         except Exception as e:
             logger.exception(

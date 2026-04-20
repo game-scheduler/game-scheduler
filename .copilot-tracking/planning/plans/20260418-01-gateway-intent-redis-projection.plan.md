@@ -79,12 +79,12 @@ Eliminate all Discord REST API calls from the per-request API path by pre-popula
 - [x] Task 4.4: Migrate `DisplayNameResolver` REST fallback → `get_member()`
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 252–268)
 
-### [ ] Phase 5: Cleanup
+### [x] Phase 5: Cleanup
 
-- [ ] Task 5.1: Remove all dead code: `login_refresh.py` REST paths, `_get_user_guilds`, old TTL constants; verify zero Discord REST calls from API
+- [x] Task 5.1: Remove all dead code: `login_refresh.py` REST paths, `_get_user_guilds`, old TTL constants; verify zero Discord REST calls from API
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 271–296)
 
-- [ ] Task 5.2: Drop `user_display_names` DB table via Alembic migration; delete `UserDisplayNameService`
+- [x] Task 5.2: Drop `user_display_names` DB table via Alembic migration; delete `UserDisplayNameService`
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 297–315)
 
 ## Dependencies

@@ -21,7 +21,7 @@
 
 """Unit tests for participant resolver service."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -315,19 +315,27 @@ async def test_malformed_response_handling(resolver, mock_discord_client):
 async def test_resolve_discord_mention_format(resolver, mock_discord_client):
     """Test resolving Discord internal mention format <@discord_id>."""
     member_data = {
-        "user": {
-            "id": "987654321012345678",
-            "username": "testuser",
-            "global_name": "Test User",
-        }
+        "username": "testuser",
+        "global_name": "Test User",
+        "nick": None,
     }
-    mock_discord_client.get_guild_member = AsyncMock(return_value=member_data)
-
-    valid, errors = await resolver.resolve_initial_participants(
-        guild_discord_id="123456789",
-        participant_inputs=["<@987654321012345678>"],
-        access_token="token",
-    )
+    with (
+        patch(
+            "services.api.services.participant_resolver.cache_client.get_redis_client",
+            new_callable=AsyncMock,
+            return_value=AsyncMock(),
+        ),
+        patch(
+            "services.api.services.participant_resolver.member_projection.get_member",
+            new_callable=AsyncMock,
+            return_value=member_data,
+        ),
+    ):
+        valid, errors = await resolver.resolve_initial_participants(
+            guild_discord_id="123456789",
+            participant_inputs=["<@987654321012345678>"],
+            access_token="token",
+        )
 
     assert len(valid) == 1
     assert len(errors) == 0
@@ -354,23 +362,31 @@ async def test_resolve_mixed_mention_formats(resolver, mock_discord_client):
     mock_discord_client._get_session = AsyncMock(return_value=mock_session)
 
     member_data = {
-        "user": {
-            "id": "987654321012345678",
-            "username": "mentionuser",
-            "global_name": "Mention User",
-        }
+        "username": "mentionuser",
+        "global_name": "Mention User",
+        "nick": None,
     }
-    mock_discord_client.get_guild_member = AsyncMock(return_value=member_data)
-
-    valid, errors = await resolver.resolve_initial_participants(
-        guild_discord_id="123456789",
-        participant_inputs=[
-            "@testuser",
-            "<@987654321012345678>",
-            "PlaceholderName",
-        ],
-        access_token="token",
-    )
+    with (
+        patch(
+            "services.api.services.participant_resolver.cache_client.get_redis_client",
+            new_callable=AsyncMock,
+            return_value=AsyncMock(),
+        ),
+        patch(
+            "services.api.services.participant_resolver.member_projection.get_member",
+            new_callable=AsyncMock,
+            return_value=member_data,
+        ),
+    ):
+        valid, errors = await resolver.resolve_initial_participants(
+            guild_discord_id="123456789",
+            participant_inputs=[
+                "@testuser",
+                "<@987654321012345678>",
+                "PlaceholderName",
+            ],
+            access_token="token",
+        )
 
     assert len(valid) == 3
     assert len(errors) == 0
@@ -408,21 +424,29 @@ async def test_reject_invalid_discord_mention_format(resolver):
 async def test_discord_mention_format_with_whitespace(resolver, mock_discord_client):
     """Test Discord mention format handles whitespace correctly."""
     member_data = {
-        "user": {
-            "id": "987654321012345678",
-            "username": "testuser",
-            "global_name": "Test User",
-        }
+        "username": "testuser",
+        "global_name": "Test User",
+        "nick": None,
     }
-    mock_discord_client.get_guild_member = AsyncMock(return_value=member_data)
-
-    valid, errors = await resolver.resolve_initial_participants(
-        guild_discord_id="123456789",
-        participant_inputs=[
-            "  <@987654321012345678>  ",  # Leading/trailing spaces
-        ],
-        access_token="token",
-    )
+    with (
+        patch(
+            "services.api.services.participant_resolver.cache_client.get_redis_client",
+            new_callable=AsyncMock,
+            return_value=AsyncMock(),
+        ),
+        patch(
+            "services.api.services.participant_resolver.member_projection.get_member",
+            new_callable=AsyncMock,
+            return_value=member_data,
+        ),
+    ):
+        valid, errors = await resolver.resolve_initial_participants(
+            guild_discord_id="123456789",
+            participant_inputs=[
+                "  <@987654321012345678>  ",  # Leading/trailing spaces
+            ],
+            access_token="token",
+        )
 
     assert len(valid) == 1
     assert len(errors) == 0
@@ -437,20 +461,27 @@ async def test_discord_mention_format_with_whitespace(resolver, mock_discord_cli
 async def test_resolve_discord_mention_format_success(resolver, mock_discord_client):
     """Test _resolve_discord_mention_format with successful member fetch."""
     member_data = {
-        "user": {
-            "id": "123456789012345678",
-            "username": "testuser",
-            "global_name": "Test User",
-        },
+        "username": "testuser",
+        "global_name": "Test User",
         "nick": "TestNick",
     }
-    mock_discord_client.get_guild_member = AsyncMock(return_value=member_data)
-
-    participant, error = await resolver._resolve_discord_mention_format(
-        guild_discord_id="999",
-        input_text="<@123456789012345678>",
-        discord_id="123456789012345678",
-    )
+    with (
+        patch(
+            "services.api.services.participant_resolver.cache_client.get_redis_client",
+            new_callable=AsyncMock,
+            return_value=AsyncMock(),
+        ),
+        patch(
+            "services.api.services.participant_resolver.member_projection.get_member",
+            new_callable=AsyncMock,
+            return_value=member_data,
+        ),
+    ):
+        participant, error = await resolver._resolve_discord_mention_format(
+            guild_discord_id="999",
+            input_text="<@123456789012345678>",
+            discord_id="123456789012345678",
+        )
 
     assert participant is not None
     assert error is None
@@ -465,20 +496,27 @@ async def test_resolve_discord_mention_format_success(resolver, mock_discord_cli
 async def test_resolve_discord_mention_format_no_nick(resolver, mock_discord_client):
     """Test _resolve_discord_mention_format falls back to global_name when no nick."""
     member_data = {
-        "user": {
-            "id": "123456789012345678",
-            "username": "testuser",
-            "global_name": "Test User",
-        },
+        "username": "testuser",
+        "global_name": "Test User",
         "nick": None,
     }
-    mock_discord_client.get_guild_member = AsyncMock(return_value=member_data)
-
-    participant, error = await resolver._resolve_discord_mention_format(
-        guild_discord_id="999",
-        input_text="<@123456789012345678>",
-        discord_id="123456789012345678",
-    )
+    with (
+        patch(
+            "services.api.services.participant_resolver.cache_client.get_redis_client",
+            new_callable=AsyncMock,
+            return_value=AsyncMock(),
+        ),
+        patch(
+            "services.api.services.participant_resolver.member_projection.get_member",
+            new_callable=AsyncMock,
+            return_value=member_data,
+        ),
+    ):
+        participant, error = await resolver._resolve_discord_mention_format(
+            guild_discord_id="999",
+            input_text="<@123456789012345678>",
+            discord_id="123456789012345678",
+        )
 
     assert participant["display_name"] == "Test User"
 
@@ -487,36 +525,51 @@ async def test_resolve_discord_mention_format_no_nick(resolver, mock_discord_cli
 async def test_resolve_discord_mention_format_no_global_name(resolver, mock_discord_client):
     """Test _resolve_discord_mention_format falls back to username when no nick or global_name."""
     member_data = {
-        "user": {
-            "id": "123456789012345678",
-            "username": "testuser",
-            "global_name": None,
-        },
+        "username": "testuser",
+        "global_name": None,
         "nick": None,
     }
-    mock_discord_client.get_guild_member = AsyncMock(return_value=member_data)
-
-    participant, error = await resolver._resolve_discord_mention_format(
-        guild_discord_id="999",
-        input_text="<@123456789012345678>",
-        discord_id="123456789012345678",
-    )
+    with (
+        patch(
+            "services.api.services.participant_resolver.cache_client.get_redis_client",
+            new_callable=AsyncMock,
+            return_value=AsyncMock(),
+        ),
+        patch(
+            "services.api.services.participant_resolver.member_projection.get_member",
+            new_callable=AsyncMock,
+            return_value=member_data,
+        ),
+    ):
+        participant, error = await resolver._resolve_discord_mention_format(
+            guild_discord_id="999",
+            input_text="<@123456789012345678>",
+            discord_id="123456789012345678",
+        )
 
     assert participant["display_name"] == "testuser"
 
 
 @pytest.mark.asyncio
 async def test_resolve_discord_mention_format_not_found(resolver, mock_discord_client):
-    """Test _resolve_discord_mention_format handles 404 not found."""
-    mock_discord_client.get_guild_member = AsyncMock(
-        side_effect=discord_client_module.DiscordAPIError(404, "Not Found")
-    )
-
-    participant, error = await resolver._resolve_discord_mention_format(
-        guild_discord_id="999",
-        input_text="<@123456789012345678>",
-        discord_id="123456789012345678",
-    )
+    """Test _resolve_discord_mention_format handles member absent from projection."""
+    with (
+        patch(
+            "services.api.services.participant_resolver.cache_client.get_redis_client",
+            new_callable=AsyncMock,
+            return_value=AsyncMock(),
+        ),
+        patch(
+            "services.api.services.participant_resolver.member_projection.get_member",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+    ):
+        participant, error = await resolver._resolve_discord_mention_format(
+            guild_discord_id="999",
+            input_text="<@123456789012345678>",
+            discord_id="123456789012345678",
+        )
 
     assert participant is None
     assert error is not None
@@ -527,32 +580,45 @@ async def test_resolve_discord_mention_format_not_found(resolver, mock_discord_c
 
 @pytest.mark.asyncio
 async def test_resolve_discord_mention_format_api_error(resolver, mock_discord_client):
-    """Test _resolve_discord_mention_format handles Discord API error."""
-    mock_discord_client.get_guild_member = AsyncMock(
-        side_effect=discord_client_module.DiscordAPIError(500, "Internal Server Error")
-    )
-
-    participant, error = await resolver._resolve_discord_mention_format(
-        guild_discord_id="999",
-        input_text="<@123456789012345678>",
-        discord_id="123456789012345678",
-    )
+    """Test _resolve_discord_mention_format handles unexpected error."""
+    with (
+        patch(
+            "services.api.services.participant_resolver.cache_client.get_redis_client",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("Redis unavailable"),
+        ),
+    ):
+        participant, error = await resolver._resolve_discord_mention_format(
+            guild_discord_id="999",
+            input_text="<@123456789012345678>",
+            discord_id="123456789012345678",
+        )
 
     assert participant is None
     assert error is not None
-    assert error["reason"] == "Discord API error: Internal Server Error"
+    assert error["reason"] == "Internal error fetching user"
 
 
 @pytest.mark.asyncio
 async def test_resolve_discord_mention_format_unexpected_error(resolver, mock_discord_client):
-    """Test _resolve_discord_mention_format handles unexpected exception."""
-    mock_discord_client.get_guild_member = AsyncMock(side_effect=RuntimeError("Unexpected error"))
-
-    participant, error = await resolver._resolve_discord_mention_format(
-        guild_discord_id="999",
-        input_text="<@123456789012345678>",
-        discord_id="123456789012345678",
-    )
+    """Test _resolve_discord_mention_format handles unexpected exception from projection."""
+    with (
+        patch(
+            "services.api.services.participant_resolver.cache_client.get_redis_client",
+            new_callable=AsyncMock,
+            return_value=AsyncMock(),
+        ),
+        patch(
+            "services.api.services.participant_resolver.member_projection.get_member",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("Unexpected error"),
+        ),
+    ):
+        participant, error = await resolver._resolve_discord_mention_format(
+            guild_discord_id="999",
+            input_text="<@123456789012345678>",
+            discord_id="123456789012345678",
+        )
 
     assert participant is None
     assert error is not None
@@ -707,22 +773,28 @@ def test_create_placeholder_participant_special_chars(resolver):
 @pytest.mark.asyncio
 async def test_process_single_participant_input_discord_mention(resolver, mock_discord_client):
     """Test _process_single_participant_input with Discord mention format."""
-    mock_discord_client.get_guild_member = AsyncMock(
-        return_value={
-            "user": {
-                "id": "12345678901234567",
-                "username": "testuser",
-                "global_name": "Test User",
-            },
-            "nick": "TestNick",
-        }
-    )
-
-    participant, error = await resolver._process_single_participant_input(
-        guild_discord_id="999",
-        input_text="<@12345678901234567>",
-        access_token="token",
-    )
+    member_data = {
+        "username": "testuser",
+        "global_name": "Test User",
+        "nick": "TestNick",
+    }
+    with (
+        patch(
+            "services.api.services.participant_resolver.cache_client.get_redis_client",
+            new_callable=AsyncMock,
+            return_value=AsyncMock(),
+        ),
+        patch(
+            "services.api.services.participant_resolver.member_projection.get_member",
+            new_callable=AsyncMock,
+            return_value=member_data,
+        ),
+    ):
+        participant, error = await resolver._process_single_participant_input(
+            guild_discord_id="999",
+            input_text="<@12345678901234567>",
+            access_token="token",
+        )
 
     assert participant is not None
     assert participant["type"] == "discord"

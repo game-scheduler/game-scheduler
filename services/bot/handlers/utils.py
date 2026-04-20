@@ -29,7 +29,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.participant import GameParticipant
-from shared.services.user_display_names import UserDisplayNameService
 
 logger = logging.getLogger(__name__)
 
@@ -93,26 +92,3 @@ async def send_success_message(interaction: discord.Interaction, message: str) -
         await interaction.user.send(content=message)
     except (discord.Forbidden, discord.HTTPException) as e:
         logger.warning("Cannot send DM to user %s: %s", interaction.user.id, e)
-
-
-async def upsert_interaction_display_name(
-    db: AsyncSession,
-    interaction: discord.Interaction,
-    fallback_guild_id: str,
-    user_discord_id: str,
-) -> None:
-    member = interaction.user if isinstance(interaction.user, discord.Member) else None
-    display_name = (
-        (member.nick if member else None) or interaction.user.global_name or interaction.user.name
-    )
-    avatar_url = (
-        str(interaction.user.display_avatar.url) if interaction.user.display_avatar else None
-    )
-    guild_id_str = str(member.guild.id) if member else fallback_guild_id
-    await UserDisplayNameService(db).upsert_one(
-        user_discord_id,
-        guild_id_str,
-        display_name,
-        avatar_url,
-    )
-    await db.commit()

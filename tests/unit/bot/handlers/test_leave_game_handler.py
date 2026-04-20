@@ -185,7 +185,7 @@ async def test_leave_deletes_participant_regardless_of_notification(
         await handle_leave_game(mock_interaction, game_id, mock_publisher)
 
     mock_db.delete.assert_called_once_with(mock_participant)
-    assert mock_db.commit.call_count == 2
+    assert mock_db.commit.call_count == 1
 
 
 @pytest.mark.asyncio

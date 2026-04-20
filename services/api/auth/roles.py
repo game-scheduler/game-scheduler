@@ -33,9 +33,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.api.dependencies.discord import get_discord_client
 from shared.cache import client as cache_client
 from shared.cache import keys as cache_keys
+from shared.cache import projection as member_projection
 from shared.cache import ttl as cache_ttl
 from shared.cache.operations import CacheOperation, cache_get
-from shared.discord import client as discord_client
 from shared.models import guild as guild_model
 from shared.utils.discord import DiscordPermissions
 
@@ -79,29 +79,15 @@ class RoleVerificationService:
                 # Type narrowing: cached roles is a list (should contain string role IDs)
                 return cached_roles_raw
 
-        try:
-            member_data = await self.discord_client.get_guild_member(guild_id, user_id)
-            role_ids = member_data.get("roles", [])
+        role_ids = await member_projection.get_user_roles(guild_id, user_id, redis=cache)
 
-            # Add @everyone role (which has the same ID as the guild)
-            # Discord doesn't include it in the roles array but every member has it
-            if guild_id not in role_ids:
-                role_ids.append(guild_id)
+        # Add @everyone role (which has the same ID as the guild)
+        # Discord doesn't include it in the roles array but every member has it
+        if guild_id not in role_ids:
+            role_ids.append(guild_id)
 
-            await cache.set_json(cache_key, role_ids, ttl=cache_ttl.CacheTTL.USER_ROLES)
-            return role_ids
-
-        except discord_client.DiscordAPIError as e:
-            logger.warning(
-                "Failed to fetch user roles for %s in guild %s: %s",
-                user_id,
-                guild_id,
-                e,
-            )
-            return []
-        except Exception as e:
-            logger.error("Unexpected error fetching user roles: %s", e)
-            return []
+        await cache.set_json(cache_key, role_ids, ttl=cache_ttl.CacheTTL.USER_ROLES)
+        return role_ids
 
     def _find_guild_data(self, guilds: list[dict], guild_id: str) -> dict | None:
         """
