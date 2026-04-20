@@ -69,6 +69,8 @@ def _make_role(
     role.color.value = 0
     role.position = 1
     role.managed = False
+    role.permissions = MagicMock()
+    role.permissions.value = 0
     guild = MagicMock()
     guild.id = guild_id
     guild.roles = guild_roles if guild_roles is not None else [role]
@@ -182,6 +184,7 @@ async def test_on_guild_role_create_writes_roles_list(
             "color": role.color.value,
             "position": role.position,
             "managed": role.managed,
+            "permissions": role.permissions.value,
         }
     ]
     with patch(
@@ -210,6 +213,7 @@ async def test_on_guild_role_update_writes_roles_list(
             "color": after.color.value,
             "position": after.position,
             "managed": after.managed,
+            "permissions": after.permissions.value,
         }
     ]
     with patch(
@@ -238,6 +242,7 @@ async def test_on_guild_role_delete_writes_roles_list(
             "color": remaining.color.value,
             "position": remaining.position,
             "managed": remaining.managed,
+            "permissions": remaining.permissions.value,
         }
     ]
     with patch(

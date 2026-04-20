@@ -21,6 +21,7 @@
 
 """Unit tests for role verification service."""
 
+from typing import ClassVar
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -374,3 +375,106 @@ def test_get_role_service_singleton():
     service2 = roles.get_role_service()
 
     assert service1 is service2
+
+
+class TestHasPermissionsLocalBitfield:
+    """Tests for the projection-based has_permissions() replacing the OAuth REST call."""
+
+    _GUILD_ROLES: ClassVar[list[dict]] = [
+        {"id": "guild456", "name": "@everyone", "permissions": 0x400},  # SEND_MESSAGES
+        {"id": "role_admin", "name": "Admin", "permissions": 0x8},  # ADMINISTRATOR
+        {"id": "role_mgr", "name": "Manager", "permissions": 0x20},  # MANAGE_GUILD
+    ]
+
+    @pytest.mark.asyncio
+    async def test_has_permissions_user_holds_flag(self, role_service, mock_cache):
+        """User with MANAGE_GUILD role gets True for MANAGE_GUILD check."""
+        mock_cache.get_json = AsyncMock(return_value=self._GUILD_ROLES)
+        with (
+            patch.object(role_service, "_get_cache", return_value=mock_cache),
+            patch(
+                "services.api.auth.roles.member_projection.get_user_roles",
+                new_callable=AsyncMock,
+                return_value=["role_mgr"],
+            ),
+        ):
+            result = await role_service.has_permissions(
+                "user123", "guild456", DiscordPermissions.MANAGE_GUILD
+            )
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_has_permissions_user_lacks_flag(self, role_service, mock_cache):
+        """User without MANAGE_GUILD role gets False."""
+        mock_cache.get_json = AsyncMock(return_value=self._GUILD_ROLES)
+        with (
+            patch.object(role_service, "_get_cache", return_value=mock_cache),
+            patch(
+                "services.api.auth.roles.member_projection.get_user_roles",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+        ):
+            result = await role_service.has_permissions(
+                "user123", "guild456", DiscordPermissions.MANAGE_GUILD
+            )
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_has_permissions_administrator_grants_all(self, role_service, mock_cache):
+        """User with ADMINISTRATOR role gets True regardless of requested permission."""
+        mock_cache.get_json = AsyncMock(return_value=self._GUILD_ROLES)
+        with (
+            patch.object(role_service, "_get_cache", return_value=mock_cache),
+            patch(
+                "services.api.auth.roles.member_projection.get_user_roles",
+                new_callable=AsyncMock,
+                return_value=["role_admin"],
+            ),
+        ):
+            result = await role_service.has_permissions(
+                "user123", "guild456", DiscordPermissions.MANAGE_CHANNELS
+            )
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_has_permissions_everyone_role_included(self, role_service, mock_cache):
+        """@everyone (guild_id) permissions are OR-ed into the user's bitfield."""
+        guild_roles = [
+            {"id": "guild456", "name": "@everyone", "permissions": 0x20},  # MANAGE_GUILD
+        ]
+        mock_cache.get_json = AsyncMock(return_value=guild_roles)
+        with (
+            patch.object(role_service, "_get_cache", return_value=mock_cache),
+            patch(
+                "services.api.auth.roles.member_projection.get_user_roles",
+                new_callable=AsyncMock,
+                return_value=[],  # no extra roles; @everyone carries the permission
+            ),
+        ):
+            result = await role_service.has_permissions(
+                "user123", "guild456", DiscordPermissions.MANAGE_GUILD
+            )
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_has_permissions_cache_miss_returns_false(self, role_service, mock_cache):
+        """Missing guild roles cache returns False without crashing."""
+        mock_cache.get_json = AsyncMock(return_value=None)
+        with (
+            patch.object(role_service, "_get_cache", return_value=mock_cache),
+            patch(
+                "services.api.auth.roles.member_projection.get_user_roles",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+        ):
+            result = await role_service.has_permissions(
+                "user123", "guild456", DiscordPermissions.MANAGE_GUILD
+            )
+
+        assert result is False

@@ -408,9 +408,9 @@ async def require_manage_guild(
         HTTPException: If user lacks MANAGE_GUILD permission
     """
 
-    async def check_manage_guild(user_id: str, guild_id: str, token: str) -> bool:
+    async def check_manage_guild(user_id: str, guild_id: str, _token: str) -> bool:
         return await role_service.has_permissions(
-            user_id, guild_id, token, DiscordPermissions.MANAGE_GUILD
+            user_id, guild_id, DiscordPermissions.MANAGE_GUILD
         )
 
     return await _require_permission(
@@ -452,9 +452,9 @@ async def require_manage_channels(
         HTTPException: If user lacks MANAGE_CHANNELS permission
     """
 
-    async def check_manage_channels(user_id: str, guild_id: str, token: str) -> bool:
+    async def check_manage_channels(user_id: str, guild_id: str, _token: str) -> bool:
         return await role_service.has_permissions(
-            user_id, guild_id, token, DiscordPermissions.MANAGE_CHANNELS
+            user_id, guild_id, DiscordPermissions.MANAGE_CHANNELS
         )
 
     return await _require_permission(
@@ -782,12 +782,9 @@ async def require_administrator(
     if token_data.get("is_maintainer"):
         return current_user
 
-    access_token = token_data["access_token"]
-
     has_permission = await role_service.has_permissions(
         current_user.user.discord_id,
         guild_id,
-        access_token,
         DiscordPermissions.ADMINISTRATOR,
     )
 

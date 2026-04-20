@@ -104,12 +104,12 @@ Eliminate all Discord REST API calls from the per-request API path by pre-popula
 - [x] Task 6.5: Replace `GET /users/{user_id}` in `calendar_export.py` with `member_projection.get_member()` read
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 412–428)
 
-### [ ] Phase 7: Add Permissions Bitfield and Replace has_permissions() (Work Type B)
+### [x] Phase 7: Add Permissions Bitfield and Replace has_permissions() (Work Type B)
 
-- [ ] Task 7.1: Add `"permissions": r.permissions.value` to `_role_list()` in `bot.py` so the `discord_guild_roles` cache carries permission data
+- [x] Task 7.1: Add `"permissions": r.permissions.value` to `_role_list()` in `bot.py` so the `discord_guild_roles` cache carries permission data
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 433–448)
 
-- [ ] Task 7.2: Replace `RoleVerificationService.has_permissions()` OAuth REST call with local bitfield computation from `discord_guild_roles` cache and `member_projection.get_user_roles()`
+- [x] Task 7.2: Replace `RoleVerificationService.has_permissions()` OAuth REST call with local bitfield computation from `discord_guild_roles` cache and `member_projection.get_user_roles()`
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 449–473)
 
 ### [ ] Phase 8: Username Sorted Set Index for Member Search (Work Type C)

@@ -132,32 +132,37 @@ class RoleVerificationService:
         """
         return any(user_permissions & permission for permission in permissions)
 
-    async def has_permissions(
-        self, user_id: str, guild_id: str, access_token: str, *permissions: int
-    ) -> bool:
+    async def has_permissions(self, user_id: str, guild_id: str, *permissions: int) -> bool:
         """
         Check if user has any of the specified permissions in a guild.
 
-        ADMINISTRATOR permission always grants access as it includes all permissions.
+        Reads role permission bitfields from the Redis projection (no OAuth calls).
+        ADMINISTRATOR permission always grants access.
 
         Args:
             user_id: Discord user ID
             guild_id: Discord guild ID
-            access_token: User's OAuth2 access token
             *permissions: One or more permission flags to check
-                (e.g., DiscordPermissions.MANAGE_GUILD)
 
         Returns:
             True if user has ADMINISTRATOR or any of the specified permissions
         """
         try:
-            guilds = await self.discord_client.get_guilds(token=access_token, user_id=user_id)
-            guild_data = self._find_guild_data(guilds, guild_id)
-
-            if not guild_data:
+            cache = await self._get_cache()
+            guild_roles: list[dict] | None = await cache.get_json(
+                cache_keys.CacheKeys.discord_guild_roles(guild_id)
+            )
+            if not guild_roles:
                 return False
 
-            user_permissions = int(guild_data.get("permissions", 0))
+            user_role_ids = await member_projection.get_user_roles(guild_id, user_id, redis=cache)
+            if guild_id not in user_role_ids:
+                user_role_ids = [*user_role_ids, guild_id]
+
+            role_perms_by_id = {r["id"]: int(r.get("permissions", 0)) for r in guild_roles}
+            user_permissions = 0
+            for role_id in user_role_ids:
+                user_permissions |= role_perms_by_id.get(role_id, 0)
 
             if self._has_administrator_permission(user_permissions):
                 return True
@@ -235,7 +240,7 @@ class RoleVerificationService:
         user_id: str,
         guild_id: str,
         db: AsyncSession,
-        access_token: str | None = None,
+        _access_token: str | None = None,
     ) -> bool:
         """
         Check if user has Bot Manager role in guild.
@@ -247,7 +252,7 @@ class RoleVerificationService:
             user_id: Discord user ID
             guild_id: Discord guild ID
             db: Database session for configuration queries
-            access_token: User's OAuth2 access token (required if no Bot Manager roles configured)
+            _access_token: Retained for API compatibility; no longer used
 
         Returns:
             True if user has Bot Manager role or MANAGE_GUILD permission
@@ -262,11 +267,7 @@ class RoleVerificationService:
         guild_config = result.scalar_one_or_none()
 
         if not guild_config or not guild_config.bot_manager_role_ids:
-            if access_token:
-                return await self.has_permissions(
-                    user_id, guild_id, access_token, DiscordPermissions.MANAGE_GUILD
-                )
-            return False
+            return await self.has_permissions(user_id, guild_id, DiscordPermissions.MANAGE_GUILD)
 
         return any(role_id in guild_config.bot_manager_role_ids for role_id in user_role_ids)
 

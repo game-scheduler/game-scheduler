@@ -54,6 +54,8 @@ def _make_role(role_id: int, name: str) -> MagicMock:
     role.color.value = 255
     role.position = 2
     role.managed = False
+    role.permissions = MagicMock()
+    role.permissions.value = 8  # ADMINISTRATOR flag
     return role
 
 
@@ -262,8 +264,10 @@ async def test_on_ready_writes_channel_key(bot, mock_redis, on_ready_env) -> Non
     )
 
 
-async def test_on_ready_writes_guild_roles_key(bot, mock_redis, on_ready_env) -> None:
-    """on_ready writes discord:guild_roles:{id} with correct role dict shape."""
+async def test_on_ready_writes_guild_roles_key_with_permissions(
+    bot, mock_redis, on_ready_env
+) -> None:
+    """on_ready writes discord:guild_roles:{id} including permissions bitfield."""
     guild = on_ready_env
     role = guild.roles[0]
     with patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock):
@@ -278,6 +282,7 @@ async def test_on_ready_writes_guild_roles_key(bot, mock_redis, on_ready_env) ->
                 "color": role.color.value,
                 "position": role.position,
                 "managed": role.managed,
+                "permissions": role.permissions.value,
             }
         ],
         CacheTTL.DISCORD_GUILD_ROLES,

@@ -319,3 +319,47 @@ All five phases of the Discord Gateway Intent Redis Projection plan are complete
 - ✓ Cache miss raises `DiscordAPIError(503)` for all four methods
 - ✓ Calendar export uses projection for host display name
 - ✓ All 2159 unit tests passing
+
+---
+
+## Phase 7 — Add Permissions Bitfield and Replace has_permissions()
+
+### Task 7.1: Add permissions Field to \_role_list() in bot.py
+
+**Status**: ✅ COMPLETE
+
+**Files Modified**:
+
+- `services/bot/bot.py` — added `"permissions": r.permissions.value` to `_role_list()` output dict
+- `tests/unit/bot/test_bot_ready.py` — added `permissions` attribute to `_make_role()` helper; replaced `test_on_ready_writes_guild_roles_key` with `test_on_ready_writes_guild_roles_key_with_permissions` asserting the `"permissions"` field
+- `tests/unit/bot/test_bot_events.py` — added `permissions` attribute to `_make_role()` helper; added `"permissions"` field to expected role dicts in `test_on_guild_role_create_writes_roles_list`, `test_on_guild_role_update_writes_roles_list`, and `test_on_guild_role_delete_writes_roles_list`
+
+**Success Criteria**:
+
+- ✓ Each role entry in `discord_guild_roles` now contains a `"permissions"` integer field
+- ✓ Redis keys updated on every `_rebuild_redis_from_gateway` call and every role create/update/delete event
+- ✓ All 2164 unit tests passing
+
+### Task 7.2: Replace has_permissions() with Local Bitfield Computation
+
+**Status**: ✅ COMPLETE
+
+**Files Modified**:
+
+- `services/api/auth/roles.py`:
+  - `has_permissions()` — removed `access_token` parameter; now reads `discord_guild_roles` from Redis cache, gets user role IDs via `member_projection.get_user_roles()`, ORs permission bitfields of held roles (including `@everyone` = guild_id), checks `ADMINISTRATOR` flag or any requested permission; zero OAuth REST calls
+  - `check_bot_manager_permission()` — updated docstring for `access_token` (retained for API compat, no longer used); updated inner call to `has_permissions()` to drop `access_token` arg
+- `services/api/dependencies/permissions.py`:
+  - `check_manage_guild()` closure — updated to not pass `token` to `has_permissions()`
+  - `check_manage_channels()` closure — updated to not pass `token` to `has_permissions()`
+  - `require_administrator()` — removed `access_token` positional arg from `has_permissions()` call
+- `tests/unit/services/api/auth/test_roles.py`:
+  - Added `TestHasPermissionsLocalBitfield` class with 5 tests: user holds flag, user lacks flag, ADMINISTRATOR grants all, `@everyone` role included, cache miss returns False
+
+**Success Criteria**:
+
+- ✓ `has_permissions()` makes zero OAuth REST calls; computes result from Redis projection data only
+- ✓ Permission flag checks produce correct results for `MANAGE_GUILD`, `MANAGE_CHANNELS`, `ADMINISTRATOR`
+- ✓ `@everyone` role (guild_id) is correctly included in the bitfield OR
+- ✓ Cache miss (no guild roles in Redis) returns `False` safely
+- ✓ All 2164 unit tests passing

@@ -243,6 +243,7 @@ class GameSchedulerBot(commands.Bot):
                 "color": r.color.value,
                 "position": r.position,
                 "managed": r.managed,
+                "permissions": r.permissions.value,
             }
             for r in roles
         ]
