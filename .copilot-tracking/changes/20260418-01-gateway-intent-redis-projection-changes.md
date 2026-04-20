@@ -275,6 +275,73 @@ All five phases of the Discord Gateway Intent Redis Projection plan are complete
 
 ---
 
+## Phase 8 — Username Sorted Set Index for Member Search
+
+### Tasks 8.1–8.3 Completion Summary
+
+**Status**: ✅ COMPLETE
+
+**What changed**: Added a `proj:usernames` sorted set to the bot-side projection writer to enable `ZRANGEBYLEX` prefix searches on member names; replaced the Discord REST `GET /guilds/{id}/members/search` call in participant resolution with a local Redis read.
+
+**Files Modified**:
+
+- `shared/cache/keys.py` — added `proj_usernames(gen, guild_id)` key factory
+- `services/bot/guild_projection.py` — updated `write_member()` to `ZADD` lowercased `{name}\x00{uid}` entries to `proj:usernames` sorted set; deduplicates when `global_name == username`
+- `services/api/services/member_projection.py` — added `search_members_by_prefix()` using `ZRANGEBYLEX` with gen-rotation retry
+- `services/api/services/participant_resolver.py` — replaced `_search_guild_members()` REST call with `member_projection.search_members_by_prefix()`
+
+**Success Criteria**:
+
+- ✓ Member search uses `ZRANGEBYLEX` on `proj:usernames` sorted set; zero REST calls to `/guilds/{id}/members/search`
+- ✓ All unit tests passing
+
+---
+
+## Phase 9 — Final Verification and Test Updates
+
+### Task 9.2: Update Integration Tests for Projection-Based Permissions
+
+**Status**: ✅ COMPLETE
+
+**Root cause**: After Phase 7, `has_permissions()` reads `discord_guild_roles` from Redis to compute permission bitfields. The `seed_redis_cache` fixture in `tests/conftest.py` did not seed this key, so `has_permissions()` returned `False` for all tests that rely on the MANAGE_GUILD / MANAGE_CHANNELS fallback path (i.e., guilds with no `bot_manager_role_ids` configured).
+
+**Failures fixed** (20 tests across 4 files):
+
+- `test_guilds.py` — MANAGE_GUILD permission required for guild config create/update
+- `test_channels.py` — MANAGE_CHANNELS permission required for channel config CRUD
+- `test_game_image_integration.py` — game creation requires bot manager (MANAGE_GUILD fallback)
+- `test_template_default_overrides.py` — game creation requires bot manager (MANAGE_GUILD fallback)
+
+**Files Modified**:
+
+- `tests/conftest.py` — Added `discord_guild_roles` seeding to `seed_redis_cache` fixture: seeds the `@everyone` role (id = guild_discord_id) with ADMINISTRATOR permission (`8`) — mirrors the pre-Phase-7 behavior where `user_guilds` data had `"permissions": "2147483647"` (all bits set)
+
+**Safety**: Tests that explicitly check for 403 permission denial (e.g., `test_create_template_without_bot_manager_role`, `test_clone_game_endpoint_non_host_receives_403`) are unaffected: those guilds have `bot_manager_role_ids` configured, so `check_bot_manager_permission()` does a direct role-membership check and never reaches the `has_permissions()` fallback.
+
+**Integration test results**: 301 passed, 0 failed (was 20 failed)
+
+---
+
+### Task 9.1: Grep Verification — Zero Discord REST Calls from API Server
+
+**Status**: ✅ COMPLETE
+
+**Verification Results**:
+
+- **Grep**: `grep -r "discord\.com/api\|aiohttp.*session\.get" services/api/` returns only two config URL string assignments in `services/api/config.py` (false positives: `DISCORD_API_BASE_URL` and `DISCORD_OAUTH_URL`). Zero actual REST call sites outside `shared/discord/client.py`.
+
+- **A1** ✓: `get_guild_channels` uses `_read_cache_only`; raises `DiscordAPIError(503)` on cache miss — no REST fallback
+- **A2** ✓: `fetch_channel` uses `_read_cache_only`; no `token` parameter, no REST code
+- **A3** ✓: `fetch_guild` uses `_read_cache_only`; no REST fallback
+- **A4** ✓: `fetch_guild_roles` uses `_read_cache_only`; no REST fallback
+- **A5** ✓: `services/api/services/calendar_export.py` reads host display name via `member_projection.get_member()` — no `fetch_user_display_name_safe` REST call
+- **B** ✓: `has_permissions()` in `services/api/auth/roles.py` ORs permission bitfields from `discord_guild_roles` Redis cache and `member_projection.get_user_roles()`; zero OAuth REST calls
+- **C** ✓: `services/api/services/participant_resolver.py` calls `member_projection.search_members_by_prefix()` — `ZRANGEBYLEX` on `proj:usernames` sorted set; no `_search_guild_members` REST call
+
+- **Unit tests**: 2185 passed (0 failed)
+
+---
+
 ## Phase 6 — Drop REST Fallbacks in DiscordAPIClient
 
 ### Tasks 6.1–6.4 Completion Summary

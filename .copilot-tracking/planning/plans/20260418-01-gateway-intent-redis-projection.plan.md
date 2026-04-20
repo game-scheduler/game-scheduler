@@ -123,12 +123,12 @@ Eliminate all Discord REST API calls from the per-request API path by pre-popula
 - [x] Task 8.3: Add `search_members_by_prefix()` to `member_projection.py`; replace `_search_guild_members()` in `participant_resolver.py` with `ZRANGEBYLEX` read on `proj:usernames`
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 510–530)
 
-### [ ] Phase 9: Final Verification and Test Updates
+### [x] Phase 9: Final Verification and Test Updates
 
-- [ ] Task 9.1: Run grep verification; confirm all revised checklist items (A1–A5, B, C) are satisfied; zero `discord.com/api` hits in `services/api/` outside `shared/discord/client.py`
+- [x] Task 9.1: Run grep verification; confirm all revised checklist items (A1–A5, B, C) are satisfied; zero `discord.com/api` hits in `services/api/` outside `shared/discord/client.py`
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 533–546)
 
-- [ ] Task 9.2: Update integration and e2e tests to seed Redis projection data in place of Discord REST mocks for all migrated endpoints
+- [x] Task 9.2: Update integration and e2e tests to seed Redis projection data in place of Discord REST mocks for all migrated endpoints
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 547–565)
 
 ## Dependencies

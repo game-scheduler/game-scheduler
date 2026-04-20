@@ -563,6 +563,16 @@ def seed_redis_cache():
                 CacheKeys.proj_guild_name(gen, guild_discord_id),
                 f"Test Guild {guild_discord_id[:8]}",
             )
+
+            # discord_guild_roles for has_permissions() bitfield computation (Phase 7).
+            # Seeds @everyone role (id = guild_id) with ADMINISTRATOR bit (0x8 = 8) so
+            # permission checks pass by default in tests — mirrors the pre-Phase-7
+            # user_guilds "permissions": "2147483647" that granted all permissions.
+            await redis_client.set_json(
+                CacheKeys.discord_guild_roles(guild_discord_id),
+                [{"id": guild_discord_id, "name": "@everyone", "permissions": 8}],
+                ttl=3600,
+            )
         finally:
             await redis_client.disconnect()
 
