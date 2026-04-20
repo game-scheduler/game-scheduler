@@ -272,3 +272,50 @@ All five phases of the Discord Gateway Intent Redis Projection plan are complete
 - Projection cache keys: `shared/cache/keys.py` (`proj_gen`, `proj_member`, `proj_user_guilds`, `bot_last_seen`)
 - Gateway event handlers: `on_member_add`, `on_member_update`, `on_member_remove`, `_projection_heartbeat`
 - Alembic migration `20260419_drop_user_display_names` to drop the `user_display_names` table
+
+---
+
+## Phase 6 — Drop REST Fallbacks in DiscordAPIClient
+
+### Tasks 6.1–6.4 Completion Summary
+
+**Status**: ✅ COMPLETE
+
+**What changed**: Removed all REST fallback code from four `DiscordAPIClient` methods. These methods now read exclusively from the Redis cache (written by the bot gateway). A cache miss raises `DiscordAPIError(503)` instead of falling back to a live Discord REST call.
+
+**Files Modified**:
+
+- `shared/discord/client.py`:
+  - Added `_read_cache_only(cache_key, operation)` private helper — reads cache, raises `DiscordAPIError(503)` on miss
+  - `get_guild_channels(guild_id)` — removed `force_refresh` parameter and all REST code; uses `_read_cache_only`
+  - `fetch_channel(channel_id)` — removed `token` parameter and all REST code; uses `_read_cache_only`
+  - `fetch_guild(guild_id)` — removed `token` parameter and REST code; uses `_read_cache_only`
+  - `fetch_guild_roles(guild_id)` — removed REST code and `_get_or_fetch` delegation; uses `_read_cache_only`
+- `services/api/services/guild_service.py` — removed `force_refresh=True` from `get_guild_channels` call; updated comment
+- `tests/unit/shared/discord/test_discord_api_client.py`:
+  - Added `TestPhase6CacheOnlyBehavior` class with 4 tests verifying `DiscordAPIError(503)` on cache miss
+  - Deleted 19 obsolete tests that tested REST behavior no longer present
+- `tests/unit/api/services/test_guild_service_channel_refresh.py` — removed `force_refresh=True` assertion
+
+### Task 6.5 Completion Summary
+
+**Status**: ✅ COMPLETE
+
+**What changed**: Replaced `fetch_user_display_name_safe` (REST-backed) with `member_projection.get_member` (Redis-backed) in the calendar export service for host display name resolution.
+
+**Files Modified**:
+
+- `services/api/services/calendar_export.py`:
+  - Removed `fetch_user_display_name_safe` import
+  - Added `get_redis_client` and `member_projection` imports
+  - Replaced `await fetch_user_display_name_safe(game.host.discord_id)` with projection read: nick → global_name → username priority
+- `tests/unit/services/api/services/test_calendar_export.py`:
+  - Added `test_host_display_name_from_projection` test
+  - Updated all 7 existing tests to patch `member_projection` and `get_redis_client` instead of `fetch_user_display_name_safe`
+
+**Success Criteria**:
+
+- ✓ `get_guild_channels`, `fetch_channel`, `fetch_guild`, `fetch_guild_roles` make zero REST calls
+- ✓ Cache miss raises `DiscordAPIError(503)` for all four methods
+- ✓ Calendar export uses projection for host display name
+- ✓ All 2159 unit tests passing

@@ -447,11 +447,27 @@ class DiscordAPIClient:
         operation: CacheOperation,
     ) -> _T:
         """
-        Read-through cache helper with hit/miss counters and latency histogram.
+        Read-through cache helper; falls back to REST only on cache miss.
 
-        Checks Redis for cache_key; on hit returns the cached value; on miss
-        calls fetch_fn(), writes the result to Redis with cache_ttl, and returns it.
-        Records discord.cache.hits / discord.cache.misses and discord.cache.duration.
+        Delegates the cache read to _read_cache_only. On a 503 cache miss,
+        calls fetch_fn(), writes the result back to Redis, and returns it.
+        """
+        try:
+            return await self._read_cache_only(cache_key, operation)
+        except DiscordAPIError as exc:
+            if exc.status != status.HTTP_503_SERVICE_UNAVAILABLE:
+                raise
+        result = await fetch_fn()
+        redis = await cache_client.get_redis_client()
+        await redis.set(cache_key, json.dumps(result), ttl=cache_ttl)
+        return result
+
+    async def _read_cache_only(self, cache_key: str, operation: CacheOperation) -> Any:  # noqa: ANN401
+        """
+        Cache-only read with OTel recording; raises DiscordAPIError(503) on miss.
+
+        Gateway events keep these keys current. A miss means the bot is not yet
+        connected or the resource is genuinely absent — not a reason to call REST.
         """
         redis = await cache_client.get_redis_client()
         t0 = time.monotonic()
@@ -463,15 +479,14 @@ class DiscordAPIClient:
                 attributes={"operation": operation, "result": "hit"},
             )
             return json.loads(cached)
-
-        result = await fetch_fn()
         _cache_miss_counter.add(1, {"operation": operation})
         _cache_duration_histogram.record(
             time.monotonic() - t0,
             attributes={"operation": operation, "result": "miss"},
         )
-        await redis.set(cache_key, json.dumps(result), ttl=cache_ttl)
-        return result
+        raise DiscordAPIError(
+            503, f"Discord data unavailable: bot gateway not connected [{operation}]"
+        )
 
     def _get_error_message(
         self,
@@ -599,135 +614,84 @@ class DiscordAPIClient:
         # Should never reach here, but just in case
         raise DiscordAPIError(429, "Rate limit exceeded after max retries", {})
 
-    async def get_guild_channels(
-        self, guild_id: str, force_refresh: bool = False
-    ) -> list[dict[str, Any]]:
+    async def get_guild_channels(self, guild_id: str) -> list[dict[str, Any]]:
         """
-        Fetch all channels in a guild using bot token with Redis caching.
+        Fetch all channels in a guild from the Redis gateway cache.
+
+        The bot keeps this key current via channel create/update/delete gateway events.
+        A cache miss means the bot is not yet connected — raises 503 instead of REST fallback.
 
         Args:
             guild_id: Discord guild (server) ID
-            force_refresh: When True, bypass cache and fetch directly from Discord.
-                           Use when channel list may have changed since last cache write.
 
         Returns:
             List of channel objects with id, name, type, etc.
 
         Raises:
-            DiscordAPIError: If fetching channels fails
+            DiscordAPIError: 503 if guild channels are not in the gateway cache
         """
-        cache_key = cache_keys.CacheKeys.discord_guild_channels(guild_id)
-        url = f"{self._api_base_url}/guilds/{guild_id}/channels"
-
-        async def _fetch() -> list[dict[str, Any]]:
-            session = await self._get_session()
-            self._log_request("GET", url, "get_guild_channels")
-            try:
-                async with session.get(
-                    url,
-                    headers={"Authorization": f"Bot {self.bot_token}"},
-                ) as response:
-                    response_data = await self._parse_response_json(response)
-                    channel_count = len(response_data) if isinstance(response_data, list) else "N/A"
-                    self._log_response(response, f"Returned {channel_count} channels")
-                    if response.status != status.HTTP_200_OK:
-                        error_msg = (
-                            response_data.get("message", "Unknown error")
-                            if isinstance(response_data, dict)
-                            else "Unknown error"
-                        )
-                        raise DiscordAPIError(response.status, error_msg, dict(response.headers))
-                    return response_data
-            except aiohttp.ClientError as e:
-                logger.error("Network error fetching guild channels: %s", e)
-                raise DiscordAPIError(500, f"Network error: {e!s}") from e
-
-        if force_refresh:
-            result = await _fetch()
-            redis = await cache_client.get_redis_client()
-            await redis.set(cache_key, json.dumps(result), ttl=ttl.CacheTTL.DISCORD_GUILD_CHANNELS)
-            return result
-        return await self._get_or_fetch(
-            cache_key=cache_key,
-            cache_ttl=ttl.CacheTTL.DISCORD_GUILD_CHANNELS,
-            fetch_fn=_fetch,
-            operation=CacheOperation.FETCH_GUILD_CHANNELS,
+        return cast(
+            "list[dict[str, Any]]",
+            await self._read_cache_only(
+                cache_keys.CacheKeys.discord_guild_channels(guild_id),
+                CacheOperation.FETCH_GUILD_CHANNELS,
+            ),
         )
 
-    async def fetch_channel(self, channel_id: str, token: str | None = None) -> dict[str, Any]:
+    async def fetch_channel(self, channel_id: str) -> dict[str, Any]:
         """
-        Fetch channel information with Redis caching.
+        Fetch channel information from the Redis gateway cache.
+
+        The bot keeps this key current via channel update gateway events.
+        A cache miss means the bot is not connected — raises 503 instead of REST fallback.
 
         Args:
             channel_id: Discord channel ID
-            token: Discord bot token or OAuth access token (defaults to self.bot_token)
 
         Returns:
             Channel object with id, name, type, guild_id, etc.
 
         Raises:
-            DiscordAPIError: If fetching channel fails
+            DiscordAPIError: 503 if channel data is not in the gateway cache
         """
-        cache_key = cache_keys.CacheKeys.discord_channel(channel_id)
-        url = f"{self._api_base_url}/channels/{channel_id}"
-
-        async def _fetch() -> dict[str, Any]:
-            session = await self._get_session()
-            self._log_request("GET", url, "fetch_channel")
-            try:
-                async with session.get(
-                    url,
-                    headers={"Authorization": self._get_auth_header(token)},
-                ) as response:
-                    response_data = await response.json()
-                    self._log_response(response)
-                    if response.status != status.HTTP_200_OK:
-                        error_msg = response_data.get("message", "Unknown error")
-                        if response.status == status.HTTP_404_NOT_FOUND:
-                            redis = await cache_client.get_redis_client()
-                            await redis.set(cache_key, json.dumps({"error": "not_found"}), ttl=60)
-                        raise DiscordAPIError(response.status, error_msg, dict(response.headers))
-                    return response_data
-            except aiohttp.ClientError as e:
-                logger.error("Network error fetching channel: %s", e)
-                raise DiscordAPIError(500, f"Network error: {e!s}") from e
-
-        return await self._get_or_fetch(
-            cache_key=cache_key,
-            cache_ttl=ttl.CacheTTL.DISCORD_CHANNEL,
-            fetch_fn=_fetch,
-            operation=CacheOperation.FETCH_CHANNEL,
+        return cast(
+            "dict[str, Any]",
+            await self._read_cache_only(
+                cache_keys.CacheKeys.discord_channel(channel_id),
+                CacheOperation.FETCH_CHANNEL,
+            ),
         )
 
-    async def fetch_guild(self, guild_id: str, token: str | None = None) -> dict[str, Any]:
+    async def fetch_guild(self, guild_id: str) -> dict[str, Any]:
         """
-        Fetch guild information with Redis caching.
+        Fetch guild information from the Redis gateway cache.
+
+        The bot keeps this key current via guild update gateway events.
+        A cache miss means the bot is not connected — raises 503 instead of REST fallback.
 
         Args:
             guild_id: Discord guild (server) ID
-            token: Discord bot token or OAuth access token (defaults to self.bot_token)
 
         Returns:
             Guild object with id, name, icon, features, etc.
 
         Raises:
-            DiscordAPIError: If fetching guild fails
+            DiscordAPIError: 503 if guild data is not in the gateway cache
         """
-        return await self._get_or_fetch(
-            cache_key=cache_keys.CacheKeys.discord_guild(guild_id),
-            cache_ttl=ttl.CacheTTL.DISCORD_GUILD,
-            fetch_fn=lambda: self._make_api_request(
-                method="GET",
-                url=f"{self._api_base_url}/guilds/{guild_id}",
-                operation_name="fetch_guild",
-                headers={"Authorization": self._get_auth_header(token)},
+        return cast(
+            "dict[str, Any]",
+            await self._read_cache_only(
+                cache_keys.CacheKeys.discord_guild(guild_id),
+                CacheOperation.FETCH_GUILD,
             ),
-            operation=CacheOperation.FETCH_GUILD,
         )
 
     async def fetch_guild_roles(self, guild_id: str) -> list[dict[str, Any]]:
         """
-        Fetch guild roles using bot token with Redis caching.
+        Fetch guild roles from the Redis gateway cache.
+
+        The bot keeps this key current via role create/update/delete gateway events.
+        A cache miss means the bot is not connected — raises 503 instead of REST fallback.
 
         Args:
             guild_id: Discord guild (server) ID
@@ -736,20 +700,13 @@ class DiscordAPIClient:
             List of role objects with id, name, color, position, managed, etc.
 
         Raises:
-            DiscordAPIError: If fetching roles fails
+            DiscordAPIError: 503 if guild role data is not in the gateway cache
         """
         return cast(
             "list[dict[str, Any]]",
-            await self._get_or_fetch(
-                cache_key=cache_keys.CacheKeys.discord_guild_roles(guild_id),
-                cache_ttl=ttl.CacheTTL.DISCORD_GUILD_ROLES,
-                fetch_fn=lambda: self._make_api_request(
-                    method="GET",
-                    url=f"{self._api_base_url}/guilds/{guild_id}/roles",
-                    operation_name="fetch_guild_roles",
-                    headers={"Authorization": f"Bot {self.bot_token}"},
-                ),
-                operation=CacheOperation.FETCH_GUILD_ROLES,
+            await self._read_cache_only(
+                cache_keys.CacheKeys.discord_guild_roles(guild_id),
+                CacheOperation.FETCH_GUILD_ROLES,
             ),
         )
 

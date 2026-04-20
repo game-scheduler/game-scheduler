@@ -861,39 +861,6 @@ class TestGuildMethods:
         assert result[0]["name"] == "Bot Guild 1"
 
     @pytest.mark.asyncio
-    async def test_get_guild_channels_success(self, discord_client):
-        """Test fetching guild channels."""
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.headers = {"x-ratelimit-remaining": "50"}
-        mock_response.json = AsyncMock(
-            return_value=[
-                {"id": "channel1", "name": "general", "type": 0},
-                {"id": "channel2", "name": "announcements", "type": 0},
-            ]
-        )
-
-        mock_session = MagicMock()
-        mock_session.closed = False
-        mock_context_manager = MagicMock()
-        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
-        mock_session.get = MagicMock(return_value=mock_context_manager)
-        discord_client._session = mock_session
-
-        # Mock Redis cache to return None (cache miss)
-        with patch("shared.cache.client.get_redis_client") as mock_get_redis:
-            mock_redis = AsyncMock()
-            mock_redis.get = AsyncMock(return_value=None)
-            mock_redis.set = AsyncMock()
-            mock_get_redis.return_value = mock_redis
-
-            result = await discord_client.get_guild_channels(guild_id="guild123")
-
-            assert len(result) == 2
-            assert result[0]["name"] == "general"
-
-    @pytest.mark.asyncio
     async def test_get_guild_channels_cache_hit(self, discord_client):
         """Test get_guild_channels() returns cached data."""
         cached_data = [
@@ -912,42 +879,6 @@ class TestGuildMethods:
             assert result[0]["name"] == "cached-general"
             # Verify no Discord API call was made
             assert discord_client._session is None
-
-    @pytest.mark.asyncio
-    async def test_get_guild_channels_force_refresh_bypasses_cache(self, discord_client):
-        """Test get_guild_channels() skips cache when force_refresh=True."""
-        cached_data = [{"id": "channel1", "name": "stale-channel", "type": 0}]
-        fresh_data = [{"id": "channel2", "name": "new-channel", "type": 0}]
-
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.headers = {"x-ratelimit-remaining": "50"}
-        mock_response.json = AsyncMock(return_value=fresh_data)
-
-        mock_session = MagicMock()
-        mock_session.closed = False
-        mock_cm = MagicMock()
-        mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_cm.__aexit__ = AsyncMock(return_value=None)
-        mock_session.get = MagicMock(return_value=mock_cm)
-        discord_client._session = mock_session
-
-        with patch("shared.cache.client.get_redis_client") as mock_get_redis:
-            mock_redis = AsyncMock()
-            mock_redis.get = AsyncMock(return_value=json.dumps(cached_data))
-            mock_redis.set = AsyncMock()
-            mock_get_redis.return_value = mock_redis
-
-            result = await discord_client.get_guild_channels(
-                guild_id="guild123", force_refresh=True
-            )
-
-            assert len(result) == 1
-            assert result[0]["name"] == "new-channel"
-            # Cache was not read
-            mock_redis.get.assert_not_called()
-            # Fresh data was written back to cache
-            mock_redis.set.assert_called_once()
 
 
 class TestUnifiedTokenFunctionality:
@@ -1146,89 +1077,6 @@ class TestUnifiedTokenFunctionality:
         assert mock_session.get.call_count == 1
 
     @pytest.mark.asyncio
-    async def test_fetch_guild_with_bot_token(self, discord_client, mock_redis):
-        """Test fetch_guild() works with bot token."""
-        guild_data = {"id": "guild123", "name": "Test Guild"}
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.headers = {"x-ratelimit-remaining": "50"}
-        mock_response.json = AsyncMock(return_value=guild_data)
-
-        mock_session = MagicMock()
-        mock_session.closed = False
-        mock_context_manager = MagicMock()
-        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
-        mock_session.request = MagicMock(return_value=mock_context_manager)
-        discord_client._session = mock_session
-
-        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
-            mock_get_redis.return_value = mock_redis
-
-            result = await discord_client.fetch_guild("guild123")
-
-            # Verify bot token was used by default
-            call_args = mock_session.request.call_args
-            assert call_args[1]["headers"]["Authorization"].startswith("Bot ")
-            assert result["id"] == "guild123"
-
-    @pytest.mark.asyncio
-    async def test_fetch_guild_with_oauth_token(self, discord_client, mock_redis):
-        """Test fetch_guild() accepts OAuth token parameter."""
-        oauth_token = "6qrZcUqja7812RVdnEKjpzOL.4CvHBFG"
-        guild_data = {"id": "guild123", "name": "Test Guild"}
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.headers = {"x-ratelimit-remaining": "50"}
-        mock_response.json = AsyncMock(return_value=guild_data)
-
-        mock_session = MagicMock()
-        mock_session.closed = False
-        mock_context_manager = MagicMock()
-        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
-        mock_session.request = MagicMock(return_value=mock_context_manager)
-        discord_client._session = mock_session
-
-        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
-            mock_get_redis.return_value = mock_redis
-
-            result = await discord_client.fetch_guild("guild123", token=oauth_token)
-
-            # Verify OAuth token was used
-            call_args = mock_session.request.call_args
-            assert call_args[1]["headers"]["Authorization"] == f"Bearer {oauth_token}"
-            assert result["id"] == "guild123"
-
-    @pytest.mark.asyncio
-    async def test_fetch_channel_with_oauth_token(self, discord_client, mock_redis):
-        """Test fetch_channel() accepts OAuth token parameter."""
-        oauth_token = "6qrZcUqja7812RVdnEKjpzOL.4CvHBFG"
-        channel_data = {"id": "channel123", "name": "general", "type": 0}
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.headers = {"x-ratelimit-remaining": "50"}
-        mock_response.json = AsyncMock(return_value=channel_data)
-
-        mock_session = MagicMock()
-        mock_session.closed = False
-        mock_context_manager = MagicMock()
-        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
-        mock_session.get = MagicMock(return_value=mock_context_manager)
-        discord_client._session = mock_session
-
-        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
-            mock_get_redis.return_value = mock_redis
-
-            result = await discord_client.fetch_channel("channel123", token=oauth_token)
-
-            # Verify OAuth token was used
-            call_args = mock_session.get.call_args
-            assert call_args[1]["headers"]["Authorization"] == f"Bearer {oauth_token}"
-            assert result["id"] == "channel123"
-
-    @pytest.mark.asyncio
     async def test_fetch_user_with_oauth_token(self, discord_client, mock_redis):
         """Test fetch_user() accepts OAuth token parameter."""
         oauth_token = "6qrZcUqja7812RVdnEKjpzOL.4CvHBFG"
@@ -1261,34 +1109,6 @@ class TestCachedResourceMethods:
     """Test methods that use Redis caching."""
 
     @pytest.mark.asyncio
-    async def test_fetch_channel_cache_miss(self, discord_client, mock_redis):
-        """Test fetching channel with cache miss."""
-        channel_data = {"id": "channel123", "name": "general", "type": 0}
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.headers = {"x-ratelimit-remaining": "50"}
-        mock_response.json = AsyncMock(return_value=channel_data)
-
-        mock_session = MagicMock()
-        mock_session.closed = False
-        mock_context_manager = MagicMock()
-        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
-        mock_session.get = MagicMock(return_value=mock_context_manager)
-        discord_client._session = mock_session
-
-        with patch(
-            "shared.discord.client.cache_client.get_redis_client",
-            new_callable=AsyncMock,
-            return_value=mock_redis,
-        ):
-            result = await discord_client.fetch_channel(channel_id="channel123")
-
-            assert result["name"] == "general"
-            mock_redis.get.assert_called_once_with("discord:channel:channel123")
-            mock_redis.set.assert_called_once()
-
-    @pytest.mark.asyncio
     async def test_fetch_channel_cache_hit(self, discord_client, mock_redis):
         """Test fetching channel with cache hit."""
         cached_channel = {"id": "channel123", "name": "cached-general"}
@@ -1304,59 +1124,6 @@ class TestCachedResourceMethods:
             mock_redis.set.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_fetch_channel_not_found(self, discord_client, mock_redis):
-        """Test fetching non-existent channel caches 404."""
-        mock_response = AsyncMock()
-        mock_response.status = 404
-        mock_response.headers = {"x-ratelimit-remaining": "50"}
-        mock_response.json = AsyncMock(return_value={"message": "Unknown Channel"})
-
-        mock_session = MagicMock()
-        mock_session.closed = False
-        mock_context_manager = MagicMock()
-        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
-        mock_session.get = MagicMock(return_value=mock_context_manager)
-        discord_client._session = mock_session
-
-        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
-            mock_get_redis.return_value = mock_redis
-
-            with pytest.raises(DiscordAPIError) as exc_info:
-                await discord_client.fetch_channel(channel_id="nonexistent")
-
-            assert exc_info.value.status == 404
-            mock_redis.set.assert_called_once()
-            cached_args = mock_redis.set.call_args
-            assert "error" in json.loads(cached_args[0][1])
-
-    @pytest.mark.asyncio
-    async def test_fetch_guild_cache_miss(self, discord_client, mock_redis):
-        """Test fetching guild with cache miss."""
-        guild_data = {"id": "guild123", "name": "Test Server"}
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.headers = {"x-ratelimit-remaining": "50"}
-        mock_response.json = AsyncMock(return_value=guild_data)
-
-        mock_session = MagicMock()
-        mock_session.closed = False
-        mock_context_manager = MagicMock()
-        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
-        mock_session.request = MagicMock(return_value=mock_context_manager)
-        discord_client._session = mock_session
-
-        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
-            mock_get_redis.return_value = mock_redis
-
-            result = await discord_client.fetch_guild(guild_id="guild123")
-
-            assert result["name"] == "Test Server"
-            mock_redis.get.assert_called_once_with("discord:guild:guild123")
-            mock_redis.set.assert_called_once()
-
-    @pytest.mark.asyncio
     async def test_fetch_guild_cache_hit(self, discord_client, mock_redis):
         """Test fetching guild with cache hit."""
         cached_guild = {"id": "guild123", "name": "Cached Server"}
@@ -1369,35 +1136,6 @@ class TestCachedResourceMethods:
 
             assert result["name"] == "Cached Server"
             mock_redis.set.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_fetch_guild_roles_cache_miss(self, discord_client, mock_redis):
-        """Test fetching guild roles with cache miss."""
-        roles_data = [
-            {"id": "role1", "name": "Admin"},
-            {"id": "role2", "name": "Member"},
-        ]
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.headers = {"x-ratelimit-remaining": "50"}
-        mock_response.json = AsyncMock(return_value=roles_data)
-
-        mock_session = MagicMock()
-        mock_session.closed = False
-        mock_context_manager = MagicMock()
-        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
-        mock_session.request = MagicMock(return_value=mock_context_manager)
-        discord_client._session = mock_session
-
-        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
-            mock_get_redis.return_value = mock_redis
-
-            result = await discord_client.fetch_guild_roles(guild_id="guild123")
-
-            assert len(result) == 2
-            assert result[0]["name"] == "Admin"
-            mock_redis.set.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_fetch_user_cache_miss(self, discord_client, mock_redis):
@@ -2111,107 +1849,8 @@ class TestFetchGuildsUncachedSafetyRaise:
         assert mock_pgr.await_count == 3
 
 
-class TestGuildChannelsErrorPaths:
-    """Test get_guild_channels() error branches."""
-
-    @pytest.mark.asyncio
-    async def test_get_guild_channels_http_error(self, discord_client, mock_redis):
-        """get_guild_channels() raises DiscordAPIError for non-200 HTTP status."""
-        mock_response = AsyncMock()
-        mock_response.status = 403
-        mock_response.headers = {"x-ratelimit-remaining": "50"}
-        mock_response.json = AsyncMock(return_value={"message": "Missing Permissions"})
-
-        mock_session = MagicMock()
-        mock_session.closed = False
-
-        mock_cm = MagicMock()
-        mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_cm.__aexit__ = AsyncMock(return_value=None)
-
-        mock_session.get = MagicMock(return_value=mock_cm)
-        discord_client._session = mock_session
-
-        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
-            mock_get_redis.return_value = mock_redis
-
-            with pytest.raises(DiscordAPIError) as exc_info:
-                await discord_client.get_guild_channels("guild123")
-
-        assert exc_info.value.status == 403
-
-    @pytest.mark.asyncio
-    async def test_get_guild_channels_network_error(self, discord_client, mock_redis):
-        """get_guild_channels() raises DiscordAPIError(500) on network failure."""
-        mock_session = MagicMock()
-        mock_session.closed = False
-
-        mock_cm = MagicMock()
-        mock_cm.__aenter__ = AsyncMock(side_effect=aiohttp.ClientError("Timeout"))
-        mock_cm.__aexit__ = AsyncMock(return_value=None)
-
-        mock_session.get = MagicMock(return_value=mock_cm)
-        discord_client._session = mock_session
-
-        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
-            mock_get_redis.return_value = mock_redis
-
-            with pytest.raises(DiscordAPIError) as exc_info:
-                await discord_client.get_guild_channels("guild123")
-
-        assert exc_info.value.status == 500
-        assert "network error" in exc_info.value.message.lower()
-
-    @pytest.mark.asyncio
-    async def test_get_guild_channels_non_json_response(self, discord_client, mock_redis):
-        """get_guild_channels() raises DiscordAPIError when body is not JSON."""
-        mock_response = AsyncMock()
-        mock_response.status = 503
-        mock_response.headers = {"content-type": "text/plain"}
-        mock_response.json = AsyncMock(side_effect=json.JSONDecodeError("Expecting value", "", 0))
-
-        mock_session = MagicMock()
-        mock_session.closed = False
-        mock_cm = MagicMock()
-        mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_cm.__aexit__ = AsyncMock(return_value=None)
-        mock_session.get = MagicMock(return_value=mock_cm)
-        discord_client._session = mock_session
-
-        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
-            mock_get_redis.return_value = mock_redis
-
-            with pytest.raises(DiscordAPIError) as exc_info:
-                await discord_client.get_guild_channels("guild123")
-
-        assert exc_info.value.status == 503
-        assert "Non-JSON response" in exc_info.value.message
-
-
 class TestFetchChannelAndRolesErrorPaths:
     """Test fetch_channel(), fetch_guild_roles() error branches."""
-
-    @pytest.mark.asyncio
-    async def test_fetch_channel_network_error(self, discord_client, mock_redis):
-        """fetch_channel() raises DiscordAPIError(500) on network failure."""
-        mock_session = MagicMock()
-        mock_session.closed = False
-
-        mock_cm = MagicMock()
-        mock_cm.__aenter__ = AsyncMock(side_effect=aiohttp.ClientError("Connection reset"))
-        mock_cm.__aexit__ = AsyncMock(return_value=None)
-
-        mock_session.get = MagicMock(return_value=mock_cm)
-        discord_client._session = mock_session
-
-        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
-            mock_get_redis.return_value = mock_redis
-
-            with pytest.raises(DiscordAPIError) as exc_info:
-                await discord_client.fetch_channel("channel123")
-
-        assert exc_info.value.status == 500
-        assert "network error" in exc_info.value.message.lower()
 
     @pytest.mark.asyncio
     async def test_fetch_guild_roles_cache_hit(self, discord_client, mock_redis):
@@ -2230,55 +1869,6 @@ class TestFetchChannelAndRolesErrorPaths:
         assert len(result) == 2
         assert result[0]["name"] == "Admin"
         mock_redis.get.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_fetch_guild_roles_http_error(self, discord_client, mock_redis):
-        """fetch_guild_roles() raises DiscordAPIError for non-200 HTTP status."""
-        mock_response = AsyncMock()
-        mock_response.status = 403
-        mock_response.headers = {"x-ratelimit-remaining": "50"}
-        mock_response.json = AsyncMock(return_value={"message": "Missing Permissions"})
-
-        mock_session = MagicMock()
-        mock_session.closed = False
-
-        mock_cm = MagicMock()
-        mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_cm.__aexit__ = AsyncMock(return_value=None)
-
-        mock_session.request = MagicMock(return_value=mock_cm)
-        discord_client._session = mock_session
-
-        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
-            mock_get_redis.return_value = mock_redis
-
-            with pytest.raises(DiscordAPIError) as exc_info:
-                await discord_client.fetch_guild_roles("guild123")
-
-        assert exc_info.value.status == 403
-        assert exc_info.value.message == "Missing Permissions"
-
-    @pytest.mark.asyncio
-    async def test_fetch_guild_roles_network_error(self, discord_client, mock_redis):
-        """fetch_guild_roles() raises DiscordAPIError(500) on network failure."""
-        mock_session = MagicMock()
-        mock_session.closed = False
-
-        mock_cm = MagicMock()
-        mock_cm.__aenter__ = AsyncMock(side_effect=aiohttp.ClientError("Timeout"))
-        mock_cm.__aexit__ = AsyncMock(return_value=None)
-
-        mock_session.request = MagicMock(return_value=mock_cm)
-        discord_client._session = mock_session
-
-        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
-            mock_get_redis.return_value = mock_redis
-
-            with pytest.raises(DiscordAPIError) as exc_info:
-                await discord_client.fetch_guild_roles("guild123")
-
-        assert exc_info.value.status == 500
-        assert "network error" in exc_info.value.message.lower()
 
 
 class TestHelperFunctions:
@@ -2598,62 +2188,6 @@ class TestReadThroughDelegatesToGetOrFetch:
         mock_gof.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_guild_channels_delegates_to_get_or_fetch(self, client, mock_redis):
-        with (
-            patch(
-                "shared.discord.client.cache_client.get_redis_client",
-                new=AsyncMock(return_value=mock_redis),
-            ),
-            patch.object(
-                client, "_get_or_fetch", new=AsyncMock(return_value=[{"id": "ch1"}])
-            ) as mock_gof,
-        ):
-            await client.get_guild_channels("111")
-        mock_gof.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_fetch_channel_delegates_to_get_or_fetch(self, client, mock_redis):
-        with (
-            patch(
-                "shared.discord.client.cache_client.get_redis_client",
-                new=AsyncMock(return_value=mock_redis),
-            ),
-            patch.object(
-                client, "_get_or_fetch", new=AsyncMock(return_value={"id": "ch1"})
-            ) as mock_gof,
-        ):
-            await client.fetch_channel("123")
-        mock_gof.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_fetch_guild_delegates_to_get_or_fetch(self, client, mock_redis):
-        with (
-            patch(
-                "shared.discord.client.cache_client.get_redis_client",
-                new=AsyncMock(return_value=mock_redis),
-            ),
-            patch.object(
-                client, "_get_or_fetch", new=AsyncMock(return_value={"id": "g1"})
-            ) as mock_gof,
-        ):
-            await client.fetch_guild("111")
-        mock_gof.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_fetch_guild_roles_delegates_to_get_or_fetch(self, client, mock_redis):
-        with (
-            patch(
-                "shared.discord.client.cache_client.get_redis_client",
-                new=AsyncMock(return_value=mock_redis),
-            ),
-            patch.object(
-                client, "_get_or_fetch", new=AsyncMock(return_value=[{"id": "r1"}])
-            ) as mock_gof,
-        ):
-            await client.fetch_guild_roles("111")
-        mock_gof.assert_called_once()
-
-    @pytest.mark.asyncio
     async def test_fetch_user_delegates_to_get_or_fetch(self, client, mock_redis):
         with (
             patch(
@@ -2708,3 +2242,63 @@ class TestGetCurrentUserGuildMember:
         assert result == {"user": {"id": "u1"}, "nick": "Nick"}
         assert captured_headers.get("Authorization") == "Bearer user-oauth-token"
         assert "Bot" not in captured_headers.get("Authorization", "")
+
+
+class TestPhase6CacheOnlyBehavior:
+    """Phase 6: verify each client method raises 503 on cache miss (no REST fallback)."""
+
+    @pytest.mark.asyncio
+    async def test_get_guild_channels_cache_miss_raises_503(self, discord_client, mock_redis):
+        """get_guild_channels raises DiscordAPIError(503) on cache miss; no REST call made."""
+        mock_redis.get = AsyncMock(return_value=None)
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            with pytest.raises(DiscordAPIError) as exc_info:
+                await discord_client.get_guild_channels("guild123")
+
+        assert exc_info.value.status == 503
+        assert discord_client._session is None
+
+    @pytest.mark.asyncio
+    async def test_fetch_channel_cache_miss_raises_503(self, discord_client, mock_redis):
+        """fetch_channel raises DiscordAPIError(503) on cache miss; no REST call made."""
+        mock_redis.get = AsyncMock(return_value=None)
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            with pytest.raises(DiscordAPIError) as exc_info:
+                await discord_client.fetch_channel("channel123")
+
+        assert exc_info.value.status == 503
+        assert discord_client._session is None
+
+    @pytest.mark.asyncio
+    async def test_fetch_guild_cache_miss_raises_503(self, discord_client, mock_redis):
+        """fetch_guild raises DiscordAPIError(503) on cache miss; no REST call made."""
+        mock_redis.get = AsyncMock(return_value=None)
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            with pytest.raises(DiscordAPIError) as exc_info:
+                await discord_client.fetch_guild("guild123")
+
+        assert exc_info.value.status == 503
+        assert discord_client._session is None
+
+    @pytest.mark.asyncio
+    async def test_fetch_guild_roles_cache_miss_raises_503(self, discord_client, mock_redis):
+        """fetch_guild_roles raises DiscordAPIError(503) on cache miss; no REST call made."""
+        mock_redis.get = AsyncMock(return_value=None)
+
+        with patch("shared.discord.client.cache_client.get_redis_client") as mock_get_redis:
+            mock_get_redis.return_value = mock_redis
+
+            with pytest.raises(DiscordAPIError) as exc_info:
+                await discord_client.fetch_guild_roles("guild123")
+
+        assert exc_info.value.status == 503
+        assert discord_client._session is None

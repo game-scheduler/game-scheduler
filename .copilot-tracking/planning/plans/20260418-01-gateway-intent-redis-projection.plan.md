@@ -87,21 +87,21 @@ Eliminate all Discord REST API calls from the per-request API path by pre-popula
 - [x] Task 5.2: Drop `user_display_names` DB table via Alembic migration; delete `UserDisplayNameService`
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 297–315)
 
-### [ ] Phase 6: Drop REST Fallbacks in DiscordAPIClient (Work Type A)
+### [x] Phase 6: Drop REST Fallbacks in DiscordAPIClient (Work Type A)
 
-- [ ] Task 6.1: Remove `GET /guilds/{id}/channels` REST fallback; update `channel_resolver.py` and `games.py` to return 503 on cache miss
+- [x] Task 6.1: Remove `GET /guilds/{id}/channels` REST fallback; update `channel_resolver.py` and `games.py` to return 503 on cache miss
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 339–357)
 
-- [ ] Task 6.2: Remove `GET /channels/{id}` REST fallback; update `games.py`, `templates.py`, `calendar_export.py` to return 503 on cache miss
+- [x] Task 6.2: Remove `GET /channels/{id}` REST fallback; update `games.py`, `templates.py`, `calendar_export.py` to return 503 on cache miss
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 358–377)
 
-- [ ] Task 6.3: Remove `GET /guilds/{id}` REST fallback; update `games.py` and `calendar_export.py` to return 503 on cache miss
+- [x] Task 6.3: Remove `GET /guilds/{id}` REST fallback; update `games.py` and `calendar_export.py` to return 503 on cache miss
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 378–395)
 
-- [ ] Task 6.4: Remove `GET /guilds/{id}/roles` REST fallback; update call sites to handle cache miss without REST
+- [x] Task 6.4: Remove `GET /guilds/{id}/roles` REST fallback; update call sites to handle cache miss without REST
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 396–411)
 
-- [ ] Task 6.5: Replace `GET /users/{user_id}` in `calendar_export.py` with `member_projection.get_member()` read
+- [x] Task 6.5: Replace `GET /users/{user_id}` in `calendar_export.py` with `member_projection.get_member()` read
   - Details: .copilot-tracking/planning/details/20260418-01-gateway-intent-redis-projection-details.md (Lines 412–428)
 
 ### [ ] Phase 7: Add Permissions Bitfield and Replace has_permissions() (Work Type B)

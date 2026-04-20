@@ -109,9 +109,9 @@ async def refresh_guild_channels(
     if not guild:
         return []
 
-    # Fetch channels from Discord, bypassing cache so newly added channels are visible
+    # Fetch channels from the gateway cache (kept current by bot gateway events)
     discord_client = get_discord_client()
-    discord_channels = await discord_client.get_guild_channels(guild.guild_id, force_refresh=True)
+    discord_channels = await discord_client.get_guild_channels(guild.guild_id)
 
     # Filter for text channels only (type 0)
     text_channel_type = 0

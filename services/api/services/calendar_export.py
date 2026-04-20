@@ -30,10 +30,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from shared.cache import projection as member_projection
+from shared.cache.client import get_redis_client
 from shared.discord.client import (
     fetch_channel_name_safe,
     fetch_guild_name_safe,
-    fetch_user_display_name_safe,
 )
 from shared.models.channel import ChannelConfiguration
 from shared.models.game import GameSession
@@ -127,6 +128,16 @@ class CalendarExportService:
 
         return cal.to_ical()
 
+    async def _resolve_host_display(self, game: GameSession) -> str | None:
+        guild_id = game.guild.guild_id if game.guild else None
+        if not guild_id or not game.host:
+            return None
+        redis = await get_redis_client()
+        member = await member_projection.get_member(guild_id, game.host.discord_id, redis=redis)
+        if not member:
+            return None
+        return member.get("nick") or member.get("global_name") or member.get("username")
+
     async def _create_event(self, game: GameSession) -> Event:
         """
         Create iCal event from game session.
@@ -158,7 +169,8 @@ class CalendarExportService:
         # Description with game details
         description_parts = []
         if game.host:
-            host_name = await fetch_user_display_name_safe(game.host.discord_id)
+            host_display = await self._resolve_host_display(game)
+            host_name = f"@{host_display or game.host.discord_id}"
             description_parts.append(f"Host: {host_name}")
 
         if game.where:

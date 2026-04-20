@@ -123,7 +123,7 @@ async def test_refresh_creates_new_channels(
         result = await refresh_guild_channels(mock_db_unit, mock_guild.id)
 
     # Verify Discord client was called
-    mock_client.get_guild_channels.assert_called_once_with(mock_guild.guild_id, force_refresh=True)
+    mock_client.get_guild_channels.assert_called_once_with(mock_guild.guild_id)
 
     # Verify new channel was created
     mock_create.assert_called_once_with(mock_db_unit, mock_guild.id, "444444444", is_active=True)

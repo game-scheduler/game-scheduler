@@ -21,7 +21,7 @@
 
 """Tests for calendar export service."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -75,7 +75,7 @@ def mock_channel(mock_guild):
 @pytest.fixture
 def mock_game(mock_user, mock_guild, mock_channel):
     """Create mock game session."""
-    scheduled_at = datetime(2025, 12, 15, 18, 0, 0)
+    scheduled_at = datetime(2025, 12, 15, 18, 0, 0, tzinfo=UTC)
     game = GameSession(
         id="game-123",
         title="Test Game Night",
@@ -90,8 +90,8 @@ def mock_game(mock_user, mock_guild, mock_channel):
         reminder_minutes=[60, 15],
         expected_duration_minutes=120,
         status="SCHEDULED",
-        created_at=datetime(2025, 12, 1, 12, 0, 0),
-        updated_at=datetime(2025, 12, 1, 12, 0, 0),
+        created_at=datetime(2025, 12, 1, 12, 0, 0, tzinfo=UTC),
+        updated_at=datetime(2025, 12, 1, 12, 0, 0, tzinfo=UTC),
     )
     game.host = mock_user
     game.guild = mock_guild
@@ -100,17 +100,21 @@ def mock_game(mock_user, mock_guild, mock_channel):
 
 
 @pytest.mark.asyncio
+@patch("services.api.services.calendar_export.get_redis_client")
+@patch("services.api.services.calendar_export.member_projection")
 @patch("services.api.services.calendar_export.fetch_guild_name_safe")
 @patch("services.api.services.calendar_export.fetch_channel_name_safe")
-@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
 async def test_export_game_as_host(
-    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+    mock_fetch_channel, mock_fetch_guild, mock_proj, mock_redis_fn, mock_db, mock_game, mock_user
 ):
     """Test exporting a game as the host."""
     mock_game.host_id = "user-123"
-    mock_fetch_user.return_value = "@TestUser"
     mock_fetch_channel.return_value = "#game-channel"
     mock_fetch_guild.return_value = "Test Server"
+    mock_redis_fn.return_value = AsyncMock()
+    mock_proj.get_member = AsyncMock(
+        return_value={"username": "TestUser", "global_name": "Test User", "nick": None}
+    )
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_game
@@ -129,24 +133,28 @@ async def test_export_game_as_host(
     event = events[0]
     assert event.get("summary") == "Test Game Night"
 
-    # Verify Discord API functions were called
-    mock_fetch_user.assert_called_once_with("123456789")
+    # Verify projection was called for host display name
+    mock_proj.get_member.assert_called_once_with(
+        "987654321", "123456789", redis=mock_redis_fn.return_value
+    )
     mock_fetch_channel.assert_called_once_with("111222333")
     mock_fetch_guild.assert_called_once_with("987654321")
 
 
 @pytest.mark.asyncio
+@patch("services.api.services.calendar_export.get_redis_client")
+@patch("services.api.services.calendar_export.member_projection")
 @patch("services.api.services.calendar_export.fetch_guild_name_safe")
 @patch("services.api.services.calendar_export.fetch_channel_name_safe")
-@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
 async def test_export_game_as_participant(
-    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+    mock_fetch_channel, mock_fetch_guild, mock_proj, mock_redis_fn, mock_db, mock_game, mock_user
 ):
     """Test exporting a game as a participant."""
     mock_game.host_id = "different-user"
-    mock_fetch_user.return_value = "@TestUser"
     mock_fetch_channel.return_value = "#game-channel"
     mock_fetch_guild.return_value = "Test Server"
+    mock_redis_fn.return_value = AsyncMock()
+    mock_proj.get_member = AsyncMock(return_value=None)
 
     # Create a participant
     participant = GameParticipant(
@@ -171,18 +179,20 @@ async def test_export_game_as_participant(
 
 
 @pytest.mark.asyncio
+@patch("services.api.services.calendar_export.get_redis_client")
+@patch("services.api.services.calendar_export.member_projection")
 @patch("services.api.services.calendar_export.fetch_guild_name_safe")
 @patch("services.api.services.calendar_export.fetch_channel_name_safe")
-@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
 async def test_export_game_as_bot_manager(
-    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+    mock_fetch_channel, mock_fetch_guild, mock_proj, mock_redis_fn, mock_db, mock_game, mock_user
 ):
     """Test exporting a game as a bot manager."""
     mock_game.host_id = "different-user"
     mock_game.participants = []
-    mock_fetch_user.return_value = "@TestUser"
     mock_fetch_channel.return_value = "#game-channel"
     mock_fetch_guild.return_value = "Test Server"
+    mock_redis_fn.return_value = AsyncMock()
+    mock_proj.get_member = AsyncMock(return_value=None)
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_game
@@ -228,17 +238,19 @@ async def test_export_game_permission_denied(mock_db, mock_game):
 
 
 @pytest.mark.asyncio
+@patch("services.api.services.calendar_export.get_redis_client")
+@patch("services.api.services.calendar_export.member_projection")
 @patch("services.api.services.calendar_export.fetch_guild_name_safe")
 @patch("services.api.services.calendar_export.fetch_channel_name_safe")
-@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
 async def test_event_has_correct_duration(
-    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+    mock_fetch_channel, mock_fetch_guild, mock_proj, mock_redis_fn, mock_db, mock_game, mock_user
 ):
     """Test that event duration is calculated correctly."""
     mock_game.host_id = "user-123"
-    mock_fetch_user.return_value = "@TestUser"
     mock_fetch_channel.return_value = "#game-channel"
     mock_fetch_guild.return_value = "Test Server"
+    mock_redis_fn.return_value = AsyncMock()
+    mock_proj.get_member = AsyncMock(return_value=None)
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_game
@@ -259,17 +271,19 @@ async def test_event_has_correct_duration(
 
 
 @pytest.mark.asyncio
+@patch("services.api.services.calendar_export.get_redis_client")
+@patch("services.api.services.calendar_export.member_projection")
 @patch("services.api.services.calendar_export.fetch_guild_name_safe")
 @patch("services.api.services.calendar_export.fetch_channel_name_safe")
-@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
 async def test_event_has_alarms(
-    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+    mock_fetch_channel, mock_fetch_guild, mock_proj, mock_redis_fn, mock_db, mock_game, mock_user
 ):
     """Test that reminders are converted to alarms."""
     mock_game.host_id = "user-123"
-    mock_fetch_user.return_value = "@TestUser"
     mock_fetch_channel.return_value = "#game-channel"
     mock_fetch_guild.return_value = "Test Server"
+    mock_redis_fn.return_value = AsyncMock()
+    mock_proj.get_member = AsyncMock(return_value=None)
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_game
@@ -287,17 +301,19 @@ async def test_event_has_alarms(
 
 
 @pytest.mark.asyncio
+@patch("services.api.services.calendar_export.get_redis_client")
+@patch("services.api.services.calendar_export.member_projection")
 @patch("services.api.services.calendar_export.fetch_guild_name_safe")
 @patch("services.api.services.calendar_export.fetch_channel_name_safe")
-@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
 async def test_event_status_mapping(
-    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+    mock_fetch_channel, mock_fetch_guild, mock_proj, mock_redis_fn, mock_db, mock_game, mock_user
 ):
     """Test that game status is correctly mapped to calendar status."""
     mock_game.host_id = "user-123"
-    mock_fetch_user.return_value = "@TestUser"
     mock_fetch_channel.return_value = "#game-channel"
     mock_fetch_guild.return_value = "Test Server"
+    mock_redis_fn.return_value = AsyncMock()
+    mock_proj.get_member = AsyncMock(return_value=None)
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_game
@@ -314,18 +330,20 @@ async def test_event_status_mapping(
 
 
 @pytest.mark.asyncio
+@patch("services.api.services.calendar_export.get_redis_client")
+@patch("services.api.services.calendar_export.member_projection")
 @patch("services.api.services.calendar_export.fetch_guild_name_safe")
 @patch("services.api.services.calendar_export.fetch_channel_name_safe")
-@patch("services.api.services.calendar_export.fetch_user_display_name_safe")
 async def test_cancelled_game_status(
-    mock_fetch_user, mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+    mock_fetch_channel, mock_fetch_guild, mock_proj, mock_redis_fn, mock_db, mock_game, mock_user
 ):
     """Test that cancelled games are marked correctly."""
     mock_game.status = "CANCELLED"
     mock_game.host_id = "user-123"
-    mock_fetch_user.return_value = "@TestUser"
     mock_fetch_channel.return_value = "#game-channel"
     mock_fetch_guild.return_value = "Test Server"
+    mock_redis_fn.return_value = AsyncMock()
+    mock_proj.get_member = AsyncMock(return_value=None)
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_game
@@ -357,3 +375,39 @@ async def test_export_empty_games_list(mock_db):
     cal = Calendar.from_ical(ical_data)
     events = [component for component in cal.walk() if component.name == "VEVENT"]
     assert len(events) == 0
+
+
+@pytest.mark.asyncio
+@patch("services.api.services.calendar_export.fetch_guild_name_safe")
+@patch("services.api.services.calendar_export.fetch_channel_name_safe")
+async def test_host_display_name_from_projection(
+    mock_fetch_channel, mock_fetch_guild, mock_db, mock_game, mock_user
+):
+    """Host display name reads from member projection, not fetch_user_display_name_safe."""
+    mock_game.host_id = "user-123"
+    mock_fetch_channel.return_value = "#game-channel"
+    mock_fetch_guild.return_value = "Test Server"
+
+    member_data = {"username": "testuser", "global_name": "Test User", "nick": None, "roles": []}
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_game
+    mock_db.execute = AsyncMock(return_value=mock_result)
+
+    with patch("services.api.services.calendar_export.member_projection") as mock_proj:
+        mock_proj.get_member = AsyncMock(return_value=member_data)
+
+        with patch("services.api.services.calendar_export.get_redis_client") as mock_redis_fn:
+            mock_redis = AsyncMock()
+            mock_redis_fn.return_value = mock_redis
+
+            service = CalendarExportService(mock_db)
+            ical_data = await service.export_game(
+                "game-123", "user-123", "123456789", can_export=True
+            )
+
+    assert ical_data is not None
+    cal = Calendar.from_ical(ical_data)
+    events = [c for c in cal.walk() if c.name == "VEVENT"]
+    description = events[0].get("description")
+    assert "Test User" in description or "testuser" in description
