@@ -137,7 +137,7 @@ class RoleChecker:
             if guild is None:
                 return False
 
-            member = await guild.fetch_member(int(user_id))
+            member = guild.get_member(int(user_id))
             if member is None:
                 return False
 
@@ -163,7 +163,7 @@ class RoleChecker:
             if guild is None:
                 return False
 
-            member = await guild.fetch_member(int(user_id))
+            member = guild.get_member(int(user_id))
             if member is None:
                 return False
 
@@ -189,7 +189,7 @@ class RoleChecker:
             if guild is None:
                 return False
 
-            member = await guild.fetch_member(int(user_id))
+            member = guild.get_member(int(user_id))
             if member is None:
                 return False
 

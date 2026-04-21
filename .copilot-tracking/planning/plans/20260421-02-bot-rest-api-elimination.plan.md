@@ -40,12 +40,12 @@ Eliminate all non-message REST calls from the Discord bot by replacing `fetch_me
 
 ## Implementation Checklist
 
-### [ ] Phase 1: role_checker.py — Replace `fetch_member` with `get_member`
+### [x] Phase 1: role_checker.py — Replace `fetch_member` with `get_member`
 
-- [ ] Task 1.1: Update unit tests to assert `get_member` is called and `fetch_member` is NOT called
+- [x] Task 1.1: Update unit tests to assert `get_member` is called and `fetch_member` is NOT called
   - Details: .copilot-tracking/planning/details/20260421-02-bot-rest-api-elimination-details.md (Lines 13–31)
 
-- [ ] Task 1.2: Replace `guild.fetch_member()` with `guild.get_member()` in all three permission-check methods
+- [x] Task 1.2: Replace `guild.fetch_member()` with `guild.get_member()` in all three permission-check methods
   - Details: .copilot-tracking/planning/details/20260421-02-bot-rest-api-elimination-details.md (Lines 32–47)
 
 ### [ ] Phase 2: handlers.py — Eliminate Channel REST Fallbacks
