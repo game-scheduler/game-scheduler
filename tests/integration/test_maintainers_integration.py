@@ -83,7 +83,7 @@ async def test_toggle_enables_maintainer_mode(
             f"Expected 200, got {response.status_code}: {response.text}"
         )
 
-        session_data = await redis_client_async.get_json(f"session:{session_token}")
+        session_data = await redis_client_async.get_json(f"api:session:{session_token}")
         assert session_data is not None, "Session should still exist"
         assert session_data.get("is_maintainer") is True, (
             "is_maintainer should be True after toggle"
@@ -180,7 +180,7 @@ async def test_toggle_disables_maintainer_mode(
             f"Expected 200, got {response.status_code}: {response.text}"
         )
 
-        session_data = await redis_client_async.get_json(f"session:{session_token}")
+        session_data = await redis_client_async.get_json(f"api:session:{session_token}")
         assert session_data is not None, "Session should still exist"
         assert session_data.get("is_maintainer") is False, (
             "is_maintainer should be False after toggling off"
@@ -258,10 +258,10 @@ async def test_refresh_deletes_other_maintainer_sessions(
             f"Expected 200, got {response.status_code}: {response.text}"
         )
 
-        caller_data = await redis_client_async.get_json(f"session:{caller_token}")
+        caller_data = await redis_client_async.get_json(f"api:session:{caller_token}")
         assert caller_data is not None, "Caller session should be preserved"
 
-        other_data = await redis_client_async.get_json(f"session:{other_token}")
+        other_data = await redis_client_async.get_json(f"api:session:{other_token}")
         assert other_data is None, "Other elevated session should be deleted"
     finally:
         await cleanup_test_session(caller_token)

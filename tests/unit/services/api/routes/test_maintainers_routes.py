@@ -154,8 +154,8 @@ async def test_refresh_deletes_other_maintainer_sessions(mock_redis):
     """Refresh deletes other sessions with is_maintainer=True."""
     caller_token = "caller-token"
     user = _make_current_user(caller_token)
-    caller_key = f"session:{caller_token}"
-    other_key = "session:other-elevated"
+    caller_key = f"api:session:{caller_token}"
+    other_key = "api:session:other-elevated"
 
     async def get_json_side(key):
         if key == caller_key:
@@ -183,8 +183,8 @@ async def test_refresh_preserves_non_maintainer_sessions(mock_redis):
     """Refresh does not delete sessions where is_maintainer is False."""
     caller_token = "caller-token"
     user = _make_current_user(caller_token)
-    caller_key = f"session:{caller_token}"
-    normal_key = "session:normal-user"
+    caller_key = f"api:session:{caller_token}"
+    normal_key = "api:session:normal-user"
 
     async def get_json_side(key):
         if key == caller_key:
@@ -207,10 +207,10 @@ async def test_refresh_preserves_non_maintainer_sessions(mock_redis):
 
 @pytest.mark.asyncio
 async def test_refresh_flushes_app_info_cache(mock_redis):
-    """Refresh deletes the discord:app_info cache key."""
+    """Refresh deletes the api:app_info cache key."""
     caller_token = "caller-token"
     user = _make_current_user(caller_token)
-    caller_key = f"session:{caller_token}"
+    caller_key = f"api:session:{caller_token}"
     mock_redis.get_json.return_value = {"user_id": "111", "is_maintainer": True}
 
     async def scan_iter(_pattern):
@@ -221,4 +221,4 @@ async def test_refresh_flushes_app_info_cache(mock_redis):
     await refresh_maintainers(user)
 
     deleted = [call[0][0] for call in mock_redis.delete.call_args_list]
-    assert "discord:app_info" in deleted
+    assert "api:app_info" in deleted

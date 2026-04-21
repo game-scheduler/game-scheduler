@@ -30,7 +30,7 @@ class TestCacheKeys:
     def test_display_name_key(self):
         """Test display name cache key generation."""
         key = CacheKeys.display_name("guild123", "user456")
-        assert key == "display:guild123:user456"
+        assert key == "api:display:guild123:user456"
 
     def test_user_roles_key(self):
         """Test user roles cache key generation."""
@@ -40,7 +40,7 @@ class TestCacheKeys:
     def test_session_key(self):
         """Test session cache key generation."""
         key = CacheKeys.session("session_abc123")
-        assert key == "session:session_abc123"
+        assert key == "api:session:session_abc123"
 
     def test_guild_config_key(self):
         """Test guild config cache key generation."""
@@ -60,7 +60,12 @@ class TestCacheKeys:
     def test_oauth_state_key(self):
         """Test OAuth state cache key generation."""
         key = CacheKeys.oauth_state("state_random123")
-        assert key == "oauth_state:state_random123"
+        assert key == "api:oauth:state_random123"
+
+    def test_user_guilds_key(self):
+        """Test user guilds cache key generation."""
+        key = CacheKeys.user_guilds("user456")
+        assert key == "api:user_guilds:user456"
 
     def test_proj_gen_key(self):
         """Test projection generation pointer key."""

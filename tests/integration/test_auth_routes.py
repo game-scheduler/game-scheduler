@@ -58,7 +58,7 @@ async def test_login_returns_authorization_url_and_state(async_client, redis_cli
     assert "authorization_url" in body
     assert "state" in body
 
-    stored = await redis_client_async.get_json(f"oauth_state:{body['state']}")
+    stored = await redis_client_async.get_json(f"api:oauth:{body['state']}")
     assert stored == redirect_uri
 
 
@@ -67,7 +67,7 @@ async def test_callback_creates_session_on_success(redis_client_async, api_base_
     """Valid code + matching state → 200 JSON; session cookie set in the response."""
     state = uuid.uuid4().hex
     redirect_uri = "http://localhost:3000/callback"
-    await redis_client_async.set_json(f"oauth_state:{state}", redirect_uri, ttl=600)
+    await redis_client_async.set_json(f"api:oauth:{state}", redirect_uri, ttl=600)
 
     async with httpx.AsyncClient(base_url=api_base_url, timeout=10.0) as client:
         response = await client.get(
@@ -170,7 +170,7 @@ async def test_callback_discord_error_returns_500(redis_client_async, api_base_u
     """Fake Discord returns 500 on code exchange → API returns 500."""
     state = uuid.uuid4().hex
     redirect_uri = "http://localhost:3000/callback"
-    await redis_client_async.set_json(f"oauth_state:{state}", redirect_uri, ttl=600)
+    await redis_client_async.set_json(f"api:oauth:{state}", redirect_uri, ttl=600)
 
     async with httpx.AsyncClient(base_url=api_base_url, timeout=10.0) as client:
         response = await client.get(
@@ -204,7 +204,7 @@ async def test_refresh_discord_error_returns_401(create_user, redis_client_async
         "can_be_maintainer": False,
         "is_maintainer": False,
     }
-    await redis_client_async.set_json(f"session:{session_token}", session_data, ttl=604800)
+    await redis_client_async.set_json(f"api:session:{session_token}", session_data, ttl=604800)
 
     async with httpx.AsyncClient(
         base_url=api_base_url,
@@ -237,7 +237,7 @@ async def test_callback_creates_new_user_on_first_login(redis_client_async, api_
     """
     state = uuid.uuid4().hex
     redirect_uri = "http://localhost:3000/callback"
-    await redis_client_async.set_json(f"oauth_state:{state}", redirect_uri, ttl=600)
+    await redis_client_async.set_json(f"api:oauth:{state}", redirect_uri, ttl=600)
 
     async with httpx.AsyncClient(base_url=api_base_url, timeout=10.0) as client:
         response = await client.get(

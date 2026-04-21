@@ -60,7 +60,7 @@ async def generate_authorization_url(redirect_uri: str) -> tuple[str, str]:
     state = secrets.token_urlsafe(32)
 
     redis = await cache_client.get_redis_client()
-    state_key = f"oauth_state:{state}"
+    state_key = f"api:oauth:{state}"
     await redis.set_json(state_key, redirect_uri, ttl=600)
 
     params = {
@@ -92,7 +92,7 @@ async def validate_state(state: str) -> str:
         OAuth2StateError: If state is invalid or expired
     """
     redis = await cache_client.get_redis_client()
-    state_key = f"oauth_state:{state}"
+    state_key = f"api:oauth:{state}"
 
     redirect_uri = await cache_get(state_key, CacheOperation.OAUTH_STATE)
     if redirect_uri is None:

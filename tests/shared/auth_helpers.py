@@ -81,7 +81,7 @@ async def create_test_session(
         "username": username,
     }
 
-    session_key = f"session:{session_token}"
+    session_key = f"api:session:{session_token}"
     await redis_client.set_json(session_key, session_data, ttl=ttl_seconds)
     await redis_client.disconnect()
 
@@ -100,6 +100,6 @@ async def cleanup_test_session(session_token: str) -> None:
     """
     redis_client = RedisClient()
     await redis_client.connect()
-    session_key = f"session:{session_token}"
+    session_key = f"api:session:{session_token}"
     await redis_client.delete(session_key)
     await redis_client.disconnect()

@@ -45,15 +45,15 @@ Enforce Redis key ownership at the server level by renaming API-owned keys under
 
 ## Implementation Checklist
 
-### [ ] Phase 1: Rename API-owned session/auth/display keys to `api:` prefix
+### [x] Phase 1: Rename API-owned session/auth/display keys to `api:` prefix
 
-- [ ] Task 1.1: Update `CacheKeys` constants for session, oauth, display, user_guilds, and app_info
+- [x] Task 1.1: Update `CacheKeys` constants for session, oauth, display, user_guilds, and app_info
   - Details: .copilot-tracking/planning/details/20260421-03-redis-acl-key-ownership-details.md (Lines 13-32)
 
-- [ ] Task 1.2: Update all callers of the renamed keys
+- [x] Task 1.2: Update all callers of the renamed keys
   - Details: .copilot-tracking/planning/details/20260421-03-redis-acl-key-ownership-details.md (Lines 33-51)
 
-- [ ] Task 1.3: Update test fixtures and assertions that reference the old key strings
+- [x] Task 1.3: Update test fixtures and assertions that reference the old key strings
   - Details: .copilot-tracking/planning/details/20260421-03-redis-acl-key-ownership-details.md (Lines 52-64)
 
 ### [ ] Phase 2: Transfer `user_roles:*` ownership to API; remove bot write path

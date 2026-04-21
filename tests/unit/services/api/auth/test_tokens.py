@@ -229,3 +229,55 @@ async def test_store_user_tokens_stores_none_avatar():
         )
 
     assert stored_data.get("avatar") is None
+
+
+@pytest.mark.asyncio
+async def test_refresh_user_tokens_updates_session_in_redis():
+    """refresh_user_tokens reads then writes the session at api:session:<token>."""
+    session_token = "refresh-token-abc"
+    existing_session = {
+        "user_id": "user1",
+        "access_token": "old_enc",
+        "refresh_token": "old_ref",
+        "expires_at": "2099-01-01T00:00:00",
+    }
+    mock_redis = AsyncMock()
+    captured_key = {}
+
+    async def capture_set_json(key, data, **kwargs):
+        captured_key["key"] = key
+
+    mock_redis.set_json = AsyncMock(side_effect=capture_set_json)
+
+    with (
+        patch(
+            "services.api.auth.tokens.cache_get",
+            new_callable=AsyncMock,
+            return_value=existing_session,
+        ),
+        patch(
+            "services.api.auth.tokens.cache_client.get_redis_client",
+            new_callable=AsyncMock,
+            return_value=mock_redis,
+        ),
+        patch("services.api.auth.tokens.encrypt_token", return_value="new_enc"),
+    ):
+        await tokens.refresh_user_tokens(session_token, "new_access", 3600)
+
+    assert captured_key["key"] == f"api:session:{session_token}"
+
+
+@pytest.mark.asyncio
+async def test_delete_user_tokens_deletes_session_key():
+    """delete_user_tokens deletes the session at api:session:<token>."""
+    session_token = "delete-token-xyz"
+    mock_redis = AsyncMock()
+
+    with patch(
+        "services.api.auth.tokens.cache_client.get_redis_client",
+        new_callable=AsyncMock,
+        return_value=mock_redis,
+    ):
+        await tokens.delete_user_tokens(session_token)
+
+    mock_redis.delete.assert_called_once_with(f"api:session:{session_token}")

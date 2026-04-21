@@ -28,7 +28,7 @@ class CacheKeys:
     @staticmethod
     def display_name(guild_id: str, user_id: str) -> str:
         """Return cache key for Discord user display names in a specific guild."""
-        return f"display:{guild_id}:{user_id}"
+        return f"api:display:{guild_id}:{user_id}"
 
     @staticmethod
     def user_roles(user_id: str, guild_id: str) -> str:
@@ -38,7 +38,7 @@ class CacheKeys:
     @staticmethod
     def session(session_id: str) -> str:
         """Return cache key for user session data."""
-        return f"session:{session_id}"
+        return f"api:session:{session_id}"
 
     @staticmethod
     def guild_config(guild_id: str) -> str:
@@ -58,12 +58,12 @@ class CacheKeys:
     @staticmethod
     def oauth_state(state: str) -> str:
         """Return cache key for OAuth2 state parameter."""
-        return f"oauth_state:{state}"
+        return f"api:oauth:{state}"
 
     @staticmethod
     def user_guilds(user_id: str) -> str:
         """Return cache key for Discord user's guild list."""
-        return f"user_guilds:{user_id}"
+        return f"api:user_guilds:{user_id}"
 
     @staticmethod
     def discord_channel(channel_id: str) -> str:
@@ -98,7 +98,7 @@ class CacheKeys:
     @staticmethod
     def app_info() -> str:
         """Return cache key for Discord application info."""
-        return "discord:app_info"
+        return "api:app_info"
 
     @staticmethod
     def proj_gen() -> str:

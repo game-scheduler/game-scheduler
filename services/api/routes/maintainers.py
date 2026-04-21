@@ -49,7 +49,7 @@ async def toggle_maintainer_mode(
     Discord application info (cached). When disabling, clears the flag directly.
     """
     redis = await cache_client.get_redis_client()
-    session_key = f"session:{current_user.session_token}"
+    session_key = f"api:session:{current_user.session_token}"
     session_data = await redis.get_json(session_key)
 
     if not session_data or not session_data.get("can_be_maintainer"):
@@ -88,14 +88,14 @@ async def refresh_maintainers(
     elevation picks up the latest Discord team membership.
     """
     redis = await cache_client.get_redis_client()
-    session_key = f"session:{current_user.session_token}"
+    session_key = f"api:session:{current_user.session_token}"
     session_data = await redis.get_json(session_key)
 
     if not session_data or not session_data.get("is_maintainer"):
         err_msg = "Maintainer mode required"
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=err_msg)
 
-    async for key in redis._client.scan_iter("session:*"):
+    async for key in redis._client.scan_iter("api:session:*"):
         if key == session_key:
             continue
         data = await redis.get_json(key)

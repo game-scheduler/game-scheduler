@@ -128,7 +128,7 @@ async def store_user_tokens(
         "avatar": avatar,
     }
 
-    session_key = f"session:{session_token}"
+    session_key = f"api:session:{session_token}"
     await redis.set_json(session_key, session_data, ttl=cache_ttl.CacheTTL.SESSION)
 
     logger.info("Stored tokens for user %s", user_id)
@@ -145,7 +145,7 @@ async def get_user_tokens(session_token: str) -> dict[str, Any] | None:
     Returns:
         Dictionary with user_id, access_token, refresh_token, expires_at or None
     """
-    session_key = f"session:{session_token}"
+    session_key = f"api:session:{session_token}"
     session_data_raw = await cache_get(session_key, CacheOperation.SESSION_LOOKUP)
 
     if session_data_raw is None:
@@ -184,7 +184,7 @@ async def refresh_user_tokens(
         new_access_token: New access token from refresh
         new_expires_in: New expiration time in seconds
     """
-    session_key = f"session:{session_token}"
+    session_key = f"api:session:{session_token}"
     session_data_raw = await cache_get(session_key, CacheOperation.SESSION_REFRESH)
 
     if session_data_raw is None:
@@ -218,7 +218,7 @@ async def delete_user_tokens(session_token: str) -> None:
     """
     redis = await cache_client.get_redis_client()
 
-    session_key = f"session:{session_token}"
+    session_key = f"api:session:{session_token}"
     await redis.delete(session_key)
 
     logger.info("Deleted session %s", session_token)
