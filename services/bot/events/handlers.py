@@ -33,7 +33,6 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.bot.config import get_config
-from services.bot.dependencies.discord_client import get_discord_client
 from services.bot.events.publisher import get_bot_publisher
 from services.bot.formatters.game_message import format_game_announcement
 from services.bot.handlers.participant_drop import handle_participant_drop_due
@@ -819,7 +818,13 @@ class EventHandlers:
             )
 
             try:
-                user = await self.bot.fetch_user(int(participant.user.discord_id))
+                user = self.bot.get_user(int(participant.user.discord_id))
+                if user is None:
+                    logger.warning(
+                        "User %s not found in gateway cache; skipping clone_confirmation DM",
+                        participant.user.discord_id,
+                    )
+                    return
                 await user.send(message, view=view)
                 logger.info(
                     "✓ Sent clone_confirmation DM to %s for game %s",
@@ -858,16 +863,9 @@ class EventHandlers:
             True if message sent successfully, False otherwise
         """
         try:
-            discord_api = get_discord_client()
-            user_data = await discord_api.fetch_user(user_discord_id)
-
-            if not user_data:
-                logger.error("User not found in Discord: %s", user_discord_id)
-                return False
-
-            user = await self.bot.fetch_user(int(user_discord_id))
-            if not user:
-                logger.error("Could not get user object: %s", user_discord_id)
+            user = self.bot.get_user(int(user_discord_id))
+            if user is None:
+                logger.warning("User %s not found in gateway cache; skipping DM", user_discord_id)
                 return False
 
             await user.send(message)

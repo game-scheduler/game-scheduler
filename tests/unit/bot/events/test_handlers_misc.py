@@ -118,7 +118,7 @@ async def test_clone_confirmation_discord_forbidden(handlers):
 
     mock_user = AsyncMock()
     mock_user.send = AsyncMock(side_effect=_forbidden())
-    handlers.bot.fetch_user = AsyncMock(return_value=mock_user)
+    handlers.bot.get_user = MagicMock(return_value=mock_user)
 
     with (
         patch.object(
@@ -150,7 +150,7 @@ async def test_clone_confirmation_discord_http_exception(handlers):
 
     mock_user = AsyncMock()
     mock_user.send = AsyncMock(side_effect=_http_exception())
-    handlers.bot.fetch_user = AsyncMock(return_value=mock_user)
+    handlers.bot.get_user = MagicMock(return_value=mock_user)
 
     with (
         patch.object(
@@ -187,45 +187,34 @@ async def test_clone_confirmation_outer_exception_is_caught(handlers):
 
 
 async def test_send_dm_user_not_found_returns_false(handlers):
-    """Returns False when Discord API cannot find the user."""
-    mock_discord_api = MagicMock()
-    mock_discord_api.fetch_user = AsyncMock(return_value=None)
-    with patch("services.bot.events.handlers.get_discord_client", return_value=mock_discord_api):
-        result = await handlers._send_dm("123456789012345678", "hello")
+    """Returns False when user is absent from the gateway cache."""
+    handlers.bot.get_user = MagicMock(return_value=None)
+    result = await handlers._send_dm("123456789012345678", "hello")
     assert result is False
 
 
 async def test_send_dm_bot_fetch_returns_none_returns_false(handlers):
-    """Returns False when the bot cannot resolve the user object."""
-    mock_discord_api = MagicMock()
-    mock_discord_api.fetch_user = AsyncMock(return_value=MagicMock())
-    handlers.bot.fetch_user = AsyncMock(return_value=None)
-    with patch("services.bot.events.handlers.get_discord_client", return_value=mock_discord_api):
-        result = await handlers._send_dm("123456789012345678", "hello")
+    """Returns False when get_user() returns None."""
+    handlers.bot.get_user = MagicMock(return_value=None)
+    result = await handlers._send_dm("123456789012345678", "hello")
     assert result is False
 
 
 async def test_send_dm_discord_forbidden_returns_false(handlers):
     """Returns False when Discord raises Forbidden (DMs disabled)."""
-    mock_discord_api = MagicMock()
-    mock_discord_api.fetch_user = AsyncMock(return_value=MagicMock())
     mock_user = AsyncMock()
     mock_user.send = AsyncMock(side_effect=_forbidden())
-    handlers.bot.fetch_user = AsyncMock(return_value=mock_user)
-    with patch("services.bot.events.handlers.get_discord_client", return_value=mock_discord_api):
-        result = await handlers._send_dm("123456789012345678", "hello")
+    handlers.bot.get_user = MagicMock(return_value=mock_user)
+    result = await handlers._send_dm("123456789012345678", "hello")
     assert result is False
 
 
 async def test_send_dm_discord_http_exception_returns_false(handlers):
     """Returns False when Discord raises an HTTP error."""
-    mock_discord_api = MagicMock()
-    mock_discord_api.fetch_user = AsyncMock(return_value=MagicMock())
     mock_user = AsyncMock()
     mock_user.send = AsyncMock(side_effect=_http_exception())
-    handlers.bot.fetch_user = AsyncMock(return_value=mock_user)
-    with patch("services.bot.events.handlers.get_discord_client", return_value=mock_discord_api):
-        result = await handlers._send_dm("123456789012345678", "hello")
+    handlers.bot.get_user = MagicMock(return_value=mock_user)
+    result = await handlers._send_dm("123456789012345678", "hello")
     assert result is False
 
 

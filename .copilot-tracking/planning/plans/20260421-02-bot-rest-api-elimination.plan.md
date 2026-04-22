@@ -56,12 +56,12 @@ Eliminate all non-message REST calls from the Discord bot by replacing `fetch_me
 - [x] Task 2.2: Strip `discord_api.fetch_channel()` pre-check and `bot.fetch_channel()` fallback from three channel helpers
   - Details: .copilot-tracking/planning/details/20260421-02-bot-rest-api-elimination-details.md (Lines 70–87)
 
-### [ ] Phase 3: handlers.py — Eliminate User Fetch REST Calls
+### [x] Phase 3: handlers.py — Eliminate User Fetch REST Calls
 
-- [ ] Task 3.1: Update unit tests for `_send_dm` and `_handle_clone_confirmation`; add None-user skip test cases
+- [x] Task 3.1: Update unit tests for `_send_dm` and `_handle_clone_confirmation`; add None-user skip test cases
   - Details: .copilot-tracking/planning/details/20260421-02-bot-rest-api-elimination-details.md (Lines 90–113)
 
-- [ ] Task 3.2: Replace `bot.fetch_user()` / `discord_api.fetch_user()` with `bot.get_user()` in both DM helpers
+- [x] Task 3.2: Replace `bot.fetch_user()` / `discord_api.fetch_user()` with `bot.get_user()` in both DM helpers
   - Details: .copilot-tracking/planning/details/20260421-02-bot-rest-api-elimination-details.md (Lines 114–130)
 
 ### [ ] Phase 4: guild_sync.py — Add Gateway-Aware Sync Functions

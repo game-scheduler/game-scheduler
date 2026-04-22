@@ -263,9 +263,9 @@ async def test_game_cancelled_delete_general_exception_is_caught(handlers):
 async def test_validate_discord_channel_does_not_call_fetch_channel(handlers, bot):
     """_validate_discord_channel must not call discord_api.fetch_channel."""
     bot.get_channel = MagicMock(return_value=MagicMock(spec=discord.TextChannel))
-    with patch("services.bot.events.handlers.get_discord_client") as mock_get_client:
-        await handlers._validate_discord_channel("123456")
-    mock_get_client.assert_not_called()
+    bot.fetch_channel = AsyncMock()
+    await handlers._validate_discord_channel("123456")
+    bot.fetch_channel.assert_not_called()
 
 
 async def test_validate_discord_channel_returns_false_when_not_found(handlers, bot):

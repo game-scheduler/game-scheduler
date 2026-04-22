@@ -44,6 +44,7 @@ def mock_bot():
     """Create mock Discord bot."""
     bot = MagicMock(spec=discord.Client)
     bot.get_channel = MagicMock()
+    bot.get_user = MagicMock()
     bot.fetch_channel = AsyncMock()
     bot.fetch_user = AsyncMock()
     return bot
@@ -156,7 +157,6 @@ async def test_handle_game_created_success(event_handlers, mock_bot, sample_game
     mock_channel.send = AsyncMock(return_value=mock_message)
 
     with (
-        patch("services.bot.events.handlers.get_discord_client"),
         patch("services.bot.events.handlers.get_db_session"),
         patch(
             "services.bot.events.handlers.EventHandlers._validate_discord_channel",
@@ -318,12 +318,7 @@ async def test_handle_send_notification_success(event_handlers, mock_bot):
     """Test successful handling of notification.send_dm event."""
     mock_user = MagicMock()
     mock_user.send = AsyncMock()
-    mock_bot.fetch_user.return_value = mock_user
-
-    mock_discord_api = MagicMock()
-    mock_discord_api.fetch_user = AsyncMock(
-        return_value={"id": "123456789", "username": "test_user"}
-    )
+    mock_bot.get_user.return_value = mock_user
 
     data = {
         "user_id": "123456789",
@@ -334,11 +329,9 @@ async def test_handle_send_notification_success(event_handlers, mock_bot):
         "message": "Game starts in 1 hour!",
     }
 
-    with patch("services.bot.events.handlers.get_discord_client", return_value=mock_discord_api):
-        await event_handlers._handle_send_notification(data)
+    await event_handlers._handle_send_notification(data)
 
-    mock_discord_api.fetch_user.assert_awaited_once_with("123456789")
-    mock_bot.fetch_user.assert_awaited_once_with(123456789)
+    mock_bot.fetch_user.assert_not_called()
     mock_user.send.assert_awaited_once_with("Game starts in 1 hour!")
 
 
@@ -347,7 +340,7 @@ async def test_handle_send_notification_dm_disabled(event_handlers, mock_bot):
     """Test notification when user has DMs disabled."""
     mock_user = MagicMock()
     mock_user.send = AsyncMock(side_effect=discord.Forbidden(MagicMock(), MagicMock()))
-    mock_bot.fetch_user.return_value = mock_user
+    mock_bot.get_user.return_value = mock_user
 
     data = {
         "user_id": "123456789",
@@ -359,6 +352,26 @@ async def test_handle_send_notification_dm_disabled(event_handlers, mock_bot):
     }
 
     await event_handlers._handle_send_notification(data)
+
+
+@pytest.mark.asyncio
+async def test_handle_send_notification_user_not_in_cache(event_handlers, mock_bot):
+    """Test notification skipped when user is absent from gateway cache."""
+    mock_bot.get_user.return_value = None
+
+    data = {
+        "user_id": "123456789",
+        "game_id": str(uuid4()),
+        "game_title": "Test Game",
+        "game_time_unix": 1732125600,
+        "notification_type": "reminder",
+        "message": "Test message",
+    }
+
+    result = await event_handlers._handle_send_notification(data)
+
+    mock_bot.fetch_user.assert_not_called()
+    assert result is None
 
 
 @pytest.mark.asyncio
@@ -2250,11 +2263,10 @@ class TestRefreshGameMessageHelpers:
         mock_channel = MagicMock(spec=discord.TextChannel)
         mock_bot.get_channel.return_value = mock_channel
 
-        with patch("services.bot.events.handlers.get_discord_client") as mock_get_client:
-            result = await event_handlers._validate_channel_for_refresh(channel_id)
+        result = await event_handlers._validate_channel_for_refresh(channel_id)
 
         assert result is mock_channel
-        mock_get_client.assert_not_called()
+        mock_bot.fetch_channel.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_validate_channel_for_refresh_invalid_type(self, event_handlers, mock_bot):
@@ -2566,8 +2578,9 @@ async def test_handle_clone_confirmation_sends_dm_with_view(event_handlers, mock
     schedule.id = str(uuid4())
     schedule.action_time = datetime(2026, 4, 1, 18, 0, 0, tzinfo=UTC)
 
-    mock_user = AsyncMock()
-    mock_bot.fetch_user = AsyncMock(return_value=mock_user)
+    mock_user = MagicMock()
+    mock_user.send = AsyncMock()
+    mock_bot.get_user.return_value = mock_user
 
     event = NotificationDueEvent(
         game_id=sample_game.id,
@@ -2598,6 +2611,7 @@ async def test_handle_clone_confirmation_sends_dm_with_view(event_handlers, mock
 
         await event_handlers._handle_clone_confirmation(event)
 
+    mock_bot.fetch_user.assert_not_called()
     mock_view_cls.assert_called_once()
     mock_user.send.assert_awaited_once()
     send_kwargs = mock_user.send.call_args
@@ -2674,6 +2688,53 @@ async def test_handle_clone_confirmation_falls_back_to_join_dm_when_no_schedule(
         await event_handlers._handle_clone_confirmation(event)
 
     mock_send_join.assert_awaited_once()
+    mock_bot.fetch_user.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_handle_clone_confirmation_user_not_in_cache(event_handlers, mock_bot, sample_game):
+    """_handle_clone_confirmation skips DM when user is absent from gateway cache."""
+    participant_id = str(uuid4())
+    participant = MagicMock()
+    participant.id = participant_id
+    participant.user = MagicMock()
+    participant.user.discord_id = "555000000000000099"
+
+    schedule = MagicMock()
+    schedule.id = str(uuid4())
+    schedule.action_time = datetime(2026, 4, 1, 18, 0, 0, tzinfo=UTC)
+
+    mock_bot.get_user.return_value = None
+
+    event = NotificationDueEvent(
+        game_id=sample_game.id,
+        notification_type="clone_confirmation",
+        participant_id=participant_id,
+    )
+
+    mock_db_instance = MagicMock()
+    schedule_result = MagicMock()
+    schedule_result.scalar_one_or_none = MagicMock(return_value=schedule)
+    mock_db_instance.execute = AsyncMock(return_value=schedule_result)
+
+    with (
+        patch("services.bot.events.handlers.get_db_session") as mock_db,
+        patch.object(
+            event_handlers,
+            "_fetch_join_notification_data",
+            new_callable=AsyncMock,
+            return_value=(sample_game, participant),
+        ),
+        patch("services.bot.events.handlers.get_bot_publisher"),
+        patch("services.bot.events.handlers.CloneConfirmationView"),
+        patch("services.bot.events.handlers.DMFormats") as mock_fmt,
+    ):
+        mock_db.return_value.__aenter__ = AsyncMock(return_value=mock_db_instance)
+        mock_db.return_value.__aexit__ = AsyncMock(return_value=None)
+        mock_fmt.clone_confirmation.return_value = "Clone confirmation DM text"
+
+        await event_handlers._handle_clone_confirmation(event)
+
     mock_bot.fetch_user.assert_not_called()
 
 
