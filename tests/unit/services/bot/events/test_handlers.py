@@ -44,6 +44,7 @@ def mock_bot():
     """Create mock Discord bot."""
     bot = MagicMock(spec=discord.Client)
     bot.get_channel = MagicMock()
+    bot.fetch_channel = AsyncMock()
     bot.fetch_user = AsyncMock()
     return bot
 
@@ -240,33 +241,37 @@ async def test_validate_discord_channel_invalid(event_handlers, mock_bot):
 
 @pytest.mark.asyncio
 async def test_get_bot_channel_success(event_handlers, mock_bot):
-    """Test getting bot channel successfully."""
+    """Test getting bot channel from gateway cache."""
     mock_channel = MagicMock(spec=discord.TextChannel)
     mock_bot.get_channel.return_value = mock_channel
 
     result = await event_handlers._get_bot_channel("123")
+
     assert result == mock_channel
+    mock_bot.fetch_channel.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_get_bot_channel_fetch_required(event_handlers, mock_bot):
-    """Test getting bot channel requires fetching."""
-    mock_channel = AsyncMock(spec=discord.TextChannel)
+async def test_get_bot_channel_not_in_cache_returns_none(event_handlers, mock_bot):
+    """Test get_bot_channel returns None when channel is absent from gateway cache."""
     mock_bot.get_channel.return_value = None
-    mock_bot.fetch_channel.return_value = mock_channel
 
     result = await event_handlers._get_bot_channel("123")
-    assert result == mock_channel
+
+    assert result is None
+    mock_bot.fetch_channel.assert_not_called()
 
 
 @pytest.mark.asyncio
 async def test_get_bot_channel_invalid_type(event_handlers, mock_bot):
-    """Test getting bot channel with invalid channel type."""
+    """Test get_bot_channel returns None when channel is not a TextChannel."""
     mock_channel = MagicMock()
     mock_bot.get_channel.return_value = mock_channel
 
     result = await event_handlers._get_bot_channel("123")
+
     assert result is None
+    mock_bot.fetch_channel.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -523,7 +528,7 @@ async def test_handle_status_transition_creates_archived_schedule_when_delay_set
     event_handlers, sample_game, sample_user
 ):
     """Test COMPLETED transition schedules ARCHIVED when delay is set."""
-    fixed_now = datetime(2025, 11, 20, 19, 0, 0)
+    fixed_now = datetime(2025, 11, 20, 19, 0, 0, tzinfo=UTC)
     sample_game.host = sample_user
     sample_game.participants = []
     sample_game.status = GameStatus.IN_PROGRESS.value
@@ -690,7 +695,7 @@ async def test_handle_status_transition_creates_archived_schedule_when_delay_zer
     event_handlers, sample_game, sample_user
 ):
     """Test COMPLETED transition schedules ARCHIVED when delay is zero."""
-    fixed_now = datetime(2025, 11, 20, 19, 30, 0)
+    fixed_now = datetime(2025, 11, 20, 19, 30, 0, tzinfo=UTC)
     sample_game.host = sample_user
     sample_game.participants = []
     sample_game.status = GameStatus.IN_PROGRESS.value
@@ -2215,67 +2220,53 @@ class TestRefreshGameMessageHelpers:
 
     @pytest.mark.asyncio
     async def test_validate_channel_for_refresh_success(self, event_handlers, mock_bot):
-        """Test successful channel validation."""
+        """Test successful channel validation using gateway cache only."""
         channel_id = "123456789"
         mock_channel = MagicMock(spec=discord.TextChannel)
         mock_bot.get_channel.return_value = mock_channel
 
-        with patch("services.bot.events.handlers.get_discord_client") as mock_discord_api:
-            mock_api = AsyncMock()
-            mock_api.fetch_channel.return_value = {"id": channel_id}
-            mock_discord_api.return_value = mock_api
-
-            result = await event_handlers._validate_channel_for_refresh(channel_id)
+        result = await event_handlers._validate_channel_for_refresh(channel_id)
 
         assert result is mock_channel
+        mock_bot.fetch_channel.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_validate_channel_for_refresh_api_fails(self, event_handlers, mock_bot):
-        """Test channel validation when API fetch fails."""
+    async def test_validate_channel_for_refresh_not_in_cache(self, event_handlers, mock_bot):
+        """Test channel validation returns None when channel absent from gateway cache."""
         channel_id = "123456789"
+        mock_bot.get_channel.return_value = None
 
-        with patch("services.bot.events.handlers.get_discord_client") as mock_discord_api:
-            mock_api = AsyncMock()
-            mock_api.fetch_channel.return_value = None
-            mock_discord_api.return_value = mock_api
-
-            result = await event_handlers._validate_channel_for_refresh(channel_id)
+        result = await event_handlers._validate_channel_for_refresh(channel_id)
 
         assert result is None
+        mock_bot.fetch_channel.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_validate_channel_for_refresh_with_fetch(self, event_handlers, mock_bot):
-        """Test channel validation with bot fetch when get fails."""
+    async def test_validate_channel_for_refresh_does_not_call_discord_api(
+        self, event_handlers, mock_bot
+    ):
+        """Test that channel validation never calls the REST Discord API."""
         channel_id = "123456789"
         mock_channel = MagicMock(spec=discord.TextChannel)
-        mock_bot.get_channel.return_value = None
-        mock_bot.fetch_channel.return_value = mock_channel
+        mock_bot.get_channel.return_value = mock_channel
 
-        with patch("services.bot.events.handlers.get_discord_client") as mock_discord_api:
-            mock_api = AsyncMock()
-            mock_api.fetch_channel.return_value = {"id": channel_id}
-            mock_discord_api.return_value = mock_api
-
+        with patch("services.bot.events.handlers.get_discord_client") as mock_get_client:
             result = await event_handlers._validate_channel_for_refresh(channel_id)
 
         assert result is mock_channel
-        mock_bot.fetch_channel.assert_called_once_with(int(channel_id))
+        mock_get_client.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_validate_channel_for_refresh_invalid_type(self, event_handlers, mock_bot):
-        """Test channel validation when channel is not TextChannel."""
+        """Test channel validation returns None when channel is not a TextChannel."""
         channel_id = "123456789"
         mock_channel = MagicMock(spec=discord.VoiceChannel)
         mock_bot.get_channel.return_value = mock_channel
 
-        with patch("services.bot.events.handlers.get_discord_client") as mock_discord_api:
-            mock_api = AsyncMock()
-            mock_api.fetch_channel.return_value = {"id": channel_id}
-            mock_discord_api.return_value = mock_api
-
-            result = await event_handlers._validate_channel_for_refresh(channel_id)
+        result = await event_handlers._validate_channel_for_refresh(channel_id)
 
         assert result is None
+        mock_bot.fetch_channel.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_fetch_message_for_refresh_success(self, event_handlers):
@@ -2303,7 +2294,7 @@ class TestRefreshGameMessageHelpers:
 
     @pytest.mark.asyncio
     async def test_fetch_channel_and_message_success(self, event_handlers, mock_bot):
-        """Test successful channel and message fetch."""
+        """Test successful channel and message fetch from gateway cache."""
         channel_id = "123456789"
         message_id = "987654321"
         mock_channel = AsyncMock(spec=discord.TextChannel)
@@ -2318,40 +2309,33 @@ class TestRefreshGameMessageHelpers:
         assert result[1] is mock_message
         mock_bot.get_channel.assert_called_once_with(int(channel_id))
         mock_channel.fetch_message.assert_called_once_with(int(message_id))
+        mock_bot.fetch_channel.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_fetch_channel_and_message_channel_not_cached(self, event_handlers, mock_bot):
-        """Test channel and message fetch when channel not cached."""
-        channel_id = "123456789"
-        message_id = "987654321"
-        mock_channel = AsyncMock(spec=discord.TextChannel)
-        mock_message = MagicMock(spec=discord.Message)
-        mock_channel.fetch_message.return_value = mock_message
-        mock_bot.get_channel.return_value = None
-        mock_bot.fetch_channel.return_value = mock_channel
-
-        result = await event_handlers._fetch_channel_and_message(channel_id, message_id)
-
-        assert result is not None
-        assert result[0] is mock_channel
-        assert result[1] is mock_message
-        mock_bot.get_channel.assert_called_once_with(int(channel_id))
-        mock_bot.fetch_channel.assert_called_once_with(int(channel_id))
-        mock_channel.fetch_message.assert_called_once_with(int(message_id))
-
-    @pytest.mark.asyncio
-    async def test_fetch_channel_and_message_invalid_channel(self, event_handlers, mock_bot):
-        """Test channel and message fetch with invalid channel."""
+    async def test_fetch_channel_and_message_channel_not_in_cache(self, event_handlers, mock_bot):
+        """Test that channel absent from gateway cache returns None without REST fallback."""
         channel_id = "123456789"
         message_id = "987654321"
         mock_bot.get_channel.return_value = None
-        mock_bot.fetch_channel.side_effect = Exception("Channel not found")
 
         result = await event_handlers._fetch_channel_and_message(channel_id, message_id)
 
         assert result is None
         mock_bot.get_channel.assert_called_once_with(int(channel_id))
-        mock_bot.fetch_channel.assert_called_once_with(int(channel_id))
+        mock_bot.fetch_channel.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_fetch_channel_and_message_invalid_channel(self, event_handlers, mock_bot):
+        """Test that a None get_channel result returns None without calling fetch_channel."""
+        channel_id = "123456789"
+        message_id = "987654321"
+        mock_bot.get_channel.return_value = None
+
+        result = await event_handlers._fetch_channel_and_message(channel_id, message_id)
+
+        assert result is None
+        mock_bot.get_channel.assert_called_once_with(int(channel_id))
+        mock_bot.fetch_channel.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_fetch_channel_and_message_wrong_channel_type(self, event_handlers, mock_bot):

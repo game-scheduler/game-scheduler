@@ -195,10 +195,8 @@ class EventHandlers:
         return True
 
     async def _get_bot_channel(self, channel_id: str) -> discord.TextChannel | None:
-        """Get Discord channel object from bot, fetching if necessary."""
+        """Get Discord channel object from the gateway cache."""
         channel = self.bot.get_channel(int(channel_id))
-        if not channel:
-            channel = await self.bot.fetch_channel(int(channel_id))
 
         if not channel or not isinstance(channel, discord.TextChannel):
             logger.error("Invalid channel: %s", channel_id)
@@ -321,7 +319,7 @@ class EventHandlers:
 
     async def _validate_channel_for_refresh(self, channel_id: str) -> discord.TextChannel | None:
         """
-        Validate channel exists and is accessible via both API and bot.
+        Validate channel exists and is accessible via the in-memory gateway cache.
 
         Args:
             channel_id: Discord channel ID
@@ -329,16 +327,7 @@ class EventHandlers:
         Returns:
             Discord TextChannel if valid, None otherwise
         """
-        discord_api = get_discord_client()
-        channel_data = await discord_api.fetch_channel(channel_id)
-
-        if not channel_data:
-            logger.error("Invalid channel: %s", channel_id)
-            return None
-
         channel = self.bot.get_channel(int(channel_id))
-        if not channel:
-            channel = await self.bot.fetch_channel(int(channel_id))
 
         if not channel or not isinstance(channel, discord.TextChannel):
             logger.error("Invalid channel: %s", channel_id)
@@ -382,11 +371,8 @@ class EventHandlers:
         """
         channel = self.bot.get_channel(int(channel_id))
         if not channel:
-            try:
-                channel = await self.bot.fetch_channel(int(channel_id))
-            except Exception as e:
-                logger.error("Invalid or inaccessible channel: %s - %s", channel_id, e)
-                return None
+            logger.error("Invalid or inaccessible channel: %s", channel_id)
+            return None
 
         if not channel or not isinstance(channel, discord.TextChannel):
             logger.error("Invalid or inaccessible channel: %s", channel_id)

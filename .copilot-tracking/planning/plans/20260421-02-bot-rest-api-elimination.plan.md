@@ -48,12 +48,12 @@ Eliminate all non-message REST calls from the Discord bot by replacing `fetch_me
 - [x] Task 1.2: Replace `guild.fetch_member()` with `guild.get_member()` in all three permission-check methods
   - Details: .copilot-tracking/planning/details/20260421-02-bot-rest-api-elimination-details.md (Lines 32–47)
 
-### [ ] Phase 2: handlers.py — Eliminate Channel REST Fallbacks
+### [x] Phase 2: handlers.py — Eliminate Channel REST Fallbacks
 
-- [ ] Task 2.1: Update unit tests for `_validate_channel_for_refresh`, `_get_bot_channel`, `_fetch_channel_and_message` to assert no REST calls
+- [x] Task 2.1: Update unit tests for `_validate_channel_for_refresh`, `_get_bot_channel`, `_fetch_channel_and_message` to assert no REST calls
   - Details: .copilot-tracking/planning/details/20260421-02-bot-rest-api-elimination-details.md (Lines 50–69)
 
-- [ ] Task 2.2: Strip `discord_api.fetch_channel()` pre-check and `bot.fetch_channel()` fallback from three channel helpers
+- [x] Task 2.2: Strip `discord_api.fetch_channel()` pre-check and `bot.fetch_channel()` fallback from three channel helpers
   - Details: .copilot-tracking/planning/details/20260421-02-bot-rest-api-elimination-details.md (Lines 70–87)
 
 ### [ ] Phase 3: handlers.py — Eliminate User Fetch REST Calls

@@ -18,6 +18,8 @@ _(none yet)_
 
 - `tests/unit/services/bot/auth/test_role_checker.py` — Task 1.1: replaced all 11 `mock_guild.fetch_member = AsyncMock(...)` setups with `mock_guild.get_member = MagicMock(...)` (synchronous); added `mock_guild.fetch_member.assert_not_called()` assertions to every permission-check test; updated three `_member_not_found` docstrings to reflect cache-miss rather than REST-miss semantics
 - `services/bot/auth/role_checker.py` — Task 1.2: replaced `await guild.fetch_member(int(user_id))` with `guild.get_member(int(user_id))` (removed `await`, synchronous call) in `check_manage_guild_permission`, `check_manage_channels_permission`, and `check_administrator_permission`
+- `tests/unit/services/bot/events/test_handlers.py` — Task 2.1: added `bot.fetch_channel = AsyncMock()` to `mock_bot` fixture; renamed `test_get_bot_channel_fetch_required` to `test_get_bot_channel_not_in_cache_returns_none` with `fetch_channel.assert_not_called()`; replaced three `_validate_channel_for_refresh` tests (removing discord_api patches, adding `fetch_channel.assert_not_called()` assertions); replaced `test_fetch_channel_and_message_channel_not_cached` and `test_fetch_channel_and_message_invalid_channel` to assert no `fetch_channel` call
+- `services/bot/events/handlers.py` — Task 2.2: removed `discord_api.fetch_channel()` pre-check and `bot.fetch_channel()` fallback from `_validate_channel_for_refresh`; removed `bot.fetch_channel()` fallback from `_get_bot_channel`; removed `bot.fetch_channel()` try/except fallback from `_fetch_channel_and_message`; all three methods now use `bot.get_channel()` only
 
 ## Removed
 
