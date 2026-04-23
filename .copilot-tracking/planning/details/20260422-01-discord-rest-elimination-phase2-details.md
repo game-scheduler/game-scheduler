@@ -319,6 +319,103 @@ In `frontend/src/pages/__tests__/GuildListPage.test.tsx`, remove sync-related te
 
 ---
 
+## Phase 8: Fix shared/database.py missed call site (Finding 1 addendum)
+
+### Task 8.1: Write failing test for projection-based guild membership in get_db_with_user_guilds
+
+Write a test that verifies `get_db_with_user_guilds()` uses `member_projection.get_user_guilds()` instead of `oauth2.get_user_guilds()`. Mark `xfail(strict=True)`.
+
+- **Files**:
+  - `tests/unit/test_database.py` — add test for projection-based guild membership in get_db_with_user_guilds
+- **Success**:
+  - Test is marked `xfail(strict=True)` and shows as XFAIL
+- **Research References**:
+  - #file:../research/20260422-01-discord-rest-elimination-phase2-research.md (Lines 218-255) — Finding 1: shared/database.py missed call site
+- **Dependencies**:
+  - None
+
+### Task 8.2: Replace oauth2.get_user_guilds() with projection in shared/database.py
+
+In `shared/database.py` (line 157), inside `get_db_with_user_guilds()`, replace:
+
+```python
+user_guilds = await oauth2.get_user_guilds(guild_token, current_user.user.discord_id)
+discord_guild_ids = [g["id"] for g in user_guilds]
+```
+
+With:
+
+```python
+redis = await cache_client.get_redis_client()
+discord_guild_ids = await member_projection.get_user_guilds(
+    current_user.user.discord_id, redis=redis
+) or []
+```
+
+Remove `guild_token = tokens.get_guild_token(token_data)` (no longer needed). Update imports: remove `oauth2` from the `from services.api.auth import ...` line; add `from shared.cache import client as cache_client` and `from shared.cache import projection as member_projection`.
+
+- **Files**:
+  - `shared/database.py` — replace REST call; remove guild_token extraction; update imports
+- **Success**:
+  - Task 8.1 xfail test now passes; remove xfail marker
+  - No `oauth2.get_user_guilds` call in `shared/database.py`
+  - `guild_token` extraction removed
+  - `token_data` fetch and 401 guard unchanged
+- **Research References**:
+  - #file:../research/20260422-01-discord-rest-elimination-phase2-research.md (Lines 218-255) — Finding 1: replacement pattern and import updates
+- **Dependencies**:
+  - Task 8.1 complete
+
+---
+
+## Phase 9: Remove dead REST functions from guild_sync.py (Finding 3 addendum)
+
+### Task 9.1: Delete dead test functions from test_guild_sync.py
+
+In `tests/unit/services/bot/test_guild_sync.py`, delete:
+
+- All `test_sync_all_bot_guilds_*` functions (~11 tests)
+- The entire `TestCreateGuildWithChannelsAndTemplate` class (~3 tests)
+- All `test_refresh_guild_channels_*` functions (~4 tests)
+
+Note: Phase 7 Task 7.2 left `sync_all_bot_guilds` in `guild_sync.py` intentionally. The addendum audit revealed these functions are unreachable dead code — delete the tests first before removing production code.
+
+- **Files**:
+  - `tests/unit/services/bot/test_guild_sync.py` — delete dead test functions and class
+- **Success**:
+  - Deleted tests no longer appear in test output
+  - Remaining `test_guild_sync.py` tests (for gateway-backed functions) still pass
+- **Research References**:
+  - #file:../research/20260422-01-discord-rest-elimination-phase2-research.md (Lines 256-300) — Finding 3: dead functions analysis and test list
+- **Dependencies**:
+  - None
+
+### Task 9.2: Delete dead functions and DiscordAPIClient import from guild_sync.py
+
+In `services/bot/guild_sync.py`, delete:
+
+- `sync_all_bot_guilds()` function (was the backend of the removed `/sync` endpoint; no callers remain)
+- `_create_guild_with_channels_and_template()` function (only called by `sync_all_bot_guilds`)
+- `_refresh_guild_channels()` function (no callers anywhere in the codebase)
+- The `DiscordAPIClient` import (only used by the three deleted functions)
+
+The live code paths (`on_ready` → `sync_guilds_from_gateway`, `on_guild_join` → `sync_single_guild_from_gateway`) use `_create_guild_with_gateway_channels()` and are unaffected.
+
+- **Files**:
+  - `services/bot/guild_sync.py` — delete three dead functions and DiscordAPIClient import
+- **Success**:
+  - Task 9.1 tests deleted
+  - `sync_all_bot_guilds`, `_create_guild_with_channels_and_template`, `_refresh_guild_channels` absent from `guild_sync.py`
+  - `DiscordAPIClient` no longer imported in `guild_sync.py`
+  - `grep -r "sync_all_bot_guilds" services/` returns no results
+  - Remaining `guild_sync.py` tests pass
+- **Research References**:
+  - #file:../research/20260422-01-discord-rest-elimination-phase2-research.md (Lines 256-300) — Finding 3: dead function identification and DiscordAPIClient import removal
+- **Dependencies**:
+  - Task 9.1 complete
+
+---
+
 ## Dependencies
 
 - `shared/cache/projection.py` provides `get_user_guilds`, `get_member`, `get_guild_name`
@@ -328,8 +425,10 @@ In `frontend/src/pages/__tests__/GuildListPage.test.tsx`, remove sync-related te
 ## Success Criteria
 
 - `grep -r "oauth2.get_user_guilds" services/` returns no results outside `services/api/auth/oauth2.py`
+- `grep -r "oauth2.get_user_guilds" shared/` returns no results
 - `grep -r "bot.fetch_user" services/bot/` returns no results
 - `POST /api/v1/guilds/sync` returns 404
 - `UserInfoResponse` has no `guilds` field
 - `discord_format` member lookup makes no `DiscordAPIClient` calls
+- `sync_all_bot_guilds`, `_create_guild_with_channels_and_template`, and `_refresh_guild_channels` deleted from `guild_sync.py`; `DiscordAPIClient` import removed
 - Full unit test suite passes with zero skips

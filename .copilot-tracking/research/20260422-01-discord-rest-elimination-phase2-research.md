@@ -198,6 +198,65 @@ await user.send(DMFormats.removal(game_title))
 - **Success Criteria**:
   - Zero calls to `oauth2.get_user_guilds` remain in the codebase outside of `services/api/auth/oauth2.py` itself
   - Zero calls to `bot.fetch_user` remain in `services/bot/`
+
+---
+
+## Addendum: Post-Implementation Verification (2026-04-23)
+
+### Verification Results
+
+All 7 phases confirmed complete by code inspection. Every targeted call site was replaced as planned. The following findings emerged from a full audit of the live codebase after Phase 7 merged.
+
+### Finding 1: `shared/database.py` — Missed call site (oversight)
+
+`get_db_with_user_guilds()` in `shared/database.py` (line 157) still calls `oauth2.get_user_guilds()`:
+
+```python
+user_guilds = await oauth2.get_user_guilds(guild_token, current_user.user.discord_id)
+discord_guild_ids = [g["id"] for g in user_guilds]
+```
+
+This function is a FastAPI dependency used by every route that needs RLS context (`games`, `guilds`, `templates`, `export`). It was not in the original research because the original call-site audit searched `services/**/*.py` and this file is in `shared/`. It is the highest-frequency remaining REST caller.
+
+**Fix**: Same pattern as all other eliminated sites:
+
+```python
+redis = await cache_client.get_redis_client()
+discord_guild_ids = await member_projection.get_user_guilds(
+    current_user.user.discord_id, redis=redis
+) or []
+```
+
+Remove `guild_token = tokens.get_guild_token(token_data)` (no longer needed). Update inner imports: remove `oauth2` from `from services.api.auth import oauth2, tokens`; add `from shared.cache import client as cache_client` and `from shared.cache import projection as member_projection`.
+
+The `token_data` fetch and 401 guard stay unchanged.
+
+### Finding 2: `get_guild_channels()` and `fetch_guild_roles()` — Not REST calls
+
+`discord_client.get_guild_channels()` and `discord_client.fetch_guild_roles()` in API routes (`guilds.py`, `guild_service.py`, `channel_resolver.py`) look like REST calls by name but are not. Both delegate to `DiscordAPIClient._read_cache_only()`, which raises `DiscordAPIError(503)` on cache miss rather than falling back to REST. The bot keeps these keys current via gateway events (`on_guild_channel_create/update/delete`, `on_guild_role_create/update/delete`, `on_ready`). These calls are pure Redis reads and do not need to be eliminated.
+
+### Finding 3: `guild_sync.py` — Three dead functions with REST calls
+
+`sync_all_bot_guilds()`, `_create_guild_with_channels_and_template()`, and `_refresh_guild_channels()` in `services/bot/guild_sync.py` are unreachable dead code:
+
+- `sync_all_bot_guilds()` was the backend of the `/sync` endpoint removed in Phase 7. No other caller exists.
+- `_create_guild_with_channels_and_template()` is only called by `sync_all_bot_guilds()`.
+- `_refresh_guild_channels()` has no callers anywhere in the codebase.
+
+The live code paths (`on_ready` → `sync_guilds_from_gateway`, `on_guild_join` → `sync_single_guild_from_gateway`) use the gateway-based replacements `_create_guild_with_gateway_channels()` and never touch these three functions. The `DiscordAPIClient` import in `guild_sync.py` is only needed by these dead functions and should be removed with them.
+
+**Tests to delete** in `tests/unit/services/bot/test_guild_sync.py`:
+
+- All `test_sync_all_bot_guilds_*` functions (~11 tests)
+- `TestCreateGuildWithChannelsAndTemplate` class (~3 tests)
+- All `test_refresh_guild_channels_*` functions (~4 tests)
+
+### Corrected Success Criteria
+
+The original success criteria are met. Two additional criteria apply:
+
+- `grep -r "oauth2.get_user_guilds" shared/` returns no results outside `services/api/auth/oauth2.py`
+- `sync_all_bot_guilds`, `_create_guild_with_channels_and_template`, and `_refresh_guild_channels` are deleted from `guild_sync.py` along with the `DiscordAPIClient` import
   - `POST /api/v1/guilds/sync` endpoint returns 404 (removed)
   - `UserInfoResponse.guilds` field removed from schema and frontend type
   - `discord_format.get_member_display_info` makes no REST or `DiscordAPIClient` calls

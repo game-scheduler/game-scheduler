@@ -97,6 +97,22 @@ Replace all remaining `oauth2.get_user_guilds()` REST calls (4 sites), the last 
 - [x] Task 7.3: Remove Sync button and tests from frontend
   - Details: .copilot-tracking/planning/details/20260422-01-discord-rest-elimination-phase2-details.md (Lines 298-331)
 
+### [ ] Phase 8: Fix shared/database.py missed call site (Finding 1 addendum)
+
+- [ ] Task 8.1: Write failing test for projection-based guild membership in get_db_with_user_guilds
+  - Details: .copilot-tracking/planning/details/20260422-01-discord-rest-elimination-phase2-details.md (Lines 324-336)
+
+- [ ] Task 8.2: Replace oauth2.get_user_guilds() with projection in shared/database.py
+  - Details: .copilot-tracking/planning/details/20260422-01-discord-rest-elimination-phase2-details.md (Lines 337-370)
+
+### [ ] Phase 9: Remove dead REST functions from guild_sync.py (Finding 3 addendum)
+
+- [ ] Task 9.1: Delete dead test functions from test_guild_sync.py
+  - Details: .copilot-tracking/planning/details/20260422-01-discord-rest-elimination-phase2-details.md (Lines 373-392)
+
+- [ ] Task 9.2: Delete dead functions and DiscordAPIClient import from guild_sync.py
+  - Details: .copilot-tracking/planning/details/20260422-01-discord-rest-elimination-phase2-details.md (Lines 393-418)
+
 ## Dependencies
 
 - `shared/cache/projection.py` — `get_user_guilds`, `get_member`, `get_guild_name` already implemented
@@ -106,8 +122,10 @@ Replace all remaining `oauth2.get_user_guilds()` REST calls (4 sites), the last 
 ## Success Criteria
 
 - `grep -r "oauth2.get_user_guilds" services/` returns no results outside `services/api/auth/oauth2.py`
+- `grep -r "oauth2.get_user_guilds" shared/` returns no results
 - `grep -r "bot.fetch_user" services/bot/` returns no results
 - `POST /api/v1/guilds/sync` returns 404
 - `UserInfoResponse` has no `guilds` field; `CurrentUser` interface has no `guilds` field
 - `discord_format` member lookup makes no `DiscordAPIClient` calls
+- `sync_all_bot_guilds`, `_create_guild_with_channels_and_template`, and `_refresh_guild_channels` deleted from `guild_sync.py`; `DiscordAPIClient` import removed
 - All unit test suites pass with zero skips
