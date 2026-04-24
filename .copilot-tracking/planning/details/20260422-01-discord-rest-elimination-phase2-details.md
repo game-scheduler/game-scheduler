@@ -416,6 +416,48 @@ The live code paths (`on_ready` → `sync_guilds_from_gateway`, `on_guild_join` 
 
 ---
 
+## Phase 10: Pipeline Redis writes in `repopulate_all` (Addendum 2)
+
+### Task 10.1: Write failing tests for _queue_\* pipeline helpers and pipelined repopulate_all
+
+Write failing tests for the three new synchronous pipeline-queue helpers (`_queue_member_to_pipe`, `_queue_user_guilds_to_pipe`, `_queue_guild_name_to_pipe`). Also add a failing test that verifies `repopulate_all` uses `redis._client.pipeline()` as an async context manager and awaits `pipe.execute()`. Mark all new tests `xfail(strict=True)`.
+
+- **Files**:
+  - `tests/unit/bot/test_guild_projection.py` — add xfail tests for `_queue_*` helpers and pipelined `repopulate_all`
+- **Success**:
+  - All new tests are marked `xfail(strict=True)` and show as XFAIL
+  - No existing tests are modified
+- **Research References**:
+  - #file:../research/20260422-01-discord-rest-elimination-phase2-research.md (Lines 308-334) — required test additions for pipeline helpers and `repopulate_all`
+- **Dependencies**:
+  - None
+
+### Task 10.2: Implement _queue_\* helpers and refactor \_write_all_members to use pipelining
+
+In `services/bot/guild_projection.py`, make the following changes:
+
+1. Add `_queue_member_to_pipe(pipe, gen, guild_id, uid, member)` — synchronous; calls `pipe.set()` and `pipe.zadd()` for each distinct name variant. Mirrors the logic in `write_member` but writes to a pipeline buffer without `await`.
+2. Add `_queue_user_guilds_to_pipe(pipe, gen, uid, guild_ids)` — synchronous; calls `pipe.set()`.
+3. Add `_queue_guild_name_to_pipe(pipe, gen, guild_id, guild_name)` — synchronous; calls `pipe.set()`.
+4. Replace the `_write_all_members` body: open a pipeline with `async with redis._client.pipeline(transaction=False) as pipe:`, loop calling `_queue_member_to_pipe` for each member, also queue `_queue_user_guilds_to_pipe` and `_queue_guild_name_to_pipe` writes inside the same pipeline, then `await pipe.execute()`.
+5. Optionally pipeline `_delete_old_generation`: collect all keys via `SCAN`, then delete in a single pipeline.
+
+The generation pointer flip (`await redis.set(CacheKeys.proj_gen(), new_gen)`) and `write_bot_last_seen` stay outside the pipeline, executing after `pipe.execute()` returns. `write_member`, `write_user_guilds`, and `write_guild_name` remain unchanged — they are tested public functions.
+
+- **Files**:
+  - `services/bot/guild_projection.py` — add three `_queue_*` helpers; refactor `_write_all_members`; optionally pipeline `_delete_old_generation`
+- **Success**:
+  - Task 10.1 xfail tests now pass; remove xfail markers
+  - Existing `write_member`, `write_user_guilds`, `write_guild_name` tests pass unchanged
+  - `repopulate_all` opens one pipeline, queues all member/guild/user-guilds writes, and calls `pipe.execute()` exactly once
+  - Generation pointer flip executes after `pipe.execute()`, outside the pipeline
+- **Research References**:
+  - #file:../research/20260422-01-discord-rest-elimination-phase2-research.md (Lines 268-334) — pipeline optimization: root cause, required changes, operations that stay outside the pipeline
+- **Dependencies**:
+  - Task 10.1 complete
+
+---
+
 ## Dependencies
 
 - `shared/cache/projection.py` provides `get_user_guilds`, `get_member`, `get_guild_name`
@@ -432,3 +474,5 @@ The live code paths (`on_ready` → `sync_guilds_from_gateway`, `on_guild_join` 
 - `discord_format` member lookup makes no `DiscordAPIClient` calls
 - `sync_all_bot_guilds`, `_create_guild_with_channels_and_template`, and `_refresh_guild_channels` deleted from `guild_sync.py`; `DiscordAPIClient` import removed
 - Full unit test suite passes with zero skips
+- `repopulate_all` completes in under 1 second on staging with 5000+ members
+- `_queue_member_to_pipe`, `_queue_user_guilds_to_pipe`, `_queue_guild_name_to_pipe` each have unit test coverage

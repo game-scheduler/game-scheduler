@@ -262,3 +262,73 @@ The original success criteria are met. Two additional criteria apply:
   - `discord_format.get_member_display_info` makes no REST or `DiscordAPIClient` calls
   - All unit test suites pass with no skips
   - TDD applies to all Python changes: update tests first (RED), then fix production code (GREEN)
+
+---
+
+## Addendum 2: Redis Pipeline Optimization for `repopulate_all` (2026-04-24)
+
+### Problem
+
+`repopulate_all` in `services/bot/guild_projection.py` performs all Redis writes sequentially — one `await` per operation. On staging with 5013 members across 3 guilds, this produces ~15,000 sequential round-trips and takes **8.52 seconds**. The function is called on `on_ready`, `on_member_add`, `on_member_update`, and `on_member_remove`.
+
+### Root Cause
+
+`_write_all_members` loops over every guild and every member, calling `await write_member(...)` which itself `await`s `redis.set_json()` and one `redis._client.zadd()` per distinct name variant (up to 3). Each `await` is a separate TCP round-trip to Redis.
+
+### Proposed Fix: Redis Pipelining
+
+Use `redis.asyncio` pipeline support to batch all writes into a single network flush:
+
+```python
+async with redis._client.pipeline(transaction=False) as pipe:
+    # queue all set/zadd calls synchronously
+    pipe.set(key, value)
+    pipe.zadd(key, {member: score})
+    # ...
+    await pipe.execute()  # one round-trip for everything
+```
+
+`transaction=False` uses a plain pipeline (no `MULTI`/`EXEC`), which is appropriate here — atomic semantics are not needed for bulk writes, only the generation pointer flip matters.
+
+### Caller Impact
+
+Only `repopulate_all` calls `write_member`, `write_user_guilds`, and `write_guild_name`. These three functions have no other production callers. Their interfaces can change freely.
+
+`write_bot_last_seen` has a second caller (the heartbeat loop in `bot.py`) and must remain `async` with its current signature. It is not a candidate for pipelining and runs after the generation flip regardless.
+
+### Required Changes
+
+**`services/bot/guild_projection.py`**
+
+- Add `_queue_member_to_pipe(pipe, gen, guild_id, uid, member)` — synchronous, calls `pipe.set()` and `pipe.zadd()`. Mirrors the logic in `write_member` but writes to a pipeline buffer instead of awaiting immediately.
+- Add `_queue_user_guilds_to_pipe(pipe, gen, uid, guild_ids)` — synchronous, calls `pipe.set()`.
+- Add `_queue_guild_name_to_pipe(pipe, gen, guild_id, guild_name)` — synchronous, calls `pipe.set()`.
+- Replace `_write_all_members` body: open pipeline, loop calling `_queue_member_to_pipe`, also queue `user_guild_map` writes and guild name writes inside the same pipeline, then `await pipe.execute()`.
+- Keep `write_member`, `write_user_guilds`, `write_guild_name` as-is — they are tested public functions and remain unchanged for any future targeted-write use.
+- The generation pointer flip (`await redis.set(CacheKeys.proj_gen(), new_gen)`) and `write_bot_last_seen` stay outside the pipeline, executing after `pipe.execute()` returns.
+- `_delete_old_generation` can also be pipelined: collect all keys via `SCAN`, then delete them in a pipeline.
+
+**`tests/unit/bot/test_guild_projection.py`**
+
+- Existing `write_member`, `write_user_guilds`, `write_guild_name` tests are unaffected.
+- Add tests for `_queue_member_to_pipe`, `_queue_user_guilds_to_pipe`, `_queue_guild_name_to_pipe` using a mock pipeline (assert `pipe.set` / `pipe.zadd` called with correct args).
+- Update `repopulate_all` tests to mock `redis._client.pipeline()` as a context manager and assert `pipe.execute()` is awaited.
+
+### Operations That Stay Outside the Pipeline
+
+| Operation                                  | Reason                                                     |
+| ------------------------------------------ | ---------------------------------------------------------- |
+| `redis.get(CacheKeys.proj_gen())`          | Reads `prev_gen` — needs return value before writes begin  |
+| `redis.set(CacheKeys.proj_gen(), new_gen)` | Generation flip — must happen after all writes complete    |
+| `write_bot_last_seen(redis=redis)`         | Single call; also has external caller that must stay async |
+
+### Expected Impact
+
+15,000 sequential round-trips → 1 round-trip. On staging, expected to reduce `repopulate_all` from ~8.5s to well under 1s. Memory overhead is negligible (buffered serialized strings, a few MB).
+
+### Success Criteria
+
+- `repopulate_all` completes in under 1 second on staging with 5000+ members
+- All existing `write_member`, `write_user_guilds`, `write_guild_name` tests continue to pass unchanged
+- New pipeline-targeting helper functions are covered by unit tests
+- TDD applies: write failing tests for the new `_queue_*` helpers first, then implement

@@ -113,6 +113,14 @@ Replace all remaining `oauth2.get_user_guilds()` REST calls (4 sites), the last 
 - [x] Task 9.2: Delete dead functions and DiscordAPIClient import from guild_sync.py
   - Details: .copilot-tracking/planning/details/20260422-01-discord-rest-elimination-phase2-details.md (Lines 393-418)
 
+### [ ] Phase 10: Pipeline Redis writes in `repopulate_all` (Addendum 2)
+
+- [ ] Task 10.1: Write failing tests for _queue_\* pipeline helpers and pipelined repopulate_all
+  - Details: .copilot-tracking/planning/details/20260422-01-discord-rest-elimination-phase2-details.md (Lines 421-434)
+
+- [ ] Task 10.2: Implement _queue_\* helpers and refactor \_write_all_members to use pipelining
+  - Details: .copilot-tracking/planning/details/20260422-01-discord-rest-elimination-phase2-details.md (Lines 435-459)
+
 ## Dependencies
 
 - `shared/cache/projection.py` — `get_user_guilds`, `get_member`, `get_guild_name` already implemented
@@ -129,3 +137,5 @@ Replace all remaining `oauth2.get_user_guilds()` REST calls (4 sites), the last 
 - `discord_format` member lookup makes no `DiscordAPIClient` calls
 - `sync_all_bot_guilds`, `_create_guild_with_channels_and_template`, and `_refresh_guild_channels` deleted from `guild_sync.py`; `DiscordAPIClient` import removed
 - All unit test suites pass with zero skips
+- `repopulate_all` completes in under 1 second on staging with 5000+ members
+- `_queue_member_to_pipe`, `_queue_user_guilds_to_pipe`, `_queue_guild_name_to_pipe` each have unit test coverage
