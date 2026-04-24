@@ -92,7 +92,10 @@ async def main() -> None:
         except KeyboardInterrupt:
             logger.info("Received interrupt signal, shutting down")
         except Exception as e:
+            logger.error("-" * 60)
             logger.exception("Fatal error: %s", e)
+            logger.error("-" * 60)
+            await asyncio.sleep(30)
             sys.exit(1)
     finally:
         flush_telemetry()

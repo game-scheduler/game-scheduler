@@ -193,8 +193,8 @@ services:
       test: ["CMD-SHELL", "test -f /tmp/bot-ready || exit 1"]
       interval: 5s
       timeout: 3s
-      start_period: 60s
-      retries: 5
+      start_period: 180s
+      retries: 12
     networks:
       - app-network
     logging: *logging-default

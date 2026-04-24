@@ -181,15 +181,17 @@ class TestMain:
                 with patch("services.bot.main.create_bot", return_value=mock_bot):
                     with patch("logging.getLogger") as mock_get_logger:
                         with patch("sys.exit") as mock_exit:
-                            with patch.dict("os.environ", {}, clear=False) as env:
-                                env.pop("PYTEST_RUNNING", None)
-                                mock_logger = MagicMock()
-                                mock_get_logger.return_value = mock_logger
+                            with patch("services.bot.main.asyncio.sleep") as mock_sleep:
+                                with patch.dict("os.environ", {}, clear=False) as env:
+                                    env.pop("PYTEST_RUNNING", None)
+                                    mock_logger = MagicMock()
+                                    mock_get_logger.return_value = mock_logger
 
-                                await main()
+                                    await main()
 
-                                mock_logger.exception.assert_called_once()
-                                mock_exit.assert_called_once_with(1)
+                                    mock_logger.exception.assert_called_once()
+                                    mock_sleep.assert_called_once_with(30)
+                                    mock_exit.assert_called_once_with(1)
 
     @pytest.mark.asyncio
     async def test_main_logs_startup_information(self) -> None:
