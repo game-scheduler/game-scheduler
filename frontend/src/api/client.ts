@@ -35,12 +35,29 @@ declare global {
 const API_BASE_URL =
   window.__RUNTIME_CONFIG__?.BACKEND_URL || import.meta.env.VITE_BACKEND_URL || '';
 
+// Serializes params so arrays produce repeated key=val1&key=val2 pairs,
+// which FastAPI expects for list[str] query params.
+export function serializeParams(params: Record<string, unknown>): string {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      for (const v of value) {
+        searchParams.append(key, String(v));
+      }
+    } else if (value !== undefined && value !== null) {
+      searchParams.append(key, String(value));
+    }
+  }
+  return searchParams.toString();
+}
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true,
+  paramsSerializer: { serialize: serializeParams },
 });
 
 apiClient.interceptors.response.use(

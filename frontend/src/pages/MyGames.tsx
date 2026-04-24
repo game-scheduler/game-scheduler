@@ -99,7 +99,9 @@ export const MyGames: FC = () => {
         setError(null);
 
         const [gamesResponse, guildsResponse] = await Promise.all([
-          apiClient.get<GameListResponse>('/api/v1/games'),
+          apiClient.get<GameListResponse>('/api/v1/games', {
+            params: { status: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] },
+          }),
           apiClient.get<{ guilds: Guild[] }>('/api/v1/guilds'),
         ]);
 

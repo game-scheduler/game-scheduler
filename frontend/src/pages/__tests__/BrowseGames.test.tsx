@@ -115,7 +115,7 @@ describe('BrowseGames - SSE Integration', () => {
     });
 
     expect(apiClient.get).toHaveBeenCalledWith('/api/v1/games', {
-      params: expect.objectContaining({ guild_id: 'guild-1' }),
+      params: expect.objectContaining({ guild_id: 'guild-1', status: ['SCHEDULED'] }),
     });
 
     sseCallback!('game-1');
@@ -159,6 +159,85 @@ describe('BrowseGames - SSE Integration', () => {
 
     await waitFor(() => {
       expect(apiClient.get).toHaveBeenCalledWith('/api/v1/games/game-2');
+    });
+  });
+});
+
+describe('BrowseGames - Status Filter', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('passes status as array for specific status selection', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: { games: [mockGame], total: 1 },
+    });
+
+    const { useGameUpdates } = await import('../../hooks/useGameUpdates');
+    vi.mocked(useGameUpdates).mockImplementation(() => {});
+
+    render(
+      <AuthContext.Provider value={mockAuthContext}>
+        <MemoryRouter initialEntries={['/browse/guild-1']}>
+          <Routes>
+            <Route path="/browse/:guildId" element={<BrowseGames />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('D&D Adventure')).toBeInTheDocument();
+    });
+
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/games', {
+      params: expect.objectContaining({ status: ['SCHEDULED'] }),
+    });
+  });
+
+  it('passes full non-archived status list when ALL is selected', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: { games: [mockGame], total: 1 },
+    });
+
+    const { useGameUpdates } = await import('../../hooks/useGameUpdates');
+    vi.mocked(useGameUpdates).mockImplementation(() => {});
+
+    render(
+      <AuthContext.Provider value={mockAuthContext}>
+        <MemoryRouter initialEntries={['/browse/guild-1']}>
+          <Routes>
+            <Route path="/browse/:guildId" element={<BrowseGames />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('D&D Adventure')).toBeInTheDocument();
+    });
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: { games: [mockGame], total: 1 },
+    });
+
+    const statusSelect = screen.getAllByRole('combobox')[1]!;
+    await import('@testing-library/user-event').then(async ({ default: userEvent }) => {
+      const user = userEvent.setup();
+      await user.click(statusSelect);
+    });
+    const allOption = screen.getByRole('option', { name: 'All' });
+    await import('@testing-library/user-event').then(async ({ default: userEvent }) => {
+      const user = userEvent.setup();
+      await user.click(allOption);
+    });
+
+    await waitFor(() => {
+      expect(apiClient.get).toHaveBeenLastCalledWith('/api/v1/games', {
+        params: expect.objectContaining({
+          status: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
+        }),
+      });
     });
   });
 });

@@ -76,28 +76,28 @@ views, hiding ARCHIVED games from normal views.
 - [x] Task 3.1: Change route `status` param to `list[str] | None` with `Query()`
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 137-153)
 
-### [ ] Phase 4: TDD RED — Frontend Tests
+### [x] Phase 4: TDD RED — Frontend Tests
 
-- [ ] Task 4.1: Update `BrowseGames.test.tsx` to expect `status` as array
+- [x] Task 4.1: Update `BrowseGames.test.tsx` to expect `status` as array
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 156-175)
 
-### [ ] Phase 5: Frontend Implementation (GREEN)
+### [x] Phase 5: Frontend Implementation (GREEN)
 
-- [ ] Task 5.1: Add `paramsSerializer` to `frontend/src/api/client.ts`
+- [x] Task 5.1: Add `paramsSerializer` to `frontend/src/api/client.ts`
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 178-211)
 
-- [ ] Task 5.2: Add `'ARCHIVED'` to `GameSession.status` union in `frontend/src/types/index.ts`
+- [x] Task 5.2: Add `'ARCHIVED'` to `GameSession.status` union in `frontend/src/types/index.ts`
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 212-225)
 
-- [ ] Task 5.3: Update `MyGames.tsx` to pass explicit non-archived status list
+- [x] Task 5.3: Update `MyGames.tsx` to pass explicit non-archived status list
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 226-240)
 
-- [ ] Task 5.4: Update `BrowseGames.tsx` to wrap status in list; ALL → non-archived list
+- [x] Task 5.4: Update `BrowseGames.tsx` to wrap status in list; ALL → non-archived list
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 241-259)
 
-### [ ] Phase 6: Integration Test Updates
+### [x] Phase 6: Integration Test Updates
 
-- [ ] Task 6.1: Update `test_games_route_guild_isolation.py` to use list form
+- [x] Task 6.1: Update `test_games_route_guild_isolation.py` to use list form
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 262-279)
 
 ## Dependencies

@@ -101,7 +101,7 @@ export interface GameSession {
   notify_role_ids: string[] | null;
   expected_duration_minutes: number | null;
   signup_method: string;
-  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED';
   participant_count: number;
   participants?: Participant[];
   created_at: string;

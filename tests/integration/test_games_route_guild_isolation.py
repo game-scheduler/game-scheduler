@@ -213,14 +213,14 @@ async def test_list_games_with_status_filter(admin_db, test_environment):
     )
 
     # List scheduled games - should find the game we created
-    games, total = await service.list_games(guild_id=guild["id"], status="SCHEDULED")
+    games, total = await service.list_games(guild_id=guild["id"], status=["SCHEDULED"])
     assert total == 1
     assert games[0].id == game.id
     assert games[0].status == GameStatus.SCHEDULED
 
     # List completed games (should be empty)
     games_completed, total_completed = await service.list_games(
-        guild_id=guild["id"], status="COMPLETED"
+        guild_id=guild["id"], status=["COMPLETED"]
     )
     assert total_completed == 0
     assert len(games_completed) == 0

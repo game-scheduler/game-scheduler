@@ -70,7 +70,10 @@ export const BrowseGames: FC = () => {
         setError(null);
 
         const params: any = {
-          status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
+          status:
+            selectedStatus !== 'ALL'
+              ? [selectedStatus]
+              : ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
         };
 
         if (guildId) {
