@@ -21,7 +21,7 @@
 
 """Tests for database dependency functions."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -44,24 +44,17 @@ def mock_current_user():
     )
 
 
-@pytest.fixture
-def mock_user_guilds():
-    """Mock user guilds from Discord API."""
-    return [
-        {"id": "guild_1", "name": "Test Guild 1"},
-        {"id": "guild_2", "name": "Test Guild 2"},
-    ]
-
-
 @pytest.mark.asyncio
-async def test_get_db_with_user_guilds_sets_context(
-    mock_current_user, mock_user_guilds, mock_get_user_tokens
-):
+async def test_get_db_with_user_guilds_sets_context(mock_current_user, mock_get_user_tokens):
     """Enhanced dependency sets guild_ids in ContextVar."""
     mock_db_session = AsyncMock()
 
     with (
-        patch("services.api.auth.oauth2.get_user_guilds", return_value=mock_user_guilds),
+        patch("shared.cache.client.get_redis_client", AsyncMock(return_value=AsyncMock())),
+        patch(
+            "shared.cache.projection.get_user_guilds",
+            AsyncMock(return_value=["guild_1", "guild_2"]),
+        ),
         patch("shared.database.AsyncSessionLocal", return_value=mock_db_session),
         patch(
             "services.api.database.queries.convert_discord_guild_ids_to_uuids",
@@ -85,13 +78,17 @@ async def test_get_db_with_user_guilds_sets_context(
 
 @pytest.mark.asyncio
 async def test_get_db_with_user_guilds_clears_context_on_exit(
-    mock_current_user, mock_user_guilds, mock_get_user_tokens
+    mock_current_user, mock_get_user_tokens
 ):
     """Enhanced dependency clears ContextVar in finally block."""
     mock_db_session = AsyncMock()
 
     with (
-        patch("services.api.auth.oauth2.get_user_guilds", return_value=mock_user_guilds),
+        patch("shared.cache.client.get_redis_client", AsyncMock(return_value=AsyncMock())),
+        patch(
+            "shared.cache.projection.get_user_guilds",
+            AsyncMock(return_value=["guild_1", "guild_2"]),
+        ),
         patch("shared.database.AsyncSessionLocal", return_value=mock_db_session),
         patch(
             "services.api.database.queries.convert_discord_guild_ids_to_uuids",
@@ -110,13 +107,17 @@ async def test_get_db_with_user_guilds_clears_context_on_exit(
 
 @pytest.mark.asyncio
 async def test_get_db_with_user_guilds_clears_context_on_exception(
-    mock_current_user, mock_user_guilds, mock_get_user_tokens
+    mock_current_user, mock_get_user_tokens
 ):
     """Enhanced dependency clears ContextVar even if exception raised."""
     mock_db_session = AsyncMock()
 
     with (
-        patch("services.api.auth.oauth2.get_user_guilds", return_value=mock_user_guilds),
+        patch("shared.cache.client.get_redis_client", AsyncMock(return_value=AsyncMock())),
+        patch(
+            "shared.cache.projection.get_user_guilds",
+            AsyncMock(return_value=["guild_1", "guild_2"]),
+        ),
         patch("shared.database.AsyncSessionLocal", return_value=mock_db_session),
         patch(
             "services.api.database.queries.convert_discord_guild_ids_to_uuids",
@@ -138,3 +139,36 @@ async def test_get_db_with_user_guilds_clears_context_on_exception(
     # Even after exception, guild_ids should be cleared
     guild_ids = get_current_guild_ids()
     assert guild_ids is None
+
+
+@pytest.mark.asyncio
+async def test_get_db_with_user_guilds_uses_projection_not_oauth(
+    mock_current_user, mock_get_user_tokens
+):
+    """get_db_with_user_guilds must use member_projection.get_user_guilds, not oauth2."""
+    mock_db_session = MagicMock()
+    mock_db_session.__aenter__ = AsyncMock(return_value=AsyncMock())
+    mock_db_session.__aexit__ = AsyncMock(return_value=False)
+    mock_oauth2 = AsyncMock(return_value=[{"id": "guild_1"}])
+    mock_projection = AsyncMock(return_value=["guild_1"])
+
+    with (
+        patch("services.api.auth.oauth2.get_user_guilds", mock_oauth2),
+        patch("shared.cache.client.get_redis_client", AsyncMock(return_value=AsyncMock())),
+        patch("shared.cache.projection.get_user_guilds", mock_projection),
+        patch("shared.database.AsyncSessionLocal", return_value=mock_db_session),
+        patch(
+            "services.api.database.queries.convert_discord_guild_ids_to_uuids",
+            return_value=["uuid1"],
+        ),
+    ):
+        dependency_func = get_db_with_user_guilds()
+        generator = dependency_func(mock_current_user)
+        try:
+            async for _session in generator:
+                break
+        finally:
+            await generator.aclose()
+
+    mock_oauth2.assert_not_called()
+    mock_projection.assert_called_once()

@@ -34,6 +34,9 @@ Tracking file for implementation of plan `20260422-01-discord-rest-elimination-p
 - `frontend/src/api/guilds.ts` — `syncUserGuilds` function and `GuildSyncResponse` interface remain (deletion deferred; API file cleanup out of scope for this task)
 - `frontend/src/pages/__tests__/GuildListPage.test.tsx` — removed 4 sync-interaction tests; removed stale `guilds: [...]` from `mockUser`; removed `guilds: []` from `userWithNoGuilds`; added `no Sync Guilds button rendered` test (written as `it.fails`, promoted to `it` after implementation)
 
+- `tests/unit/services/api/test_database_dependencies.py` — added `test_get_db_with_user_guilds_uses_projection_not_oauth` (written as xfail, promoted after implementation); updated three existing tests to patch `shared.cache.client.get_redis_client` and `shared.cache.projection.get_user_guilds` instead of `oauth2.get_user_guilds`; removed `mock_user_guilds` fixture (no longer needed)
+- `shared/database.py` — replaced `oauth2.get_user_guilds()` REST call with `member_projection.get_user_guilds()` projection read in `get_db_with_user_guilds`; removed `guild_token` extraction and `oauth2` import; added `from shared.cache import client as cache_client` and `from shared.cache import projection as member_projection` imports inside inner function
+
 ---
 
 ## Phase Progress
@@ -45,3 +48,4 @@ Tracking file for implementation of plan `20260422-01-discord-rest-elimination-p
 - [x] Phase 5: Fix discord_format.py member lookup (Group 3)
 - [x] Phase 6: Fix participant_drop.py user fetch (Group 4)
 - [x] Phase 7: Remove /sync endpoint and frontend Sync button (Group 6)
+- [x] Phase 8: Fix shared/database.py missed call site (Finding 1 addendum)

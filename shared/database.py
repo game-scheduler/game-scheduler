@@ -139,19 +139,20 @@ def get_db_with_user_guilds() -> Any:  # noqa: ANN401
     ) -> AsyncGenerator[AsyncSession]:
         """Inner dependency that receives current_user and provides DB session."""
         from services.api.auth import (  # noqa: PLC0415 - avoid circular dependency
-            oauth2,
             tokens,
         )
         from services.api.database import queries  # noqa: PLC0415
+        from shared.cache import client as cache_client  # noqa: PLC0415
+        from shared.cache import projection as member_projection  # noqa: PLC0415
 
         token_data = await tokens.get_user_tokens(current_user.session_token)
         if not token_data:
             raise HTTPException(status_code=401, detail="No session found")
-        guild_token = tokens.get_guild_token(token_data)
 
-        # Fetch user's guilds (cached with 5-min TTL) - returns Discord IDs
-        user_guilds = await oauth2.get_user_guilds(guild_token, current_user.user.discord_id)
-        discord_guild_ids = [g["id"] for g in user_guilds]
+        redis = await cache_client.get_redis_client()
+        discord_guild_ids = (
+            await member_projection.get_user_guilds(current_user.user.discord_id, redis=redis) or []
+        )
 
         # Set up RLS context and convert Discord IDs to database UUIDs
         async with AsyncSessionLocal() as temp_session:

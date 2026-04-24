@@ -21,7 +21,7 @@
 
 """Tests for calendar export API endpoints."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -61,7 +61,7 @@ def mock_game():
         host_id="user-123",
         guild_id="guild-123",
         channel_id="channel-123",
-        scheduled_at=datetime(2025, 12, 15, 18, 0, 0),
+        scheduled_at=datetime(2025, 12, 15, 18, 0, 0, tzinfo=UTC),
         max_players=5,
         status="SCHEDULED",
     )
@@ -106,9 +106,14 @@ def test_export_game_as_host_success(app, mock_user, mock_game, mock_get_user_to
         with (
             patch("shared.database.AsyncSessionLocal", mock_session_local),
             patch(
-                "services.api.auth.oauth2.get_user_guilds",
+                "shared.cache.client.get_redis_client",
                 new_callable=AsyncMock,
-                return_value=[{"id": "987654321", "name": "Test Guild"}],
+                return_value=AsyncMock(),
+            ),
+            patch(
+                "shared.cache.projection.get_user_guilds",
+                new_callable=AsyncMock,
+                return_value=["987654321"],
             ),
             patch(
                 "services.api.dependencies.permissions.can_export_game",
@@ -165,9 +170,14 @@ def test_export_game_not_found(app, mock_user, mock_get_user_tokens):
         with (
             patch("shared.database.AsyncSessionLocal", mock_session_local),
             patch(
-                "services.api.auth.oauth2.get_user_guilds",
+                "shared.cache.client.get_redis_client",
                 new_callable=AsyncMock,
-                return_value=[{"id": "987654321", "name": "Test Guild"}],
+                return_value=AsyncMock(),
+            ),
+            patch(
+                "shared.cache.projection.get_user_guilds",
+                new_callable=AsyncMock,
+                return_value=["987654321"],
             ),
         ):
             client = TestClient(app)
@@ -215,9 +225,14 @@ def test_export_game_permission_denied(app, mock_user, mock_game, mock_get_user_
         with (
             patch("shared.database.AsyncSessionLocal", mock_session_local),
             patch(
-                "services.api.auth.oauth2.get_user_guilds",
+                "shared.cache.client.get_redis_client",
                 new_callable=AsyncMock,
-                return_value=[{"id": "987654321", "name": "Test Guild"}],
+                return_value=AsyncMock(),
+            ),
+            patch(
+                "shared.cache.projection.get_user_guilds",
+                new_callable=AsyncMock,
+                return_value=["987654321"],
             ),
             patch(
                 "services.api.dependencies.permissions.can_export_game",
@@ -284,9 +299,14 @@ def test_export_game_as_participant(app, mock_user, mock_game, mock_get_user_tok
         with (
             patch("shared.database.AsyncSessionLocal", mock_session_local),
             patch(
-                "services.api.auth.oauth2.get_user_guilds",
+                "shared.cache.client.get_redis_client",
                 new_callable=AsyncMock,
-                return_value=[{"id": "987654321", "name": "Test Guild"}],
+                return_value=AsyncMock(),
+            ),
+            patch(
+                "shared.cache.projection.get_user_guilds",
+                new_callable=AsyncMock,
+                return_value=["987654321"],
             ),
             patch(
                 "services.api.dependencies.permissions.can_export_game",
@@ -311,21 +331,21 @@ def test_export_game_as_participant(app, mock_user, mock_game, mock_get_user_tok
 def test_generate_calendar_filename_basic():
     """Test filename generation with basic title."""
 
-    filename = generate_calendar_filename("D&D Campaign", datetime(2025, 11, 15))
+    filename = generate_calendar_filename("D&D Campaign", datetime(2025, 11, 15, tzinfo=UTC))
     assert filename == "D-D-Campaign_2025-11-15.ics"
 
 
 def test_generate_calendar_filename_special_chars():
     """Test filename generation removes special characters."""
 
-    filename = generate_calendar_filename("Poker Night!", datetime(2025, 12, 25))
+    filename = generate_calendar_filename("Poker Night!", datetime(2025, 12, 25, tzinfo=UTC))
     assert filename == "Poker-Night_2025-12-25.ics"
 
 
 def test_generate_calendar_filename_multiple_spaces():
     """Test filename generation normalizes spaces."""
 
-    filename = generate_calendar_filename("Weekly  Game   Night", datetime(2025, 1, 10))
+    filename = generate_calendar_filename("Weekly  Game   Night", datetime(2025, 1, 10, tzinfo=UTC))
     assert filename == "Weekly-Game-Night_2025-01-10.ics"
 
 
@@ -333,7 +353,7 @@ def test_generate_calendar_filename_long_title():
     """Test filename generation truncates long titles."""
 
     long_title = "A" * 150
-    filename = generate_calendar_filename(long_title, datetime(2025, 6, 1))
+    filename = generate_calendar_filename(long_title, datetime(2025, 6, 1, tzinfo=UTC))
     assert len(filename.split("_")[0]) <= 100
     assert filename.endswith("_2025-06-01.ics")
 
@@ -341,12 +361,12 @@ def test_generate_calendar_filename_long_title():
 def test_generate_calendar_filename_emoji_and_unicode():
     """Test filename generation handles emoji and unicode."""
 
-    filename = generate_calendar_filename("🎲 Game Night 🎮", datetime(2025, 3, 15))
+    filename = generate_calendar_filename("🎲 Game Night 🎮", datetime(2025, 3, 15, tzinfo=UTC))
     assert filename == "Game-Night_2025-03-15.ics"
 
 
 def test_generate_calendar_filename_only_special_chars():
     """Test filename generation with title containing only special characters."""
 
-    filename = generate_calendar_filename("!@#$%", datetime(2025, 7, 20))
+    filename = generate_calendar_filename("!@#$%", datetime(2025, 7, 20, tzinfo=UTC))
     assert filename == "_2025-07-20.ics"
