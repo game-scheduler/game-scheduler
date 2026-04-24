@@ -231,6 +231,15 @@ class GameSchedulerBot(commands.Bot):
         return [{"id": str(c.id), "name": c.name, "type": c.type.value} for c in channels]
 
     @staticmethod
+    def _postable_channels(guild: discord.Guild) -> list[discord.abc.GuildChannel]:
+        """Return only channels where the bot has send_messages permission."""
+        return [
+            c
+            for c in guild.channels
+            if isinstance(c, discord.TextChannel) and c.permissions_for(guild.me).send_messages
+        ]
+
+    @staticmethod
     def _role_list(roles: Iterable[discord.Role]) -> list[dict]:
         return [
             {
@@ -262,14 +271,15 @@ class GameSchedulerBot(commands.Bot):
                 CacheTTL.DISCORD_GUILD,
             )
 
-            channels = self._channel_list(guild.channels)
+            postable = self._postable_channels(guild)
+            channels = self._channel_list(postable)
             await redis.set_json(
                 CacheKeys.discord_guild_channels(guild_id),
                 channels,
                 CacheTTL.DISCORD_GUILD_CHANNELS,
             )
 
-            for channel in guild.channels:
+            for channel in postable:
                 await redis.set_json(
                     CacheKeys.discord_channel(str(channel.id)),
                     {"name": channel.name},
@@ -303,14 +313,18 @@ class GameSchedulerBot(commands.Bot):
     async def on_guild_channel_create(self, channel: discord.abc.GuildChannel) -> None:
         """Write the new channel to Redis and rewrite the guild channel list."""
         redis = await get_redis_client()
-        await redis.set_json(
-            CacheKeys.discord_channel(str(channel.id)),
-            {"name": channel.name},
-            CacheTTL.DISCORD_CHANNEL,
-        )
+        if (
+            isinstance(channel, discord.TextChannel)
+            and channel.permissions_for(channel.guild.me).send_messages
+        ):
+            await redis.set_json(
+                CacheKeys.discord_channel(str(channel.id)),
+                {"name": channel.name},
+                CacheTTL.DISCORD_CHANNEL,
+            )
         await redis.set_json(
             CacheKeys.discord_guild_channels(str(channel.guild.id)),
-            self._channel_list(channel.guild.channels),
+            self._channel_list(self._postable_channels(channel.guild)),
             CacheTTL.DISCORD_GUILD_CHANNELS,
         )
 
@@ -321,14 +335,20 @@ class GameSchedulerBot(commands.Bot):
     ) -> None:
         """Update the channel entry in Redis and rewrite the guild channel list."""
         redis = await get_redis_client()
-        await redis.set_json(
-            CacheKeys.discord_channel(str(after.id)),
-            {"name": after.name},
-            CacheTTL.DISCORD_CHANNEL,
-        )
+        if (
+            isinstance(after, discord.TextChannel)
+            and after.permissions_for(after.guild.me).send_messages
+        ):
+            await redis.set_json(
+                CacheKeys.discord_channel(str(after.id)),
+                {"name": after.name},
+                CacheTTL.DISCORD_CHANNEL,
+            )
+        else:
+            await redis.delete(CacheKeys.discord_channel(str(after.id)))
         await redis.set_json(
             CacheKeys.discord_guild_channels(str(after.guild.id)),
-            self._channel_list(after.guild.channels),
+            self._channel_list(self._postable_channels(after.guild)),
             CacheTTL.DISCORD_GUILD_CHANNELS,
         )
 
@@ -346,7 +366,7 @@ class GameSchedulerBot(commands.Bot):
         await redis.delete(CacheKeys.discord_channel(str(channel.id)))
         await redis.set_json(
             CacheKeys.discord_guild_channels(str(channel.guild.id)),
-            self._channel_list(channel.guild.channels),
+            self._channel_list(self._postable_channels(channel.guild)),
             CacheTTL.DISCORD_GUILD_CHANNELS,
         )
 
@@ -658,6 +678,12 @@ class GameSchedulerBot(commands.Bot):
         for cfg in channel_cfgs:
             channel = self.get_channel(int(cfg.channel_id))
             if not isinstance(channel, discord.TextChannel):
+                continue
+            if not channel.permissions_for(channel.guild.me).send_messages:
+                logger.debug(
+                    "Orphaned embed sweep: skipping channel %s (no send_messages)",
+                    cfg.channel_id,
+                )
                 continue
             try:
                 await self._scan_channel_for_orphaned_embeds(channel, cutoff)

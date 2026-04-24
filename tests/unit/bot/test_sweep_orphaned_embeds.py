@@ -319,6 +319,38 @@ async def test_channel_scan_exception_is_caught_per_channel() -> None:
         await bot._sweep_orphaned_embeds()
 
 
+async def test_channel_without_send_messages_is_skipped() -> None:
+    """Channels where the bot lacks send_messages are skipped without scanning."""
+    bot = _make_bot()
+    mock_user = MagicMock()
+    mock_user.id = 42
+
+    no_perms = MagicMock(spec=discord.Permissions)
+    no_perms.send_messages = False
+    channel = MagicMock(spec=discord.TextChannel)
+    channel.permissions_for = MagicMock(return_value=no_perms)
+    channel.guild = MagicMock()
+
+    channel_cfg = _make_channel_cfg("111222333")
+    backed_up_at = datetime(2026, 4, 1, 12, 0, 0, tzinfo=UTC)
+
+    with (
+        patch.object(type(bot), "user", new_callable=lambda: property(lambda _: mock_user)),
+        patch(
+            "services.bot.bot.get_bypass_db_session",
+            side_effect=[
+                _db_ctx_scalar(_make_backup_row(backed_up_at)),
+                _db_ctx_scalars_all([channel_cfg]),
+            ],
+        ),
+        patch.object(bot, "get_channel", return_value=channel),
+        patch.object(bot, "_scan_channel_for_orphaned_embeds", new=AsyncMock()) as mock_scan,
+    ):
+        await bot._sweep_orphaned_embeds()
+
+    mock_scan.assert_not_awaited()
+
+
 # ---------------------------------------------------------------------------
 # _scan_channel_for_orphaned_embeds edge cases
 # ---------------------------------------------------------------------------

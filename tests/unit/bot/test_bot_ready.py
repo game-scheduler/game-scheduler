@@ -24,6 +24,7 @@
 from contextlib import ExitStack
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
+import discord
 import pytest
 
 from services.bot.bot import GameSchedulerBot
@@ -60,11 +61,14 @@ def _make_role(role_id: int, name: str) -> MagicMock:
 
 
 def _make_channel(channel_id: int, name: str) -> MagicMock:
-    ch = MagicMock()
+    ch = MagicMock(spec=discord.TextChannel)
     ch.id = channel_id
     ch.name = name
     ch.type = MagicMock()
     ch.type.value = 0
+    perms = MagicMock(spec=discord.Permissions)
+    perms.send_messages = True
+    ch.permissions_for = MagicMock(return_value=perms)
     return ch
 
 
@@ -73,7 +77,9 @@ def _make_guild(guild_id: int, name: str) -> MagicMock:
     guild.id = guild_id
     guild.name = name
     guild.owner_id = 9999
-    guild.channels = [_make_channel(1001, "general")]
+    ch = _make_channel(1001, "general")
+    guild.channels = [ch]
+    guild.me = MagicMock()
     guild.roles = [_make_role(2001, "Member")]
     return guild
 
@@ -327,4 +333,64 @@ async def test_on_ready_writes_guild_roles_key_with_permissions(
             }
         ],
         CacheTTL.DISCORD_GUILD_ROLES,
+    )
+
+
+async def test_on_ready_excludes_non_postable_channels_from_guild_channels_key(
+    bot, mock_redis
+) -> None:
+    """on_ready omits channels where bot lacks send_messages from the guild channel list."""
+    guild = _make_guild(111, "Test Guild")
+    restricted = _make_channel(1002, "restricted")
+    restricted.permissions_for.return_value.send_messages = False
+    guild.channels = [guild.channels[0], restricted]
+
+    mock_user = MagicMock()
+    mock_user.id = 999
+    postable_ch = guild.channels[0]
+
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch.object(type(bot), "guilds", new_callable=PropertyMock, return_value=[guild])
+        )
+        stack.enter_context(
+            patch.object(type(bot), "user", new_callable=PropertyMock, return_value=mock_user)
+        )
+        stack.enter_context(
+            patch(
+                "services.bot.bot.get_redis_client",
+                new_callable=AsyncMock,
+                return_value=mock_redis,
+            )
+        )
+        stack.enter_context(patch.object(bot, "_recover_pending_workers", new_callable=AsyncMock))
+        stack.enter_context(patch.object(bot, "_trigger_sweep", new_callable=AsyncMock))
+        stack.enter_context(patch.object(bot, "_sweep_orphaned_embeds", new_callable=AsyncMock))
+        stack.enter_context(patch("services.bot.bot.tracer"))
+        stack.enter_context(patch("services.bot.bot.os.getenv", return_value=None))
+        stack.enter_context(
+            patch(
+                "services.bot.bot.sync_guilds_from_gateway",
+                new_callable=AsyncMock,
+                return_value={"new_guilds": 0, "new_channels": 0},
+            )
+        )
+        stack.enter_context(
+            patch(
+                "services.bot.bot.get_db_session",
+                return_value=MagicMock(
+                    __aenter__=AsyncMock(return_value=AsyncMock()),
+                    __aexit__=AsyncMock(return_value=None),
+                ),
+            )
+        )
+        stack.enter_context(
+            patch("services.bot.bot.guild_projection.repopulate_all", new_callable=AsyncMock)
+        )
+        await bot.on_ready()
+
+    mock_redis.set_json.assert_any_call(
+        CacheKeys.discord_guild_channels(str(guild.id)),
+        [{"id": str(postable_ch.id), "name": postable_ch.name, "type": postable_ch.type.value}],
+        CacheTTL.DISCORD_GUILD_CHANNELS,
     )

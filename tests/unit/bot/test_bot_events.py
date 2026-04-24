@@ -23,6 +23,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import discord
 import pytest
 
 from services.bot.bot import GameSchedulerBot
@@ -45,15 +46,23 @@ def _make_bot() -> GameSchedulerBot:
 
 
 def _make_channel(
-    channel_id: int, guild_id: int, name: str = "general", guild_channels: list | None = None
+    channel_id: int,
+    guild_id: int,
+    name: str = "general",
+    guild_channels: list | None = None,
+    send_messages: bool = True,
 ) -> MagicMock:
-    ch = MagicMock()
+    ch = MagicMock(spec=discord.TextChannel)
     ch.id = channel_id
     ch.name = name
     ch.type = MagicMock()
     ch.type.value = 0
+    perms = MagicMock(spec=discord.Permissions)
+    perms.send_messages = send_messages
+    ch.permissions_for = MagicMock(return_value=perms)
     guild = MagicMock()
     guild.id = guild_id
+    guild.me = MagicMock()
     guild.channels = guild_channels if guild_channels is not None else [ch]
     ch.guild = guild
     return ch
@@ -163,6 +172,44 @@ async def test_on_guild_channel_delete_removes_channel_and_rewrites_list(
     mock_redis.set_json.assert_called_once_with(
         CacheKeys.discord_guild_channels(str(channel.guild.id)),
         expected_channels,
+        CacheTTL.DISCORD_GUILD_CHANNELS,
+    )
+
+
+async def test_on_guild_channel_create_skips_channel_key_when_no_send_messages(
+    bot: GameSchedulerBot, mock_redis: AsyncMock
+) -> None:
+    """on_guild_channel_create skips writing discord:channel:{id} when bot lacks send_messages."""
+    channel = _make_channel(1001, 111, send_messages=False)
+    channel.guild.channels = []
+    with patch(
+        "services.bot.bot.get_redis_client", new_callable=AsyncMock, return_value=mock_redis
+    ):
+        await bot.on_guild_channel_create(channel)
+
+    mock_redis.set_json.assert_called_once_with(
+        CacheKeys.discord_guild_channels(str(channel.guild.id)),
+        [],
+        CacheTTL.DISCORD_GUILD_CHANNELS,
+    )
+
+
+async def test_on_guild_channel_update_deletes_channel_key_when_no_send_messages(
+    bot: GameSchedulerBot, mock_redis: AsyncMock
+) -> None:
+    """on_guild_channel_update removes discord:channel:{id} when bot loses send_messages."""
+    before = _make_channel(1001, 111, "general")
+    after = _make_channel(1001, 111, "restricted", send_messages=False)
+    after.guild.channels = []
+    with patch(
+        "services.bot.bot.get_redis_client", new_callable=AsyncMock, return_value=mock_redis
+    ):
+        await bot.on_guild_channel_update(before, after)
+
+    mock_redis.delete.assert_called_once_with(CacheKeys.discord_channel(str(after.id)))
+    mock_redis.set_json.assert_called_once_with(
+        CacheKeys.discord_guild_channels(str(after.guild.id)),
+        [],
         CacheTTL.DISCORD_GUILD_CHANNELS,
     )
 
