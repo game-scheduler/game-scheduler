@@ -113,12 +113,12 @@ Replace all remaining `oauth2.get_user_guilds()` REST calls (4 sites), the last 
 - [x] Task 9.2: Delete dead functions and DiscordAPIClient import from guild_sync.py
   - Details: .copilot-tracking/planning/details/20260422-01-discord-rest-elimination-phase2-details.md (Lines 393-418)
 
-### [ ] Phase 10: Pipeline Redis writes in `repopulate_all` (Addendum 2)
+### [x] Phase 10: Pipeline Redis writes in `repopulate_all` (Addendum 2)
 
-- [ ] Task 10.1: Write failing tests for _queue_\* pipeline helpers and pipelined repopulate_all
+- [x] Task 10.1: Write failing tests for _queue_\* pipeline helpers and pipelined repopulate_all
   - Details: .copilot-tracking/planning/details/20260422-01-discord-rest-elimination-phase2-details.md (Lines 421-434)
 
-- [ ] Task 10.2: Implement _queue_\* helpers and refactor \_write_all_members to use pipelining
+- [x] Task 10.2: Implement _queue_\* helpers and refactor \_write_all_members to use pipelining
   - Details: .copilot-tracking/planning/details/20260422-01-discord-rest-elimination-phase2-details.md (Lines 435-459)
 
 ## Dependencies

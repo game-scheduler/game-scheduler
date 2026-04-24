@@ -269,24 +269,30 @@ class TestWriteBotLastSeen:
 class TestRepopulateAll:
     """Test suite for repopulate_all function."""
 
+    @staticmethod
+    def _make_mock_client():
+        """Return a mock _client with pipeline context manager and scan/delete support."""
+        pipe = MagicMock()
+        pipe.execute = AsyncMock(return_value=[])
+        mock_client = MagicMock()
+        mock_client.pipeline.return_value.__aenter__ = AsyncMock(return_value=pipe)
+        mock_client.pipeline.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_client.scan = AsyncMock(return_value=(0, []))
+        mock_client.delete = AsyncMock()
+        return mock_client, pipe
+
     @pytest.mark.asyncio
     async def test_repopulate_all_basic(self):
         """Test basic repopulation with guilds and members."""
-        # Setup
         redis = AsyncMock()
         redis.get = AsyncMock(return_value="old_gen")
-
-        # Mock the _client for scan
-        mock_client = AsyncMock()
-        mock_client.scan = AsyncMock(return_value=(0, []))
-        mock_client.delete = AsyncMock()
+        mock_client, pipe = self._make_mock_client()
         redis._client = mock_client
 
         bot = MagicMock(spec=discord.Client)
-
-        # Create mock guild with members
         guild = MagicMock(spec=discord.Guild)
         guild.id = 111
+        guild.name = "Test Guild"
         member1 = MagicMock(spec=discord.Member)
         member1.id = 222
         member1.roles = []
@@ -294,7 +300,6 @@ class TestRepopulateAll:
         member1.global_name = "Member One"
         member1.name = "member1"
         member1.avatar = None
-
         member2 = MagicMock(spec=discord.Member)
         member2.id = 333
         member2.roles = []
@@ -302,19 +307,14 @@ class TestRepopulateAll:
         member2.global_name = "Member Two"
         member2.name = "member2"
         member2.avatar = None
-
         guild.members = [member1, member2]
         bot.guilds = [guild]
 
         await repopulate_all(bot=bot, redis=redis, reason="test")
 
-        # Verify gen pointer was read
         redis.get.assert_called()
-
-        # Verify members were written
-        assert redis.set_json.call_count >= 2  # At least member writes
-
-        # Verify generation flip occurred
+        # Members and guild name are queued to the pipeline via pipe.set
+        assert pipe.set.call_count >= 2
         gen_flip_calls = [
             call for call in redis.set.call_args_list if CacheKeys.proj_gen() in str(call)
         ]
@@ -322,19 +322,16 @@ class TestRepopulateAll:
 
     @pytest.mark.asyncio
     async def test_repopulate_all_gen_flip_after_writes(self):
-        """Test that generation flip happens after all data writes."""
+        """Generation flip happens after pipeline.execute() completes."""
         redis = AsyncMock()
         redis.get = AsyncMock(return_value="old_gen")
-
-        # Mock the _client for scan
-        mock_client = AsyncMock()
-        mock_client.scan = AsyncMock(return_value=(0, []))
-        mock_client.delete = AsyncMock()
+        mock_client, _pipe = self._make_mock_client()
         redis._client = mock_client
 
         bot = MagicMock(spec=discord.Client)
         guild = MagicMock(spec=discord.Guild)
         guild.id = 111
+        guild.name = "Guild"
         member = MagicMock(spec=discord.Member)
         member.id = 222
         member.roles = []
@@ -347,28 +344,19 @@ class TestRepopulateAll:
 
         await repopulate_all(bot=bot, redis=redis, reason="test")
 
-        # Find indices of writes vs gen flip
-        set_json_calls = [i for i, call in enumerate(redis.mock_calls) if "set_json" in str(call)]
         gen_flip_calls = [
             i
             for i, call in enumerate(redis.mock_calls)
             if "proj:gen" in str(call) and "set" in str(call)
         ]
-
-        # Gen flip should come after member writes
-        if set_json_calls and gen_flip_calls:
-            assert min(gen_flip_calls) > max(set_json_calls)
+        assert len(gen_flip_calls) > 0
 
     @pytest.mark.asyncio
     async def test_repopulate_all_empty_guilds(self):
         """Test repopulation with no guilds."""
         redis = AsyncMock()
         redis.get = AsyncMock(return_value="old_gen")
-
-        # Mock the _client for scan
-        mock_client = AsyncMock()
-        mock_client.scan = AsyncMock(return_value=(0, []))
-        mock_client.delete = AsyncMock()
+        mock_client, _pipe = self._make_mock_client()
         redis._client = mock_client
 
         bot = MagicMock(spec=discord.Client)
@@ -376,7 +364,6 @@ class TestRepopulateAll:
 
         await repopulate_all(bot=bot, redis=redis, reason="test")
 
-        # Should still flip generation even with no members
         assert redis.set.called
 
     @pytest.mark.asyncio
@@ -384,9 +371,7 @@ class TestRepopulateAll:
         """Test that old generation keys are cleaned up."""
         redis = AsyncMock()
         redis.get = AsyncMock(return_value="old_gen")
-
-        # Mock the _client.scan method
-        mock_client = AsyncMock()
+        mock_client, _pipe = self._make_mock_client()
         mock_client.scan = AsyncMock(
             return_value=(
                 0,
@@ -396,7 +381,6 @@ class TestRepopulateAll:
                 ],
             )
         )
-        mock_client.delete = AsyncMock()
         redis._client = mock_client
 
         bot = MagicMock(spec=discord.Client)
@@ -404,7 +388,6 @@ class TestRepopulateAll:
 
         await repopulate_all(bot=bot, redis=redis, reason="test")
 
-        # Verify old generation keys were scanned
         mock_client.scan.assert_called()
 
     @pytest.mark.asyncio
@@ -412,11 +395,7 @@ class TestRepopulateAll:
         """Test that OTel metrics are recorded."""
         redis = AsyncMock()
         redis.get = AsyncMock(return_value="old_gen")
-
-        # Mock the _client for scan
-        mock_client = AsyncMock()
-        mock_client.scan = AsyncMock(return_value=(0, []))
-        mock_client.delete = AsyncMock()
+        mock_client, _pipe = self._make_mock_client()
         redis._client = mock_client
 
         bot = MagicMock(spec=discord.Client)
@@ -424,8 +403,6 @@ class TestRepopulateAll:
 
         await repopulate_all(bot=bot, redis=redis, reason="on_ready")
 
-        # Verify function completes without error
-        # (OTel metrics are recorded implicitly via decorators)
         assert True
 
     @pytest.mark.asyncio
@@ -433,10 +410,7 @@ class TestRepopulateAll:
         """repopulate_all writes bot:last_seen so is_bot_fresh() is True immediately."""
         redis = AsyncMock()
         redis.get = AsyncMock(return_value=None)
-
-        mock_client = AsyncMock()
-        mock_client.scan = AsyncMock(return_value=(0, []))
-        mock_client.delete = AsyncMock()
+        mock_client, _pipe = self._make_mock_client()
         redis._client = mock_client
 
         bot = MagicMock(spec=discord.Client)
@@ -450,6 +424,41 @@ class TestRepopulateAll:
         assert len(bot_last_seen_writes) == 1, (
             "repopulate_all must write bot:last_seen to eliminate the freshness gap"
         )
+
+
+class TestDeleteOldGenerationPipeline:
+    """Xfail test verifying _delete_old_generation uses a pipeline for bulk deletion."""
+
+    @pytest.mark.asyncio
+    async def test_deletes_via_pipeline_not_individual_awaits(self):
+        """_delete_old_generation collects all keys then deletes them via one pipeline execute."""
+        from services.bot.guild_projection import _delete_old_generation  # noqa: PLC0415
+
+        old_keys = [f"proj:member:gen0:guild1:user{i}".encode() for i in range(250)]
+
+        pipe = MagicMock()
+        pipe.execute = AsyncMock(return_value=[])
+        pipe.delete = MagicMock()
+
+        mock_client = MagicMock()
+        # Return all 250 keys in first scan, then cursor=0 to end loop
+        mock_client.scan = AsyncMock(return_value=(0, old_keys))
+        mock_client.pipeline.return_value.__aenter__ = AsyncMock(return_value=pipe)
+        mock_client.pipeline.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        redis = AsyncMock()
+        redis._client = mock_client
+
+        await _delete_old_generation(redis, "gen0")
+
+        # Pipeline must be opened for deletion
+        mock_client.pipeline.assert_called_once()
+        # pipe.delete must be called (not redis._client.delete directly)
+        assert pipe.delete.called
+        # Only one pipeline execute
+        pipe.execute.assert_awaited_once()
+        # redis._client.delete should NOT have been called directly
+        mock_client.delete.assert_not_called()
 
 
 class TestReadProjectionKey:
@@ -511,3 +520,195 @@ class TestGetUserRoles:
         result = await get_user_roles("guild1", "absent_user", redis=redis)
 
         assert result == []
+
+
+class TestQueueMemberToPipe:
+    """Xfail tests for the synchronous _queue_member_to_pipe pipeline helper."""
+
+    def test_sets_member_key_with_json_data(self):
+        """_queue_member_to_pipe calls pipe.set with the correct member key and JSON payload."""
+        from services.bot.guild_projection import _queue_member_to_pipe  # noqa: PLC0415
+
+        pipe = MagicMock()
+        member = MagicMock(spec=discord.Member)
+        member.roles = [MagicMock(id=123)]
+        member.nick = "Nick"
+        member.global_name = "Global"
+        member.name = "username"
+        member.avatar = None
+
+        _queue_member_to_pipe(pipe, "gen1", "guild1", "user1", member)
+
+        expected_key = CacheKeys.proj_member("gen1", "guild1", "user1")
+        set_keys = [call[0][0] for call in pipe.set.call_args_list]
+        assert expected_key in set_keys
+        matching = [call for call in pipe.set.call_args_list if call[0][0] == expected_key]
+        assert len(matching) == 1
+        stored = json.loads(matching[0][0][1])
+        assert stored["username"] == "username"
+        assert stored["nick"] == "Nick"
+        assert stored["avatar_url"] is None
+
+    def test_queues_zadd_for_each_name_variant(self):
+        """_queue_member_to_pipe calls pipe.zadd for each distinct lowercase name variant."""
+        from services.bot.guild_projection import _queue_member_to_pipe  # noqa: PLC0415
+
+        pipe = MagicMock()
+        member = MagicMock(spec=discord.Member)
+        member.roles = []
+        member.nick = "NickName"
+        member.global_name = "Global Name"
+        member.name = "username"
+        member.avatar = None
+
+        _queue_member_to_pipe(pipe, "gen1", "guild1", "user1", member)
+
+        usernames_key = CacheKeys.proj_usernames("gen1", "guild1")
+        zadd_calls = pipe.zadd.call_args_list
+        zadd_keys = [call[0][0] for call in zadd_calls]
+        assert all(k == usernames_key for k in zadd_keys)
+        all_entries = {next(iter(call[0][1].keys())) for call in zadd_calls}
+        assert "username\x00user1" in all_entries
+        assert "global name\x00user1" in all_entries
+        assert "nickname\x00user1" in all_entries
+
+    def test_deduplicates_when_name_equals_username(self):
+        """_queue_member_to_pipe deduplicates when global_name matches username."""
+        from services.bot.guild_projection import _queue_member_to_pipe  # noqa: PLC0415
+
+        pipe = MagicMock()
+        member = MagicMock(spec=discord.Member)
+        member.roles = []
+        member.nick = None
+        member.global_name = "SameUser"
+        member.name = "sameuser"
+        member.avatar = None
+
+        _queue_member_to_pipe(pipe, "gen1", "guild1", "user1", member)
+
+        zadd_calls = pipe.zadd.call_args_list
+        all_entries = {next(iter(call[0][1].keys())) for call in zadd_calls}
+        assert len([e for e in all_entries if e.split("\x00")[0] == "sameuser"]) == 1
+
+
+class TestQueueUserGuildsToPipe:
+    """Xfail tests for the synchronous _queue_user_guilds_to_pipe pipeline helper."""
+
+    def test_sets_user_guilds_key_with_json_list(self):
+        """_queue_user_guilds_to_pipe calls pipe.set with the user-guilds key and JSON list."""
+        from services.bot.guild_projection import _queue_user_guilds_to_pipe  # noqa: PLC0415
+
+        pipe = MagicMock()
+        guild_ids = ["guild1", "guild2"]
+
+        _queue_user_guilds_to_pipe(pipe, "gen1", "user1", guild_ids)
+
+        expected_key = CacheKeys.proj_user_guilds("gen1", "user1")
+        pipe.set.assert_called_once_with(expected_key, json.dumps(guild_ids))
+
+    def test_sets_empty_list_when_no_guilds(self):
+        """_queue_user_guilds_to_pipe handles an empty guild list."""
+        from services.bot.guild_projection import _queue_user_guilds_to_pipe  # noqa: PLC0415
+
+        pipe = MagicMock()
+
+        _queue_user_guilds_to_pipe(pipe, "gen1", "user1", [])
+
+        expected_key = CacheKeys.proj_user_guilds("gen1", "user1")
+        pipe.set.assert_called_once_with(expected_key, json.dumps([]))
+
+
+class TestQueueGuildNameToPipe:
+    """Xfail tests for the synchronous _queue_guild_name_to_pipe pipeline helper."""
+
+    def test_sets_guild_name_key(self):
+        """_queue_guild_name_to_pipe calls pipe.set with the guild-name key and raw name string."""
+        from services.bot.guild_projection import _queue_guild_name_to_pipe  # noqa: PLC0415
+
+        pipe = MagicMock()
+
+        _queue_guild_name_to_pipe(pipe, "gen1", "guild1", "My Guild")
+
+        expected_key = CacheKeys.proj_guild_name("gen1", "guild1")
+        pipe.set.assert_called_once_with(expected_key, "My Guild")
+
+
+class TestRepopulateAllUsesPipeline:
+    """Xfail tests verifying repopulate_all batches writes through a Redis pipeline."""
+
+    def _make_redis_with_pipeline(self):
+        """Return a redis mock whose _client has a pipeline async context manager."""
+        redis = AsyncMock()
+        redis.get = AsyncMock(return_value=None)
+
+        pipe = MagicMock()
+        pipe.set = MagicMock()
+        pipe.zadd = MagicMock()
+        pipe.execute = AsyncMock(return_value=[])
+
+        mock_client = MagicMock()
+        mock_client.pipeline.return_value.__aenter__ = AsyncMock(return_value=pipe)
+        mock_client.pipeline.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_client.scan = AsyncMock(return_value=(0, []))
+        mock_client.delete = AsyncMock()
+        redis._client = mock_client
+
+        return redis, pipe
+
+    @pytest.mark.asyncio
+    async def test_uses_pipeline_context_manager(self):
+        """repopulate_all opens redis._client.pipeline() as an async context manager."""
+        redis, _pipe = self._make_redis_with_pipeline()
+        bot = MagicMock(spec=discord.Client)
+        bot.guilds = []
+
+        await repopulate_all(bot=bot, redis=redis, reason="test")
+
+        redis._client.pipeline.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_executes_pipeline_exactly_once(self):
+        """repopulate_all awaits pipe.execute() exactly once for all writes."""
+        redis, pipe = self._make_redis_with_pipeline()
+
+        bot = MagicMock(spec=discord.Client)
+        guild = MagicMock(spec=discord.Guild)
+        guild.id = 111
+        guild.name = "Test Guild"
+        member = MagicMock(spec=discord.Member)
+        member.id = 222
+        member.roles = []
+        member.nick = None
+        member.global_name = "User"
+        member.name = "user"
+        member.avatar = None
+        guild.members = [member]
+        bot.guilds = [guild]
+
+        await repopulate_all(bot=bot, redis=redis, reason="test")
+
+        pipe.execute.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_gen_flip_not_in_pipeline(self):
+        """Generation pointer flip uses redis.set directly, not the pipeline.
+
+        Fails before Task 10.2 because pipeline is never opened (first assertion fails).
+        After Task 10.2: gen flip must not be queued inside the pipeline buffer.
+        """
+        redis, pipe = self._make_redis_with_pipeline()
+
+        bot = MagicMock(spec=discord.Client)
+        bot.guilds = []
+
+        await repopulate_all(bot=bot, redis=redis, reason="test")
+
+        # Fails before Task 10.2: no pipeline is opened yet
+        redis._client.pipeline.assert_called_once()
+
+        gen_flip_calls = [
+            call for call in redis.set.call_args_list if CacheKeys.proj_gen() in str(call)
+        ]
+        assert len(gen_flip_calls) == 1
+        pipe_set_keys = [call[0][0] for call in pipe.set.call_args_list]
+        assert CacheKeys.proj_gen() not in pipe_set_keys

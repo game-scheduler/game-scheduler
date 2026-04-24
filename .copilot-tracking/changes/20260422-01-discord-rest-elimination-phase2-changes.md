@@ -37,6 +37,10 @@ Tracking file for implementation of plan `20260422-01-discord-rest-elimination-p
 - `tests/unit/services/api/test_database_dependencies.py` — added `test_get_db_with_user_guilds_uses_projection_not_oauth` (written as xfail, promoted after implementation); updated three existing tests to patch `shared.cache.client.get_redis_client` and `shared.cache.projection.get_user_guilds` instead of `oauth2.get_user_guilds`; removed `mock_user_guilds` fixture (no longer needed)
 - `shared/database.py` — replaced `oauth2.get_user_guilds()` REST call with `member_projection.get_user_guilds()` projection read in `get_db_with_user_guilds`; removed `guild_token` extraction and `oauth2` import; added `from shared.cache import client as cache_client` and `from shared.cache import projection as member_projection` imports inside inner function
 
+- `services/bot/guild_projection.py` — added `_queue_member_to_pipe`, `_queue_user_guilds_to_pipe`, `_queue_guild_name_to_pipe` synchronous pipeline-queue helpers; refactored `_write_all_members` to open a single `redis._client.pipeline(transaction=False)` context manager and queue all member, user-guilds, and guild-name writes before a single `await pipe.execute()`; generation pointer flip and `write_bot_last_seen` remain outside the pipeline; `write_member`, `write_user_guilds`, `write_guild_name` unchanged
+- `tests/unit/bot/test_guild_projection.py` — added `TestQueueMemberToPipe` (3 tests), `TestQueueUserGuildsToPipe` (2 tests), `TestQueueGuildNameToPipe` (1 test), `TestRepopulateAllUsesPipeline` (3 tests); updated all `TestRepopulateAll` tests to use a `MagicMock`-based pipeline context manager via new `_make_mock_client` helper; updated `test_repopulate_all_basic` assertion from `redis.set_json.call_count >= 2` to `pipe.set.call_count >= 2`
+- `tests/unit/services/bot/test_bot.py` — updated `test_on_ready_event` to replace `AsyncMock()` for `mock_redis._client` with a `MagicMock` that properly sets up the pipeline async context manager and `scan`/`delete` mocks
+
 ---
 
 ## Phase Progress
@@ -49,3 +53,5 @@ Tracking file for implementation of plan `20260422-01-discord-rest-elimination-p
 - [x] Phase 6: Fix participant_drop.py user fetch (Group 4)
 - [x] Phase 7: Remove /sync endpoint and frontend Sync button (Group 6)
 - [x] Phase 8: Fix shared/database.py missed call site (Finding 1 addendum)
+- [x] Phase 9: Remove dead REST functions from guild_sync.py (Finding 3 addendum)
+- [x] Phase 10: Pipeline Redis writes in `repopulate_all` (Addendum 2)

@@ -27,6 +27,7 @@ from datetime import UTC, datetime
 
 import discord
 from opentelemetry import metrics
+from redis.asyncio.client import Pipeline
 
 from shared.cache.client import RedisClient
 from shared.cache.keys import CacheKeys
@@ -72,15 +73,86 @@ repopulation_members_written_histogram = meter.create_histogram(
 
 
 async def _delete_old_generation(redis: RedisClient, prev_gen: str) -> None:
-    """Delete all projection keys from the previous generation."""
+    """Delete all projection keys from the previous generation.
+
+    Collects all matching keys via SCAN first, then deletes in a single pipeline
+    to avoid one round-trip per key batch.
+    """
     pattern = f"proj:*:{prev_gen}:*"
+    all_keys: list[bytes] = []
     cursor = 0
     while True:
-        cursor, keys = await redis._client.scan(cursor, match=pattern, count=100)
-        if keys:
-            await redis._client.delete(*keys)
+        cursor, keys = await redis._client.scan(cursor, match=pattern, count=500)
+        all_keys.extend(keys)
         if cursor == 0:
             break
+    if not all_keys:
+        return
+    async with redis._client.pipeline(transaction=False) as pipe:
+        for i in range(0, len(all_keys), 1000):
+            pipe.delete(*all_keys[i : i + 1000])
+        await pipe.execute()
+
+
+def _build_member_data(member: discord.Member) -> dict[str, object]:
+    return {
+        "roles": [str(role.id) for role in member.roles],
+        "nick": member.nick,
+        "global_name": member.global_name,
+        "username": member.name,
+        "avatar_url": member.avatar.url if member.avatar else None,
+    }
+
+
+def _member_username_variants(member: discord.Member) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for name in [member.name, member.global_name, member.nick]:
+        if not name:
+            continue
+        lower = name.lower()
+        if lower not in seen:
+            seen.add(lower)
+            result.append(lower)
+    return result
+
+
+def _queue_member_to_pipe(
+    pipe: Pipeline,
+    gen: str,
+    guild_id: str,
+    uid: str,
+    member: discord.Member,
+) -> None:
+    """Queue a single member write into a Redis pipeline buffer (synchronous)."""
+    key = CacheKeys.proj_member(gen, guild_id, uid)
+    pipe.set(key, json.dumps(_build_member_data(member)))
+
+    usernames_key = CacheKeys.proj_usernames(gen, guild_id)
+    for name_lower in _member_username_variants(member):
+        pipe.zadd(usernames_key, {f"{name_lower}\x00{uid}": 0})
+
+
+def _queue_user_guilds_to_pipe(
+    pipe: Pipeline,
+    gen: str,
+    uid: str,
+    guild_ids: list[str],
+) -> None:
+    """Queue a user-guilds write into a Redis pipeline buffer (synchronous)."""
+    key = CacheKeys.proj_user_guilds(gen, uid)
+    pipe.set(key, json.dumps(guild_ids))
+
+
+def _queue_guild_name_to_pipe(
+    pipe: Pipeline,
+    gen: str,
+    guild_id: str,
+    guild_name: str,
+) -> None:
+    """Queue a guild-name write into a Redis pipeline buffer (synchronous)."""
+    key = CacheKeys.proj_guild_name(gen, guild_id)
+    pipe.set(key, guild_name)
 
 
 async def _write_all_members(
@@ -88,20 +160,29 @@ async def _write_all_members(
     redis: RedisClient,
     new_gen: str,
 ) -> tuple[int, dict[str, list[str]]]:
-    """Write all member records and accumulate user->guild mapping.
+    """Write all member records and accumulate user->guild mapping via a single pipeline.
 
     Returns:
         Tuple of (total_members_written, user_guild_map)
     """
     user_guild_map: dict[str, list[str]] = {}
     total_members_written = 0
-    for guild in bot.guilds:
-        guild_id = str(guild.id)
-        for member in guild.members:
-            uid = str(member.id)
-            await write_member(redis=redis, gen=new_gen, guild_id=guild_id, uid=uid, member=member)
-            total_members_written += 1
-            user_guild_map.setdefault(uid, []).append(guild_id)
+
+    async with redis._client.pipeline(transaction=False) as pipe:
+        for guild in bot.guilds:
+            guild_id = str(guild.id)
+            _queue_guild_name_to_pipe(pipe, new_gen, guild_id, guild.name)
+            for member in guild.members:
+                uid = str(member.id)
+                _queue_member_to_pipe(pipe, new_gen, guild_id, uid, member)
+                total_members_written += 1
+                user_guild_map.setdefault(uid, []).append(guild_id)
+
+        for uid, guild_ids in user_guild_map.items():
+            _queue_user_guilds_to_pipe(pipe, new_gen, uid, guild_ids)
+
+        await pipe.execute()
+
     return total_members_written, user_guild_map
 
 
@@ -128,39 +209,33 @@ async def repopulate_all(
     new_gen = str(int(datetime.now(UTC).timestamp() * 1000))
     prev_gen = await redis.get(CacheKeys.proj_gen())
 
-    total_members_written, user_guild_map = await _write_all_members(bot, redis, new_gen)
-
-    for uid, guild_ids in user_guild_map.items():
-        await write_user_guilds(redis=redis, gen=new_gen, uid=uid, guild_ids=guild_ids)
-
-    # Write guild names for all guilds
-    for guild in bot.guilds:
-        await write_guild_name(
-            redis=redis, gen=new_gen, guild_id=str(guild.id), guild_name=guild.name
-        )
+    total_members_written, _ = await _write_all_members(bot, redis, new_gen)
 
     # CRITICAL: Flip generation pointer AFTER all writes are complete.
     # Readers observing the new gen value are guaranteed to find all data present.
     await redis.set(CacheKeys.proj_gen(), new_gen)
-
-    if prev_gen:
-        await _delete_old_generation(redis, prev_gen)
 
     # Mark bot as fresh immediately — projection is now fully populated.
     # Without this, is_bot_fresh() returns False until the heartbeat task fires
     # (up to 30 seconds after on_ready), causing membership checks to deny access.
     await write_bot_last_seen(redis=redis)
 
-    duration = (datetime.now(UTC) - start_time).total_seconds()
-    repopulation_duration_histogram.record(duration, {"reason": reason})
+    write_duration = (datetime.now(UTC) - start_time).total_seconds()
+    repopulation_duration_histogram.record(write_duration, {"reason": reason})
     repopulation_members_written_histogram.record(total_members_written, {"reason": reason})
 
     logger.info(
         "Projection repopulation complete: %d members, %.2fs, reason=%s",
         total_members_written,
-        duration,
+        write_duration,
         reason,
     )
+
+    if prev_gen:
+        delete_start = datetime.now(UTC)
+        await _delete_old_generation(redis, prev_gen)
+        delete_duration = (datetime.now(UTC) - delete_start).total_seconds()
+        logger.info("Projection old-gen cleanup: %.2fs, gen=%s", delete_duration, prev_gen)
 
 
 async def write_member(
@@ -184,26 +259,11 @@ async def write_member(
     Raises:
         NotImplementedError: Function not yet implemented
     """
-    member_data = {
-        "roles": [str(role.id) for role in member.roles],
-        "nick": member.nick,
-        "global_name": member.global_name,
-        "username": member.name,
-        "avatar_url": member.avatar.url if member.avatar else None,
-    }
-
     key = CacheKeys.proj_member(gen, guild_id, uid)
-    await redis.set_json(key, member_data, ttl=None)
+    await redis.set_json(key, _build_member_data(member), ttl=None)
 
     usernames_key = CacheKeys.proj_usernames(gen, guild_id)
-    names_seen: set[str] = set()
-    for name in [member.name, member.global_name, member.nick]:
-        if not name:
-            continue
-        name_lower = name.lower()
-        if name_lower in names_seen:
-            continue
-        names_seen.add(name_lower)
+    for name_lower in _member_username_variants(member):
         await redis._client.zadd(usernames_key, {f"{name_lower}\x00{uid}": 0})
 
 

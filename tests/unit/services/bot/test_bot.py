@@ -143,8 +143,13 @@ class TestGameSchedulerBot:
         mock_guilds = [MagicMock(), MagicMock()]
 
         mock_redis = AsyncMock()
-        mock_redis._client = AsyncMock()
+        mock_pipe = MagicMock()
+        mock_pipe.execute = AsyncMock(return_value=[])
+        mock_redis._client = MagicMock()
+        mock_redis._client.pipeline.return_value.__aenter__ = AsyncMock(return_value=mock_pipe)
+        mock_redis._client.pipeline.return_value.__aexit__ = AsyncMock(return_value=False)
         mock_redis._client.scan = AsyncMock(return_value=(0, []))
+        mock_redis._client.delete = AsyncMock()
 
         with patch("services.bot.bot.logger") as mock_logger:
             with patch.object(type(bot), "user", new_callable=lambda: mock_user):
