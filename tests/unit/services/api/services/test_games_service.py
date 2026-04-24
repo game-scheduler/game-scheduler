@@ -2099,7 +2099,9 @@ async def test_list_games_no_filters(game_service, mock_db):
 @pytest.mark.asyncio
 async def test_list_games_with_filters(game_service, mock_db, sample_guild):
     """Test listing games with guild and status filters."""
-    mock_games = [game_model.GameSession(id=str(uuid.uuid4()), title="Filtered")]
+    mock_games = [
+        game_model.GameSession(id=str(uuid.uuid4()), title="Filtered", status="SCHEDULED")
+    ]
 
     count_result = MagicMock()
     count_result.scalar.return_value = 1
@@ -2108,7 +2110,9 @@ async def test_list_games_with_filters(game_service, mock_db, sample_guild):
 
     mock_db.execute = AsyncMock(side_effect=[count_result, games_result])
 
-    games, count = await game_service.list_games(guild_id=str(sample_guild.id), status="SCHEDULED")
+    games, count = await game_service.list_games(
+        guild_id=str(sample_guild.id), status=["SCHEDULED"]
+    )
 
     assert len(games) == 1
     assert count == 1

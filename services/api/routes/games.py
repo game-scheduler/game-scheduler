@@ -415,7 +415,7 @@ async def create_game(
 async def list_games(
     guild_id: Annotated[str | None, Query(description="Filter by guild UUID")] = None,
     channel_id: Annotated[str | None, Query(description="Filter by channel UUID")] = None,
-    status: Annotated[str | None, Query(description="Filter by status")] = None,
+    status: Annotated[list[str] | None, Query(description="Filter by status")] = None,
     limit: Annotated[int, Query(ge=1, le=100, description="Maximum results")] = 50,
     offset: Annotated[int, Query(ge=0, description="Results offset")] = 0,
     *,  # Force remaining parameters to be keyword-only

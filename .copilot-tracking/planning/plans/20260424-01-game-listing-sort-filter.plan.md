@@ -46,34 +46,34 @@ views, hiding ARCHIVED games from normal views.
 
 ## Implementation Checklist
 
-### [ ] Phase 1: TDD RED — Backend Service Tests
+### [x] Phase 1: TDD RED — Backend Service Tests
 
-- [ ] Task 1.1: Write xfail unit tests for multi-status list param filtering
+- [x] Task 1.1: Write xfail unit tests for multi-status list param filtering
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 11-34)
 
-- [ ] Task 1.2: Write xfail unit test for Python-side sort order
+- [x] Task 1.2: Write xfail unit test for Python-side sort order
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 35-51)
 
-- [ ] Task 1.3: Confirm all new tests show as `xfail`
+- [x] Task 1.3: Confirm all new tests show as `xfail`
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 52-63)
 
-### [ ] Phase 2: Backend Service Implementation (GREEN)
+### [x] Phase 2: Backend Service Implementation (GREEN)
 
-- [ ] Task 2.1: Change `status` param to `list[str] | None` and use `.in_()` filter
+- [x] Task 2.1: Change `status` param to `list[str] | None` and use `.in_()` filter
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 67-83)
 
-- [ ] Task 2.2: Add `_STATUS_ORDER`, `_game_sort_key`, and apply Python sort
+- [x] Task 2.2: Add `_STATUS_ORDER`, `_game_sort_key`, and apply Python sort
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 84-106)
 
-- [ ] Task 2.3: Remove SQL `ORDER BY scheduled_at ASC` clause
+- [x] Task 2.3: Remove SQL `ORDER BY scheduled_at ASC` clause
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 107-120)
 
-- [ ] Task 2.4: Remove xfail markers; verify all service tests pass
+- [x] Task 2.4: Remove xfail markers; verify all service tests pass
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 121-133)
 
-### [ ] Phase 3: Backend Route Update
+### [x] Phase 3: Backend Route Update
 
-- [ ] Task 3.1: Change route `status` param to `list[str] | None` with `Query()`
+- [x] Task 3.1: Change route `status` param to `list[str] | None` with `Query()`
   - Details: .copilot-tracking/planning/details/20260424-01-game-listing-sort-filter-details.md (Lines 137-153)
 
 ### [ ] Phase 4: TDD RED — Frontend Tests

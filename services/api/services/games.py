@@ -76,6 +76,31 @@ logger = logging.getLogger(__name__)
 # Default game duration when expected_duration_minutes is not set
 DEFAULT_GAME_DURATION_MINUTES = 60
 
+# Sort rank for each status: lower rank sorts first.
+# SCHEDULED and IN_PROGRESS sort ascending by scheduled_at (soonest first);
+# COMPLETED and CANCELLED sort descending (most recently ended first).
+_STATUS_ORDER: dict[str, int] = {
+    game_model.GameStatus.SCHEDULED.value: 0,
+    game_model.GameStatus.IN_PROGRESS.value: 1,
+    game_model.GameStatus.COMPLETED.value: 2,
+    game_model.GameStatus.CANCELLED.value: 3,
+    game_model.GameStatus.ARCHIVED.value: 4,
+}
+
+
+def _game_sort_key(game: game_model.GameSession) -> tuple[int, float]:
+    rank = _STATUS_ORDER.get(game.status, 99)
+    ts = game.scheduled_at.timestamp() if game.scheduled_at else 0.0
+    # Negate timestamp for COMPLETED/CANCELLED so most recently ended sorts first.
+    descending_statuses = (
+        game_model.GameStatus.COMPLETED.value,
+        game_model.GameStatus.CANCELLED.value,
+        game_model.GameStatus.ARCHIVED.value,
+    )
+    if game.status in descending_statuses:
+        ts = -ts
+    return (rank, ts)
+
 
 @dataclass
 class GameMediaAttachments:
@@ -1000,7 +1025,7 @@ class GameService:
         self,
         guild_id: str | None = None,
         channel_id: str | None = None,
-        status: str | None = None,
+        status: list[str] | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[game_model.GameSession], int]:
@@ -1010,7 +1035,7 @@ class GameService:
         Args:
             guild_id: Filter by guild UUID
             channel_id: Filter by channel UUID
-            status: Filter by status (SCHEDULED, IN_PROGRESS, etc.)
+            status: Filter by one or more statuses (SCHEDULED, IN_PROGRESS, etc.)
             limit: Maximum results
             offset: Results offset
 
@@ -1031,7 +1056,7 @@ class GameService:
         if channel_id:
             query = query.where(game_model.GameSession.channel_id == channel_id)
         if status:
-            query = query.where(game_model.GameSession.status == status)
+            query = query.where(game_model.GameSession.status.in_(status))
 
         # Get total count
         count_query = select(func.count(game_model.GameSession.id))
@@ -1040,19 +1065,20 @@ class GameService:
         if channel_id:
             count_query = count_query.where(game_model.GameSession.channel_id == channel_id)
         if status:
-            count_query = count_query.where(game_model.GameSession.status == status)
+            count_query = count_query.where(game_model.GameSession.status.in_(status))
 
         total_result = await self.db.execute(count_query)
         total = total_result.scalar() or 0
 
         # Get paginated results
-        query = (
-            query.order_by(game_model.GameSession.scheduled_at.asc()).limit(limit).offset(offset)
-        )
+        query = query.limit(limit).offset(offset)
         result = await self.db.execute(query)
         games = result.scalars().all()
 
-        return list(games), total
+        if status:
+            games = [g for g in games if g.status in status]
+
+        return sorted(games, key=_game_sort_key), total
 
     def _update_simple_text_fields(
         self,

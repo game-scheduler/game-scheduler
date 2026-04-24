@@ -326,7 +326,7 @@ class TestListGames:
             _make_db_scalars_result([]),
         ]
 
-        games, total = await game_service.list_games(status="SCHEDULED")
+        games, total = await game_service.list_games(status=["SCHEDULED"])
 
         assert total == 0
         assert games == []
@@ -340,11 +340,96 @@ class TestListGames:
         ]
 
         games, total = await game_service.list_games(
-            channel_id="channel-uuid-1", status="SCHEDULED"
+            channel_id="channel-uuid-1", status=["SCHEDULED"]
         )
 
         assert total == 0
         assert games == []
+
+    @pytest.mark.asyncio
+    async def test_list_games_multi_status_filter(self, game_service, mock_db):
+        """list_games accepts a list of statuses and returns only matching games."""
+        scheduled = _make_game(status=game_model.GameStatus.SCHEDULED.value)
+        completed = _make_game(status=game_model.GameStatus.COMPLETED.value)
+        in_progress = _make_game(status=game_model.GameStatus.IN_PROGRESS.value)
+
+        mock_db.execute.side_effect = [
+            _make_db_scalar_value(2),
+            _make_db_scalars_result([scheduled, completed, in_progress]),
+        ]
+
+        games, total = await game_service.list_games(status=["SCHEDULED", "COMPLETED"])
+
+        statuses = {g.status for g in games}
+        assert statuses == {
+            game_model.GameStatus.SCHEDULED.value,
+            game_model.GameStatus.COMPLETED.value,
+        }
+        assert total == 2
+
+    @pytest.mark.asyncio
+    async def test_list_games_single_status_as_list(self, game_service, mock_db):
+        """list_games accepts a single-element list and returns only matching games."""
+        scheduled = _make_game(status=game_model.GameStatus.SCHEDULED.value)
+        completed = _make_game(status=game_model.GameStatus.COMPLETED.value)
+
+        mock_db.execute.side_effect = [
+            _make_db_scalar_value(1),
+            _make_db_scalars_result([scheduled, completed]),
+        ]
+
+        games, total = await game_service.list_games(status=["SCHEDULED"])
+
+        statuses = {g.status for g in games}
+        assert statuses == {game_model.GameStatus.SCHEDULED.value}
+        assert total == 1
+
+    @pytest.mark.asyncio
+    async def test_list_games_sort_order(self, game_service, mock_db):
+        """Games are sorted: SCHEDULED asc → IN_PROGRESS → COMPLETED desc → CANCELLED desc."""
+        scheduled_soon = _make_game(status=game_model.GameStatus.SCHEDULED.value)
+        scheduled_soon.scheduled_at = datetime.datetime(2026, 6, 1, tzinfo=datetime.UTC)
+
+        scheduled_later = _make_game(status=game_model.GameStatus.SCHEDULED.value)
+        scheduled_later.scheduled_at = datetime.datetime(2026, 7, 1, tzinfo=datetime.UTC)
+
+        in_progress = _make_game(status=game_model.GameStatus.IN_PROGRESS.value)
+        in_progress.scheduled_at = datetime.datetime(2026, 5, 1, tzinfo=datetime.UTC)
+
+        completed_recent = _make_game(status=game_model.GameStatus.COMPLETED.value)
+        completed_recent.scheduled_at = datetime.datetime(2026, 4, 15, tzinfo=datetime.UTC)
+
+        completed_older = _make_game(status=game_model.GameStatus.COMPLETED.value)
+        completed_older.scheduled_at = datetime.datetime(2026, 3, 1, tzinfo=datetime.UTC)
+
+        cancelled = _make_game(status=game_model.GameStatus.CANCELLED.value)
+        cancelled.scheduled_at = datetime.datetime(2026, 2, 1, tzinfo=datetime.UTC)
+
+        # DB returns games in unsorted order to exercise Python-side sorting.
+        mock_db.execute.side_effect = [
+            _make_db_scalar_value(6),
+            _make_db_scalars_result([
+                completed_recent,
+                scheduled_soon,
+                cancelled,
+                in_progress,
+                scheduled_later,
+                completed_older,
+            ]),
+        ]
+
+        games, total = await game_service.list_games()
+
+        expected = [
+            scheduled_soon,
+            scheduled_later,
+            in_progress,
+            completed_recent,
+            completed_older,
+            cancelled,
+        ]
+        assert games == expected
+        assert total == 6
 
 
 # ---------------------------------------------------------------------------
