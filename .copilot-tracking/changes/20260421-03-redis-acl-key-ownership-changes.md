@@ -50,6 +50,8 @@ Enforces Redis key ownership at the server level by renaming API-owned keys to a
 
 ### Modified
 
+- `shared/cache/keys.py`: Renamed `discord:member:` prefix → `api:member:` in `CacheKeys.discord_member`; no callers updated (method had zero production callers)
+
 ### Removed
 
 ---

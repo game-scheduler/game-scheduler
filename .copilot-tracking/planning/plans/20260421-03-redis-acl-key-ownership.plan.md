@@ -67,12 +67,12 @@ Enforce Redis key ownership at the server level by renaming API-owned keys under
 - [x] Task 2.3: Delete dead `guild_config:*` code from `cache.py` and `keys.py`
   - Details: .copilot-tracking/planning/details/20260421-03-redis-acl-key-ownership-details.md (Lines 106-123)
 
-### [ ] Phase 3: Rename `discord:member:*` to `api:member:*` (prerequisite: bot REST plan complete)
+### [x] Phase 3: Rename `discord:member:*` to `api:member:*` (prerequisite: bot REST plan complete)
 
-- [ ] Task 3.1: Verify `discord_format.py` has been migrated to `proj:member:*` projection reads
+- [x] Task 3.1: Verify `discord_format.py` has been migrated to `proj:member:*` projection reads
   - Details: .copilot-tracking/planning/details/20260421-03-redis-acl-key-ownership-details.md (Lines 130-144)
 
-- [ ] Task 3.2: Rename `CacheKeys.member` and update `shared/discord/client.py` callers
+- [x] Task 3.2: Rename `CacheKeys.member` and update `shared/discord/client.py` callers
   - Details: .copilot-tracking/planning/details/20260421-03-redis-acl-key-ownership-details.md (Lines 145-160)
 
 ### [ ] Phase 4: ACL infrastructure wiring (prerequisite: bot REST plan complete)
