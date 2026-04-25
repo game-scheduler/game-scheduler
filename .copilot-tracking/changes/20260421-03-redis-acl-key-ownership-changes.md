@@ -32,7 +32,15 @@ Enforces Redis key ownership at the server level by renaming API-owned keys to a
 
 ### Modified
 
+- `shared/cache/keys.py`: Renamed `user_roles:` prefix → `api:user_roles:`; deleted `guild_config` constant
+- `services/bot/auth/role_checker.py`: Removed cache read (`get_user_roles`) and write (`set_user_roles`) from `get_user_role_ids`; now reads `guild_projection` directly on every call
+- `tests/unit/shared/cache/test_keys.py`: Updated `user_roles` assertion to `api:user_roles:`; deleted `test_guild_config_key`
+- `tests/unit/services/bot/auth/test_role_checker.py`: Added `test_get_user_role_ids_never_writes_cache`; removed `test_get_user_role_ids_from_cache` and `test_get_user_role_ids_force_refresh_reads_projection`; updated `test_get_user_role_ids_from_projection` and `test_get_user_role_ids_member_absent_from_projection` to remove cache setup
+- `tests/unit/services/bot/auth/test_cache.py`: Deleted `test_get_guild_roles_cache_hit`, `test_get_guild_roles_cache_miss`, `test_set_guild_roles`, `test_get_guild_roles_redis_error`, `test_set_guild_roles_redis_error`
+
 ### Removed
+
+- `services/bot/auth/cache.py`: Deleted `get_guild_roles` and `set_guild_roles` methods from `RoleCache`
 
 ---
 

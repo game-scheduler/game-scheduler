@@ -56,30 +56,20 @@ class RoleChecker:
         self.cache = cache.RoleCache()
         self.api_cache = None
 
-    async def get_user_role_ids(
-        self, user_id: str, guild_id: str, force_refresh: bool = False
-    ) -> list[str]:
+    async def get_user_role_ids(self, user_id: str, guild_id: str) -> list[str]:
         """
-        Get user's role IDs with caching.
+        Get user's role IDs from projection.
 
         Args:
             user_id: Discord user ID
             guild_id: Discord guild ID
-            force_refresh: Skip cache and fetch from Discord API
 
         Returns:
             List of role IDs user has in guild
         """
-        if not force_refresh:
-            cached_roles = await self.cache.get_user_roles(user_id, guild_id)
-            if cached_roles is not None:
-                return cached_roles
-
         try:
             redis = await self.cache.get_redis()
-            role_ids = await guild_projection.get_user_roles(guild_id, user_id, redis=redis)
-            await self.cache.set_user_roles(user_id, guild_id, role_ids)
-            return role_ids
+            return await guild_projection.get_user_roles(guild_id, user_id, redis=redis)
 
         except Exception as e:
             logger.error("Error fetching user roles: %s", e)

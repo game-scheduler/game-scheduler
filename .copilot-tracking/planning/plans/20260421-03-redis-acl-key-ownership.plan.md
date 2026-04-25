@@ -56,15 +56,15 @@ Enforce Redis key ownership at the server level by renaming API-owned keys under
 - [x] Task 1.3: Update test fixtures and assertions that reference the old key strings
   - Details: .copilot-tracking/planning/details/20260421-03-redis-acl-key-ownership-details.md (Lines 52-64)
 
-### [ ] Phase 2: Transfer `user_roles:*` ownership to API; remove bot write path
+### [x] Phase 2: Transfer `user_roles:*` ownership to API; remove bot write path
 
-- [ ] Task 2.1: Rename `user_roles` key to `api:user_roles` and update `roles.py`
+- [x] Task 2.1: Rename `user_roles` key to `api:user_roles` and update `roles.py`
   - Details: .copilot-tracking/planning/details/20260421-03-redis-acl-key-ownership-details.md (Lines 69-84)
 
-- [ ] Task 2.2: Remove bot `user_roles:*` write path from `role_checker.py`
+- [x] Task 2.2: Remove bot `user_roles:*` write path from `role_checker.py`
   - Details: .copilot-tracking/planning/details/20260421-03-redis-acl-key-ownership-details.md (Lines 85-105)
 
-- [ ] Task 2.3: Delete dead `guild_config:*` code from `cache.py` and `keys.py`
+- [x] Task 2.3: Delete dead `guild_config:*` code from `cache.py` and `keys.py`
   - Details: .copilot-tracking/planning/details/20260421-03-redis-acl-key-ownership-details.md (Lines 106-123)
 
 ### [ ] Phase 3: Rename `discord:member:*` to `api:member:*` (prerequisite: bot REST plan complete)

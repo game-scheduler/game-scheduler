@@ -35,17 +35,12 @@ class TestCacheKeys:
     def test_user_roles_key(self):
         """Test user roles cache key generation."""
         key = CacheKeys.user_roles("user456", "guild123")
-        assert key == "user_roles:user456:guild123"
+        assert key == "api:user_roles:user456:guild123"
 
     def test_session_key(self):
         """Test session cache key generation."""
         key = CacheKeys.session("session_abc123")
         assert key == "api:session:session_abc123"
-
-    def test_guild_config_key(self):
-        """Test guild config cache key generation."""
-        key = CacheKeys.guild_config("guild123")
-        assert key == "guild_config:guild123"
 
     def test_channel_config_key(self):
         """Test channel config cache key generation."""

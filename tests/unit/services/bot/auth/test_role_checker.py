@@ -49,14 +49,19 @@ def role_checker(mock_bot, mock_db):
 
 
 @pytest.mark.asyncio
-async def test_get_user_role_ids_from_cache(role_checker):
-    """Test getting user role IDs from cache."""
-    role_checker.cache.get_user_roles = AsyncMock(return_value=["123", "456"])
+async def test_get_user_role_ids_never_writes_cache(role_checker):
+    """get_user_role_ids reads from projection directly without writing cache."""
+    role_checker.cache.set_user_roles = AsyncMock()
+    mock_redis = AsyncMock()
+    role_checker.cache.get_redis = AsyncMock(return_value=mock_redis)
 
-    result = await role_checker.get_user_role_ids("user123", "guild456")
+    with patch(
+        "services.bot.auth.role_checker.guild_projection.get_user_roles",
+        new=AsyncMock(return_value=["role1"]),
+    ):
+        await role_checker.get_user_role_ids("user123", "guild456")
 
-    assert result == ["123", "456"]
-    role_checker.cache.get_user_roles.assert_called_once_with("user123", "guild456")
+    role_checker.cache.set_user_roles.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -437,9 +442,7 @@ async def test_check_game_host_permission_does_not_call_fetch_guild(role_checker
 
 @pytest.mark.asyncio
 async def test_get_user_role_ids_from_projection(role_checker):
-    """get_user_role_ids reads roles from Redis projection and caches them."""
-    role_checker.cache.get_user_roles = AsyncMock(return_value=None)
-    role_checker.cache.set_user_roles = AsyncMock()
+    """get_user_role_ids reads roles from Redis projection."""
     mock_redis = AsyncMock()
     role_checker.cache.get_redis = AsyncMock(return_value=mock_redis)
 
@@ -450,16 +453,11 @@ async def test_get_user_role_ids_from_projection(role_checker):
         result = await role_checker.get_user_role_ids("user123", "guild456")
 
     assert result == ["role1", "role2"]
-    role_checker.cache.set_user_roles.assert_called_once_with(
-        "user123", "guild456", ["role1", "role2"]
-    )
 
 
 @pytest.mark.asyncio
 async def test_get_user_role_ids_member_absent_from_projection(role_checker):
     """get_user_role_ids returns empty list when member is absent from projection."""
-    role_checker.cache.get_user_roles = AsyncMock(return_value=None)
-    role_checker.cache.set_user_roles = AsyncMock()
     mock_redis = AsyncMock()
     role_checker.cache.get_redis = AsyncMock(return_value=mock_redis)
 
@@ -470,21 +468,3 @@ async def test_get_user_role_ids_member_absent_from_projection(role_checker):
         result = await role_checker.get_user_role_ids("user123", "guild456")
 
     assert result == []
-
-
-@pytest.mark.asyncio
-async def test_get_user_role_ids_force_refresh_reads_projection(role_checker):
-    """force_refresh=True bypasses cache and reads from projection."""
-    role_checker.cache.get_user_roles = AsyncMock(return_value=["stale"])
-    role_checker.cache.set_user_roles = AsyncMock()
-    mock_redis = AsyncMock()
-    role_checker.cache.get_redis = AsyncMock(return_value=mock_redis)
-
-    with patch(
-        "services.bot.auth.role_checker.guild_projection.get_user_roles",
-        new=AsyncMock(return_value=["fresh_role"]),
-    ):
-        result = await role_checker.get_user_role_ids("user123", "guild456", force_refresh=True)
-
-    assert result == ["fresh_role"]
-    role_checker.cache.get_user_roles.assert_not_called()

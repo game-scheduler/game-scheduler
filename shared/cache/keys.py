@@ -33,17 +33,12 @@ class CacheKeys:
     @staticmethod
     def user_roles(user_id: str, guild_id: str) -> str:
         """Return cache key for user's role IDs in a guild."""
-        return f"user_roles:{user_id}:{guild_id}"
+        return f"api:user_roles:{user_id}:{guild_id}"
 
     @staticmethod
     def session(session_id: str) -> str:
         """Return cache key for user session data."""
         return f"api:session:{session_id}"
-
-    @staticmethod
-    def guild_config(guild_id: str) -> str:
-        """Return cache key for guild configuration."""
-        return f"guild_config:{guild_id}"
 
     @staticmethod
     def channel_config(channel_id: str) -> str:
