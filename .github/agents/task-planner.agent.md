@@ -106,6 +106,22 @@ You WILL use these exact naming patterns:
 
 **When a task involves writing tests for already-implemented code**, do NOT apply the TDD stub-and-xfail cycle. Follow the "Writing Tests for Already-Implemented Code" guidance in that file instead.
 
+## Phase Isolation Requirements
+
+**MANDATORY**: Every phase MUST be an independently committable unit. The full test suite MUST pass at the end of every phase with no failures. A plan that leaves tests broken at any phase boundary is invalid and MUST be restructured before use.
+
+When designing phase boundaries, you MUST apply this principle: **a phase MUST NOT remove or modify code without also updating every caller of that code in the same phase.** Tests are callers. Removing a function while leaving its tests to a later phase violates this rule.
+
+### Ordering Rule for Code Removal or Replacement
+
+When a plan involves removing or replacing existing code, phases MUST follow this sequence:
+
+1. **Add new code and tests** (optional — may be its own phase, or omitted if there is no replacement)
+2. **Migrate all callers to the new code, or remove dead callers** — this MUST include updating or deleting any tests that call the old code
+3. **Remove the old code**
+
+**CRITICAL**: Steps 2 and 3 MUST NOT be split across a phase boundary. Migrating callers and removing the code they called MUST happen in the same phase.
+
 ## Planning File Requirements
 
 You WILL create exactly three files for each task:
@@ -319,6 +335,7 @@ You WILL follow ALL project standards and conventions:
 
 **CRITICAL**: If ${input:phaseStop:true} is true, you WILL stop after each Phase for user review.
 **CRITICAL**: If ${input:taskStop:true} is true, you WILL stop after each Task for user review.
+**CRITICAL**: Before marking any Phase complete or committing its changes, you MUST verify the full unit test suite passes. A phase is not done until tests are green.
 
 ### Step 3: Cleanup
 
