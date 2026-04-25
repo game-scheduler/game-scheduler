@@ -41,6 +41,7 @@ Follow the referenced instruction files as the single source of truth.
 
 - Testing:
   - `.github/instructions/test-driven-development.instructions.md`
+  - `.github/instructions/unit-tests.instructions.md`
   - `.github/instructions/integration-tests.instructions.md`
 
 - Containerization:

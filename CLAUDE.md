@@ -51,6 +51,12 @@ This file indexes the instruction files in `.github/instructions/`. Each entry i
 **Path:** `.github/instructions/test-driven-development.instructions.md`
 **When to use:** Writing new Python functionality. Covers the RED→GREEN→REFACTOR workflow with pytest and xfail markers.
 
+### Unit Test Quality
+
+**Path:** `.github/instructions/unit-tests.instructions.md`
+**Scope:** `**/test_*.py`
+**When to use:** Writing any unit test. Covers falsifiability, required assertions, mock call-verification patterns, and coverage theater anti-patterns.
+
 ### Integration Tests
 
 **Path:** `.github/instructions/integration-tests.instructions.md`
