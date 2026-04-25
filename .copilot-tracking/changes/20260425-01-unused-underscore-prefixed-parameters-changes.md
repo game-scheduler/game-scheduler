@@ -2,11 +2,11 @@
 
 # Changes: Remove Obsolete and Deprecated Function Parameters
 
-## Status: Phases 1-5 Complete
+## Status: All Phases Complete
 
 ## Overview
 
-Removes five deprecated or never-used `access_token`/`_access_token` function parameters from production code and updates all callers (production + tests). Phases 6-7 (remove `_role_service` from `_require_permission` and `_process_dlq` from `GenericSchedulerDaemon.__init__`) are not yet implemented.
+Removes five deprecated or never-used `access_token`/`_access_token` function parameters from production code and updates all callers (production + tests). All phases including Phase 6 (`_role_service` from `_require_permission`) and Phase 7 (`_process_dlq` from `GenericSchedulerDaemon.__init__`) are complete.
 
 ## Modified
 
@@ -63,6 +63,16 @@ Removes five deprecated or never-used `access_token`/`_access_token` function pa
 - `services/api/dependencies/permissions.py`: removed `access_token: str` from `verify_game_access` signature and docstring
 - `services/api/routes/games.py`: removed `access_token=current_user.access_token` from all 3 `verify_game_access` calls
 - Tests updated: `test_api_permissions.py`, `test_negative_authorization.py`, `test_permissions_migration.py`
+
+### Phase 6: Removed `_role_service` from `_require_permission`
+
+- `services/api/dependencies/permissions.py`: removed `_role_service: roles_module.RoleVerificationService` from `_require_permission` signature and docstring; removed `role_service` positional argument from all 3 internal call sites (`require_manage_guild`, `require_manage_channels`, `require_bot_manager`)
+- `tests/unit/services/api/dependencies/test_api_permissions.py`: removed `mock_role_service` argument from all 7 direct `_require_permission` call sites
+
+### Phase 7: Removed `_process_dlq` from `GenericSchedulerDaemon.__init__`
+
+- `services/scheduler/generic_scheduler_daemon.py`: removed `_process_dlq: bool = False` from `__init__` signature and its docstring entry
+- `services/scheduler/scheduler_daemon_wrapper.py`: removed `_process_dlq=False` keyword argument from all 3 `SchedulerDaemon(...)` call sites (notification, status-transition, participant-action)
 
 ## Removed
 

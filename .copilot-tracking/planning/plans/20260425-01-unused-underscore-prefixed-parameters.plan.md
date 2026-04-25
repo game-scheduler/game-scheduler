@@ -82,14 +82,14 @@ Remove seven deprecated or never-used function parameters from production code a
 - [x] Task 5.2: Update 3 production callers (games.py: 448, 514, 721) and ~19 test callers
   - Details: .copilot-tracking/planning/details/20260425-01-unused-underscore-prefixed-parameters-details.md (Lines 241-255)
 
-### [ ] Phase 6: Remove `_role_service` from `_require_permission`
+### [x] Phase 6: Remove `_role_service` from `_require_permission`
 
-- [ ] Task 6.1: Remove `_role_service` parameter from `_require_permission` in `permissions.py` and update 3 call sites in the same file (lines 416, 460, 554)
+- [x] Task 6.1: Remove `_role_service` parameter from `_require_permission` in `permissions.py` and update 3 call sites in the same file (lines 416, 460, 554)
   - Details: .copilot-tracking/planning/details/20260425-01-unused-underscore-prefixed-parameters-details.md (Lines 258-280)
 
-### [ ] Phase 7: Remove `_process_dlq` from `GenericSchedulerDaemon.__init__`
+### [x] Phase 7: Remove `_process_dlq` from `GenericSchedulerDaemon.__init__`
 
-- [ ] Task 7.1: Remove `_process_dlq: bool = False` from `GenericSchedulerDaemon.__init__` in `generic_scheduler_daemon.py` and remove `_process_dlq=False` from 3 call sites in `scheduler_daemon_wrapper.py`
+- [x] Task 7.1: Remove `_process_dlq: bool = False` from `GenericSchedulerDaemon.__init__` in `generic_scheduler_daemon.py` and remove `_process_dlq=False` from 3 call sites in `scheduler_daemon_wrapper.py`
   - Details: .copilot-tracking/planning/details/20260425-01-unused-underscore-prefixed-parameters-details.md (Lines 283-302)
 
 ## Dependencies

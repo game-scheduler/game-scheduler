@@ -314,7 +314,6 @@ async def _require_permission(
     permission_checker: Callable[..., Awaitable[bool]],
     error_message: str,
     current_user: auth_schemas.CurrentUser,
-    _role_service: roles_module.RoleVerificationService,
     db: AsyncSession,
     **checker_kwargs: Any,  # noqa: ANN401
 ) -> auth_schemas.CurrentUser:
@@ -330,7 +329,6 @@ async def _require_permission(
             (e.g., role_service.has_permissions or role_service.check_bot_manager_permission)
         error_message: Custom error message for permission denial
         current_user: Current authenticated user
-        role_service: Role verification service
         db: Database session
         **checker_kwargs: Additional keyword arguments passed to permission_checker
             (e.g., permissions for has_permissions)
@@ -405,7 +403,6 @@ async def require_manage_guild(
         check_manage_guild,
         "You need MANAGE_GUILD permission to perform this action",
         current_user,
-        role_service,
         db,
     )
 
@@ -449,7 +446,6 @@ async def require_manage_channels(
         check_manage_channels,
         "You need MANAGE_CHANNELS permission to perform this action",
         current_user,
-        role_service,
         db,
     )
 
@@ -543,7 +539,6 @@ async def require_bot_manager(
         check_bot_manager,
         "Bot manager role required to perform this action",
         current_user,
-        role_service,
         db,
     )
 

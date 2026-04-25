@@ -66,7 +66,6 @@ class SchedulerDaemon:
         status_field: str,
         event_builder: Callable,
         max_timeout: int = 900,
-        _process_dlq: bool = False,
     ) -> None:
         """
         Initialize generic scheduler daemon.
@@ -81,7 +80,6 @@ class SchedulerDaemon:
             status_field: Name of boolean field indicating processed status
             event_builder: Function to build Event from schedule record
             max_timeout: Maximum seconds to wait between checks (default: 15 min)
-            process_dlq: Deprecated parameter, kept for backwards compatibility
         """
         self._service_name = service_name
         self.database_url = database_url

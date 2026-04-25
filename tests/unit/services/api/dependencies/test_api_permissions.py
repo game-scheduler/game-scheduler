@@ -1178,7 +1178,6 @@ async def test_require_permission_success(mock_current_user, mock_role_service, 
             mock_permission_checker,
             "You need permission",
             mock_current_user,
-            mock_role_service,
             mock_db,
         )
 
@@ -1205,7 +1204,6 @@ async def test_require_permission_failed_check(
             mock_permission_checker,
             "You need permission",
             mock_current_user,
-            mock_role_service,
             mock_db,
         )
 
@@ -1231,7 +1229,6 @@ async def test_require_permission_expired_token(mock_current_user, mock_role_ser
             mock_permission_checker,
             "You need permission",
             mock_current_user,
-            mock_role_service,
             mock_db,
         )
 
@@ -1265,7 +1262,6 @@ async def test_require_permission_with_uuid_guild_id(
             mock_permission_checker,
             "You need permission",
             mock_current_user,
-            mock_role_service,
             mock_db,
         )
 
@@ -1290,7 +1286,6 @@ async def test_require_permission_with_checker_kwargs(
             mock_permission_checker,
             "You need permission",
             mock_current_user,
-            mock_role_service,
             mock_db,
             extra_param="test_value",
         )
@@ -1318,7 +1313,6 @@ async def test_require_permission_checker_exception(
             mock_permission_checker,
             "You need permission",
             mock_current_user,
-            mock_role_service,
             mock_db,
         )
 
@@ -1377,7 +1371,6 @@ async def test_require_permission_with_maintainer_token(mock_current_user, mock_
             mock_checker,
             "You need permission",
             mock_current_user,
-            mock_role_service,
             mock_db,
         )
 

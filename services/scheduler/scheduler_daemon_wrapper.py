@@ -70,7 +70,6 @@ def main() -> None:
             time_field="notification_time",
             status_field="sent",
             event_builder=build_notification_event,
-            _process_dlq=False,
         ),
         SchedulerDaemon(
             service_name="status-transition",
@@ -81,7 +80,6 @@ def main() -> None:
             time_field="transition_time",
             status_field="executed",
             event_builder=build_status_transition_event,
-            _process_dlq=False,
         ),
         SchedulerDaemon(
             service_name="participant-action",
@@ -92,7 +90,6 @@ def main() -> None:
             time_field="action_time",
             status_field="processed",
             event_builder=build_participant_action_event,
-            _process_dlq=False,
         ),
     ]
 
