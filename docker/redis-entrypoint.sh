@@ -26,8 +26,8 @@ set -e
 # Writes to /tmp/users.acl, referenced via --aclfile in the server command.
 # Passwords must not contain newlines or null bytes.
 cat > /tmp/users.acl <<EOF
-user bot on >${BOT_REDIS_PASSWORD} %RW~proj:* %RW~bot:* %RW~discord:guild:* %RW~discord:guild_channels:* %RW~discord:channel:* %RW~discord:guild_roles:* %RW~api:user_roles:* +@all -@admin -@dangerous +scan +del
-user api on >${API_REDIS_PASSWORD} %R~proj:* %R~bot:* %R~discord:guild:* %R~discord:guild_channels:* %R~discord:channel:* %R~discord:guild_roles:* %RW~api:* +@all -@admin -@dangerous +scan
+user bot on >${BOT_REDIS_PASSWORD} %RW~proj:* %RW~bot:* %RW~discord:guild:* %RW~discord:guild_channels:* %RW~discord:channel:* %RW~discord:guild_roles:* %RW~discord:global_rate_limit %RW~channel_rate_limit:* %RW~api:user_roles:* +@all -@admin -@dangerous +scan +del
+user api on >${API_REDIS_PASSWORD} %R~proj:* %R~bot:* %R~discord:guild:* %R~discord:guild_channels:* %R~discord:channel:* %R~discord:guild_roles:* %RW~discord:global_rate_limit %RW~channel_rate_limit:* %RW~api:* +@all -@admin -@dangerous +scan
 user test on >${TEST_REDIS_PASSWORD} ~* &* +@all -@admin
 user default on nopass nocommands +ping
 EOF

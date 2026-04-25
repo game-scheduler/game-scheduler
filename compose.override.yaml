@@ -83,7 +83,6 @@ services:
   redis:
     ports:
       - "${REDIS_HOST_PORT:-6379}:6379"
-    command: valkey-server --appendonly yes --loglevel debug
 
   grafana-alloy:
     ports:

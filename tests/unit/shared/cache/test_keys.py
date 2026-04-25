@@ -37,6 +37,11 @@ class TestCacheKeys:
         key = CacheKeys.user_roles("user456", "guild123")
         assert key == "api:user_roles:user456:guild123"
 
+    def test_discord_member_key(self):
+        """Test Discord guild member cache key generation."""
+        key = CacheKeys.discord_member("guild123", "user456")
+        assert key == "api:member:guild123:user456"
+
     def test_session_key(self):
         """Test session cache key generation."""
         key = CacheKeys.session("session_abc123")

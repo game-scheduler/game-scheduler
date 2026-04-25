@@ -484,6 +484,8 @@ class RedisClient:
             )
             result = await cast("Awaitable[Any]", raw)
             return int(result)
+        except redis.exceptions.NoPermissionError:
+            raise
         except Exception as e:
             logger.error(
                 "Redis EVAL error for global+channel slot (channel=%s): %s",
@@ -524,6 +526,8 @@ class RedisClient:
             )
             result = await cast("Awaitable[Any]", raw)
             return int(result)
+        except redis.exceptions.NoPermissionError:
+            raise
         except Exception as e:
             logger.error("Redis EVAL error for global slot: %s", e)
             return _REDIS_ERROR_BACKOFF_BASE_MS + secrets.randbelow(

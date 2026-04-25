@@ -80,7 +80,7 @@ services:
   redis:
     image: valkey/valkey:9.0.1-alpine
     container_name: ${CONTAINER_PREFIX:-gamebot}-redis
-    entrypoint: ["/usr/local/bin/redis-entrypoint.sh"]
+    entrypoint: ["sh", "/usr/local/bin/redis-entrypoint.sh"]
     command: ${REDIS_COMMAND:-valkey-server --aclfile /tmp/users.acl --appendonly yes --loglevel ${REDIS_LOG_LEVEL:-notice}}
     environment:
       BOT_REDIS_PASSWORD: ${BOT_REDIS_PASSWORD}

@@ -86,16 +86,6 @@ services:
     environment:
       RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit log_levels [{connection,debug}]
 
-  redis:
-    entrypoint: ["/usr/local/bin/redis-entrypoint.sh"]
-    command: valkey-server --aclfile /tmp/users.acl --appendonly yes --loglevel debug
-    environment:
-      BOT_REDIS_PASSWORD: ${BOT_REDIS_PASSWORD}
-      API_REDIS_PASSWORD: ${API_REDIS_PASSWORD}
-      TEST_REDIS_PASSWORD: ${TEST_REDIS_PASSWORD}
-    volumes:
-      - ./docker/redis-entrypoint.sh:/usr/local/bin/redis-entrypoint.sh:ro
-
   system-ready:
     image: alpine:latest
     container_name: ${CONTAINER_PREFIX:-gamebot-e2e}-system-ready

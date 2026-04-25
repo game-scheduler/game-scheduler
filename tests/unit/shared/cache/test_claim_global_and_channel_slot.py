@@ -24,6 +24,7 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import redis
 
 from shared.cache.client import (
     _REDIS_ERROR_BACKOFF_BASE_MS,
@@ -182,6 +183,18 @@ class TestClaimGlobalAndChannelSlot:
         global_max_arg = call_args[6]  # ARGV[3] = global_max
         assert global_max_arg == "25"
 
+    async def test_no_permission_error_is_reraised(self, client_and_mock: tuple) -> None:
+        """NoPermissionError propagates instead of returning a backoff.
+
+        ACL misconfigurations must surface immediately so callers get a clear
+        error rather than looping forever on a jittered backoff.
+        """
+        client, mock_redis = client_and_mock
+        mock_redis.eval.side_effect = redis.exceptions.NoPermissionError("NOPERM")
+
+        with pytest.raises(redis.exceptions.NoPermissionError):
+            await client.claim_global_and_channel_slot("999")
+
 
 class TestClaimGlobalSlot:
     """Verify global-only rate-limit slot claim (no per-channel constraint)."""
@@ -333,3 +346,15 @@ class TestClaimGlobalSlot:
         call_args = mock_redis.eval.call_args.args
         global_max_arg = call_args[4]  # ARGV[2] = global_max after sentinel removal
         assert global_max_arg == "45"
+
+    async def test_no_permission_error_is_reraised(self, client_and_mock: tuple) -> None:
+        """NoPermissionError propagates instead of returning a backoff.
+
+        ACL misconfigurations must surface immediately so callers get a clear
+        error rather than looping forever on a jittered backoff.
+        """
+        client, mock_redis = client_and_mock
+        mock_redis.eval.side_effect = redis.exceptions.NoPermissionError("NOPERM")
+
+        with pytest.raises(redis.exceptions.NoPermissionError):
+            await client.claim_global_slot()

@@ -51,7 +51,7 @@
 set -e
 
 # Environment file location (can be overridden by setting ENV_FILE before calling)
-ENV_FILE="${ENV_FILE:-tests/integration/env.int}"
+ENV_FILE="${ENV_FILE:-config/env.int}"
 
 cleanup() {
   if [ -n "$SKIP_CLEANUP" ]; then
