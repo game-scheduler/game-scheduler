@@ -33,7 +33,6 @@ from services.api.auth.oauth2 import (
     exchange_code_for_tokens,
     generate_authorization_url,
     get_user_from_token,
-    get_user_guilds,
     refresh_access_token,
     validate_state,
 )
@@ -138,22 +137,6 @@ class TestOAuth2Flow:
 
             assert result["id"] == "123456789"
             assert result["username"] == "testuser"
-
-    @pytest.mark.asyncio
-    async def test_get_user_guilds(self):
-        """Test user guilds fetching."""
-        with patch("services.api.auth.oauth2.get_discord_client") as mock_client:
-            mock_discord = AsyncMock()
-            mock_client.return_value = mock_discord
-            mock_discord.get_guilds.return_value = [
-                {"id": "guild1", "name": "Test Guild 1"},
-                {"id": "guild2", "name": "Test Guild 2"},
-            ]
-
-            result = await get_user_guilds("test_token")
-
-            assert len(result) == 2
-            assert result[0]["name"] == "Test Guild 1"
 
     def test_calculate_token_expiry(self):
         """Test token expiry calculation."""

@@ -40,7 +40,6 @@ from shared.cache import client as cache_client
 from shared.cache import keys as cache_keys
 from shared.cache import ttl
 from shared.cache.operations import CacheOperation
-from shared.cache.ttl import DISCORD_GLOBAL_RATE_LIMIT_BACKGROUND
 from shared.utils.discord_tokens import DISCORD_BOT_TOKEN_DOT_COUNT
 
 _T = TypeVar("_T")
@@ -53,19 +52,6 @@ _cache_miss_counter = _cache_meter.create_counter(
     "discord.cache.misses", description="Discord cache misses", unit="1"
 )
 _cache_duration_histogram = _cache_meter.create_histogram("discord.cache.duration", unit="s")
-_batch_size_histogram = _cache_meter.create_histogram(
-    "discord.member_batch.size", description="Members requested per batch fetch", unit="1"
-)
-_batch_not_found_counter = _cache_meter.create_counter(
-    "discord.member_batch.not_found",
-    description="Members not found (404) during batch fetch",
-    unit="1",
-)
-_batch_duration_histogram = _cache_meter.create_histogram(
-    "discord.member_batch.duration",
-    description="Wall-clock duration of concurrent batch member fetch",
-    unit="s",
-)
 
 logger = logging.getLogger(__name__)
 
@@ -113,10 +99,7 @@ class DiscordAPIClient:
         self._api_base_url = api_base_url
         self._token_url = f"{api_base_url}/oauth2/token"
         self._user_url = f"{api_base_url}/users/@me"
-        self._guilds_url = f"{api_base_url}/users/@me/guilds"
         self._session: aiohttp.ClientSession | None = None
-        self._guild_locks: dict[str, asyncio.Lock] = {}
-        self._locks_lock = asyncio.Lock()
 
     def _get_auth_header(self, token: str | None = None) -> str:
         """
@@ -384,61 +367,6 @@ class DiscordAPIClient:
             logger.error("Network error fetching user info: %s", e)
             raise DiscordAPIError(500, f"Network error: {e!s}") from e
 
-    async def get_guilds(
-        self, token: str | None = None, user_id: str | None = None
-    ) -> list[dict[str, Any]]:
-        """
-        Fetch guilds accessible with the given token (bot or OAuth).
-
-        Automatically detects token type and applies appropriate caching strategy:
-        - Bot tokens: No caching (honors rate limits with retry logic)
-          Rationale: We need fresh guild lists to handle back-to-back guild join events.
-          Caching would risk missing new guilds when processing rapid join notifications.
-          Instead, we handle Discord's rate limits by sleeping and retrying when we receive
-          429 responses.
-        - OAuth tokens with user_id: Cached with double-checked locking
-        - OAuth tokens without user_id: No caching
-
-        Args:
-            token: Discord bot token or OAuth access token (defaults to self.bot_token)
-            user_id: Discord user ID for cache key (optional, improves cache efficiency for OAuth)
-
-        Returns:
-            List of guild objects with id, name, icon, permissions, etc.
-
-        Raises:
-            DiscordAPIError: If fetching guilds fails
-        """
-        use_token = token or self.bot_token
-
-        # Fast path: check cache for OAuth tokens with user_id
-        if user_id:
-            cache_key = cache_keys.CacheKeys.user_guilds(user_id)
-            redis = await cache_client.get_redis_client()
-            cached = await redis.get(cache_key)
-            if cached:
-                logger.debug("Cache hit for user guilds: %s", user_id)
-                return json.loads(cached)
-
-            # Get or create per-user lock
-            async with self._locks_lock:
-                if user_id not in self._guild_locks:
-                    self._guild_locks[user_id] = asyncio.Lock()
-                user_lock = self._guild_locks[user_id]
-
-            # Slow path: check cache again after acquiring lock
-            async with user_lock:
-                return await self._get_or_fetch(
-                    cache_key=cache_key,
-                    cache_ttl=ttl.CacheTTL.USER_GUILDS,
-                    fetch_fn=lambda: self._fetch_guilds_uncached(use_token),
-                    operation=CacheOperation.GET_USER_GUILDS,
-                )
-
-        # No caching for bot tokens or OAuth tokens without user_id
-        # Bot tokens honor rate limits with retry logic in _fetch_guilds_uncached
-        return await self._fetch_guilds_uncached(use_token)
-
     async def _get_or_fetch(
         self,
         cache_key: str,
@@ -503,116 +431,6 @@ class DiscordAPIClient:
         retry_after = headers.get("retry-after")
         reset_after = headers.get("x-ratelimit-reset-after")
         return float(retry_after or reset_after or 1.0)
-
-    async def _handle_rate_limit_response(
-        self,
-        response: aiohttp.ClientResponse,
-        response_data: Any,  # noqa: ANN401
-        attempt: int,
-        max_retries: int,
-    ) -> bool:
-        """
-        Handle 429 rate limit response.
-
-        Args:
-            response: HTTP response object
-            response_data: Parsed JSON response data
-            attempt: Current attempt number (0-indexed)
-            max_retries: Maximum number of retries
-
-        Returns:
-            True if should retry, False if should raise error
-
-        Raises:
-            DiscordAPIError: If final retry attempt failed
-        """
-        wait_time = self._get_retry_wait_time(dict(response.headers))
-
-        if attempt < max_retries - 1:
-            logger.warning(
-                "Rate limited on guilds fetch (attempt %d/%d), waiting %.2fs",
-                attempt + 1,
-                max_retries,
-                wait_time,
-            )
-            await asyncio.sleep(wait_time)
-            return True
-
-        # Final attempt failed
-        error_msg = self._get_error_message(response_data, "Rate limited")
-        raise DiscordAPIError(response.status, error_msg, dict(response.headers))
-
-    async def _process_guilds_response(
-        self,
-        response: aiohttp.ClientResponse,
-        attempt: int,
-        max_retries: int,
-    ) -> list[dict[str, Any]] | None:
-        """
-        Process guilds API response and handle errors.
-
-        Args:
-            response: HTTP response object
-            attempt: Current attempt number (0-indexed)
-            max_retries: Maximum number of retries
-
-        Returns:
-            List of guild data if successful, None if should retry
-
-        Raises:
-            DiscordAPIError: If response indicates non-retryable error
-        """
-        response_data = await self._parse_response_json(response)
-        guild_count = len(response_data) if isinstance(response_data, list) else "N/A"
-        self._log_response(response, f"Returned {guild_count} guilds")
-
-        if response.status == status.HTTP_429_TOO_MANY_REQUESTS:
-            should_retry = await self._handle_rate_limit_response(
-                response, response_data, attempt, max_retries
-            )
-            return None if should_retry else response_data
-
-        if response.status != status.HTTP_200_OK:
-            error_msg = self._get_error_message(response_data, "Unknown error")
-            raise DiscordAPIError(response.status, error_msg, dict(response.headers))
-
-        return response_data
-
-    async def _fetch_guilds_uncached(self, token: str) -> list[dict[str, Any]]:
-        """
-        Internal method to fetch guilds from Discord API without caching.
-
-        Handles rate limiting by retrying with exponential backoff when receiving 429.
-
-        Args:
-            token: Discord bot token or OAuth access token
-
-        Returns:
-            List of guild objects from Discord API
-
-        Raises:
-            DiscordAPIError: If fetching guilds fails after retries
-        """
-        session = await self._get_session()
-        url = self._guilds_url
-
-        max_retries = 3
-        for attempt in range(max_retries):
-            self._log_request("GET", url, "get_guilds")
-            try:
-                async with session.get(
-                    url,
-                    headers={"Authorization": self._get_auth_header(token)},
-                ) as response:
-                    result = await self._process_guilds_response(response, attempt, max_retries)
-                    if result is not None:
-                        return result
-            except aiohttp.ClientError as e:
-                logger.error("Network error fetching guilds: %s", e)
-                raise DiscordAPIError(500, f"Network error: {e!s}") from e
-
-        # Should never reach here, but just in case
-        raise DiscordAPIError(429, "Rate limit exceeded after max retries", {})
 
     async def get_guild_channels(self, guild_id: str) -> list[dict[str, Any]]:
         """
@@ -710,136 +528,6 @@ class DiscordAPIClient:
             ),
         )
 
-    async def fetch_user(self, user_id: str, token: str | None = None) -> dict[str, Any]:
-        """
-        Fetch user information with Redis caching.
-
-        Args:
-            user_id: Discord user ID
-            token: Discord bot token or OAuth access token (defaults to self.bot_token)
-
-        Returns:
-            User object with id, username, avatar, discriminator, etc.
-
-        Raises:
-            DiscordAPIError: If fetching user fails
-        """
-        return await self._get_or_fetch(
-            cache_key=cache_keys.CacheKeys.discord_user(user_id),
-            cache_ttl=ttl.CacheTTL.DISCORD_USER,
-            fetch_fn=lambda: self._make_api_request(
-                method="GET",
-                url=f"{self._api_base_url}/users/{user_id}",
-                operation_name="fetch_user",
-                headers={"Authorization": self._get_auth_header(token)},
-            ),
-            operation=CacheOperation.FETCH_USER,
-        )
-
-    async def get_guild_member(
-        self, guild_id: str, user_id: str, global_max: int = DISCORD_GLOBAL_RATE_LIMIT_BACKGROUND
-    ) -> dict[str, Any]:
-        """
-        Fetch guild member information using bot token with Redis caching.
-
-        Args:
-            guild_id: Discord guild (server) ID
-            user_id: Discord user ID
-            global_max: Global rate-limit budget to use for this request (default 25).
-
-        Returns:
-            Guild member object with user, roles, nick, etc.
-
-        Raises:
-            DiscordAPIError: If fetching member fails
-        """
-        return await self._get_or_fetch(
-            cache_key=cache_keys.CacheKeys.discord_member(guild_id, user_id),
-            cache_ttl=ttl.CacheTTL.DISCORD_MEMBER,
-            fetch_fn=lambda: self._make_api_request(
-                method="GET",
-                url=f"{self._api_base_url}/guilds/{guild_id}/members/{user_id}",
-                operation_name="get_guild_member",
-                headers={"Authorization": f"Bot {self.bot_token}"},
-                global_max=global_max,
-            ),
-            operation=CacheOperation.GET_GUILD_MEMBER,
-        )
-
-    async def get_guild_members_batch(
-        self,
-        guild_id: str,
-        user_ids: list[str],
-        global_max: int = DISCORD_GLOBAL_RATE_LIMIT_BACKGROUND,
-    ) -> list[dict[str, Any]]:
-        """
-        Fetch multiple guild members using bot token, concurrently.
-
-        Args:
-            guild_id: Discord guild (server) ID
-            user_ids: List of Discord user IDs to fetch
-            global_max: Global rate-limit budget per 1000ms window (default 25).
-
-        Returns:
-            List of guild member objects (may be fewer than requested if users left)
-
-        Raises:
-            DiscordAPIError: If a non-404 error occurs for any user
-        """
-        logger.info(
-            "Discord API: Batch fetching %s members from guild %s",
-            len(user_ids),
-            guild_id,
-        )
-        _batch_size_histogram.record(len(user_ids))
-        t0 = time.monotonic()
-
-        async def _fetch_one(user_id: str) -> dict[str, Any] | None:
-            try:
-                return await self.get_guild_member(guild_id, user_id, global_max=global_max)
-            except DiscordAPIError as e:
-                if e.status == status.HTTP_404_NOT_FOUND:
-                    logger.debug("User %s not found in guild %s", user_id, guild_id)
-                    return None
-                raise
-
-        results = await asyncio.gather(*[_fetch_one(uid) for uid in user_ids])
-        members = [r for r in results if r is not None]
-        not_found = len(user_ids) - len(members)
-        _batch_duration_histogram.record(time.monotonic() - t0)
-        if not_found:
-            _batch_not_found_counter.add(not_found)
-        logger.info(
-            "Discord API: Batch completed - fetched %s/%s members",
-            len(members),
-            len(user_ids),
-        )
-        return members
-
-    async def get_current_user_guild_member(self, guild_id: str, token: str) -> dict[str, Any]:
-        """
-        Fetch the current user's guild member object using their OAuth token.
-
-        Uses the user's own rate limit pool (Bearer token), leaving the bot token
-        budget untouched.
-
-        Args:
-            guild_id: Discord guild (server) ID
-            token: User's OAuth access token
-
-        Returns:
-            Discord guild member object
-
-        Raises:
-            DiscordAPIError: If the request fails
-        """
-        return await self._make_api_request(
-            method="GET",
-            url=f"{self._api_base_url}/users/@me/guilds/{guild_id}/member",
-            operation_name="get_current_user_guild_member",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-
 
 # Global client instance for helper functions (lazy-initialized)
 _global_client_instance: DiscordAPIClient | None = None
@@ -884,30 +572,6 @@ async def fetch_channel_name_safe(channel_id: str, client: DiscordAPIClient | No
     except DiscordAPIError as e:
         logger.warning("Could not fetch channel name for %s: %s", channel_id, e)
         return "Unknown Channel"
-
-
-async def fetch_user_display_name_safe(
-    discord_id: str, client: DiscordAPIClient | None = None
-) -> str:
-    """
-    Fetch user display name from Discord API with error handling.
-
-    Args:
-        discord_id: Discord user ID
-        client: DiscordAPIClient instance (optional, uses global if not provided)
-
-    Returns:
-        User display name in format "@username" or fallback to "@{id}"
-    """
-    if client is None:
-        client = _get_global_client()
-    try:
-        user_data = await client.fetch_user(discord_id)
-        username = user_data.get("username", discord_id)
-        return f"@{username}"
-    except DiscordAPIError as e:
-        logger.warning("Could not fetch user name for %s: %s", discord_id, e)
-        return f"@{discord_id}"
 
 
 async def fetch_guild_name_safe(guild_id: str, client: DiscordAPIClient | None = None) -> str:

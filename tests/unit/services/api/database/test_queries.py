@@ -49,14 +49,12 @@ async def test_require_guild_by_id_success_context_already_set():
             return_value=[guild_uuid],  # Context now stores UUIDs
         ),
         patch("services.api.database.queries.get_guild_by_id", return_value=mock_guild),
-        patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
     ):
         # Act
         result = await queries.require_guild_by_id(mock_db, guild_uuid, user_discord_id)
 
         # Assert
         assert result == mock_guild
-        mock_get_guilds.assert_not_called()  # Should not fetch guilds when context already set
 
 
 @pytest.mark.asyncio
@@ -254,14 +252,12 @@ async def test_require_guild_by_id_idempotent_context_set():
         ),
         patch("services.api.database.queries.set_current_guild_ids") as mock_set_context,
         patch("services.api.database.queries.get_guild_by_id", return_value=mock_guild),
-        patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
     ):
         # Act
         result = await queries.require_guild_by_id(mock_db, guild_uuid, user_discord_id)
 
         # Assert
         assert result == mock_guild
-        mock_get_guilds.assert_not_called()
         mock_set_context.assert_not_called()
 
 

@@ -149,11 +149,9 @@ async def test_get_db_with_user_guilds_uses_projection_not_oauth(
     mock_db_session = MagicMock()
     mock_db_session.__aenter__ = AsyncMock(return_value=AsyncMock())
     mock_db_session.__aexit__ = AsyncMock(return_value=False)
-    mock_oauth2 = AsyncMock(return_value=[{"id": "guild_1"}])
     mock_projection = AsyncMock(return_value=["guild_1"])
 
     with (
-        patch("services.api.auth.oauth2.get_user_guilds", mock_oauth2),
         patch("shared.cache.client.get_redis_client", AsyncMock(return_value=AsyncMock())),
         patch("shared.cache.projection.get_user_guilds", mock_projection),
         patch("shared.database.AsyncSessionLocal", return_value=mock_db_session),
@@ -170,5 +168,4 @@ async def test_get_db_with_user_guilds_uses_projection_not_oauth(
         finally:
             await generator.aclose()
 
-    mock_oauth2.assert_not_called()
     mock_projection.assert_called_once()

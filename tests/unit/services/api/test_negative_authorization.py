@@ -396,17 +396,15 @@ class TestGameManagementAuthorization:
         mock_db = AsyncMock()
         mock_role_service = AsyncMock()
         guild_id = "123456789012345678"
-        user_guilds = [{"id": guild_id, "name": "Test Guild"}]
 
         with patch("services.api.auth.tokens.get_user_tokens", return_value=mock_tokens):
-            with patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds):
-                result = await permissions.can_manage_game(
-                    mock_current_user.user.discord_id,  # Host is current user
-                    guild_id,
-                    mock_current_user,
-                    mock_role_service,
-                    mock_db,
-                )
+            result = await permissions.can_manage_game(
+                mock_current_user.user.discord_id,  # Host is current user
+                guild_id,
+                mock_current_user,
+                mock_role_service,
+                mock_db,
+            )
 
         assert result is True
 
@@ -419,17 +417,15 @@ class TestGameManagementAuthorization:
         mock_role_service = AsyncMock()
         mock_role_service.check_bot_manager_permission = AsyncMock(return_value=True)
         guild_id = "123456789012345678"
-        user_guilds = [{"id": guild_id, "name": "Test Guild"}]
 
         with patch("services.api.auth.tokens.get_user_tokens", return_value=mock_tokens):
-            with patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds):
-                result = await permissions.can_manage_game(
-                    "different_host",  # Not current user
-                    guild_id,
-                    mock_current_user,
-                    mock_role_service,
-                    mock_db,
-                )
+            result = await permissions.can_manage_game(
+                "different_host",  # Not current user
+                guild_id,
+                mock_current_user,
+                mock_role_service,
+                mock_db,
+            )
 
         assert result is True
 
@@ -442,17 +438,15 @@ class TestGameManagementAuthorization:
         mock_role_service = AsyncMock()
         mock_role_service.check_bot_manager_permission = AsyncMock(return_value=False)
         guild_id = "123456789012345678"
-        user_guilds = [{"id": guild_id, "name": "Test Guild"}]
 
         with patch("services.api.auth.tokens.get_user_tokens", return_value=mock_tokens):
-            with patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds):
-                result = await permissions.can_manage_game(
-                    "different_host",  # Not current user
-                    guild_id,
-                    mock_current_user,
-                    mock_role_service,
-                    mock_db,
-                )
+            result = await permissions.can_manage_game(
+                "different_host",  # Not current user
+                guild_id,
+                mock_current_user,
+                mock_role_service,
+                mock_db,
+            )
 
         assert result is False
 
@@ -502,20 +496,18 @@ class TestGameExportAuthorization:
         mock_db = AsyncMock()
         mock_role_service = AsyncMock()
         guild_id = "123456789012345678"
-        user_guilds = [{"id": guild_id, "name": "Test Guild"}]
 
         with patch("services.api.auth.tokens.get_user_tokens", return_value=mock_tokens):
-            with patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds):
-                result = await permissions.can_export_game(
-                    mock_current_user.user.id,  # Host is current user
-                    [],
-                    guild_id,
-                    mock_current_user.user.id,
-                    mock_current_user.user.discord_id,
-                    mock_role_service,
-                    mock_db,
-                    mock_current_user,
-                )
+            result = await permissions.can_export_game(
+                mock_current_user.user.id,  # Host is current user
+                [],
+                guild_id,
+                mock_current_user.user.id,
+                mock_current_user.user.discord_id,
+                mock_role_service,
+                mock_db,
+                mock_current_user,
+            )
 
         assert result is True
 
@@ -527,7 +519,6 @@ class TestGameExportAuthorization:
         mock_db = AsyncMock()
         mock_role_service = AsyncMock()
         guild_id = "123456789012345678"
-        user_guilds = [{"id": guild_id, "name": "Test Guild"}]
 
         # Create mock participant
         mock_participant = MagicMock()
@@ -535,17 +526,16 @@ class TestGameExportAuthorization:
         mock_participant.user = MagicMock()
 
         with patch("services.api.auth.tokens.get_user_tokens", return_value=mock_tokens):
-            with patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds):
-                result = await permissions.can_export_game(
-                    "different_host",
-                    [mock_participant],
-                    guild_id,
-                    mock_current_user.user.id,
-                    mock_current_user.user.discord_id,
-                    mock_role_service,
-                    mock_db,
-                    mock_current_user,
-                )
+            result = await permissions.can_export_game(
+                "different_host",
+                [mock_participant],
+                guild_id,
+                mock_current_user.user.id,
+                mock_current_user.user.discord_id,
+                mock_role_service,
+                mock_db,
+                mock_current_user,
+            )
 
         assert result is True
 
@@ -558,20 +548,18 @@ class TestGameExportAuthorization:
         mock_role_service = AsyncMock()
         mock_role_service.check_bot_manager_permission = AsyncMock(return_value=True)
         guild_id = "123456789012345678"
-        user_guilds = [{"id": guild_id, "name": "Test Guild"}]
 
         with patch("services.api.auth.tokens.get_user_tokens", return_value=mock_tokens):
-            with patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds):
-                result = await permissions.can_export_game(
-                    "different_host",
-                    [],
-                    guild_id,
-                    mock_current_user.user.id,
-                    mock_current_user.user.discord_id,
-                    mock_role_service,
-                    mock_db,
-                    mock_current_user,
-                )
+            result = await permissions.can_export_game(
+                "different_host",
+                [],
+                guild_id,
+                mock_current_user.user.id,
+                mock_current_user.user.discord_id,
+                mock_role_service,
+                mock_db,
+                mock_current_user,
+            )
 
         assert result is True
 
@@ -584,20 +572,18 @@ class TestGameExportAuthorization:
         mock_role_service = AsyncMock()
         mock_role_service.check_bot_manager_permission = AsyncMock(return_value=False)
         guild_id = "123456789012345678"
-        user_guilds = [{"id": guild_id, "name": "Test Guild"}]
 
         with patch("services.api.auth.tokens.get_user_tokens", return_value=mock_tokens):
-            with patch("services.api.auth.oauth2.get_user_guilds", return_value=user_guilds):
-                result = await permissions.can_export_game(
-                    "different_host",
-                    [],
-                    guild_id,
-                    mock_current_user.user.id,
-                    mock_current_user.user.discord_id,
-                    mock_role_service,
-                    mock_db,
-                    mock_current_user,
-                )
+            result = await permissions.can_export_game(
+                "different_host",
+                [],
+                guild_id,
+                mock_current_user.user.id,
+                mock_current_user.user.discord_id,
+                mock_role_service,
+                mock_db,
+                mock_current_user,
+            )
 
         assert result is False
 

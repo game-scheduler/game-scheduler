@@ -166,27 +166,6 @@ async def get_user_from_token(access_token: str) -> dict[str, Any]:
     return user_data
 
 
-async def get_user_guilds(access_token: str, user_id: str | None = None) -> list[dict[str, Any]]:
-    """
-    Fetch guilds the user is a member of with automatic caching.
-
-    Args:
-        access_token: User's OAuth2 access token
-        user_id: Discord user ID for cache key (optional, enables caching)
-
-    Returns:
-        List of guild data with id, name, icon, permissions, etc.
-
-    Raises:
-        DiscordAPIError: If fetching guilds fails
-    """
-    discord = get_discord_client()
-    guilds_data = await discord.get_guilds(token=access_token, user_id=user_id)
-
-    logger.info("Fetched %s guilds for user", len(guilds_data))
-    return guilds_data
-
-
 def calculate_token_expiry(expires_in: int) -> datetime:
     """
     Calculate absolute expiry datetime from relative expires_in seconds.

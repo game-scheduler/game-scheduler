@@ -228,21 +228,15 @@ class TestGetUserInfo:
             "username": "testuser",
             "avatar": "abc123",
         }
-        with (
-            patch(
-                "services.api.auth.tokens.get_user_tokens",
-                new_callable=AsyncMock,
-                return_value=token_data,
-            ),
-            patch(
-                "services.api.auth.oauth2.get_user_guilds", new_callable=AsyncMock
-            ) as mock_guilds,
+        with patch(
+            "services.api.auth.tokens.get_user_tokens",
+            new_callable=AsyncMock,
+            return_value=token_data,
         ):
             result = await auth_routes.get_user_info(
                 current_user=mock_current_user_unit, _db=mock_db_unit
             )
 
-            mock_guilds.assert_not_awaited()
             assert not hasattr(result, "guilds")
             assert result.username == "testuser"
             assert result.avatar == "abc123"

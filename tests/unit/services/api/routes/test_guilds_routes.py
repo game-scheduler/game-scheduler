@@ -104,14 +104,12 @@ class TestListGuilds:
                 new_callable=AsyncMock,
                 return_value=mock_guild_config,
             ),
-            patch("services.api.auth.oauth2.get_user_guilds", new_callable=AsyncMock) as mock_oauth,
         ):
             result = await guilds.list_guilds(current_user=mock_current_user_unit, db=mock_db)
 
             mock_proj_guilds.assert_awaited_once_with(
                 mock_current_user_unit.user.discord_id, redis=mock_redis
             )
-            mock_oauth.assert_not_awaited()
             assert len(result.guilds) == 1
 
     @pytest.mark.asyncio
@@ -190,11 +188,9 @@ class TestGetGuild:
         """Test retrieving guild configuration by UUID."""
         with (
             patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
-            patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
             patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
         ):
             mock_get_tokens.return_value = {"access_token": "test_token"}
-            mock_get_guilds.return_value = mock_user_guilds
             mock_get_guild.return_value = mock_guild_config
 
             result = await guilds.get_guild(
@@ -233,11 +229,9 @@ class TestGetGuild:
 
         with (
             patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
-            patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
             patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
         ):
             mock_get_tokens.return_value = {"access_token": "test_token"}
-            mock_get_guilds.return_value = mock_user_guilds
             mock_get_guild.return_value = mock_guild_config
 
             with pytest.raises(HTTPException) as exc_info:
@@ -279,7 +273,6 @@ class TestCreateGuildConfig:
     async def test_create_guild_success(self, mock_db, mock_current_user_unit, mock_user_guilds):
         """Test creating new guild configuration."""
         with (
-            patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
             patch("services.api.database.queries.get_guild_by_discord_id") as mock_get_guild,
             patch("services.api.services.guild_service.create_guild_config") as mock_create,
             patch(
@@ -287,7 +280,6 @@ class TestCreateGuildConfig:
                 return_value="Test Guild",
             ),
         ):
-            mock_get_guilds.return_value = mock_user_guilds
             mock_get_guild.return_value = None
 
             new_config = MagicMock()
@@ -343,7 +335,6 @@ class TestUpdateGuildConfig:
     ):
         """Test updating guild configuration."""
         with (
-            patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
             patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
             patch("services.api.services.guild_service.update_guild_config") as mock_update,
             patch(
@@ -351,7 +342,6 @@ class TestUpdateGuildConfig:
                 return_value="Test Guild",
             ),
         ):
-            mock_get_guilds.return_value = mock_user_guilds
             mock_get_guild.return_value = mock_guild_config
 
             updated_config = MagicMock()
@@ -411,12 +401,10 @@ class TestListGuildChannels:
 
         with (
             patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
-            patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
             patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
             patch("services.api.database.queries.get_channels_by_guild") as mock_get_channels,
         ):
             mock_get_tokens.return_value = {"access_token": "test_token"}
-            mock_get_guilds.return_value = mock_user_guilds
 
             mock_channel = MagicMock()
             mock_channel.id = str(uuid.uuid4())
@@ -471,11 +459,9 @@ class TestListGuildChannels:
 
         with (
             patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
-            patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
             patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
         ):
             mock_get_tokens.return_value = {"access_token": "test_token"}
-            mock_get_guilds.return_value = mock_user_guilds
             mock_get_guild.return_value = mock_guild_config
 
             with pytest.raises(HTTPException) as exc_info:
@@ -499,12 +485,10 @@ class TestListGuildChannels:
 
         with (
             patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
-            patch("services.api.auth.oauth2.get_user_guilds") as mock_get_guilds,
             patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
             patch("services.api.database.queries.get_channels_by_guild") as mock_get_channels,
         ):
             mock_get_tokens.return_value = {"access_token": "test_token"}
-            mock_get_guilds.return_value = mock_user_guilds
             mock_get_guild.return_value = mock_guild_config
 
             mock_channel = MagicMock()
