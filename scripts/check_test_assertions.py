@@ -136,7 +136,7 @@ def main() -> int:
     """Entry point; returns 0 if clean, 1 if violations found."""
     diff_only = "--diff-only" in sys.argv
     files = get_staged_test_files()
-    found_any = False
+    counts: dict[Path, int] = {}
     for filepath in files:
         try:
             violations = check_file(filepath, diff_only=diff_only)
@@ -144,8 +144,13 @@ def main() -> int:
             continue
         for lineno, message in violations:
             print(f"{filepath}:{lineno}: {message}")
-            found_any = True
-    return 1 if found_any else 0
+            counts[filepath] = counts.get(filepath, 0) + 1
+    if counts:
+        print("\nViolations by file (fix highest count first):")
+        for path, count in sorted(counts.items(), key=lambda x: x[1], reverse=True):
+            print(f"  {count:>3}  {path}")
+        print("\nSee docs/developer/fix-test-assertion-violations.md for fix patterns.")
+    return 1 if counts else 0
 
 
 if __name__ == "__main__":
