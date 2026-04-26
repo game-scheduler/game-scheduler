@@ -147,6 +147,18 @@ def test_get_unasserted_named_mocks_chained_assert_recognized() -> None:
     assert result == []
 
 
+def test_has_assertion_recognizes_assert_not_awaited() -> None:
+    source = (
+        "def test_foo():\n"
+        "    with patch('x') as mock_x:\n"
+        "        fn()\n"
+        "    mock_x.assert_not_awaited()\n"
+    )
+    func = _parse_func(source)
+    assert check_test_assertions.has_assertion(func) is True
+    assert check_test_assertions.get_unasserted_named_mocks(func) == []
+
+
 # ---------------------------------------------------------------------------
 # check_file
 # ---------------------------------------------------------------------------

@@ -27,7 +27,7 @@ import subprocess  # noqa: S404 - Used safely with hardcoded args and shell=Fals
 import sys
 from pathlib import Path
 
-_ASSERT_PREFIXES = ("assert_called", "assert_awaited", "assert_any_call", "assert_not_called")
+_ASSERT_PREFIXES = ("assert_",)
 
 
 def get_staged_test_files() -> list[Path]:
