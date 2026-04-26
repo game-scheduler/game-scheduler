@@ -22,7 +22,7 @@
 """Tests for game message formatter."""
 
 from datetime import UTC, datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import discord
 
@@ -59,6 +59,9 @@ class TestGameMessageFormatter:
 
             assert result == mock_embed
             mock_embed.add_field.assert_called()
+            mock_embed_class.assert_called_once_with(
+                title="D&D Session", description="Epic adventure awaits", color=ANY
+            )
 
     def test_embed_includes_when_field(self):
         """Test that embed includes timestamp field with formatted times."""
@@ -84,6 +87,7 @@ class TestGameMessageFormatter:
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             # Game Time field should have timestamp format
             assert any("Game Time" in str(call) and "<t:" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_includes_players_field(self):
         """Test that embed includes participant count in Participants field heading."""
@@ -108,6 +112,7 @@ class TestGameMessageFormatter:
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Participants" in str(call) and "2/5" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_includes_host_field(self):
         """Test that embed always includes host in a field with mention format."""
@@ -133,6 +138,7 @@ class TestGameMessageFormatter:
             # Should have Host field with Discord mention
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_includes_host_field_ignores_avatar(self):
         """Test that host is shown in field with mention - avatar URL is not used."""
@@ -159,6 +165,7 @@ class TestGameMessageFormatter:
             # Host field should have Discord mention (avatar not used in fields)
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_includes_channel_when_provided(self):
         """Test that embed includes voice channel when provided."""
@@ -184,6 +191,7 @@ class TestGameMessageFormatter:
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Channel" in str(call) and "<#987654321>" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_includes_where_when_provided(self):
         """Test that embed includes where field when provided."""
@@ -209,6 +217,7 @@ class TestGameMessageFormatter:
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Where" in str(call) and "Local Game Store" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_excludes_where_when_not_provided(self):
         """Test that embed does not include where field when not provided."""
@@ -233,6 +242,7 @@ class TestGameMessageFormatter:
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert not any("Where" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_includes_participants_when_present(self):
         """Test that embed includes participant list when there are participants."""
@@ -257,6 +267,7 @@ class TestGameMessageFormatter:
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Participants" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_includes_rules_when_provided(self):
         """Test that embed includes rules when provided."""
@@ -281,46 +292,32 @@ class TestGameMessageFormatter:
 
             # Verify embed was created successfully
             assert mock_embed.add_field.called
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_get_status_color_for_scheduled(self):
         """Test status color for scheduled games."""
-        with patch("services.bot.formatters.game_message.discord.Color") as mock_color:
-            mock_color.green.return_value = "green"
-            formatter = GameMessageFormatter()
-            result = formatter._get_status_color("SCHEDULED")
-            assert result == "green"
+        result = GameMessageFormatter._get_status_color("SCHEDULED")
+        assert result == discord.Color.green()
 
     def test_get_status_color_for_in_progress(self):
         """Test status color for in-progress games."""
-        with patch("services.bot.formatters.game_message.discord.Color") as mock_color:
-            mock_color.blue.return_value = "blue"
-            formatter = GameMessageFormatter()
-            result = formatter._get_status_color("IN_PROGRESS")
-            assert result == "blue"
+        result = GameMessageFormatter._get_status_color("IN_PROGRESS")
+        assert result == discord.Color.blue()
 
     def test_get_status_color_for_completed(self):
         """Test status color for completed games."""
-        with patch("services.bot.formatters.game_message.discord.Color") as mock_color:
-            mock_color.gold.return_value = "gold"
-            formatter = GameMessageFormatter()
-            result = formatter._get_status_color("COMPLETED")
-            assert result == "gold"
+        result = GameMessageFormatter._get_status_color("COMPLETED")
+        assert result == discord.Color.gold()
 
     def test_get_status_color_for_cancelled(self):
         """Test status color for cancelled games."""
-        with patch("services.bot.formatters.game_message.discord.Color") as mock_color:
-            mock_color.red.return_value = "red"
-            formatter = GameMessageFormatter()
-            result = formatter._get_status_color("CANCELLED")
-            assert result == "red"
+        result = GameMessageFormatter._get_status_color("CANCELLED")
+        assert result == discord.Color.red()
 
     def test_get_status_color_for_unknown(self):
         """Test status color for unknown status."""
-        with patch("services.bot.formatters.game_message.discord.Color") as mock_color:
-            mock_color.greyple.return_value = "greyple"
-            formatter = GameMessageFormatter()
-            result = formatter._get_status_color("UNKNOWN")
-            assert result == "greyple"
+        result = GameMessageFormatter._get_status_color("UNKNOWN")
+        assert result == discord.Color.greyple()
 
     def test_creates_notification_embed(self):
         """Test creating a notification embed."""
@@ -339,7 +336,11 @@ class TestGameMessageFormatter:
             )
 
             assert result == mock_embed
-            assert mock_embed_class.called
+            mock_embed_class.assert_called_once_with(
+                title="🔔 Game Reminder",
+                description="**D&D Session** starts in 1 hour!",
+                color=ANY,
+            )
 
     def test_notification_embed_has_reminder_title(self):
         """Test that notification embed has reminder title."""
@@ -359,6 +360,7 @@ class TestGameMessageFormatter:
 
             call_kwargs = mock_embed_class.call_args[1]
             assert "Reminder" in call_kwargs["title"]
+            mock_embed_class.assert_called_once_with(title=ANY, description=ANY, color=ANY)
 
 
 class TestGameMessageFormatterHelpers:
@@ -383,6 +385,7 @@ class TestGameMessageFormatterHelpers:
 
         assert truncated == long_description
         assert calendar_url == "https://example.com/download-calendar/test-game-id"
+        mock_config.assert_called_once_with()  # assert-no-args
 
     def test_prepare_description_and_urls_keeps_short_description(self):
         """Test that short descriptions are not truncated."""
@@ -535,7 +538,7 @@ class TestGameMessageFormatterHelpers:
         call_kwargs = embed.add_field.call_args[1]
         assert "Links" in call_kwargs["name"]
         assert calendar_url in call_kwargs["value"]
-        embed.set_footer.assert_called_once()
+        embed.set_footer.assert_called_once_with(text="Status: Scheduled")
 
     def test_add_footer_and_links_without_calendar_url(self):
         """Test adding footer without calendar URL."""
@@ -544,7 +547,7 @@ class TestGameMessageFormatterHelpers:
         GameMessageFormatter._add_footer_and_links(embed, "SCHEDULED", None)
 
         embed.add_field.assert_not_called()
-        embed.set_footer.assert_called_once()
+        embed.set_footer.assert_called_once_with(text="Status: Scheduled")
 
     def test_add_footer_and_links_uses_display_name_for_status(self):
         """Test that footer uses GameStatus display name."""
@@ -642,6 +645,7 @@ class TestFormatGameAnnouncement:
                 assert call_kwargs["description"] == "Fun times"
                 assert call_kwargs["host_id"] == "host123"
                 assert call_kwargs["channel_id"] == "voice123"
+                mock_formatter_class.assert_called_once_with()  # assert-no-args
 
     def test_embed_includes_url_when_game_id_provided(self):
         """Test that embed includes calendar download URL when game_id is provided."""
@@ -675,6 +679,7 @@ class TestFormatGameAnnouncement:
                 call_kwargs = mock_embed_class.call_args[1]
                 # Title is now plain text without URL
                 assert "url" not in call_kwargs
+                mock_get_config.assert_called_once_with()  # assert-no-args
 
     def test_embed_excludes_url_when_game_id_not_provided(self):
         """Test that embed excludes URL when game_id is not provided."""
@@ -728,6 +733,7 @@ class TestFormatGameAnnouncement:
             # Host field should have Discord mention
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_includes_host_field_without_avatar(self):
         """Test that host field is created with mention format when no avatar URL."""
@@ -754,6 +760,7 @@ class TestFormatGameAnnouncement:
             # Host field should have Discord mention
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_includes_host_field_with_placeholder(self):
         """Test that host field shows placeholder name when host_id is not a Discord ID."""
@@ -780,6 +787,7 @@ class TestFormatGameAnnouncement:
             # Host field should have placeholder name
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Host" in str(call) and "TempHost" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_includes_host_field_with_animated_avatar(self):
         """Test that host field is created even when animated avatar URL is provided."""
@@ -806,6 +814,7 @@ class TestFormatGameAnnouncement:
             # Host field should have Discord mention
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_always_has_host_field(self):
         """Test embed always includes Host field with mention."""
@@ -832,6 +841,7 @@ class TestFormatGameAnnouncement:
             # Verify Host field is present with mention
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Host" in str(call) and "<@123456>" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
 
 class TestGameEmbedImages:
@@ -862,6 +872,7 @@ class TestGameEmbedImages:
             mock_embed.set_thumbnail.assert_called_once_with(
                 url="http://api:8000/api/v1/games/123/thumbnail"
             )
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_with_image_url(self):
         """Test that embed sets image when image_url is provided."""
@@ -888,6 +899,7 @@ class TestGameEmbedImages:
             mock_embed.set_image.assert_called_once_with(
                 url="http://api:8000/api/v1/games/123/image"
             )
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_with_both_images(self):
         """Test that embed sets both thumbnail and image when provided."""
@@ -918,6 +930,7 @@ class TestGameEmbedImages:
             mock_embed.set_image.assert_called_once_with(
                 url="http://api:8000/api/v1/games/123/image"
             )
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_without_images(self):
         """Test that embed does not set images when URLs are None."""
@@ -944,6 +957,7 @@ class TestGameEmbedImages:
 
             mock_embed.set_thumbnail.assert_not_called()
             mock_embed.set_image.assert_not_called()
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_format_game_announcement_with_images(self):
         """Test format_game_announcement passes image URLs to create_game_embed."""
@@ -979,6 +993,16 @@ class TestGameEmbedImages:
 
             assert embed == mock_embed
             assert view == mock_view
+            mock_embed_class.assert_called_once_with(
+                title="Test Game", description="Test description", color=ANY
+            )
+            mock_view_class.from_game_data.assert_called_once_with(
+                game_id="game-123",
+                current_players=0,
+                max_players=5,
+                status="SCHEDULED",
+                signup_method="SELF_SIGNUP",
+            )
 
     def test_format_game_announcement_without_images(self):
         """Test format_game_announcement with thumbnail_id=None and banner_image_id=None."""
@@ -1012,6 +1036,16 @@ class TestGameEmbedImages:
             assert embed == mock_embed
             assert view == mock_view
             mock_embed.set_thumbnail.assert_not_called()
+            mock_embed_class.assert_called_once_with(
+                title="Test Game", description="Test description", color=ANY
+            )
+            mock_view_class.from_game_data.assert_called_once_with(
+                game_id="game-123",
+                current_players=0,
+                max_players=5,
+                status="SCHEDULED",
+                signup_method="SELF_SIGNUP",
+            )
 
     def test_format_game_announcement_with_everyone_role(self):
         """Test format_game_announcement uses literal @everyone for guild_id match."""
@@ -1046,6 +1080,16 @@ class TestGameEmbedImages:
             assert content == "@everyone"
             assert embed == mock_embed
             assert view == mock_view
+            mock_embed_class.assert_called_once_with(
+                title="Test Game", description="Test description", color=ANY
+            )
+            mock_view_class.from_game_data.assert_called_once_with(
+                game_id="game-123",
+                current_players=0,
+                max_players=5,
+                status="SCHEDULED",
+                signup_method="SELF_SIGNUP",
+            )
 
     def test_format_game_announcement_with_regular_roles(self):
         """Test format_game_announcement uses <@&role_id> format for regular roles."""
@@ -1081,6 +1125,16 @@ class TestGameEmbedImages:
             assert content == f"<@&{role_id}>"
             assert embed == mock_embed
             assert view == mock_view
+            mock_embed_class.assert_called_once_with(
+                title="Test Game", description="Test description", color=ANY
+            )
+            mock_view_class.from_game_data.assert_called_once_with(
+                game_id="game-123",
+                current_players=0,
+                max_players=5,
+                status="SCHEDULED",
+                signup_method="SELF_SIGNUP",
+            )
 
     def test_format_game_announcement_with_mixed_roles(self):
         """Test format_game_announcement with both @everyone and regular roles."""
@@ -1117,6 +1171,16 @@ class TestGameEmbedImages:
             assert embed == mock_embed
             assert view == mock_view
             mock_embed.set_image.assert_not_called()
+            mock_embed_class.assert_called_once_with(
+                title="Test Game", description="Test description", color=ANY
+            )
+            mock_view_class.from_game_data.assert_called_once_with(
+                game_id="game-123",
+                current_players=0,
+                max_players=5,
+                status="SCHEDULED",
+                signup_method="SELF_SIGNUP",
+            )
 
 
 class TestEmbedNewFields:
@@ -1146,6 +1210,7 @@ class TestEmbedNewFields:
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Links" in str(call) and "Add to Calendar" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_excludes_links_field_without_calendar_url(self):
         """Test that embed excludes Links field when game_id is not provided."""
@@ -1171,6 +1236,7 @@ class TestEmbedNewFields:
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert not any("Links" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_includes_game_time_field(self):
         """Test that embed includes Game Time field."""
@@ -1195,6 +1261,7 @@ class TestEmbedNewFields:
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Game Time" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_footer_includes_status(self):
         """Test that embed footer includes status."""
@@ -1219,6 +1286,7 @@ class TestEmbedNewFields:
 
             footer_call = str(mock_embed.set_footer.call_args)
             assert "Status:" in footer_call
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_has_separate_when_field(self):
         """Test that embed has separate Game Time field."""
@@ -1243,6 +1311,7 @@ class TestEmbedNewFields:
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Game Time" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_has_separate_run_time_field_when_provided(self):
         """Test that embed has separate Run Time field when duration provided."""
@@ -1268,6 +1337,7 @@ class TestEmbedNewFields:
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Run Time" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_excludes_run_time_field_when_not_provided(self):
         """Test that embed excludes Run Time field when no duration."""
@@ -1293,6 +1363,7 @@ class TestEmbedNewFields:
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert not any("Run Time" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_embed_has_separate_where_field_when_provided(self):
         """Test that embed has separate Where field when location provided."""
@@ -1318,6 +1389,7 @@ class TestEmbedNewFields:
 
             calls = [str(call) for call in mock_embed.add_field.call_args_list]
             assert any("Where" in str(call) and "Game Room #1" in str(call) for call in calls)
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
     def test_waitlist_numbering_continues_from_signups(self):
         """Test that waitlist numbering continues from signup list."""
@@ -1348,6 +1420,7 @@ class TestEmbedNewFields:
             waitlist_str = str(waitlist_calls[0])
             assert "4." in waitlist_str
             assert "5." in waitlist_str
+            mock_embed_class.assert_called_once_with(title="Game", description="Desc", color=ANY)
 
 
 class TestTrimEmbedIfNeeded:

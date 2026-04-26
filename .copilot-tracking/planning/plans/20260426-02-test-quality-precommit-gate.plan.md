@@ -59,9 +59,9 @@ assertions from entering the codebase, then clean up all 90 existing violations.
 - [x] Task 2.3: Remove xfail markers from tests and verify full suite passes
   - Details: .copilot-tracking/planning/details/20260426-02-test-quality-precommit-gate-details.md (Lines 131–145)
 
-### [ ] Phase 3: Fix the 90 existing zero-assertion violations
+### [x] Phase 3: Fix the 90 existing zero-assertion violations
 
-- [ ] Task 3.1: Enumerate all violations by staging test files and running the script
+- [x] Task 3.1: Enumerate all violations by staging test files and running the script
   - Details: .copilot-tracking/planning/details/20260426-02-test-quality-precommit-gate-details.md (Lines 148–169)
 
 - [ ] Task 3.2: Fix violations in `tests/unit/bot/events/` (largest concentration)
