@@ -672,3 +672,25 @@ def test_main_gate_skipped_in_scan_all_mode(tmp_path: Path) -> None:
                 exit_code = check_test_assertions.main()
     mock_count.assert_not_called()
     assert exit_code == 0
+
+
+def test_main_explicit_files_scans_given_files(tmp_path: Path) -> None:
+    test_file = tmp_path / "test_explicit.py"
+    test_file.write_text("def test_ok():\n    assert True\n")
+
+    with mock.patch.object(
+        check_test_assertions, "_count_weak_assert_markers_in_staged_diff"
+    ) as mock_count:
+        with mock.patch.object(sys, "argv", ["check_test_assertions.py", str(test_file)]):
+            exit_code = check_test_assertions.main()
+    mock_count.assert_not_called()
+    assert exit_code == 0
+
+
+def test_main_explicit_files_reports_violations(tmp_path: Path) -> None:
+    test_file = tmp_path / "test_bad.py"
+    test_file.write_text("def test_missing():\n    pass\n")
+
+    with mock.patch.object(sys, "argv", ["check_test_assertions.py", str(test_file)]):
+        exit_code = check_test_assertions.main()
+    assert exit_code == 1

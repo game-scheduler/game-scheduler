@@ -500,7 +500,13 @@ def main() -> int:
     """Entry point; returns 0 if clean, 1 if violations found."""
     scan_all = "--all" in sys.argv
     diff_only = "--diff-only" in sys.argv and not scan_all
-    files = get_all_test_files() if scan_all else get_staged_test_files()
+    explicit_files = [Path(a) for a in sys.argv[1:] if not a.startswith("--")]
+    if explicit_files:
+        files = explicit_files
+    elif scan_all:
+        files = get_all_test_files()
+    else:
+        files = get_staged_test_files()
     counts: dict[Path, int] = {}
     for filepath in files:
         try:
@@ -517,7 +523,7 @@ def main() -> int:
         print("\nSee docs/developer/fix-test-assertion-violations.md for fix patterns.")
 
     marker_failed = False
-    if not scan_all:
+    if not scan_all and not explicit_files:
         marker_count = _count_weak_assert_markers_in_staged_diff()
         approved = int(os.environ.get("APPROVED_WEAK_ASSERTIONS", "0"))
         if marker_count > approved:
