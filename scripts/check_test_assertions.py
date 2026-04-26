@@ -336,8 +336,10 @@ def main() -> int:
                 f"\nERROR: {marker_count} '{_WEAK_ASSERT_MARKER}'"
                 " annotation(s) added in staged changes."
             )
-            print(f"Set APPROVED_WEAK_ASSERTIONS={marker_count} to permit if justified.")
-            print("See docs/developer/fix-test-assertion-violations.md for guidance.")
+            print(
+                "Ask the user for explicit permission if justified after reading"
+                " .github/instructions/quality-check-overrides.instructions.md"
+            )
             marker_failed = True
 
     return 1 if (counts or marker_failed) else 0
