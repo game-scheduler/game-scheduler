@@ -22,7 +22,7 @@
 """Unit tests for template endpoints."""
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
@@ -87,8 +87,8 @@ def mock_template():
     template.default_signup_method = "SELF_SIGNUP"
     template.archive_delay_seconds = None
     template.archive_channel_id = None
-    template.created_at = datetime(2024, 1, 1, 12, 0, 0)
-    template.updated_at = datetime(2024, 1, 1, 12, 0, 0)
+    template.created_at = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+    template.updated_at = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
     template.channel = channel_config
     return template
 
@@ -124,8 +124,8 @@ class TestBuildTemplateResponse:
         assert result.signup_instructions == mock_template.signup_instructions
         assert result.allowed_signup_methods == mock_template.allowed_signup_methods
         assert result.default_signup_method == mock_template.default_signup_method
-        assert result.created_at == "2024-01-01T12:00:00"
-        assert result.updated_at == "2024-01-01T12:00:00"
+        assert result.created_at == "2024-01-01T12:00:00+00:00"
+        assert result.updated_at == "2024-01-01T12:00:00+00:00"
 
         mock_fetch.assert_awaited_once_with(mock_template.channel_id, mock_discord_client)
 
@@ -161,8 +161,8 @@ class TestBuildTemplateResponse:
             template.default_signup_method = None
             template.archive_delay_seconds = None
             template.archive_channel_id = None
-            template.created_at = datetime(2024, 1, 1, 12, 0, 0)
-            template.updated_at = datetime(2024, 1, 1, 12, 0, 0)
+            template.created_at = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+            template.updated_at = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
             template.channel = channel_config
 
             result = await templates.build_template_response(template, mock_discord_client)
@@ -173,6 +173,7 @@ class TestBuildTemplateResponse:
             assert result.notify_role_ids is None
             assert result.max_players is None
             assert result.channel_name == "minimal-channel"
+            mock_fetch.assert_awaited_once_with(template.channel_id, mock_discord_client)
 
     @pytest.mark.asyncio
     async def test_build_template_response_channel_name_resolution(self, mock_template):
@@ -252,6 +253,14 @@ class TestListTemplates:
             assert len(result) == 1
             assert result[0].name == "Test Template"
             assert result[0].channel_name == "test-channel"
+            mock_get_guild.assert_awaited_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
+            mock_get_role_service.assert_called_once_with()
+            mock_template_service.assert_called_once_with(mock_db)
+            mock_check_manager.assert_awaited_once_with(
+                mock_guild_config.guild_id, mock_current_user_unit, mock_role_service, mock_db
+            )
 
     @pytest.mark.asyncio
     async def test_list_templates_includes_archive_fields(
@@ -297,6 +306,14 @@ class TestListTemplates:
             assert result[0].archive_delay_seconds == 900
             assert result[0].archive_channel_id == "archive-channel-id"
             assert result[0].archive_channel_name == "archive-channel"
+            mock_get_guild.assert_awaited_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
+            mock_get_role_service.assert_called_once_with()
+            mock_template_service.assert_called_once_with(mock_db)
+            mock_check_permission.assert_awaited_once_with(
+                mock_guild_config.guild_id, mock_current_user_unit, mock_role_service, mock_db
+            )
 
     @pytest.mark.asyncio
     async def test_list_templates_maintainer_sees_all(
@@ -306,7 +323,6 @@ class TestListTemplates:
         with (
             patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
             patch("services.api.auth.roles.get_role_service") as mock_get_role_service,
-            patch("shared.discord.client.fetch_channel_name_safe") as mock_fetch,
             patch(
                 "services.api.services.template_service.TemplateService"
             ) as mock_template_service,
@@ -322,7 +338,6 @@ class TestListTemplates:
             mock_get_role_service.return_value = mock_role_service
 
             mock_discord_client = AsyncMock()
-            mock_fetch.return_value = "test-channel"
 
             mock_service = AsyncMock()
             mock_service.get_templates_for_user.return_value = [mock_template]
@@ -339,6 +354,14 @@ class TestListTemplates:
             mock_service.get_templates_for_user.assert_awaited_once()
             _, kwargs = mock_service.get_templates_for_user.call_args
             assert kwargs.get("is_manager") is True
+            mock_get_guild.assert_awaited_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
+            mock_get_role_service.assert_called_once_with()
+            mock_template_service.assert_called_once_with(mock_db)
+            mock_check_manager.assert_awaited_once_with(
+                mock_guild_config.guild_id, mock_current_user_unit, mock_role_service, mock_db
+            )
 
     @pytest.mark.asyncio
     async def test_list_templates_discord_api_error_falls_back_to_unknown(
@@ -379,6 +402,12 @@ class TestListTemplates:
 
             assert len(result) == 1
             assert result[0].channel_name == "Unknown Channel"
+            mock_get_guild.assert_awaited_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
+            mock_get_role_service.assert_called_once_with()
+            mock_template_service.assert_called_once_with(mock_db)
+            mock_check_manager.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_list_templates_guild_not_found(self, mock_db, mock_current_user_unit):
@@ -398,6 +427,9 @@ class TestListTemplates:
                 )
 
             assert exc_info.value.status_code == 404
+            mock_get_guild.assert_awaited_once_with(
+                mock_db, "nonexistent", mock_current_user_unit.user.discord_id
+            )
 
 
 class TestGetTemplate:
@@ -435,6 +467,11 @@ class TestGetTemplate:
             assert result.id == mock_template.id
             assert result.name == "Test Template"
             assert result.channel_name == "test-channel"
+            mock_template_service.assert_called_once_with(mock_db)
+            mock_verify_access.assert_awaited_once_with(
+                mock_template, mock_current_user_unit.user.discord_id, mock_db
+            )
+            mock_fetch.assert_awaited_once_with(mock_template.channel_id, mock_discord_client)
 
     @pytest.mark.asyncio
     async def test_get_template_not_found(self, mock_db, mock_current_user_unit):
@@ -456,6 +493,7 @@ class TestGetTemplate:
                 )
 
             assert exc_info.value.status_code == 404
+            mock_template_service.assert_called_once_with(mock_db)
 
 
 class TestCreateTemplate:
@@ -517,6 +555,15 @@ class TestCreateTemplate:
             )
 
             assert result.name == "Test Template"
+            mock_get_guild.assert_awaited_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
+            mock_get_role_service.assert_called_once_with()
+            mock_template_service.assert_called_once_with(mock_db)
+            mock_require_manager.assert_awaited_once_with(
+                mock_guild_config.id, mock_current_user_unit, mock_role_service, mock_db
+            )
+            mock_fetch.assert_awaited_once_with(mock_template.channel_id, mock_discord_client)
 
     @pytest.mark.asyncio
     async def test_create_template_passes_archive_fields(
@@ -595,6 +642,15 @@ class TestCreateTemplate:
                 default_signup_method=None,
                 signup_priority_role_ids=None,
             )
+            mock_get_guild.assert_awaited_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
+            mock_get_role_service.assert_called_once_with()
+            mock_template_service.assert_called_once_with(mock_db)
+            mock_require_manager.assert_awaited_once_with(
+                mock_guild_config.id, mock_current_user_unit, mock_role_service, mock_db
+            )
+            mock_fetch.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_create_template_passes_signup_priority_fields(
@@ -638,6 +694,11 @@ class TestCreateTemplate:
             assert call_kwargs["signup_priority_role_ids"] == ["111", "222"]
             assert call_kwargs["allowed_signup_methods"] == ["SELF_SIGNUP"]
             assert call_kwargs["default_signup_method"] == "SELF_SIGNUP"
+            mock_get_guild.assert_awaited_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
+            mock_get_role_service.assert_called_once_with()
+            mock_template_service.assert_called_once_with(mock_db)
 
     @pytest.mark.asyncio
     async def test_create_template_unauthorized(
@@ -677,6 +738,13 @@ class TestCreateTemplate:
                 )
 
             assert exc_info.value.status_code == 403
+            mock_get_guild.assert_awaited_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
+            mock_get_role_service.assert_called_once_with()
+            mock_require_manager.assert_awaited_once_with(
+                mock_guild_config.id, mock_current_user_unit, mock_role_service, mock_db
+            )
 
 
 class TestUpdateTemplate:
@@ -749,6 +817,12 @@ class TestUpdateTemplate:
                 archive_delay_seconds=0,
                 archive_channel_id=None,
             )
+            mock_get_role_service.assert_called_once_with()
+            mock_template_service.assert_called_once_with(mock_db)
+            mock_require_manager.assert_awaited_once_with(
+                mock_template.guild_id, mock_current_user_unit, mock_role_service, mock_db
+            )
+            mock_fetch.assert_awaited_once()
 
 
 class TestDeleteTemplate:
@@ -765,17 +839,15 @@ class TestDeleteTemplate:
             patch(
                 "services.api.services.template_service.TemplateService"
             ) as mock_template_service,
-            patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
+            patch("services.api.database.queries.require_guild_by_id"),
             patch("services.api.auth.roles.get_role_service") as mock_get_role_service,
             patch(
                 "services.api.dependencies.permissions.require_bot_manager"
             ) as mock_require_manager,
         ):
             mock_template_svc = AsyncMock()
-            mock_template_svc.get_template.return_value = mock_template
+            mock_template_svc.get_template_by_id.return_value = mock_template
             mock_template_service.return_value = mock_template_svc
-
-            mock_get_guild.return_value = mock_guild_config
 
             mock_role_service = AsyncMock()
             mock_role_service.check_bot_manager_permission.return_value = True
@@ -791,3 +863,8 @@ class TestDeleteTemplate:
 
             assert exc_info.value.status_code == 400
             assert "default" in str(exc_info.value.detail).lower()
+            mock_template_service.assert_called_once_with(mock_db)
+            mock_get_role_service.assert_called_once_with()
+            mock_require_manager.assert_awaited_once_with(
+                mock_template.guild_id, mock_current_user_unit, mock_role_service, mock_db
+            )
