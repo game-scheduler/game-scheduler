@@ -59,6 +59,17 @@ def _load_no_arg_methods() -> frozenset[str]:
 
 _NO_ARG_METHODS = _load_no_arg_methods()
 
+_MOCK_VERIFICATION_ATTRS: frozenset[str] = frozenset({
+    "called",
+    "call_count",
+    "awaited",
+    "await_count",
+    "call_args",
+    "call_args_list",
+    "method_calls",
+    "mock_calls",
+})
+
 
 def get_staged_test_files() -> list[Path]:
     """Return staged test file paths matching tests/**/*.py."""
@@ -155,14 +166,21 @@ def get_unasserted_named_mocks(
 
     unasserted = []
     for alias in aliases:
-        found = any(
+        has_assert_call = any(
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
             and node.func.attr.startswith("assert_")
             and _root_name(node.func.value) == alias
             for node in ast.walk(func_node)
         )
-        if not found:
+        has_attr_verification = any(
+            isinstance(node, ast.Attribute)
+            and node.attr in _MOCK_VERIFICATION_ATTRS
+            and isinstance(node.value, ast.Name)
+            and node.value.id == alias
+            for node in ast.walk(func_node)
+        )
+        if not (has_assert_call or has_attr_verification):
             unasserted.append(alias)
     return unasserted
 

@@ -149,6 +149,36 @@ def test_get_unasserted_named_mocks_chained_assert_recognized() -> None:
     assert result == []
 
 
+def test_get_unasserted_named_mocks_await_count_assertion_is_exempt() -> None:
+    source = (
+        "def test_foo():\n"
+        "    with patch('x') as mock_x:\n"
+        "        fn()\n"
+        "    assert mock_x.await_count == 3\n"
+    )
+    func = _parse_func(source)
+    assert check_test_assertions.get_unasserted_named_mocks(func) == []
+
+
+def test_get_unasserted_named_mocks_call_count_assertion_is_exempt() -> None:
+    source = (
+        "def test_foo():\n"
+        "    with patch('x') as mock_x:\n"
+        "        fn()\n"
+        "    assert mock_x.call_count == 2\n"
+    )
+    func = _parse_func(source)
+    assert check_test_assertions.get_unasserted_named_mocks(func) == []
+
+
+def test_get_unasserted_named_mocks_called_attribute_is_exempt() -> None:
+    source = (
+        "def test_foo():\n    with patch('x') as mock_x:\n        fn()\n    assert mock_x.called\n"
+    )
+    func = _parse_func(source)
+    assert check_test_assertions.get_unasserted_named_mocks(func) == []
+
+
 def test_has_assertion_recognizes_assert_not_awaited() -> None:
     source = (
         "def test_foo():\n"
