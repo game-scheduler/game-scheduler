@@ -271,6 +271,127 @@ def test_main_all_flag_uses_get_all_test_files(tmp_path: Path) -> None:
         with mock.patch.object(check_test_assertions, "get_staged_test_files") as mock_staged:
             with mock.patch.object(sys, "argv", ["check_test_assertions.py", "--all"]):
                 exit_code = check_test_assertions.main()
-    mock_all.assert_called_once()
+    mock_all.assert_called_once_with()  # assert-no-args: get_all_test_files takes no arguments
     mock_staged.assert_not_called()
     assert exit_code == 0
+
+
+# ---------------------------------------------------------------------------
+# get_weak_assert_violations
+# ---------------------------------------------------------------------------
+
+
+def test_get_weak_assert_violations_bare_assert_called_once_is_violation() -> None:
+    source = "def test_foo():\n    mock_require.assert_called_once()\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert len(result) == 1
+    assert "assert_called_once()" in result[0][1]
+
+
+def test_get_weak_assert_violations_chained_method_name_in_message() -> None:
+    source = "def test_foo():\n    mock_session.execute.assert_called_once()\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert len(result) == 1
+    assert "execute.assert_called_once()" in result[0][1]
+
+
+def test_get_weak_assert_violations_flush_is_exempt() -> None:
+    source = "def test_foo():\n    mock_db.flush.assert_called_once()\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_commit_is_exempt() -> None:
+    source = "def test_foo():\n    mock_db.commit.assert_called_once()\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_rollback_is_exempt() -> None:
+    source = "def test_foo():\n    mock_db.rollback.assert_called_once()\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_close_is_exempt() -> None:
+    source = "def test_foo():\n    mock_conn.close.assert_called_once()\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_inline_marker_exempts() -> None:
+    source = "def test_foo():\n    mock_create_task.assert_called_once()  # assert-no-args\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_assert_called_once_with_not_flagged() -> None:
+    source = "def test_foo():\n    mock_require.assert_called_once_with(db, guild_id)\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_empty_assert_called_once_with_is_violation() -> None:
+    source = "def test_foo():\n    mock_get_client.assert_called_once_with()\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert len(result) == 1
+    assert "assert_called_once_with()" in result[0][1]
+
+
+def test_get_weak_assert_violations_empty_with_marker_is_exempt() -> None:
+    source = "def test_foo():\n    mock_get_client.assert_called_once_with()  # assert-no-args\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_empty_with_on_flush_is_exempt() -> None:
+    source = "def test_foo():\n    mock_db.flush.assert_called_once_with()\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_assert_not_called_not_flagged() -> None:
+    source = "def test_foo():\n    mock_require.assert_not_called()\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+# ---------------------------------------------------------------------------
+# check_file — weak assertion integration
+# ---------------------------------------------------------------------------
+
+
+def test_check_file_weak_assert_called_once_reports_violation(tmp_path: Path) -> None:
+    test_file = tmp_path / "test_example.py"
+    test_file.write_text("def test_foo():\n    mock_require.assert_called_once()\n")
+    violations = check_test_assertions.check_file(test_file, diff_only=False)
+    assert len(violations) == 1
+    assert "assert_called_once()" in violations[0][1]
+
+
+def test_check_file_weak_assert_with_marker_is_clean(tmp_path: Path) -> None:
+    test_file = tmp_path / "test_example.py"
+    test_file.write_text(
+        "def test_foo():\n    mock_create_task.assert_called_once()  # assert-no-args\n"
+    )
+    violations = check_test_assertions.check_file(test_file, diff_only=False)
+    assert violations == []
+
+
+def test_check_file_no_arg_method_is_clean(tmp_path: Path) -> None:
+    test_file = tmp_path / "test_example.py"
+    test_file.write_text("def test_foo():\n    mock_db.flush.assert_called_once()\n")
+    violations = check_test_assertions.check_file(test_file, diff_only=False)
+    assert violations == []

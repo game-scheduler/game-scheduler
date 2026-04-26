@@ -28,6 +28,8 @@ import sys
 from pathlib import Path
 
 _ASSERT_PREFIXES = ("assert_",)
+_NO_ARG_METHODS = frozenset({"flush", "commit", "rollback", "close"})
+_WEAK_ASSERT_MARKER = "# assert-no-args"
 
 
 def get_staged_test_files() -> list[Path]:
@@ -137,10 +139,78 @@ def get_unasserted_named_mocks(
     return unasserted
 
 
+def _receiver_method_name(call_node: ast.Call) -> str | None:
+    """Return the method name of the receiver in a chained call, or None."""
+    if not isinstance(call_node.func, ast.Attribute):
+        return None
+    receiver = call_node.func.value
+    return receiver.attr if isinstance(receiver, ast.Attribute) else None
+
+
+def _is_weak_assert_exempt(method_name: str | None, lineno: int, source_lines: list[str]) -> bool:
+    """Return True if this assert_called_once() should be exempted from the weak-assert check."""
+    if method_name in _NO_ARG_METHODS:
+        return True
+    line_text = source_lines[lineno - 1] if lineno <= len(source_lines) else ""
+    return _WEAK_ASSERT_MARKER in line_text
+
+
+def _weak_assert_violation(
+    node: ast.Call,
+    func_name: str,
+    source_lines: list[str],
+) -> tuple[int, str] | None:
+    """Return a (lineno, message) violation if node is a weak assert_called_once* call."""
+    if not isinstance(node.func, ast.Attribute):
+        return None
+    attr = node.func.attr
+    is_bare = attr == "assert_called_once"
+    is_empty_with = attr == "assert_called_once_with" and not node.args and not node.keywords
+    if not (is_bare or is_empty_with):
+        return None
+    method_name = _receiver_method_name(node)
+    if _is_weak_assert_exempt(method_name, node.lineno, source_lines):
+        return None
+    call_form = f"{method_name}.{attr}()" if method_name else f"{attr}()"
+    if is_bare:
+        suggestion = (
+            f"prefer assert_called_once_with(...) or add '{_WEAK_ASSERT_MARKER}' if args are opaque"
+        )
+    else:
+        suggestion = (
+            f"add arguments or add '{_WEAK_ASSERT_MARKER}' if the function genuinely takes no args"
+        )
+    return (node.lineno, f"{func_name}: `{call_form}` — {suggestion}")
+
+
+def get_weak_assert_violations(
+    func_node: ast.FunctionDef | ast.AsyncFunctionDef,
+    source_lines: list[str],
+) -> list[tuple[int, str]]:
+    """Return (lineno, message) for assert_called_once() calls that should be stronger.
+
+    Flags:
+    - assert_called_once() — no argument verification at all
+    - assert_called_once_with() with no args — equivalent weakness
+
+    Exempts calls on known no-arg methods (flush, commit, etc.) and any line
+    carrying a '# assert-no-args' comment.
+    """
+    return [
+        violation
+        for node in ast.walk(func_node)
+        if isinstance(node, ast.Call)
+        for violation in [_weak_assert_violation(node, func_node.name, source_lines)]
+        if violation is not None
+    ]
+
+
 def check_file(filepath: Path, diff_only: bool) -> list[tuple[int, str]]:
     """Return (lineno, message) tuples for each violation in filepath."""
+    source = filepath.read_text(encoding="utf-8")
+    source_lines = source.splitlines()
     modified_lines = get_modified_line_ranges(filepath) if diff_only else None
-    tree = ast.parse(filepath.read_text(encoding="utf-8"))
+    tree = ast.parse(source)
     violations: list[tuple[int, str]] = []
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -156,6 +226,7 @@ def check_file(filepath: Path, diff_only: bool) -> list[tuple[int, str]]:
                 (node.lineno, f"{node.name}: named mock '{alias}' has no assert_* call")
                 for alias in get_unasserted_named_mocks(node)
             )
+            violations.extend(get_weak_assert_violations(node, source_lines))
     return violations
 
 

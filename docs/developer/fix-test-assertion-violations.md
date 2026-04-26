@@ -97,3 +97,52 @@ def test_foo():
 
 Prefer `assert_called_once_with(...)` over `assert_called_once()` — the former
 verifies the arguments too. See the unit test standards for more detail.
+
+### `test_foo: \`assert_called_once()\` — prefer assert_called_once_with()`
+
+The function calls `assert_called_once()` on a mock, verifying that the mock was
+invoked exactly once but not what arguments it received. This is almost always
+weaker than necessary.
+
+### `test_foo: \`assert_called_once_with()\` — add arguments or add '# assert-no-args'`
+
+The function calls `assert_called_once_with()` with **no arguments**, which is
+equivalent to `assert_called_once()` — neither verifies what was passed. Simply
+changing `assert_called_once()` to `assert_called_once_with()` without supplying
+arguments does not fix the underlying weakness.
+
+**Fix — verify the arguments:**
+
+```python
+# before
+mock_require.assert_called_once()
+
+# after
+mock_require.assert_called_once_with(mock_db, game.guild_id, "user123", not_found_detail="Game not found")
+```
+
+Use `unittest.mock.ANY` when one argument is an internal detail you can't easily
+reference in the test (e.g., a redis client created inside the function):
+
+```python
+from unittest.mock import ANY
+
+mock_check.assert_called_once_with("user123", guild_config.guild_id, ANY)
+```
+
+**Exception — genuinely no-arg methods:**
+
+`flush()`, `commit()`, `rollback()`, and `close()` take no arguments. The tool
+automatically exempts `assert_called_once()` on these methods — no annotation
+needed.
+
+**Exception — opaque internal arguments:**
+
+When the function under test creates an argument internally (e.g., a coroutine,
+an internal threading event, a complex query object) and `ANY` would not add
+meaningful signal, add the `# assert-no-args` inline comment to document the
+intent explicitly:
+
+```python
+mock_create_task.assert_called_once()  # assert-no-args: coroutine is an opaque internal detail
+```
