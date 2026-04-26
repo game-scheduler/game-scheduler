@@ -23,7 +23,7 @@
 
 import json
 import sys
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
@@ -768,8 +768,9 @@ class TestCachedResourceMethods:
             result = await discord_client.fetch_channel(channel_id="channel123")
 
             assert result["name"] == "cached-general"
-            mock_redis.get.assert_called_once()
+            mock_redis.get.assert_called_once_with("discord:channel:channel123")
             mock_redis.set.assert_not_called()
+        mock_get_redis.assert_called_once_with()
 
     @pytest.mark.asyncio
     async def test_fetch_guild_cache_hit(self, discord_client, mock_redis):
@@ -783,7 +784,9 @@ class TestCachedResourceMethods:
             result = await discord_client.fetch_guild(guild_id="guild123")
 
             assert result["name"] == "Cached Server"
+            mock_redis.get.assert_called_once_with("discord:guild:guild123")
             mock_redis.set.assert_not_called()
+        mock_get_redis.assert_called_once_with()
 
 
 class TestLoggingMethods:
@@ -1060,7 +1063,8 @@ class TestFetchChannelAndRolesErrorPaths:
 
         assert len(result) == 2
         assert result[0]["name"] == "Admin"
-        mock_redis.get.assert_called_once()
+        mock_redis.get.assert_called_once_with("discord:guild_roles:guild123")
+        mock_get_redis.assert_called_once_with()
 
 
 class TestHelperFunctions:
@@ -1286,9 +1290,9 @@ class TestGetOrFetch:
                 operation=CacheOperation.FETCH_GUILD,
             )
 
-        assert hist.record.called
-        _, kwargs = hist.record.call_args
-        assert kwargs.get("attributes", {}).get("result") == "hit"
+        hist.record.assert_called_once_with(
+            ANY, attributes={"operation": CacheOperation.FETCH_GUILD, "result": "hit"}
+        )
 
     @pytest.mark.asyncio
     async def test_duration_recorded_on_miss(self, client, mock_redis):
@@ -1310,9 +1314,9 @@ class TestGetOrFetch:
                 operation=CacheOperation.FETCH_GUILD,
             )
 
-        assert hist.record.called
-        _, kwargs = hist.record.call_args
-        assert kwargs.get("attributes", {}).get("result") == "miss"
+        hist.record.assert_called_once_with(
+            ANY, attributes={"operation": CacheOperation.FETCH_GUILD, "result": "miss"}
+        )
 
 
 class TestReadThroughDelegatesToGetOrFetch:
@@ -1346,7 +1350,12 @@ class TestReadThroughDelegatesToGetOrFetch:
             ) as mock_gof,
         ):
             await client.get_application_info()
-        mock_gof.assert_called_once()
+        mock_gof.assert_called_once_with(
+            cache_key=CacheKeys.app_info(),
+            cache_ttl=CacheTTL.APP_INFO,
+            fetch_fn=ANY,
+            operation=CacheOperation.GET_APPLICATION_INFO,
+        )
 
 
 class TestPhase6CacheOnlyBehavior:
@@ -1365,6 +1374,7 @@ class TestPhase6CacheOnlyBehavior:
 
         assert exc_info.value.status == 503
         assert discord_client._session is None
+        mock_get_redis.assert_called_once_with()
 
     @pytest.mark.asyncio
     async def test_fetch_channel_cache_miss_raises_503(self, discord_client, mock_redis):
@@ -1379,6 +1389,7 @@ class TestPhase6CacheOnlyBehavior:
 
         assert exc_info.value.status == 503
         assert discord_client._session is None
+        mock_get_redis.assert_called_once_with()
 
     @pytest.mark.asyncio
     async def test_fetch_guild_cache_miss_raises_503(self, discord_client, mock_redis):
@@ -1393,6 +1404,7 @@ class TestPhase6CacheOnlyBehavior:
 
         assert exc_info.value.status == 503
         assert discord_client._session is None
+        mock_get_redis.assert_called_once_with()
 
     @pytest.mark.asyncio
     async def test_fetch_guild_roles_cache_miss_raises_503(self, discord_client, mock_redis):
@@ -1407,3 +1419,4 @@ class TestPhase6CacheOnlyBehavior:
 
         assert exc_info.value.status == 503
         assert discord_client._session is None
+        mock_get_redis.assert_called_once_with()
