@@ -333,6 +333,12 @@ def _exempt_or_marker_violation(
     line_text = source_lines[node.lineno - 1] if node.lineno <= len(source_lines) else ""
     if _WEAK_ASSERT_MARKER not in line_text:
         return False, None
+    if node.func.attr == "assert_called_once":
+        return True, (
+            node.lineno,
+            f"{func_node.name}: `assert_called_once()  {_WEAK_ASSERT_MARKER}` —"
+            " use `assert_called_once_with()` to verify no arguments were passed",
+        )
     v = None
     if isinstance(node.func.value, ast.Name):
         v = _jedi_annotation_violation(

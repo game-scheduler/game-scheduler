@@ -135,8 +135,12 @@ entirely, not to add a marker. If the answer to (1) is "it does take arguments
 but they are complex," use `ANY` for the parts you cannot easily reference.
 
 ```python
-# legitimate use: asyncio.create_task receives an internally-created coroutine
-mock_create_task.assert_called_once()  # assert-no-args: coroutine is opaque; call count confirms task was scheduled
+# legitimate use: get_config takes no arguments; assert_called_once_with() verifies
+# both that it was called once and that no arguments were passed
+mock_get_config.assert_called_once_with()  # assert-no-args
+
+# wrong use: bare assert_called_once() is weaker — use assert_called_once_with() instead
+mock_get_config.assert_called_once()  # assert-no-args  ← DO NOT DO THIS
 
 # wrong use: the function takes real arguments but this is easier than writing them out
 mock_get_client.assert_called_once_with()  # assert-no-args  ← DO NOT DO THIS

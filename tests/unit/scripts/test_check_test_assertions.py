@@ -331,7 +331,7 @@ def test_get_weak_assert_violations_close_is_exempt() -> None:
 
 
 def test_get_weak_assert_violations_inline_marker_exempts() -> None:
-    source = f"def test_foo():\n    mock_create_task.assert_called_once()  {_MARKER}\n"
+    source = f"def test_foo():\n    mock_get_config.assert_called_once_with()  {_MARKER}\n"
     func = _parse_func(source)
     result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
     assert result == []
@@ -449,7 +449,9 @@ def test_check_file_weak_assert_called_once_reports_violation(tmp_path: Path) ->
 
 def test_check_file_weak_assert_with_marker_is_clean(tmp_path: Path) -> None:
     test_file = tmp_path / "test_example.py"
-    test_file.write_text(f"def test_foo():\n    mock_create_task.assert_called_once()  {_MARKER}\n")
+    test_file.write_text(
+        f"def test_foo():\n    mock_get_config.assert_called_once_with()  {_MARKER}\n"
+    )
     violations = check_test_assertions.check_file(test_file, diff_only=False)
     assert violations == []
 
@@ -537,6 +539,14 @@ def test_count_weak_assert_markers_empty_diff_returns_zero() -> None:
 # ---------------------------------------------------------------------------
 # _jedi_verifies_no_args_at_line
 # ---------------------------------------------------------------------------
+
+
+def test_get_weak_assert_violations_bare_assert_called_once_with_marker_is_violation() -> None:
+    source = f"def test_foo():\n    mock_cfg.assert_called_once()  {_MARKER}\n    assert True\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert len(result) == 1
+    assert "assert_called_once_with()" in result[0][1]
 
 
 def test_jedi_verifies_no_args_at_line_true_for_no_arg_patch_target() -> None:
