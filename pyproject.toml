@@ -245,6 +245,9 @@ min-lines = 0
 [tool.duplicate-check.overrides]
 "tests/**" = 10
 
+[tool.check-test-assertions]
+no-arg-methods = ["flush", "commit", "rollback", "close", "get_config"]
+
 [tool.setuptools_scm]
 fallback_version = "0.0.0+unknown"
 

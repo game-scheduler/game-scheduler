@@ -144,16 +144,61 @@ mock_get_client.assert_called_once_with()  # assert-no-args  ← DO NOT DO THIS
 
 **Auto-exempted methods:**
 
-`flush()`, `commit()`, `rollback()`, and `close()` are automatically exempted
-because they genuinely take no arguments. No annotation is needed for these.
+Methods that genuinely take no arguments are automatically exempted — no
+annotation needed. The exemption list is configured in `pyproject.toml`:
+
+```toml
+[tool.check-test-assertions]
+no-arg-methods = ["flush", "commit", "rollback", "close"]
+```
+
+If a method in the codebase genuinely takes no arguments (e.g., a Discord color
+property accessor like `Color.green()`), add it to this list rather than
+annotating every call site.
+
+**The `# assert-no-args` marker is counted and gated:**
+
+Each use of `# assert-no-args` in a commit is counted. The commit is blocked if
+the count exceeds `APPROVED_WEAK_ASSERTIONS`:
+
+```bash
+# permits exactly 2 assert-no-args annotations in this commit
+APPROVED_WEAK_ASSERTIONS=2 git commit -m "..."
+```
+
+This mirrors the `APPROVED_OVERRIDES` mechanism for lint suppressions. It means
+mass-annotating violations is impossible without the user explicitly typing a
+number they would need to justify. If you find yourself setting
+`APPROVED_WEAK_ASSERTIONS` to a large number, that is a signal to stop and write
+real assertions instead.
+
+The only legitimate use is for calls where the function under test creates the
+argument internally (e.g., `asyncio.create_task` receiving an opaque coroutine)
+and even `ANY` would not add meaningful signal. That scenario is rare. If the
+method takes real arguments that can be named in the test, use
+`assert_called_once_with(...)` with those arguments.
+
+Before setting `APPROVED_WEAK_ASSERTIONS`, follow the approval process in
+`.github/instructions/quality-check-overrides.instructions.md` — explain why
+the code cannot be written to pass the check, what alternatives were considered,
+and get explicit user confirmation.
+
+```python
+# legitimate: coroutine is created internally; call count confirms the task was scheduled
+mock_create_task.assert_called_once()  # assert-no-args: coroutine is opaque internal detail
+
+# wrong: Embed takes title, description, color — those should be verified
+mock_embed_class.assert_called_once()  # assert-no-args  ← DO NOT DO THIS
+```
 
 ## Choosing the Right Assertion
 
-| Situation                             | Preferred assertion                                     |
-| ------------------------------------- | ------------------------------------------------------- |
-| Return value exists                   | `assert result == expected`                             |
-| Side-effect only (void function)      | `mock.assert_called_once_with(args)`                    |
-| Mock must not be called               | `mock.assert_not_called()`                              |
-| Exception expected                    | `pytest.raises(ExceptionType)`                          |
-| No return value, no mock to verify    | `assert True  # verifies no exception raised`           |
-| Args truly opaque, call count matters | `mock.assert_called_once()  # assert-no-args: <reason>` |
+| Situation                            | Preferred assertion                                     |
+| ------------------------------------ | ------------------------------------------------------- |
+| Return value exists                  | `assert result == expected`                             |
+| Side-effect only (void function)     | `mock.assert_called_once_with(args)`                    |
+| Mock must not be called              | `mock.assert_not_called()`                              |
+| Exception expected                   | `pytest.raises(ExceptionType)`                          |
+| No return value, no mock to verify   | `assert True  # verifies no exception raised`           |
+| Method is in `no-arg-methods` config | `mock.method.assert_called_once()` — auto-exempted      |
+| Args truly opaque (rare, gated)      | `mock.assert_called_once()  # assert-no-args: <reason>` |

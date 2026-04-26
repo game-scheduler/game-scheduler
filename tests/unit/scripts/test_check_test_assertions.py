@@ -35,6 +35,8 @@ _spec.loader.exec_module(_mod)  # type: ignore[union-attr]
 
 check_test_assertions = _mod
 
+_MARKER = check_test_assertions._WEAK_ASSERT_MARKER
+
 
 def _parse_func(source: str) -> ast.FunctionDef | ast.AsyncFunctionDef:
     tree = ast.parse(source)
@@ -243,8 +245,11 @@ def test_main_diff_only_function_outside_diff_exits_zero(tmp_path: Path) -> None
         with mock.patch.object(
             check_test_assertions, "get_modified_line_ranges", return_value=set()
         ):
-            with mock.patch.object(sys, "argv", ["check_test_assertions.py", "--diff-only"]):
-                exit_code = check_test_assertions.main()
+            with mock.patch.object(
+                check_test_assertions, "_count_weak_assert_markers_in_staged_diff", return_value=0
+            ):
+                with mock.patch.object(sys, "argv", ["check_test_assertions.py", "--diff-only"]):
+                    exit_code = check_test_assertions.main()
     assert exit_code == 0
 
 
@@ -326,7 +331,7 @@ def test_get_weak_assert_violations_close_is_exempt() -> None:
 
 
 def test_get_weak_assert_violations_inline_marker_exempts() -> None:
-    source = "def test_foo():\n    mock_create_task.assert_called_once()  # assert-no-args\n"
+    source = f"def test_foo():\n    mock_create_task.assert_called_once()  {_MARKER}\n"
     func = _parse_func(source)
     result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
     assert result == []
@@ -348,7 +353,7 @@ def test_get_weak_assert_violations_empty_assert_called_once_with_is_violation()
 
 
 def test_get_weak_assert_violations_empty_with_marker_is_exempt() -> None:
-    source = "def test_foo():\n    mock_get_client.assert_called_once_with()  # assert-no-args\n"
+    source = f"def test_foo():\n    mock_get_client.assert_called_once_with()  {_MARKER}\n"
     func = _parse_func(source)
     result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
     assert result == []
@@ -368,6 +373,42 @@ def test_get_weak_assert_violations_assert_not_called_not_flagged() -> None:
     assert result == []
 
 
+def test_get_weak_assert_violations_call_args_access_exempts() -> None:
+    source = (
+        "def test_foo():\n"
+        "    embed.add_field.assert_called_once()\n"
+        "    call_kwargs = embed.add_field.call_args[1]\n"
+        "    assert call_kwargs['name'] == 'Links'\n"
+    )
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_call_args_list_access_exempts() -> None:
+    source = (
+        "def test_foo():\n"
+        "    embed.add_field.assert_called_once()\n"
+        "    calls = embed.add_field.call_args_list\n"
+        "    assert len(calls) == 1\n"
+    )
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_call_args_on_different_receiver_does_not_exempt() -> None:
+    source = (
+        "def test_foo():\n"
+        "    embed.add_field.assert_called_once()\n"
+        "    call_kwargs = embed.set_footer.call_args[1]\n"
+        "    assert call_kwargs['text'] == 'Status: Scheduled'\n"
+    )
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert len(result) == 1
+
+
 # ---------------------------------------------------------------------------
 # check_file — weak assertion integration
 # ---------------------------------------------------------------------------
@@ -383,9 +424,7 @@ def test_check_file_weak_assert_called_once_reports_violation(tmp_path: Path) ->
 
 def test_check_file_weak_assert_with_marker_is_clean(tmp_path: Path) -> None:
     test_file = tmp_path / "test_example.py"
-    test_file.write_text(
-        "def test_foo():\n    mock_create_task.assert_called_once()  # assert-no-args\n"
-    )
+    test_file.write_text(f"def test_foo():\n    mock_create_task.assert_called_once()  {_MARKER}\n")
     violations = check_test_assertions.check_file(test_file, diff_only=False)
     assert violations == []
 
@@ -395,3 +434,130 @@ def test_check_file_no_arg_method_is_clean(tmp_path: Path) -> None:
     test_file.write_text("def test_foo():\n    mock_db.flush.assert_called_once()\n")
     violations = check_test_assertions.check_file(test_file, diff_only=False)
     assert violations == []
+
+
+# ---------------------------------------------------------------------------
+# _load_no_arg_methods
+# ---------------------------------------------------------------------------
+
+
+def test_load_no_arg_methods_reads_from_pyproject_toml(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.check-test-assertions]\nno-arg-methods = ["send", "recv"]\n'
+    )
+    script_path = tmp_path / "scripts" / "check.py"
+    script_path.parent.mkdir()
+    with mock.patch.object(check_test_assertions, "__file__", str(script_path)):
+        loaded = check_test_assertions._load_no_arg_methods()
+    assert loaded == frozenset({"send", "recv"})
+
+
+def test_load_no_arg_methods_falls_back_when_section_absent(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text("[tool.other]\nkey = 1\n")
+    script_path = tmp_path / "scripts" / "check.py"
+    script_path.parent.mkdir()
+    with mock.patch.object(check_test_assertions, "__file__", str(script_path)):
+        loaded = check_test_assertions._load_no_arg_methods()
+    assert "flush" in loaded
+    assert "commit" in loaded
+
+
+def test_load_no_arg_methods_falls_back_when_no_pyproject_toml(tmp_path: Path) -> None:
+    script_path = tmp_path / "scripts" / "check.py"
+    script_path.parent.mkdir()
+    with mock.patch.object(check_test_assertions, "__file__", str(script_path)):
+        loaded = check_test_assertions._load_no_arg_methods()
+    assert loaded == frozenset({"flush", "commit", "rollback", "close"})
+
+
+# ---------------------------------------------------------------------------
+# _count_weak_assert_markers_in_staged_diff
+# ---------------------------------------------------------------------------
+
+
+def test_count_weak_assert_markers_counts_added_lines() -> None:
+    diff = (
+        "+++ b/tests/test_foo.py\n"
+        f"+    mock_x.assert_called_once()  {_MARKER}\n"
+        f"+    mock_y.assert_called_once()  {_MARKER}: reason\n"
+        " context line\n"
+        f"-    old_line  {_MARKER}\n"
+    )
+    mock_result = mock.Mock(stdout=diff)
+    with mock.patch.object(check_test_assertions.subprocess, "run", return_value=mock_result):
+        count = check_test_assertions._count_weak_assert_markers_in_staged_diff()
+    assert count == 2
+
+
+def test_count_weak_assert_markers_ignores_non_python_files() -> None:
+    diff = (
+        "+++ b/docs/developer/fix-guide.md\n"
+        f"+mock_x.assert_called_once()  {_MARKER}\n"
+        "+++ b/tests/test_foo.py\n"
+        f"+    mock_z.assert_called_once()  {_MARKER}\n"
+    )
+    mock_result = mock.Mock(stdout=diff)
+    with mock.patch.object(check_test_assertions.subprocess, "run", return_value=mock_result):
+        count = check_test_assertions._count_weak_assert_markers_in_staged_diff()
+    assert count == 1
+
+
+def test_count_weak_assert_markers_empty_diff_returns_zero() -> None:
+    mock_result = mock.Mock(stdout="")
+    with mock.patch.object(check_test_assertions.subprocess, "run", return_value=mock_result):
+        count = check_test_assertions._count_weak_assert_markers_in_staged_diff()
+    assert count == 0
+
+
+# ---------------------------------------------------------------------------
+# main — APPROVED_WEAK_ASSERTIONS gate
+# ---------------------------------------------------------------------------
+
+
+def test_main_gate_blocks_when_marker_count_exceeds_approved(tmp_path: Path) -> None:
+    test_file = tmp_path / "tests" / "test_ok.py"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text("def test_ok():\n    assert True\n")
+
+    with mock.patch.object(
+        check_test_assertions, "get_staged_test_files", return_value=[test_file]
+    ):
+        with mock.patch.object(
+            check_test_assertions, "_count_weak_assert_markers_in_staged_diff", return_value=3
+        ):
+            with mock.patch.dict("os.environ", {"APPROVED_WEAK_ASSERTIONS": "0"}, clear=False):
+                with mock.patch.object(sys, "argv", ["check_test_assertions.py"]):
+                    exit_code = check_test_assertions.main()
+    assert exit_code == 1
+
+
+def test_main_gate_passes_when_marker_count_equals_approved(tmp_path: Path) -> None:
+    test_file = tmp_path / "tests" / "test_ok.py"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text("def test_ok():\n    assert True\n")
+
+    with mock.patch.object(
+        check_test_assertions, "get_staged_test_files", return_value=[test_file]
+    ):
+        with mock.patch.object(
+            check_test_assertions, "_count_weak_assert_markers_in_staged_diff", return_value=2
+        ):
+            with mock.patch.dict("os.environ", {"APPROVED_WEAK_ASSERTIONS": "2"}, clear=False):
+                with mock.patch.object(sys, "argv", ["check_test_assertions.py"]):
+                    exit_code = check_test_assertions.main()
+    assert exit_code == 0
+
+
+def test_main_gate_skipped_in_scan_all_mode(tmp_path: Path) -> None:
+    test_file = tmp_path / "tests" / "test_ok.py"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text("def test_ok():\n    assert True\n")
+
+    with mock.patch.object(check_test_assertions, "get_all_test_files", return_value=[test_file]):
+        with mock.patch.object(
+            check_test_assertions, "_count_weak_assert_markers_in_staged_diff"
+        ) as mock_count:
+            with mock.patch.object(sys, "argv", ["check_test_assertions.py", "--all"]):
+                exit_code = check_test_assertions.main()
+    mock_count.assert_not_called()
+    assert exit_code == 0

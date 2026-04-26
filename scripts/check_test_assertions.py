@@ -22,14 +22,37 @@
 """Check that all test functions contain at least one assertion."""
 
 import ast
+import os
 import shutil
 import subprocess  # noqa: S404 - Used safely with hardcoded args and shell=False
 import sys
+import tomllib
 from pathlib import Path
 
 _ASSERT_PREFIXES = ("assert_",)
-_NO_ARG_METHODS = frozenset({"flush", "commit", "rollback", "close"})
 _WEAK_ASSERT_MARKER = "# assert-no-args"
+
+
+def _load_no_arg_methods() -> frozenset[str]:
+    """Load no-arg-methods from pyproject.toml [tool.check-test-assertions], with fallback."""
+    fallback = frozenset({"flush", "commit", "rollback", "close"})
+    for parent in Path(__file__).parents:
+        candidate = parent / "pyproject.toml"
+        if candidate.exists():
+            try:
+                data = tomllib.loads(candidate.read_text(encoding="utf-8"))
+                methods = (
+                    data.get("tool", {}).get("check-test-assertions", {}).get("no-arg-methods")
+                )
+                if methods is not None:
+                    return frozenset(methods)
+            except (OSError, tomllib.TOMLDecodeError):
+                pass
+            break
+    return fallback
+
+
+_NO_ARG_METHODS = _load_no_arg_methods()
 
 
 def get_staged_test_files() -> list[Path]:
@@ -147,6 +170,29 @@ def _receiver_method_name(call_node: ast.Call) -> str | None:
     return receiver.attr if isinstance(receiver, ast.Attribute) else None
 
 
+def _receiver_dotted_name(node: ast.expr) -> str | None:
+    """Return the dotted name of a Name or Attribute chain, or None."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        parent = _receiver_dotted_name(node.value)
+        return f"{parent}.{node.attr}" if parent is not None else None
+    return None
+
+
+def _has_call_args_check(
+    func_node: ast.FunctionDef | ast.AsyncFunctionDef,
+    receiver_dotted: str,
+) -> bool:
+    """Return True if the function accesses .call_args or .call_args_list on receiver."""
+    return any(
+        isinstance(node, ast.Attribute)
+        and node.attr in ("call_args", "call_args_list")
+        and _receiver_dotted_name(node.value) == receiver_dotted
+        for node in ast.walk(func_node)
+    )
+
+
 def _is_weak_assert_exempt(method_name: str | None, lineno: int, source_lines: list[str]) -> bool:
     """Return True if this assert_called_once() should be exempted from the weak-assert check."""
     if method_name in _NO_ARG_METHODS:
@@ -193,16 +239,23 @@ def get_weak_assert_violations(
     - assert_called_once() — no argument verification at all
     - assert_called_once_with() with no args — equivalent weakness
 
-    Exempts calls on known no-arg methods (flush, commit, etc.) and any line
-    carrying a '# assert-no-args' comment.
+    Exempts calls on known no-arg methods (flush, commit, etc.), any line
+    carrying a '# assert-no-args' comment, and calls where the same receiver's
+    .call_args or .call_args_list is accessed elsewhere in the same test.
     """
-    return [
-        violation
-        for node in ast.walk(func_node)
-        if isinstance(node, ast.Call)
-        for violation in [_weak_assert_violation(node, func_node.name, source_lines)]
-        if violation is not None
-    ]
+    violations = []
+    for node in ast.walk(func_node):
+        if not isinstance(node, ast.Call):
+            continue
+        violation = _weak_assert_violation(node, func_node.name, source_lines)
+        if violation is None:
+            continue
+        if isinstance(node.func, ast.Attribute):
+            receiver_dotted = _receiver_dotted_name(node.func.value)
+            if receiver_dotted and _has_call_args_check(func_node, receiver_dotted):
+                continue
+        violations.append(violation)
+    return violations
 
 
 def check_file(filepath: Path, diff_only: bool) -> list[tuple[int, str]]:
@@ -230,6 +283,30 @@ def check_file(filepath: Path, diff_only: bool) -> list[tuple[int, str]]:
     return violations
 
 
+def _count_weak_assert_markers_in_staged_diff() -> int:
+    """Count '# assert-no-args' occurrences added in the staged diff."""
+    git = shutil.which("git") or "git"
+    result = subprocess.run(  # noqa: S603
+        [git, "diff", "--cached", "-U0"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    current_file = ""
+    count = 0
+    for line in result.stdout.splitlines():
+        if line.startswith("+++ b/"):
+            current_file = line[6:]
+        elif (
+            line.startswith("+")
+            and not line.startswith("++")
+            and current_file.endswith(".py")
+            and _WEAK_ASSERT_MARKER in line
+        ):
+            count += 1
+    return count
+
+
 def main() -> int:
     """Entry point; returns 0 if clean, 1 if violations found."""
     scan_all = "--all" in sys.argv
@@ -249,7 +326,21 @@ def main() -> int:
         for path, count in sorted(counts.items(), key=lambda x: x[1], reverse=True):
             print(f"  {count:>3}  {path}")
         print("\nSee docs/developer/fix-test-assertion-violations.md for fix patterns.")
-    return 1 if counts else 0
+
+    marker_failed = False
+    if not scan_all:
+        marker_count = _count_weak_assert_markers_in_staged_diff()
+        approved = int(os.environ.get("APPROVED_WEAK_ASSERTIONS", "0"))
+        if marker_count > approved:
+            print(
+                f"\nERROR: {marker_count} '{_WEAK_ASSERT_MARKER}'"
+                " annotation(s) added in staged changes."
+            )
+            print(f"Set APPROVED_WEAK_ASSERTIONS={marker_count} to permit if justified.")
+            print("See docs/developer/fix-test-assertion-violations.md for guidance.")
+            marker_failed = True
+
+    return 1 if (counts or marker_failed) else 0
 
 
 if __name__ == "__main__":
