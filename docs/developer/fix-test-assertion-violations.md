@@ -1,7 +1,12 @@
 # Fixing `check-test-assertions` Violations
 
-The `check-test-assertions` pre-commit hook blocks test functions with zero
-assertions. This document explains each violation type and how to fix it.
+The `check-test-assertions` pre-commit hook blocks test functions with weak or
+missing assertions. This document explains each violation type and how to fix it.
+
+**The goal is not to silence the checker. The goal is to write tests that
+would catch a real bug.** Before reaching for an escape hatch, ask: if someone
+changed the arguments passed to this mock, would this test fail? If not, the
+test is not actually verifying the behavior it claims to cover.
 
 For broader unit test quality guidance, see
 [`.github/instructions/unit-tests.instructions.md`](../../.github/instructions/unit-tests.instructions.md).
@@ -85,64 +90,70 @@ def test_foo():
     assert result == 42
 ```
 
-## Choosing the Right Assertion
-
-| Situation                          | Preferred assertion                           |
-| ---------------------------------- | --------------------------------------------- |
-| Return value exists                | `assert result == expected`                   |
-| Side-effect only (void function)   | `mock.assert_called_once_with(args)`          |
-| Mock must not be called            | `mock.assert_not_called()`                    |
-| Exception expected                 | `pytest.raises(ExceptionType)`                |
-| No return value, no mock to verify | `assert True  # verifies no exception raised` |
-
-Prefer `assert_called_once_with(...)` over `assert_called_once()` — the former
-verifies the arguments too. See the unit test standards for more detail.
-
 ### `test_foo: \`assert_called_once()\` — prefer assert_called_once_with()`
-
-The function calls `assert_called_once()` on a mock, verifying that the mock was
-invoked exactly once but not what arguments it received. This is almost always
-weaker than necessary.
 
 ### `test_foo: \`assert_called_once_with()\` — add arguments or add '# assert-no-args'`
 
-The function calls `assert_called_once_with()` with **no arguments**, which is
-equivalent to `assert_called_once()` — neither verifies what was passed. Simply
-changing `assert_called_once()` to `assert_called_once_with()` without supplying
-arguments does not fix the underlying weakness.
+Both violations mean the same thing: the mock's call count is verified but not
+what arguments it received. A bug that passes the wrong argument will not be
+caught.
 
-**Fix — verify the arguments:**
+**The standard fix is to add the expected arguments:**
 
 ```python
-# before
+# before — call count only; wrong arguments would not be caught
 mock_require.assert_called_once()
 
-# after
+# after — verifies both the call and its arguments
 mock_require.assert_called_once_with(mock_db, game.guild_id, "user123", not_found_detail="Game not found")
 ```
 
-Use `unittest.mock.ANY` when one argument is an internal detail you can't easily
-reference in the test (e.g., a redis client created inside the function):
+Use `unittest.mock.ANY` when one argument is an opaque internal object (e.g., a
+redis client created inside the function under test) and the other arguments are
+the ones that actually matter:
 
 ```python
 from unittest.mock import ANY
 
+# good: verifies user and guild are correct; redis client is internal
 mock_check.assert_called_once_with("user123", guild_config.guild_id, ANY)
 ```
 
-**Exception — genuinely no-arg methods:**
+**The escape hatch — `# assert-no-args`:**
 
-`flush()`, `commit()`, `rollback()`, and `close()` take no arguments. The tool
-automatically exempts `assert_called_once()` on these methods — no annotation
-needed.
+This marker suppresses the violation. It exists for the narrow case where the
+function under test genuinely takes no arguments and no `ANY`-based assertion
+would add signal. It is **not** a way to close a violation quickly.
 
-**Exception — opaque internal arguments:**
+Before using it, answer both questions:
 
-When the function under test creates an argument internally (e.g., a coroutine,
-an internal threading event, a complex query object) and `ANY` would not add
-meaningful signal, add the `# assert-no-args` inline comment to document the
-intent explicitly:
+1. Does the function under test actually take no arguments?
+2. Is the call count itself meaningful to this test, or is this mock incidental?
+
+If the answer to (2) is "incidental," the right fix is to remove the `as` alias
+entirely, not to add a marker. If the answer to (1) is "it does take arguments
+but they are complex," use `ANY` for the parts you cannot easily reference.
 
 ```python
-mock_create_task.assert_called_once()  # assert-no-args: coroutine is an opaque internal detail
+# legitimate use: asyncio.create_task receives an internally-created coroutine
+mock_create_task.assert_called_once()  # assert-no-args: coroutine is opaque; call count confirms task was scheduled
+
+# wrong use: the function takes real arguments but this is easier than writing them out
+mock_get_client.assert_called_once_with()  # assert-no-args  ← DO NOT DO THIS
 ```
+
+**Auto-exempted methods:**
+
+`flush()`, `commit()`, `rollback()`, and `close()` are automatically exempted
+because they genuinely take no arguments. No annotation is needed for these.
+
+## Choosing the Right Assertion
+
+| Situation                             | Preferred assertion                                     |
+| ------------------------------------- | ------------------------------------------------------- |
+| Return value exists                   | `assert result == expected`                             |
+| Side-effect only (void function)      | `mock.assert_called_once_with(args)`                    |
+| Mock must not be called               | `mock.assert_not_called()`                              |
+| Exception expected                    | `pytest.raises(ExceptionType)`                          |
+| No return value, no mock to verify    | `assert True  # verifies no exception raised`           |
+| Args truly opaque, call count matters | `mock.assert_called_once()  # assert-no-args: <reason>` |
