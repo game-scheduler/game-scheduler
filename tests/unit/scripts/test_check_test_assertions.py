@@ -111,6 +111,30 @@ def test_get_unasserted_named_mocks_no_with_returns_empty() -> None:
     assert result == []
 
 
+def test_get_unasserted_named_mocks_pytest_raises_alias_excluded() -> None:
+    source = (
+        "def test_foo():\n"
+        "    with pytest.raises(ValueError) as exc_info:\n"
+        "        fn()\n"
+        "    assert exc_info.value.args[0] == 'bad'\n"
+    )
+    func = _parse_func(source)
+    result = check_test_assertions.get_unasserted_named_mocks(func)
+    assert result == []
+
+
+def test_get_unasserted_named_mocks_pytest_raises_excluded_patch_still_checked() -> None:
+    source = (
+        "def test_foo():\n"
+        "    with patch('x') as mock_x, pytest.raises(ValueError) as exc_info:\n"
+        "        fn()\n"
+        "    assert exc_info.value.args[0] == 'bad'\n"
+    )
+    func = _parse_func(source)
+    result = check_test_assertions.get_unasserted_named_mocks(func)
+    assert result == ["mock_x"]
+
+
 # ---------------------------------------------------------------------------
 # check_file
 # ---------------------------------------------------------------------------

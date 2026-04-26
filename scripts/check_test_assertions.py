@@ -88,16 +88,33 @@ def has_assertion(func_node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     )
 
 
+def _is_pytest_raises(context_expr: ast.expr) -> bool:
+    """Return True if the context expression is a pytest.raises(...) call."""
+    return (
+        isinstance(context_expr, ast.Call)
+        and isinstance(context_expr.func, ast.Attribute)
+        and isinstance(context_expr.func.value, ast.Name)
+        and context_expr.func.value.id == "pytest"
+        and context_expr.func.attr == "raises"
+    )
+
+
 def get_unasserted_named_mocks(
     func_node: ast.FunctionDef | ast.AsyncFunctionDef,
 ) -> list[str]:
-    """Return names of 'with ... as <name>:' aliases that have no assert_* call."""
+    """Return names of 'with ... as <name>:' aliases that have no assert_* call.
+
+    pytest.raises(...) as exc_info aliases are excluded — they are verified via
+    exc_info.value attribute access, not assert_* method calls.
+    """
     aliases: list[str] = [
         item.optional_vars.id
         for node in ast.walk(func_node)
         if isinstance(node, ast.With)
         for item in node.items
-        if item.optional_vars and isinstance(item.optional_vars, ast.Name)
+        if item.optional_vars
+        and isinstance(item.optional_vars, ast.Name)
+        and not _is_pytest_raises(item.context_expr)
     ]
 
     unasserted = []
