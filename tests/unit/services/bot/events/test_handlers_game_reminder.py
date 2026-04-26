@@ -207,6 +207,9 @@ async def test_handle_game_reminder_due_success(event_handlers, sample_game, sam
                     assert host_calls[0].kwargs["user_discord_id"] == "host123"
                     assert host_calls[0].kwargs["is_host"] is True
                     assert host_calls[0].kwargs["jump_url"] == expected_jump_url
+                    mock_db_session.assert_called()
+                    mock_utc_now.assert_called()
+                    mock_get_game.assert_awaited_once_with(mock_db, sample_game.id)
 
 
 @pytest.mark.asyncio
@@ -243,6 +246,9 @@ async def test_handle_game_reminder_due_no_participants_but_host(
                     assert mock_send_reminder.await_count == 1
                     assert mock_send_reminder.call_args.kwargs["user_discord_id"] == "host123"
                     assert mock_send_reminder.call_args.kwargs["is_host"] is True
+                    mock_db_session.assert_called()
+                    mock_utc_now.assert_called()
+                    mock_get_game.assert_awaited_once_with(mock_db, sample_game.id)
 
 
 @pytest.mark.asyncio
@@ -287,6 +293,9 @@ async def test_handle_game_reminder_due_no_host(event_handlers, sample_game):
 
                     assert mock_send_reminder.await_count == 1
                     assert mock_send_reminder.call_args.kwargs.get("is_host", False) is False
+                    mock_db_session.assert_called()
+                    mock_utc_now.assert_called()
+                    mock_get_game.assert_awaited_once_with(mock_db, sample_game.id)
 
 
 @pytest.mark.asyncio
@@ -344,6 +353,9 @@ async def test_handle_game_reminder_due_host_error_doesnt_affect_participants(
                     await event_handlers._handle_notification_due(data)
 
                     assert mock_send_reminder.await_count == 2
+                    mock_db_session.assert_called()
+                    mock_utc_now.assert_called()
+                    mock_get_game.assert_awaited_once_with(mock_db, sample_game.id)
 
 
 @pytest.mark.asyncio
@@ -414,6 +426,9 @@ async def test_handle_game_reminder_due_with_waitlist(event_handlers, sample_gam
                     ]
                     assert len(host_calls) == 1
                     assert host_calls[0].kwargs["user_discord_id"] == "host123"
+                    mock_db_session.assert_called()
+                    mock_utc_now.assert_called()
+                    mock_get_game.assert_awaited_once_with(mock_db, sample_game.id)
 
 
 @pytest.mark.asyncio
@@ -623,6 +638,7 @@ async def test_send_participant_reminders_handles_errors(event_handlers):
             is_waitlist=False,
             jump_url=None,
         )
+    assert True  # verifies exception is caught without propagating
 
 
 @pytest.mark.asyncio
@@ -695,3 +711,4 @@ async def test_send_host_reminder_handles_error(event_handlers):
             1234567890,
             jump_url=None,
         )
+    assert True  # verifies exception is caught without propagating

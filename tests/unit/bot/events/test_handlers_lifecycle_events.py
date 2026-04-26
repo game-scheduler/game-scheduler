@@ -68,7 +68,9 @@ def _make_reminder_event(game_id=None):
 
 async def test_notification_due_invalid_data_is_rejected(handlers):
     """Malformed event data is handled gracefully without raising."""
-    await handlers._handle_notification_due({})  # missing required game_id
+    with patch.object(handlers, "_handle_game_reminder", new=AsyncMock()) as mock_reminder:
+        await handlers._handle_notification_due({})  # missing required game_id
+    mock_reminder.assert_not_called()
 
 
 async def test_notification_due_routes_to_clone_confirmation(handlers):
@@ -80,13 +82,14 @@ async def test_notification_due_routes_to_clone_confirmation(handlers):
     )
     with patch.object(handlers, "_handle_clone_confirmation", new=AsyncMock()) as mock_handler:
         await handlers._handle_notification_due(event.model_dump())
-    mock_handler.assert_called_once()
+    mock_handler.assert_called_once_with(event)
 
 
 async def test_notification_due_unknown_type_logs_error(handlers):
     """Unknown notification type is logged without raising."""
     data = {"game_id": str(uuid4()), "notification_type": "unknown_type"}
     await handlers._handle_notification_due(data)
+    assert True  # verifies no exception raised on unknown notification type
 
 
 # ---------------------------------------------------------------------------
@@ -100,9 +103,11 @@ async def test_game_reminder_game_not_found(handlers):
     _, ctx = _db_ctx()
     with (
         patch.object(handlers, "_get_game_with_participants", new=AsyncMock(return_value=None)),
+        patch.object(handlers, "_validate_game_for_reminder", new=AsyncMock()) as mock_validate,
         patch("services.bot.events.handlers.get_db_session", return_value=ctx),
     ):
         await handlers._handle_game_reminder(event)
+    mock_validate.assert_not_called()
 
 
 async def test_game_reminder_game_fails_validation(handlers):
@@ -115,9 +120,11 @@ async def test_game_reminder_game_fails_validation(handlers):
             handlers, "_get_game_with_participants", new=AsyncMock(return_value=mock_game)
         ),
         patch.object(handlers, "_validate_game_for_reminder", new=AsyncMock(return_value=False)),
+        patch.object(handlers, "_send_participant_reminders", new=AsyncMock()) as mock_send,
         patch("services.bot.events.handlers.get_db_session", return_value=ctx),
     ):
         await handlers._handle_game_reminder(event)
+    mock_send.assert_not_called()
 
 
 async def test_game_reminder_exception_is_caught(handlers):
@@ -133,6 +140,7 @@ async def test_game_reminder_exception_is_caught(handlers):
         patch("services.bot.events.handlers.get_db_session", return_value=ctx),
     ):
         await handlers._handle_game_reminder(event)
+    assert True  # verifies exception is caught without propagating
 
 
 # ---------------------------------------------------------------------------
@@ -157,9 +165,11 @@ async def test_join_notification_not_confirmed_skips(handlers):
             new=AsyncMock(return_value=(mock_game, mock_participant)),
         ),
         patch.object(handlers, "_is_participant_confirmed", return_value=False),
+        patch.object(handlers, "_send_join_notification_dm", new=AsyncMock()) as mock_send,
         patch("services.bot.events.handlers.get_db_session", return_value=ctx),
     ):
         await handlers._handle_join_notification(event)
+    mock_send.assert_not_called()
 
 
 async def test_join_notification_exception_is_caught(handlers):
@@ -179,6 +189,7 @@ async def test_join_notification_exception_is_caught(handlers):
         patch("services.bot.events.handlers.get_db_session", return_value=ctx),
     ):
         await handlers._handle_join_notification(event)
+    assert True  # verifies exception is caught without propagating
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +199,11 @@ async def test_join_notification_exception_is_caught(handlers):
 
 async def test_player_removed_missing_required_fields(handlers):
     """Returns early when message_id or channel_id is absent."""
-    await handlers._handle_player_removed({"game_id": "g1"})
+    with patch.object(
+        handlers, "_update_message_for_player_removal", new=AsyncMock()
+    ) as mock_update:
+        await handlers._handle_player_removed({"game_id": "g1"})
+    mock_update.assert_not_called()
 
 
 async def test_player_removed_success(handlers):
@@ -201,11 +216,15 @@ async def test_player_removed_success(handlers):
         "game_title": "Test Game",
         "game_scheduled_at": None,
     }
+    mock_update = AsyncMock()
+    mock_notify = AsyncMock()
     with (
-        patch.object(handlers, "_update_message_for_player_removal", new=AsyncMock()),
-        patch.object(handlers, "_notify_removed_player", new=AsyncMock()),
+        patch.object(handlers, "_update_message_for_player_removal", new=mock_update),
+        patch.object(handlers, "_notify_removed_player", new=mock_notify),
     ):
         await handlers._handle_player_removed(data)
+    mock_update.assert_called_once_with("g1", "m1", "c1")
+    mock_notify.assert_called_once_with("d1", "Test Game", None)
 
 
 async def test_player_removed_exception_is_caught(handlers):
@@ -215,6 +234,7 @@ async def test_player_removed_exception_is_caught(handlers):
         handlers, "_update_message_for_player_removal", new=AsyncMock(side_effect=RuntimeError)
     ):
         await handlers._handle_player_removed(data)
+    assert True  # verifies exception is caught without propagating
 
 
 # ---------------------------------------------------------------------------
@@ -253,6 +273,7 @@ async def test_game_cancelled_delete_general_exception_is_caught(handlers):
         return_value=(mock_channel, mock_message),
     ):
         await handlers._handle_game_cancelled(data)
+    assert True  # verifies exception is caught without propagating
 
 
 # ---------------------------------------------------------------------------
