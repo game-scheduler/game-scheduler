@@ -352,6 +352,10 @@ def _exempt_or_marker_violation(
     receiver_dotted = _receiver_dotted_name(node.func.value)
     if receiver_dotted and _has_call_args_check(func_node, receiver_dotted):
         return True, None
+    if receiver_dotted:
+        patch_target = patch_aliases.get(receiver_dotted)
+        if patch_target and patch_target.rsplit(".", 1)[-1] in _NO_ARG_METHODS:
+            return True, None
     line_text = source_lines[node.lineno - 1] if node.lineno <= len(source_lines) else ""
     if _WEAK_ASSERT_MARKER not in line_text:
         return False, None
