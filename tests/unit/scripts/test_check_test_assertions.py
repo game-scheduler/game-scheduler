@@ -135,6 +135,18 @@ def test_get_unasserted_named_mocks_pytest_raises_excluded_patch_still_checked()
     assert result == ["mock_x"]
 
 
+def test_get_unasserted_named_mocks_chained_assert_recognized() -> None:
+    source = (
+        "def test_foo():\n"
+        "    with patch('x') as mock_x:\n"
+        "        fn()\n"
+        "    mock_x.some_method.assert_called_once()\n"
+    )
+    func = _parse_func(source)
+    result = check_test_assertions.get_unasserted_named_mocks(func)
+    assert result == []
+
+
 # ---------------------------------------------------------------------------
 # check_file
 # ---------------------------------------------------------------------------

@@ -117,14 +117,19 @@ def get_unasserted_named_mocks(
         and not _is_pytest_raises(item.context_expr)
     ]
 
+    def _root_name(node: ast.expr) -> str | None:
+        """Return the root Name id of an attribute chain, or None."""
+        while isinstance(node, ast.Attribute):
+            node = node.value
+        return node.id if isinstance(node, ast.Name) else None
+
     unasserted = []
     for alias in aliases:
         found = any(
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id == alias
             and node.func.attr.startswith("assert_")
+            and _root_name(node.func.value) == alias
             for node in ast.walk(func_node)
         )
         if not found:
