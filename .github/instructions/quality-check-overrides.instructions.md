@@ -77,26 +77,79 @@ The `check-lint-suppressions` pre-commit hook enforces this gate.
 
 This mirrors the `APPROVED_SKIP` mechanism for `SKIP`-based bypasses.
 
+## `APPROVED_WEAK_ASSERTIONS` Environment Variable
+
+`# assert-no-args` annotations in test files are counted per commit. If the count
+exceeds `APPROVED_WEAK_ASSERTIONS`, the commit is blocked.
+
+- **What it controls**: The number of `# assert-no-args` annotations permitted in a single commit
+- **Resets per commit**: No banking across commits — each commit requires its own approval
+- **Usage**: `APPROVED_WEAK_ASSERTIONS=2 git commit -m "..."` to permit exactly two annotations
+
+**Before requesting any value of `APPROVED_WEAK_ASSERTIONS`, verify each annotation individually.**
+For each `# assert-no-args` you plan to add, answer:
+
+1. Does the function under test actually take no arguments?
+2. Are there arguments passed to this call in the code under test that, if wrong, would produce incorrect behavior?
+3. If there are arguments, can they be named in the assertion (or approximated with `ANY`)?
+
+If the answers to (2) and (3) are both yes, **the right fix is `assert_called_once_with(...)`,
+not `# assert-no-args`**.
+
+**Common false justification — "constructor args are internal/opaque":**
+
+Constructor arguments are not opaque if the code under test explicitly passes them. If the
+code does:
+
+```python
+embed = discord.Embed(title=game.title, description=game.description, color=status_color)
+```
+
+then `title`, `description`, and `color` are all verifiable and should be verified.
+Claiming they are "internal/opaque" is factually wrong — a bug that passes the wrong title
+would not be caught by `assert_called_once()` but would be caught by
+`assert_called_once_with(title=expected_title, description=expected_description, color=expected_color)`.
+
+Before writing any `# assert-no-args` on a constructor call, look at the actual call site
+and ask: "Are named arguments passed here?" If yes, those arguments must be verified.
+
 ## Required Approval Process
+
+**Your justification will be questioned.** The user will ask follow-up questions to test
+whether the bypass is genuinely necessary. Do the cross-examination yourself first:
+
+- For each `# assert-no-args`: Could I write `assert_called_once_with(...)` with real arguments
+  here? If yes, that is the right fix, not a marker.
+- For each `APPROVED_OVERRIDES`: Is this a genuine false positive, or is the check flagging
+  real complexity I am avoiding?
+- For each `SKIP=<hook>`: Is the hook failing because the code is wrong, or because the check
+  itself is wrong?
+
+**If a single follow-up question would change your answer, your justification is not ready.**
+Fix the code instead of preparing a better-sounding justification.
 
 Before implementing any override:
 
-1. **Explain the Need**: Clearly state why the override is necessary
+1. **Self-verify first**: Run the cross-examination above before presenting the request.
+   If you cannot answer "yes, the function genuinely takes no meaningful arguments" for
+   each `# assert-no-args`, stop and write real assertions instead.
+
+2. **Explain the Need**: Clearly state why the override is necessary
    - What specific issue prevents passing the check?
    - Why can't the code be modified to pass the check?
    - What is the impact of leaving the check in place?
 
-2. **Present Alternatives**: Show what alternatives were considered
+3. **Present Alternatives**: Show what alternatives were considered
    - Can the code be refactored to pass the check?
    - Is there a better pattern that satisfies the check?
    - Can the issue be addressed in a different way?
 
-3. **Request Permission**: Explicitly ask the user for approval
+4. **Request Permission**: Explicitly ask the user for approval
    - State exactly what will be overridden
    - Confirm the user understands the implications
    - Wait for explicit "yes" or approval before proceeding
 
-4. **Document the Override**: If approved, document why
+5. **Document the Override**: If approved, document why
    - Add a comment explaining the reason for the override
    - Include a reference to the discussion or ticket if applicable
 
