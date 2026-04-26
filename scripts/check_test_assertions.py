@@ -263,7 +263,11 @@ def _jedi_param_count(dotted_path: str) -> int | None:
         sigs = script.get_signatures(2, len(name) + 1)
         if not sigs:
             return None
-        return len([p for p in sigs[0].params if p.name not in ("self", "cls", "/", "*")])
+        return len([
+            p
+            for p in sigs[0].params
+            if p.name not in ("self", "cls", "/", "*") and "=" not in p.description
+        ])
     except Exception:
         return None
 

@@ -598,6 +598,15 @@ def test_jedi_verifies_no_args_at_line_false_for_function_with_args() -> None:
     assert check_test_assertions._jedi_verifies_no_args_at_line(source, 3) is False
 
 
+def test_jedi_verifies_no_args_at_line_true_for_optional_only_params() -> None:
+    source = (
+        "def test_foo():\n"
+        "    with patch('shared.cache.client.RedisClient') as mock_cls:\n"
+        f"        mock_cls.assert_called_once_with()  {_MARKER}\n"
+    )
+    assert check_test_assertions._jedi_verifies_no_args_at_line(source, 3) is True
+
+
 def test_jedi_verifies_no_args_at_line_false_when_no_patch_alias() -> None:
     source = (
         "def test_foo():\n"
