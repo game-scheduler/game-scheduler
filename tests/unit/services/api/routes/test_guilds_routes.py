@@ -23,7 +23,7 @@
 
 import uuid
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -186,11 +186,7 @@ class TestGetGuild:
         self, mock_db, mock_current_user_unit, mock_guild_config, mock_user_guilds
     ):
         """Test retrieving guild configuration by UUID."""
-        with (
-            patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
-            patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
-        ):
-            mock_get_tokens.return_value = {"access_token": "test_token"}
+        with patch("services.api.database.queries.require_guild_by_id") as mock_get_guild:
             mock_get_guild.return_value = mock_guild_config
 
             result = await guilds.get_guild(
@@ -201,6 +197,9 @@ class TestGetGuild:
 
             assert result.id == mock_guild_config.id
             assert result.guild_name == "Test Guild"
+            mock_get_guild.assert_called_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
 
     @pytest.mark.asyncio
     async def test_get_guild_not_found(self, mock_db, mock_current_user_unit):
@@ -218,6 +217,9 @@ class TestGetGuild:
                 )
 
             assert exc_info.value.status_code == 404
+            mock_get_guild.assert_called_once_with(
+                mock_db, ANY, mock_current_user_unit.user.discord_id
+            )
 
     @pytest.mark.asyncio
     async def test_get_guild_not_member(
@@ -227,11 +229,7 @@ class TestGetGuild:
         # Set guild_id to one not in mock_user_guilds
         mock_guild_config.guild_id = "999999999"
 
-        with (
-            patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
-            patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
-        ):
-            mock_get_tokens.return_value = {"access_token": "test_token"}
+        with patch("services.api.database.queries.require_guild_by_id") as mock_get_guild:
             mock_get_guild.return_value = mock_guild_config
 
             with pytest.raises(HTTPException) as exc_info:
@@ -242,17 +240,14 @@ class TestGetGuild:
                 )
 
             assert exc_info.value.status_code == 404
+            mock_get_guild.assert_called_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
 
     @pytest.mark.asyncio
     async def test_get_guild_no_session(self, mock_db, mock_current_user_unit, mock_guild_config):
         """Test retrieving guild when session token lookup returns None (endpoint still works)."""
-        with (
-            patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
-            patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
-        ):
-            # Even if get_user_tokens returns None, endpoint works because
-            # it uses current_user.access_token directly
-            mock_get_tokens.return_value = None
+        with patch("services.api.database.queries.require_guild_by_id") as mock_get_guild:
             mock_get_guild.return_value = mock_guild_config
 
             result = await guilds.get_guild(
@@ -261,9 +256,11 @@ class TestGetGuild:
                 db=mock_db,
             )
 
-            # Endpoint should still work with current_user's access_token
             assert result.id == mock_guild_config.id
             assert result.guild_name == "Test Guild"
+            mock_get_guild.assert_called_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
 
 
 class TestCreateGuildConfig:
@@ -301,7 +298,8 @@ class TestCreateGuildConfig:
             )
 
             assert result.id == new_config.id
-            mock_create.assert_called_once()
+            mock_get_guild.assert_called_once_with(mock_db, "987654321")
+            mock_create.assert_called_once_with(mock_db, guild_discord_id="987654321")
 
     @pytest.mark.asyncio
     async def test_create_guild_already_exists(
@@ -324,6 +322,7 @@ class TestCreateGuildConfig:
                 )
 
             assert exc_info.value.status_code == 409
+            mock_get_guild.assert_called_once_with(mock_db, "987654321")
 
 
 class TestUpdateGuildConfig:
@@ -361,7 +360,10 @@ class TestUpdateGuildConfig:
                 db=mock_db,
             )
 
-            mock_update.assert_called_once()
+            mock_update.assert_called_once_with(mock_guild_config)
+            mock_get_guild.assert_called_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
 
     @pytest.mark.asyncio
     async def test_update_guild_not_found(self, mock_db, mock_current_user_unit):
@@ -384,6 +386,9 @@ class TestUpdateGuildConfig:
                 )
 
             assert exc_info.value.status_code == 404
+            mock_get_guild.assert_called_once_with(
+                mock_db, ANY, mock_current_user_unit.user.discord_id
+            )
 
 
 class TestListGuildChannels:
@@ -400,12 +405,9 @@ class TestListGuildChannels:
         ]
 
         with (
-            patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
             patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
             patch("services.api.database.queries.get_channels_by_guild") as mock_get_channels,
         ):
-            mock_get_tokens.return_value = {"access_token": "test_token"}
-
             mock_channel = MagicMock()
             mock_channel.id = str(uuid.uuid4())
             mock_channel.guild_id = mock_guild_config.id
@@ -430,6 +432,10 @@ class TestListGuildChannels:
             mock_discord_client.get_guild_channels.assert_awaited_once_with(
                 mock_guild_config.guild_id
             )
+            mock_get_guild.assert_called_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
+            mock_get_channels.assert_called_once_with(mock_db, mock_guild_config.id)
 
     @pytest.mark.asyncio
     async def test_list_channels_guild_not_found(self, mock_db, mock_current_user_unit):
@@ -448,6 +454,9 @@ class TestListGuildChannels:
                 )
 
             assert exc_info.value.status_code == 404
+            mock_get_guild.assert_called_once_with(
+                mock_db, ANY, mock_current_user_unit.user.discord_id
+            )
 
     @pytest.mark.asyncio
     async def test_list_channels_not_member(
@@ -457,11 +466,7 @@ class TestListGuildChannels:
         # Set guild_id to one not in mock_user_guilds
         mock_guild_config.guild_id = "999999999"
 
-        with (
-            patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
-            patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
-        ):
-            mock_get_tokens.return_value = {"access_token": "test_token"}
+        with patch("services.api.database.queries.require_guild_by_id") as mock_get_guild:
             mock_get_guild.return_value = mock_guild_config
 
             with pytest.raises(HTTPException) as exc_info:
@@ -473,6 +478,9 @@ class TestListGuildChannels:
                 )
 
             assert exc_info.value.status_code == 404
+            mock_get_guild.assert_called_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
 
     @pytest.mark.asyncio
     async def test_list_channels_discord_api_error_falls_back_to_unknown(
@@ -484,11 +492,9 @@ class TestListGuildChannels:
         mock_discord_client.get_guild_channels.side_effect = DiscordAPIError(403, "Missing Access")
 
         with (
-            patch("services.api.auth.tokens.get_user_tokens") as mock_get_tokens,
             patch("services.api.database.queries.require_guild_by_id") as mock_get_guild,
             patch("services.api.database.queries.get_channels_by_guild") as mock_get_channels,
         ):
-            mock_get_tokens.return_value = {"access_token": "test_token"}
             mock_get_guild.return_value = mock_guild_config
 
             mock_channel = MagicMock()
@@ -509,6 +515,10 @@ class TestListGuildChannels:
 
             assert len(result) == 1
             assert result[0].channel_name == "Unknown Channel"
+            mock_get_guild.assert_called_once_with(
+                mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+            )
+            mock_get_channels.assert_called_once_with(mock_db, mock_guild_config.id)
 
     """Test _build_guild_config_response helper function."""
 
@@ -549,6 +559,7 @@ class TestListGuildChannels:
             )
 
             assert result.bot_manager_role_ids is None
+            mock_get_name.assert_called_once_with(mock_guild_config.guild_id, mock_db)
 
     @pytest.mark.asyncio
     async def test_build_response_timestamp_formatting(
@@ -567,6 +578,7 @@ class TestListGuildChannels:
 
             assert result.created_at == "2025-12-25T15:30:45+00:00"
             assert result.updated_at == "2025-12-26T16:31:46+00:00"
+            mock_get_name.assert_called_once_with(mock_guild_config.guild_id, mock_db)
 
     @pytest.mark.asyncio
     async def test_build_response_guild_name_resolution(
@@ -598,6 +610,7 @@ class TestListGuildChannels:
             )
 
             assert isinstance(result, guild_schemas.GuildConfigResponse)
+            mock_get_name.assert_called_once_with(mock_guild_config.guild_id, mock_db)
 
 
 class TestSyncEndpointRemoved:
@@ -642,6 +655,9 @@ class TestListGuildRoles:
             )
 
         assert [r["name"] for r in result] == ["@alpha Squad", "@Beta Group", "@Zebra Team"]
+        mock_get_guild.assert_called_once_with(
+            mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+        )
 
     @pytest.mark.asyncio
     async def test_managed_roles_excluded(self, mock_db, mock_current_user_unit, mock_guild_config):
@@ -670,6 +686,9 @@ class TestListGuildRoles:
 
         assert len(result) == 1
         assert result[0]["name"] == "@Player"
+        mock_get_guild.assert_called_once_with(
+            mock_db, mock_guild_config.id, mock_current_user_unit.user.discord_id
+        )
 
 
 class TestGetGuildConfig:
