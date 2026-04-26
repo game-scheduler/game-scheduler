@@ -47,6 +47,7 @@ config/
 logs/
 
 # Testing
+.testmondata
 .pytest_cache/
 .coverage
 .coverage.*
