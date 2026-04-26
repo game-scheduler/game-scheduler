@@ -40,23 +40,23 @@ assertions from entering the codebase, then clean up all 90 existing violations.
 
 ## Implementation Checklist
 
-### [ ] Phase 1: TDD RED — Stub and failing tests
+### [x] Phase 1: TDD RED — Stub and failing tests
 
-- [ ] Task 1.1: Create `scripts/check_test_assertions.py` stub with `NotImplementedError` on all public functions
+- [x] Task 1.1: Create `scripts/check_test_assertions.py` stub with `NotImplementedError` on all public functions
   - Details: .copilot-tracking/planning/details/20260426-02-test-quality-precommit-gate-details.md (Lines 11–29)
 
-- [ ] Task 1.2: Write xfail unit tests in `tests/unit/scripts/test_check_test_assertions.py`
+- [x] Task 1.2: Write xfail unit tests in `tests/unit/scripts/test_check_test_assertions.py`
   - Details: .copilot-tracking/planning/details/20260426-02-test-quality-precommit-gate-details.md (Lines 30–72)
 
-### [ ] Phase 2: TDD GREEN — Implement and wire up hook
+### [x] Phase 2: TDD GREEN — Implement and wire up hook
 
-- [ ] Task 2.1: Implement all functions in `scripts/check_test_assertions.py` per research spec
+- [x] Task 2.1: Implement all functions in `scripts/check_test_assertions.py` per research spec
   - Details: .copilot-tracking/planning/details/20260426-02-test-quality-precommit-gate-details.md (Lines 75–103)
 
-- [ ] Task 2.2: Add `check-test-assertions` hook to `.pre-commit-config.yaml` with `--diff-only`
+- [x] Task 2.2: Add `check-test-assertions` hook to `.pre-commit-config.yaml` with `--diff-only`
   - Details: .copilot-tracking/planning/details/20260426-02-test-quality-precommit-gate-details.md (Lines 104–130)
 
-- [ ] Task 2.3: Remove xfail markers from tests and verify full suite passes
+- [x] Task 2.3: Remove xfail markers from tests and verify full suite passes
   - Details: .copilot-tracking/planning/details/20260426-02-test-quality-precommit-gate-details.md (Lines 131–145)
 
 ### [ ] Phase 3: Fix the 90 existing zero-assertion violations
