@@ -409,6 +409,31 @@ def test_get_weak_assert_violations_call_args_on_different_receiver_does_not_exe
     assert len(result) == 1
 
 
+def test_get_weak_assert_violations_jedi_validates_no_arg_annotation_is_correct() -> None:
+    source = (
+        "def test_foo():\n"
+        f"    with patch('services.bot.formatters.game_message.get_config') as mock_config:\n"
+        f"        mock_config.assert_called_once_with()  {_MARKER}\n"
+    )
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_jedi_flags_wrong_no_arg_annotation() -> None:
+    source = (
+        "def test_foo():\n"
+        "    with patch("
+        "'services.bot.formatters.game_message.format_game_announcement') as mock_fmt:\n"
+        f"        mock_fmt.assert_called_once_with()  {_MARKER}\n"
+    )
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert len(result) == 1
+    assert "assert-no-args" in result[0][1]
+    assert "parameter" in result[0][1]
+
+
 # ---------------------------------------------------------------------------
 # check_file — weak assertion integration
 # ---------------------------------------------------------------------------
@@ -507,6 +532,92 @@ def test_count_weak_assert_markers_empty_diff_returns_zero() -> None:
     with mock.patch.object(check_test_assertions.subprocess, "run", return_value=mock_result):
         count = check_test_assertions._count_weak_assert_markers_in_staged_diff()
     assert count == 0
+
+
+# ---------------------------------------------------------------------------
+# _jedi_verifies_no_args_at_line
+# ---------------------------------------------------------------------------
+
+
+def test_jedi_verifies_no_args_at_line_true_for_no_arg_patch_target() -> None:
+    source = (
+        "def test_foo():\n"
+        "    with patch('services.bot.formatters.game_message.get_config') as mock_cfg:\n"
+        f"        mock_cfg.assert_called_once_with()  {_MARKER}\n"
+    )
+    assert check_test_assertions._jedi_verifies_no_args_at_line(source, 3) is True
+
+
+def test_jedi_verifies_no_args_at_line_false_for_function_with_args() -> None:
+    source = (
+        "def test_foo():\n"
+        "    with patch('services.bot.formatters.game_message.format_game_announcement')"
+        " as mock_fmt:\n"
+        f"        mock_fmt.assert_called_once_with()  {_MARKER}\n"
+    )
+    assert check_test_assertions._jedi_verifies_no_args_at_line(source, 3) is False
+
+
+def test_jedi_verifies_no_args_at_line_false_when_no_patch_alias() -> None:
+    source = (
+        "def test_foo():\n"
+        "    mock_cfg = MagicMock()\n"
+        f"    mock_cfg.assert_called_once_with()  {_MARKER}\n"
+    )
+    assert check_test_assertions._jedi_verifies_no_args_at_line(source, 3) is False
+
+
+def test_jedi_verifies_no_args_at_line_true_when_marker_inside_string_literal() -> None:
+    source = (
+        "def test_foo():\n"
+        "    assert True\n"
+        f'    source = "mock_x.assert_called_once_with()  {_MARKER}\\n"\n'
+    )
+    assert check_test_assertions._jedi_verifies_no_args_at_line(source, 3) is True
+
+
+def test_count_weak_assert_markers_jedi_verified_not_counted() -> None:
+    source = (
+        "def test_foo():\n"
+        "    with patch('services.bot.formatters.game_message.get_config') as mock_cfg:\n"
+        f"        mock_cfg.assert_called_once_with()  {_MARKER}\n"
+    )
+    diff = (
+        "+++ b/tests/test_foo.py\n"
+        "@@ -0,0 +1,3 @@\n"
+        "+def test_foo():\n"
+        "+    with patch('services.bot.formatters.game_message.get_config') as mock_cfg:\n"
+        f"+        mock_cfg.assert_called_once_with()  {_MARKER}\n"
+    )
+    mock_result = mock.Mock(stdout=diff)
+    with (
+        mock.patch.object(check_test_assertions.subprocess, "run", return_value=mock_result),
+        mock.patch("pathlib.Path.read_text", return_value=source),
+    ):
+        count = check_test_assertions._count_weak_assert_markers_in_staged_diff()
+    assert count == 0
+
+
+def test_count_weak_assert_markers_unresolvable_patch_target_is_counted() -> None:
+    source = (
+        "def test_foo():\n"
+        "    with patch('some.unresolvable.module.SomeClass') as mock_cls:\n"
+        f"        mock_cls.assert_called_once_with()  {_MARKER}\n"
+    )
+    diff = (
+        "+++ b/tests/test_foo.py\n"
+        "@@ -0,0 +1,3 @@\n"
+        "+def test_foo():\n"
+        "+    with patch('some.unresolvable.module.SomeClass') as mock_cls:\n"
+        f"+        mock_cls.assert_called_once_with()  {_MARKER}\n"
+    )
+    mock_result = mock.Mock(stdout=diff)
+    with (
+        mock.patch.object(check_test_assertions.subprocess, "run", return_value=mock_result),
+        mock.patch("pathlib.Path.read_text", return_value=source),
+    ):
+        count = check_test_assertions._count_weak_assert_markers_in_staged_diff()
+    assert count == 1
 
 
 # ---------------------------------------------------------------------------

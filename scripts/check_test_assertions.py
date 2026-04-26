@@ -29,6 +29,11 @@ import sys
 import tomllib
 from pathlib import Path
 
+try:
+    import jedi as _jedi  # type: ignore[import-untyped]
+except ImportError:
+    _jedi = None  # type: ignore[assignment]
+
 _ASSERT_PREFIXES = ("assert_",)
 _WEAK_ASSERT_MARKER = "# assert-no-args"
 
@@ -193,6 +198,80 @@ def _has_call_args_check(
     )
 
 
+def _patch_target_from_item(item: ast.withitem) -> tuple[str, str] | None:
+    """Return (alias, dotted_target) if item is `patch("target") as alias`, else None."""
+    if not (item.optional_vars and isinstance(item.optional_vars, ast.Name)):
+        return None
+    expr = item.context_expr
+    if not (
+        isinstance(expr, ast.Call)
+        and isinstance(expr.func, ast.Name)
+        and expr.func.id == "patch"
+        and expr.args
+        and isinstance(expr.args[0], ast.Constant)
+    ):
+        return None
+    return item.optional_vars.id, expr.args[0].value
+
+
+def _collect_patch_aliases(
+    func_node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> dict[str, str]:
+    """Return {alias_name: dotted_patch_target} for all `with patch("target") as alias:` blocks."""
+    result: dict[str, str] = {}
+    for node in ast.walk(func_node):
+        if not isinstance(node, ast.With):
+            continue
+        for item in node.items:
+            pair = _patch_target_from_item(item)
+            if pair is not None:
+                result[pair[0]] = pair[1]
+    return result
+
+
+_PROJECT_ROOT = str(Path(__file__).parent.parent)
+
+
+def _jedi_param_count(dotted_path: str) -> int | None:
+    """Return non-self/cls param count for dotted_path via Jedi, or None if unavailable."""
+    if _jedi is None:
+        return None
+    try:
+        module_path, sep, name = dotted_path.rpartition(".")
+        if not sep:
+            return None
+        source = f"from {module_path} import {name}\n{name}("
+        script = _jedi.Script(source, project=_jedi.Project(path=_PROJECT_ROOT))
+        sigs = script.get_signatures(2, len(name) + 1)
+        if not sigs:
+            return None
+        return len([p for p in sigs[0].params if p.name not in ("self", "cls", "/", "*")])
+    except Exception:
+        return None
+
+
+def _jedi_annotation_violation(
+    lineno: int,
+    root: str,
+    patch_aliases: dict[str, str],
+    func_name: str,
+) -> tuple[int, str] | None:
+    """Return a violation if the # assert-no-args annotation on root is incorrect."""
+    patch_target = patch_aliases.get(root)
+    if patch_target is None:
+        return None
+    param_count = _jedi_param_count(patch_target)
+    if param_count is None or param_count == 0:
+        return None
+    short_name = patch_target.rsplit(".", 1)[-1]
+    return (
+        lineno,
+        f"{func_name}: `{_WEAK_ASSERT_MARKER}` on `{root}` is wrong"
+        f" — `{short_name}()` has {param_count} parameter(s); use"
+        " assert_called_once_with(...)",
+    )
+
+
 def _is_weak_assert_exempt(method_name: str | None, lineno: int, source_lines: list[str]) -> bool:
     """Return True if this assert_called_once() should be exempted from the weak-assert check."""
     if method_name in _NO_ARG_METHODS:
@@ -229,6 +308,39 @@ def _weak_assert_violation(
     return (node.lineno, f"{func_name}: `{call_form}` — {suggestion}")
 
 
+def _is_weak_assert_call(node: ast.Call) -> bool:
+    """Return True if node is assert_called_once() or assert_called_once_with() with no args."""
+    if not isinstance(node.func, ast.Attribute):
+        return False
+    attr = node.func.attr
+    return attr == "assert_called_once" or (
+        attr == "assert_called_once_with" and not node.args and not node.keywords
+    )
+
+
+def _exempt_or_marker_violation(
+    node: ast.Call,
+    func_node: ast.FunctionDef | ast.AsyncFunctionDef,
+    patch_aliases: dict[str, str],
+    source_lines: list[str],
+) -> tuple[bool, tuple[int, str] | None]:
+    """Return (should_skip, optional_violation) for a confirmed weak-assert node."""
+    if not isinstance(node.func, ast.Attribute):
+        return False, None
+    receiver_dotted = _receiver_dotted_name(node.func.value)
+    if receiver_dotted and _has_call_args_check(func_node, receiver_dotted):
+        return True, None
+    line_text = source_lines[node.lineno - 1] if node.lineno <= len(source_lines) else ""
+    if _WEAK_ASSERT_MARKER not in line_text:
+        return False, None
+    v = None
+    if isinstance(node.func.value, ast.Name):
+        v = _jedi_annotation_violation(
+            node.lineno, node.func.value.id, patch_aliases, func_node.name
+        )
+    return True, v
+
+
 def get_weak_assert_violations(
     func_node: ast.FunctionDef | ast.AsyncFunctionDef,
     source_lines: list[str],
@@ -238,23 +350,25 @@ def get_weak_assert_violations(
     Flags:
     - assert_called_once() — no argument verification at all
     - assert_called_once_with() with no args — equivalent weakness
+    - '# assert-no-args' on a call whose patch target has parameters (via Jedi)
 
     Exempts calls on known no-arg methods (flush, commit, etc.), any line
     carrying a '# assert-no-args' comment, and calls where the same receiver's
     .call_args or .call_args_list is accessed elsewhere in the same test.
     """
+    patch_aliases = _collect_patch_aliases(func_node)
     violations = []
     for node in ast.walk(func_node):
-        if not isinstance(node, ast.Call):
+        if not isinstance(node, ast.Call) or not _is_weak_assert_call(node):
+            continue
+        skip, v = _exempt_or_marker_violation(node, func_node, patch_aliases, source_lines)
+        if skip:
+            if v is not None:
+                violations.append(v)
             continue
         violation = _weak_assert_violation(node, func_node.name, source_lines)
-        if violation is None:
-            continue
-        if isinstance(node.func, ast.Attribute):
-            receiver_dotted = _receiver_dotted_name(node.func.value)
-            if receiver_dotted and _has_call_args_check(func_node, receiver_dotted):
-                continue
-        violations.append(violation)
+        if violation is not None:
+            violations.append(violation)
     return violations
 
 
@@ -283,8 +397,76 @@ def check_file(filepath: Path, diff_only: bool) -> list[tuple[int, str]]:
     return violations
 
 
+def _patch_target_at_assert_call(
+    func_node: ast.FunctionDef | ast.AsyncFunctionDef,
+    lineno: int,
+) -> str | None:
+    """Return the patch target for the first assert_called_once* on lineno, or None."""
+    patch_aliases = _collect_patch_aliases(func_node)
+    for call_node in ast.walk(func_node):
+        if not isinstance(call_node, ast.Call):
+            continue
+        if call_node.lineno != lineno:
+            continue
+        if not isinstance(call_node.func, ast.Attribute):
+            continue
+        if call_node.func.attr not in ("assert_called_once", "assert_called_once_with"):
+            continue
+        if not isinstance(call_node.func.value, ast.Name):
+            return None
+        return patch_aliases.get(call_node.func.value.id)
+    return None
+
+
+def _jedi_verifies_no_args_at_line(source: str, lineno: int) -> bool:
+    """Return True if Jedi confirms the patched function on lineno takes no args.
+
+    Also returns True when lineno has no assert_called_once* call (marker is not
+    an annotation — e.g. inside a string literal in test data).
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return False
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        end = getattr(node, "end_lineno", node.lineno)
+        if not (node.lineno <= lineno <= end):
+            continue
+        has_assert = any(
+            isinstance(call, ast.Call)
+            and isinstance(call.func, ast.Attribute)
+            and call.func.attr in ("assert_called_once", "assert_called_once_with")
+            and call.lineno == lineno
+            for call in ast.walk(node)
+        )
+        if not has_assert:
+            return True
+        patch_target = _patch_target_at_assert_call(node, lineno)
+        if patch_target is None:
+            return False
+        param_count = _jedi_param_count(patch_target)
+        return param_count is not None and param_count == 0
+    return False
+
+
+def _count_unverified_markers(pending: list[tuple[str, int]]) -> int:
+    """Count markers from pending list that Jedi cannot confirm as correct."""
+    count = 0
+    for filepath, lineno in pending:
+        try:
+            source = Path(filepath).read_text(encoding="utf-8")
+        except OSError:
+            count += 1
+            continue
+        if not _jedi_verifies_no_args_at_line(source, lineno):
+            count += 1
+    return count
+
+
 def _count_weak_assert_markers_in_staged_diff() -> int:
-    """Count '# assert-no-args' occurrences added in the staged diff."""
+    """Count '# assert-no-args' added in staged diff that Jedi cannot verify as correct."""
     git = shutil.which("git") or "git"
     result = subprocess.run(  # noqa: S603
         [git, "diff", "--cached", "-U0"],
@@ -292,19 +474,26 @@ def _count_weak_assert_markers_in_staged_diff() -> int:
         text=True,
         check=False,
     )
+    pending: list[tuple[str, int]] = []
     current_file = ""
-    count = 0
+    new_lineno = 0
     for line in result.stdout.splitlines():
         if line.startswith("+++ b/"):
             current_file = line[6:]
-        elif (
-            line.startswith("+")
-            and not line.startswith("++")
-            and current_file.endswith(".py")
-            and _WEAK_ASSERT_MARKER in line
-        ):
-            count += 1
-    return count
+            new_lineno = 0
+        elif line.startswith("@@"):
+            parts = line.split("+")[1].split("@@")[0].strip()
+            start, _, _ = parts.partition(",")
+            new_lineno = int(start) - 1
+        elif line.startswith("++"):
+            pass
+        elif line.startswith("+"):
+            new_lineno += 1
+            if current_file.endswith(".py") and _WEAK_ASSERT_MARKER in line:
+                pending.append((current_file, new_lineno))
+        elif not line.startswith("-"):
+            new_lineno += 1
+    return _count_unverified_markers(pending)
 
 
 def main() -> int:
