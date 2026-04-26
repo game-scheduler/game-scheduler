@@ -98,6 +98,12 @@ class TestRedisClient:
 
             assert client._client is not None
             mock_redis.ping.assert_awaited_once()
+            mock_pool_class.from_url.assert_called_once_with(
+                "redis://localhost:6379/0",
+                max_connections=100,
+                decode_responses=True,
+            )
+            mock_redis_class.assert_called_once_with(connection_pool=mock_pool)
 
     async def test_connect_idempotent(self, redis_client):
         """Test connect is idempotent (doesn't reconnect if already connected)."""
@@ -290,6 +296,13 @@ class TestRedisClient:
             client = RedisClient("redis://localhost:6379/0")
             result = await client.get("key")
 
+            mock_pool_class.from_url.assert_called_once_with(
+                "redis://localhost:6379/0",
+                max_connections=100,
+                decode_responses=True,
+            )
+            mock_redis_class.assert_called_once_with(connection_pool=mock_pool)
+
         assert result == "value"
 
     async def test_set_auto_connects(self, mock_redis, mock_pool):
@@ -303,6 +316,13 @@ class TestRedisClient:
 
             client = RedisClient("redis://localhost:6379/0")
             result = await client.set("key", "value")
+
+            mock_pool_class.from_url.assert_called_once_with(
+                "redis://localhost:6379/0",
+                max_connections=100,
+                decode_responses=True,
+            )
+            mock_redis_class.assert_called_once_with(connection_pool=mock_pool)
 
         assert result is True
 
@@ -318,6 +338,13 @@ class TestRedisClient:
 
             client = RedisClient("redis://localhost:6379/0")
             result = await client.delete("key")
+
+            mock_pool_class.from_url.assert_called_once_with(
+                "redis://localhost:6379/0",
+                max_connections=100,
+                decode_responses=True,
+            )
+            mock_redis_class.assert_called_once_with(connection_pool=mock_pool)
 
         assert result is True
 
@@ -342,6 +369,13 @@ class TestRedisClient:
             client = RedisClient("redis://localhost:6379/0")
             result = await client.exists("key")
 
+            mock_pool_class.from_url.assert_called_once_with(
+                "redis://localhost:6379/0",
+                max_connections=100,
+                decode_responses=True,
+            )
+            mock_redis_class.assert_called_once_with(connection_pool=mock_pool)
+
         assert result is True
 
     async def test_expire_auto_connects(self, mock_redis, mock_pool):
@@ -356,6 +390,13 @@ class TestRedisClient:
 
             client = RedisClient("redis://localhost:6379/0")
             result = await client.expire("key", 300)
+
+            mock_pool_class.from_url.assert_called_once_with(
+                "redis://localhost:6379/0",
+                max_connections=100,
+                decode_responses=True,
+            )
+            mock_redis_class.assert_called_once_with(connection_pool=mock_pool)
 
         assert result is True
 
@@ -379,6 +420,13 @@ class TestRedisClient:
 
             client = RedisClient("redis://localhost:6379/0")
             result = await client.ttl("key")
+
+            mock_pool_class.from_url.assert_called_once_with(
+                "redis://localhost:6379/0",
+                max_connections=100,
+                decode_responses=True,
+            )
+            mock_redis_class.assert_called_once_with(connection_pool=mock_pool)
 
         assert result == 300
 
@@ -406,6 +454,11 @@ class TestSyncRedisClient:
 
         assert result == "cached_value"
         mock_sync.get.assert_called_once_with("test_key")
+        mock_from_url.assert_called_once_with(
+            "redis://localhost:6379/0",
+            max_connections=10,
+            decode_responses=True,
+        )
 
     def test_get_error_returns_none(self):
         """Test synchronous GET returns None on error."""
@@ -418,6 +471,11 @@ class TestSyncRedisClient:
             result = client.get("test_key")
 
         assert result is None
+        mock_from_url.assert_called_once_with(
+            "redis://localhost:6379/0",
+            max_connections=10,
+            decode_responses=True,
+        )
 
     def test_set_success_without_ttl(self):
         """Test successful synchronous SET without TTL."""
@@ -430,6 +488,11 @@ class TestSyncRedisClient:
 
         assert result is True
         mock_sync.set.assert_called_once_with("test_key", "test_value")
+        mock_from_url.assert_called_once_with(
+            "redis://localhost:6379/0",
+            max_connections=10,
+            decode_responses=True,
+        )
 
     def test_set_success_with_ttl(self):
         """Test successful synchronous SET with TTL."""
@@ -442,6 +505,11 @@ class TestSyncRedisClient:
 
         assert result is True
         mock_sync.setex.assert_called_once_with("test_key", 300, "test_value")
+        mock_from_url.assert_called_once_with(
+            "redis://localhost:6379/0",
+            max_connections=10,
+            decode_responses=True,
+        )
 
     def test_set_error_returns_false(self):
         """Test synchronous SET returns False on error."""
@@ -454,6 +522,11 @@ class TestSyncRedisClient:
             result = client.set("test_key", "test_value")
 
         assert result is False
+        mock_from_url.assert_called_once_with(
+            "redis://localhost:6379/0",
+            max_connections=10,
+            decode_responses=True,
+        )
 
     def test_close(self):
         """Test synchronous connection close."""
@@ -465,6 +538,11 @@ class TestSyncRedisClient:
             client.close()
 
         mock_sync.close.assert_called_once()
+        mock_from_url.assert_called_once_with(
+            "redis://localhost:6379/0",
+            max_connections=10,
+            decode_responses=True,
+        )
 
 
 class TestGetSyncRedisClient:
@@ -482,7 +560,11 @@ class TestGetSyncRedisClient:
             client2 = get_sync_redis_client()
 
             assert client1 is client2
-            mock_from_url.assert_called_once()
+            mock_from_url.assert_called_once_with(
+                "redis://localhost:6379/0",
+                max_connections=10,
+                decode_responses=True,
+            )
 
 
 class TestGetRedisClient:
@@ -503,5 +585,5 @@ class TestGetRedisClient:
             client2 = await get_redis_client()
 
             assert client1 is client2
-            mock_class.assert_called_once()
+            mock_class.assert_called_once_with()  # assert-no-args
             mock_instance.connect.assert_awaited_once()
