@@ -44,6 +44,11 @@ def get_staged_test_files() -> list[Path]:
     ]
 
 
+def get_all_test_files() -> list[Path]:
+    """Return all test file paths under tests/."""
+    return sorted(Path("tests").glob("**/*.py"))
+
+
 def get_modified_line_ranges(filepath: Path) -> set[int]:
     """Return line numbers added or changed in the staged diff for filepath."""
     git = shutil.which("git") or "git"
@@ -134,8 +139,9 @@ def check_file(filepath: Path, diff_only: bool) -> list[tuple[int, str]]:
 
 def main() -> int:
     """Entry point; returns 0 if clean, 1 if violations found."""
-    diff_only = "--diff-only" in sys.argv
-    files = get_staged_test_files()
+    scan_all = "--all" in sys.argv
+    diff_only = "--diff-only" in sys.argv and not scan_all
+    files = get_all_test_files() if scan_all else get_staged_test_files()
     counts: dict[Path, int] = {}
     for filepath in files:
         try:

@@ -198,3 +198,31 @@ def test_main_diff_only_function_outside_diff_exits_zero(tmp_path: Path) -> None
             with mock.patch.object(sys, "argv", ["check_test_assertions.py", "--diff-only"]):
                 exit_code = check_test_assertions.main()
     assert exit_code == 0
+
+
+# ---------------------------------------------------------------------------
+# get_all_test_files
+# ---------------------------------------------------------------------------
+
+
+def test_get_all_test_files_returns_sorted_python_files() -> None:
+    mock_files = [Path("tests/test_b.py"), Path("tests/test_a.py")]
+    with mock.patch.object(Path, "glob", return_value=iter(mock_files)):
+        result = check_test_assertions.get_all_test_files()
+    assert result == sorted(mock_files)
+
+
+def test_main_all_flag_uses_get_all_test_files(tmp_path: Path) -> None:
+    test_file = tmp_path / "tests" / "test_all.py"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text("def test_ok():\n    assert True\n")
+
+    with mock.patch.object(
+        check_test_assertions, "get_all_test_files", return_value=[test_file]
+    ) as mock_all:
+        with mock.patch.object(check_test_assertions, "get_staged_test_files") as mock_staged:
+            with mock.patch.object(sys, "argv", ["check_test_assertions.py", "--all"]):
+                exit_code = check_test_assertions.main()
+    mock_all.assert_called_once()
+    mock_staged.assert_not_called()
+    assert exit_code == 0
