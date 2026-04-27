@@ -22,7 +22,7 @@
 """Tests for API main entry point."""
 
 import logging
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -74,7 +74,8 @@ async def test_main_starts_uvicorn_server():
                 with patch("services.api.main.setup_logging"):
                     await main.main()
 
-                    mock_server.serve.assert_called_once()
+                    mock_config.assert_called_once_with()
+                    mock_server.serve.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -98,5 +99,7 @@ async def test_main_uses_config_values():
                         call_kwargs = mock_uvicorn_config.call_args[1]
                         assert call_kwargs["host"] == "0.0.0.0"
                         assert call_kwargs["port"] == 8080
+                        mock_config.assert_called_once_with()
+                        mock_server.assert_called_once_with(ANY)
                         assert call_kwargs["log_level"] == "debug"
                         assert call_kwargs["access_log"] is False

@@ -119,6 +119,7 @@ async def test_list_games_current_channel_success(
         await list_games_command(mock_interaction)
 
     mock_interaction.response.defer.assert_called_once_with(ephemeral=True)
+    mock_db.assert_called_once_with()
     mock_interaction.followup.send.assert_called_once()
     call_args = mock_interaction.followup.send.call_args
     assert "embed" in call_args[1]
@@ -142,6 +143,7 @@ async def test_list_games_current_channel_no_results(mock_interaction, mock_guil
         await list_games_command(mock_interaction)
 
     mock_interaction.followup.send.assert_called_once()
+    mock_db.assert_called_once_with()
     call_args = mock_interaction.followup.send.call_args
     assert "No scheduled games" in call_args[0][0]
     assert call_args[1]["ephemeral"] is True
@@ -168,6 +170,7 @@ async def test_list_games_specific_channel(
         await list_games_command(mock_interaction, channel=other_channel)
 
     mock_interaction.followup.send.assert_called_once()
+    mock_db.assert_called_once_with()
     call_args = mock_interaction.followup.send.call_args
     embed = call_args[1]["embed"]
     assert "gaming" in embed.title
@@ -189,6 +192,7 @@ async def test_list_games_show_all(mock_interaction, mock_guild, sample_games):
         await list_games_command(mock_interaction, show_all=True)
 
     mock_interaction.followup.send.assert_called_once()
+    mock_db.assert_called_once_with()
     call_args = mock_interaction.followup.send.call_args
     embed = call_args[1]["embed"]
     assert "All Scheduled Games" in embed.title
@@ -206,6 +210,7 @@ async def test_list_games_error_handling(mock_interaction, mock_guild, mock_chan
         await list_games_command(mock_interaction)
 
     mock_interaction.followup.send.assert_called_once()
+    mock_db.assert_called_once_with()
     call_args = mock_interaction.followup.send.call_args
     assert "error" in call_args[0][0].lower()
     assert call_args[1]["ephemeral"] is True

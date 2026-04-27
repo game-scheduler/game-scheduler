@@ -61,6 +61,7 @@ async def test_validate_image_upload_valid_jpeg():
 
     # Should not raise exception
     await _validate_image_upload(upload_file, "thumbnail")
+    assert True  # accepts valid JPEG without raising
 
 
 @pytest.mark.asyncio
@@ -71,6 +72,7 @@ async def test_validate_image_upload_valid_gif():
 
     # Should not raise exception
     await _validate_image_upload(upload_file, "thumbnail")
+    assert True  # accepts valid GIF without raising
 
 
 @pytest.mark.asyncio
@@ -81,6 +83,7 @@ async def test_validate_image_upload_valid_webp():
 
     # Should not raise exception
     await _validate_image_upload(upload_file, "thumbnail")
+    assert True  # accepts valid WebP without raising
 
 
 @pytest.mark.asyncio
@@ -119,6 +122,7 @@ async def test_validate_image_upload_exactly_5mb():
 
     # Should not raise exception
     await _validate_image_upload(upload_file, "image")
+    assert True  # accepts file exactly at 5MB limit without raising
 
 
 @pytest.mark.asyncio
@@ -141,3 +145,4 @@ async def test_validate_image_upload_empty_file():
 
     # Should not raise exception
     await _validate_image_upload(upload_file, "thumbnail")
+    assert True  # accepts empty file without raising

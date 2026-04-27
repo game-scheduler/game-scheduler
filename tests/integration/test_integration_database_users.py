@@ -50,16 +50,16 @@ def postgres_connection():
 
 def test_database_users_exist(postgres_connection):
     """Verify that all three application users exist with correct privileges."""
-    with postgres_connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT rolname, rolsuper, rolbypassrls
-            FROM pg_catalog.pg_roles
-            WHERE rolname IN ('gamebot_admin', 'gamebot_app', 'gamebot_bot')
-            ORDER BY rolname;
-            """
-        )
-        users = cursor.fetchall()
+    cursor = postgres_connection.cursor()
+    cursor.execute(
+        """
+        SELECT rolname, rolsuper, rolbypassrls
+        FROM pg_catalog.pg_roles
+        WHERE rolname IN ('gamebot_admin', 'gamebot_app', 'gamebot_bot')
+        ORDER BY rolname;
+        """
+    )
+    users = cursor.fetchall()
 
     assert len(users) == 3, "Expected exactly 3 users (gamebot_admin, gamebot_app, gamebot_bot)"
 
@@ -82,27 +82,27 @@ def test_database_users_exist(postgres_connection):
 
 def test_app_user_has_connect_permission(postgres_connection):
     """Verify that gamebot_app can connect to the database."""
-    with postgres_connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT has_database_privilege('gamebot_app', current_database(), 'CONNECT');
-            """
-        )
-        has_connect = cursor.fetchone()[0]
+    cursor = postgres_connection.cursor()
+    cursor.execute(
+        """
+        SELECT has_database_privilege('gamebot_app', current_database(), 'CONNECT');
+        """
+    )
+    has_connect = cursor.fetchone()[0]
 
     assert has_connect, "gamebot_app should have CONNECT permission"
 
 
 def test_app_user_has_schema_permissions(postgres_connection):
     """Verify that gamebot_app has USAGE and CREATE on public schema."""
-    with postgres_connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT has_schema_privilege('gamebot_app', 'public', 'USAGE'),
-                   has_schema_privilege('gamebot_app', 'public', 'CREATE');
-            """
-        )
-        has_usage, has_create = cursor.fetchone()
+    cursor = postgres_connection.cursor()
+    cursor.execute(
+        """
+        SELECT has_schema_privilege('gamebot_app', 'public', 'USAGE'),
+               has_schema_privilege('gamebot_app', 'public', 'CREATE');
+        """
+    )
+    has_usage, has_create = cursor.fetchone()
 
     assert has_usage, "gamebot_app should have USAGE on public schema"
     assert has_create, "gamebot_app should have CREATE on public schema"
@@ -125,26 +125,21 @@ def test_app_user_can_create_and_query_tables(postgres_connection):
         )
         app_conn.autocommit = True
 
-        with app_conn.cursor() as cursor:
-            cursor.execute("DROP TABLE IF EXISTS test_table_permissions;")
-
-            cursor.execute(
-                """
-                CREATE TABLE test_table_permissions (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL
-                );
-                """
-            )
-
-            cursor.execute("INSERT INTO test_table_permissions (name) VALUES ('test_value');")
-
-            cursor.execute("SELECT name FROM test_table_permissions WHERE id = 1;")
-            result = cursor.fetchone()
-
-            assert result[0] == "test_value", "Should be able to query inserted data"
-
-            cursor.execute("DROP TABLE test_table_permissions;")
+        cursor = app_conn.cursor()
+        cursor.execute("DROP TABLE IF EXISTS test_table_permissions;")
+        cursor.execute(
+            """
+            CREATE TABLE test_table_permissions (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL
+            );
+            """
+        )
+        cursor.execute("INSERT INTO test_table_permissions (name) VALUES ('test_value');")
+        cursor.execute("SELECT name FROM test_table_permissions WHERE id = 1;")
+        result = cursor.fetchone()
+        assert result[0] == "test_value", "Should be able to query inserted data"
+        cursor.execute("DROP TABLE test_table_permissions;")
 
     finally:
         if app_conn:
@@ -153,17 +148,17 @@ def test_app_user_can_create_and_query_tables(postgres_connection):
 
 def test_app_user_has_default_privileges_on_new_tables(postgres_connection):
     """Verify that default privileges are set for gamebot_app on future tables."""
-    with postgres_connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT defaclacl::text
-            FROM pg_default_acl
-            WHERE defaclobjtype = 'r'  -- 'r' for tables
-                AND defaclnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
-            LIMIT 1;
-            """
-        )
-        result = cursor.fetchone()
+    cursor = postgres_connection.cursor()
+    cursor.execute(
+        """
+        SELECT defaclacl::text
+        FROM pg_default_acl
+        WHERE defaclobjtype = 'r'  -- 'r' for tables
+            AND defaclnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+        LIMIT 1;
+        """
+    )
+    result = cursor.fetchone()
 
     if result:
         privileges = result[0]

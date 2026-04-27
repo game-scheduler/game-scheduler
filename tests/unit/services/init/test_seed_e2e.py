@@ -21,7 +21,7 @@
 
 """Unit tests for init service seed_e2e module helpers."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 from services.init.seed_e2e import (
     GuildConfig,
@@ -43,7 +43,9 @@ class TestValidateE2EConfig:
         result = _validate_e2e_config()
 
         assert result is None
-        mock_logger.info.assert_called_once()
+        mock_logger.info.assert_called_once_with(
+            "Skipping E2E seed - TEST_ENVIRONMENT not set to 'true'"
+        )
 
     @patch("services.init.seed_e2e.os.getenv")
     @patch("services.init.seed_e2e.logger")
@@ -63,7 +65,9 @@ class TestValidateE2EConfig:
         result = _validate_e2e_config()
 
         assert result is None
-        mock_logger.warning.assert_called_once()
+        mock_logger.warning.assert_called_once_with(
+            "Skipping E2E seed - missing DISCORD_* environment variables"
+        )
 
     @patch("services.init.seed_e2e.os.getenv")
     def test_returns_config_when_all_vars_present(self, mock_getenv):
@@ -109,7 +113,7 @@ class TestGuildExists:
         result = _guild_exists(mock_session, "123456789")
 
         assert result is True
-        mock_session.execute.assert_called_once()
+        mock_session.execute.assert_called_once_with(ANY, ANY)
 
     def test_returns_false_when_guild_not_found(self):
         """Should return False when guild does not exist in database."""
@@ -121,7 +125,7 @@ class TestGuildExists:
         result = _guild_exists(mock_session, "987654321")
 
         assert result is False
-        mock_session.execute.assert_called_once()
+        mock_session.execute.assert_called_once_with(ANY, ANY)
 
 
 class TestCreateGuildEntities:

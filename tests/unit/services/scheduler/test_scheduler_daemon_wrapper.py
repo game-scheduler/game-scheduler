@@ -22,7 +22,7 @@
 """Unit tests for the unified scheduler daemon wrapper."""
 
 import signal
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import services.scheduler.scheduler_daemon_wrapper as wrapper
 
@@ -119,17 +119,17 @@ class TestMainSignalHandling:
 
         assert captured["initial"] is False
 
-    @patch("services.scheduler.scheduler_daemon_wrapper.flush_telemetry")
     @patch("services.scheduler.scheduler_daemon_wrapper.init_telemetry")
     @patch("services.scheduler.scheduler_daemon_wrapper.SchedulerDaemon")
-    def test_flushes_telemetry_after_join(self, mock_daemon_cls, mock_init_telemetry, mock_flush):
+    def test_flushes_telemetry_after_join(self, mock_daemon_cls, mock_init_telemetry):
         mock_instance = MagicMock()
         mock_instance.run.side_effect = lambda flag: None
         mock_daemon_cls.return_value = mock_instance
 
-        wrapper.main()
+        with patch("services.scheduler.scheduler_daemon_wrapper.flush_telemetry") as mock_flush:
+            wrapper.main()
 
-        mock_flush.assert_called_once()
+            mock_flush.assert_called_once_with()
 
 
 class TestMainEdgeCases:
@@ -148,9 +148,9 @@ class TestMainEdgeCases:
 
         wrapper.main()
 
-        daemon_a.run.assert_called_once()
-        daemon_b.run.assert_called_once()
-        daemon_c.run.assert_called_once()
+        daemon_a.run.assert_called_once_with(ANY)
+        daemon_b.run.assert_called_once_with(ANY)
+        daemon_c.run.assert_called_once_with(ANY)
 
     @patch("services.scheduler.scheduler_daemon_wrapper.flush_telemetry")
     @patch("services.scheduler.scheduler_daemon_wrapper.init_telemetry")

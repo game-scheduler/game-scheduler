@@ -70,6 +70,7 @@ def test_create_app_enables_docs_in_debug_mode():
             application = app.create_app()
             assert application.docs_url == "/docs"
             assert application.redoc_url == "/redoc"
+        mock_config.assert_called_once_with()
 
 
 def test_create_app_disables_docs_in_production():
@@ -80,6 +81,7 @@ def test_create_app_disables_docs_in_production():
             application = app.create_app()
             assert application.docs_url is None
             assert application.redoc_url is None
+        mock_config.assert_called_once_with()
 
 
 def test_health_check_endpoint():
@@ -98,14 +100,16 @@ def test_health_check_endpoint():
 
 
 @pytest.mark.asyncio
-async def test_lifespan_initializes_redis(mock_get_redis_client, mock_redis_client):
+async def test_lifespan_initializes_redis(mock_redis_client):
     """Test that lifespan initializes Redis connection on startup."""
-    application = app.create_app()
+    with patch("services.api.app.redis_client.get_redis_client") as mock_get_redis_client:
+        mock_get_redis_client.return_value = mock_redis_client
+        application = app.create_app()
 
-    async with app.lifespan(application):
-        pass
+        async with app.lifespan(application):
+            pass
 
-    mock_get_redis_client.assert_called_once()
+        mock_get_redis_client.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -116,7 +120,7 @@ async def test_lifespan_disconnects_redis(mock_get_redis_client, mock_redis_clie
     async with app.lifespan(application):
         pass
 
-    mock_redis_client.disconnect.assert_called_once()
+    mock_redis_client.disconnect.assert_called_once_with()
 
 
 def test_middleware_configured():

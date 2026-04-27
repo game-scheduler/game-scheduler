@@ -21,7 +21,7 @@
 
 """Unit tests for RedisClient.claim_global_and_channel_slot."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import ANY, AsyncMock, patch
 
 import pytest
 import redis
@@ -160,6 +160,12 @@ class TestClaimGlobalAndChannelSlot:
 
             assert client._client is not None
             assert result == 0
+            mock_pool_class.from_url.assert_called_once_with(
+                "redis://localhost:6379/0", max_connections=ANY, decode_responses=True
+            )
+            mock_redis_class.assert_called_once_with(
+                connection_pool=mock_pool_class.from_url.return_value
+            )
 
     async def test_global_max_override_passed_as_argv3(self, client_and_mock: tuple) -> None:
         """When global_max=45 is supplied, ARGV[3] of the Lua eval receives '45'."""
@@ -298,6 +304,12 @@ class TestClaimGlobalSlot:
 
             assert client._client is not None
             assert result == 0
+            mock_pool_class.from_url.assert_called_once_with(
+                "redis://localhost:6379/0", max_connections=ANY, decode_responses=True
+            )
+            mock_redis_class.assert_called_once_with(
+                connection_pool=mock_pool_class.from_url.return_value
+            )
 
     async def test_global_max_override_passed_as_argv2(self, client_and_mock: tuple) -> None:
         """When global_max=45 is supplied, ARGV[2] of the Lua eval receives '45'."""

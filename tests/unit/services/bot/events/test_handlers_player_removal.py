@@ -58,6 +58,7 @@ async def test_update_message_for_player_removal_success(
 
         mock_channel.get_partial_message.assert_called_once_with(int(message_id))
         mock_message.edit.assert_awaited_once()
+        mock_get_db_session.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -77,6 +78,7 @@ async def test_update_message_for_player_removal_game_not_found(event_handlers, 
 
         mock_logger.error.assert_called()
         assert any("Game not found" in str(call) for call in mock_logger.error.call_args_list)
+        mock_get_db_session.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -114,6 +116,7 @@ async def test_update_message_for_player_removal_message_not_found(
         assert any(
             "Game message not found" in str(call) for call in mock_logger.warning.call_args_list
         )
+        mock_get_db_session.assert_called_once_with()
 
 
 def test_build_removal_dm_message_without_schedule(event_handlers):
@@ -139,6 +142,7 @@ def test_build_removal_dm_message_with_schedule(event_handlers):
         assert "You have been removed from Test Game" in message
         assert " scheduled for <t:" in message
         assert ":F>" in message
+        mock_removal.assert_called_once_with("Test Game")
 
 
 def test_build_removal_dm_message_with_invalid_schedule(event_handlers):
@@ -149,6 +153,7 @@ def test_build_removal_dm_message_with_invalid_schedule(event_handlers):
         message = event_handlers._build_removal_dm_message("Test Game", "invalid-date")
 
         assert message == "You have been removed from Test Game"
+        mock_removal.assert_called_once_with("Test Game")
 
 
 @pytest.mark.asyncio
