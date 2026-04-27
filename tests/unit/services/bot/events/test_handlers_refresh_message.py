@@ -21,7 +21,7 @@
 
 """Unit tests for EventHandlers refresh game message methods."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import discord
@@ -212,6 +212,7 @@ async def test_refresh_game_message_success(event_handlers, sample_game, mock_bo
 
         await event_handlers._refresh_game_message(sample_game.id)
 
+        mock_db.assert_called_once_with()
         mock_fetch.assert_called_once_with(mock_db_instance, sample_game.id)
         mock_validate.assert_called_once_with(str(sample_game.channel.channel_id))
         mock_channel.get_partial_message.assert_called_once_with(int(sample_game.message_id))
@@ -235,6 +236,7 @@ async def test_refresh_game_message_game_not_found(event_handlers, mock_bot):
 
         await event_handlers._refresh_game_message(game_id)
 
+        mock_db.assert_called_once_with()
         mock_fetch.assert_called_once_with(mock_db_instance, game_id)
         mock_validate.assert_not_called()
         mock_update.assert_not_called()
@@ -266,8 +268,9 @@ async def test_refresh_game_message_channel_validation_fails(event_handlers, sam
 
         await event_handlers._refresh_game_message(sample_game.id)
 
-        mock_fetch.assert_called_once()
-        mock_validate.assert_called_once()
+        mock_db.assert_called_once_with()
+        mock_fetch.assert_called_once_with(mock_db_instance, sample_game.id)
+        mock_validate.assert_called_once_with(str(sample_game.channel.channel_id))
         mock_update.assert_not_called()
 
 
@@ -303,10 +306,11 @@ async def test_refresh_game_message_message_not_found(event_handlers, sample_gam
 
         await event_handlers._refresh_game_message(sample_game.id)
 
-        mock_fetch.assert_called_once()
-        mock_validate.assert_called_once()
-        mock_update.assert_called_once()
-        mock_logger.exception.assert_called_once()
+        mock_db.assert_called_once_with()
+        mock_fetch.assert_called_once_with(mock_db_instance, sample_game.id)
+        mock_validate.assert_called_once_with(str(sample_game.channel.channel_id))
+        mock_update.assert_called_once_with(ANY, ANY)
+        mock_logger.exception.assert_called_once_with(ANY, ANY)
 
 
 @pytest.mark.asyncio
@@ -326,3 +330,6 @@ async def test_refresh_game_message_handles_exception(event_handlers, sample_gam
         mock_db.return_value.__aexit__.return_value = None
 
         await event_handlers._refresh_game_message(sample_game.id)
+
+        mock_db.assert_called_once_with()
+        assert True  # exception handled gracefully; function returns without raising

@@ -97,6 +97,7 @@ async def test_broadcast_filters_by_guild_membership(sse_bridge, mock_event, moc
         data = json.loads(message)
         assert data["type"] == "game_updated"
         assert data["guild_id"] == "123456789"
+        mock_tokens.assert_called()
 
 
 @pytest.mark.asyncio
@@ -129,6 +130,7 @@ async def test_broadcast_skips_non_members(sse_bridge, mock_event, mock_db_sessi
         await sse_bridge._broadcast_to_clients(mock_event)
 
         assert client_queue.empty()
+        mock_tokens.assert_called()
 
 
 @pytest.mark.asyncio
@@ -152,6 +154,7 @@ async def test_broadcast_removes_disconnected_clients(sse_bridge, mock_event, mo
         await sse_bridge._broadcast_to_clients(mock_event)
 
         assert "client1" not in sse_bridge.connections
+        mock_tokens.assert_called()
 
 
 @pytest.mark.asyncio
@@ -187,6 +190,7 @@ async def test_broadcast_handles_full_queue(sse_bridge, mock_event, mock_db_sess
 
         assert client_queue.qsize() == 1
         assert await client_queue.get() == "existing_message"
+        mock_tokens.assert_called()
 
 
 @pytest.mark.asyncio
@@ -224,6 +228,7 @@ async def test_broadcast_handles_api_errors(sse_bridge, mock_event, mock_db_sess
 
         assert "client1" in sse_bridge.connections
         assert client_queue.empty()
+        mock_tokens.assert_called()
 
 
 @pytest.mark.asyncio
@@ -240,9 +245,10 @@ async def test_start_consuming_initializes_consumer(sse_bridge):
         await sse_bridge.start_consuming()
 
         assert sse_bridge.consumer is not None
-        mock_consumer.connect.assert_called_once()
+        mock_consumer_class.assert_called_once_with(queue_name="web_sse_events")
+        mock_consumer.connect.assert_called_once_with()
         mock_consumer.bind.assert_called_once_with("game.updated.#")
-        mock_consumer.start_consuming.assert_called_once()
+        mock_consumer.start_consuming.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -264,6 +270,7 @@ async def test_stop_consuming_handles_no_consumer(sse_bridge):
     """Test that stop_consuming works when no consumer exists."""
     sse_bridge.consumer = None
     await sse_bridge.stop_consuming()
+    assert sse_bridge.consumer is None
 
 
 def test_get_sse_bridge_returns_singleton():
@@ -310,6 +317,7 @@ async def test_broadcast_to_multiple_clients(sse_bridge, mock_event, mock_db_ses
 
         assert message1["guild_id"] == "123456789"
         assert message2["guild_id"] == "123456789"
+        mock_tokens.assert_called()
 
 
 def test_set_keepalive_interval_validation():
@@ -361,3 +369,4 @@ async def test_broadcast_uses_projection_not_oauth_for_guild_check(
         assert not client_queue.empty(), (
             "Message must be delivered via projection-based guild check"
         )
+        mock_tokens.assert_called()

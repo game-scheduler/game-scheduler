@@ -58,7 +58,7 @@ class TestRetryDaemon:
         daemon.connect()
 
         mock_publisher_class.assert_called_once_with()  # assert-no-args
-        mock_publisher.connect.assert_called_once_with()  # assert-no-args
+        mock_publisher.connect.assert_called_once_with()
         assert daemon.publisher == mock_publisher
 
     def test_get_routing_key_from_x_death(self, daemon):

@@ -247,7 +247,7 @@ min-lines = 0
 "tests/**" = 10
 
 [tool.check-test-assertions]
-no-arg-methods = ["flush", "commit", "rollback", "close", "get_config", "get_redis_client"]
+no-arg-methods = ["flush", "commit", "rollback", "close", "get_config", "get_redis_client", "get_db_session", "get_role_service", "connect", "start_consuming"]
 
 [tool.setuptools_scm]
 fallback_version = "0.0.0+unknown"
