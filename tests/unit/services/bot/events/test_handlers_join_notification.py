@@ -81,6 +81,9 @@ async def test_handle_join_notification_with_signup_instructions(event_handlers,
                 assert sample_game.title in sent_message
                 assert sample_game.signup_instructions in sent_message
 
+                mock_db_session.assert_called_once_with()  # assert-no-args
+                mock_get_game.assert_awaited_once_with(mock_db, sample_game.id)
+
 
 @pytest.mark.asyncio
 async def test_handle_join_notification_without_signup_instructions(event_handlers, sample_game):
@@ -132,6 +135,9 @@ async def test_handle_join_notification_without_signup_instructions(event_handle
                 assert sample_game.title in sent_message
                 assert "signup instructions" not in sent_message.lower()
 
+                mock_db_session.assert_called_once_with()  # assert-no-args
+                mock_get_game.assert_awaited_once_with(mock_db, sample_game.id)
+
 
 @pytest.mark.asyncio
 async def test_handle_join_notification_missing_participant_id(event_handlers, sample_game):
@@ -161,6 +167,9 @@ async def test_handle_join_notification_missing_participant_id(event_handlers, s
             mock_db.execute = AsyncMock(side_effect=mock_execute)
 
             await event_handlers._handle_notification_due(data)
+
+            mock_get_game.assert_awaited_once_with(mock_db, data["game_id"])
+            mock_db_session.assert_called_once_with()  # assert-no-args
 
 
 @pytest.mark.asyncio
@@ -198,6 +207,9 @@ async def test_handle_join_notification_user_not_found(event_handlers, sample_ga
                     "no longer active" in str(call) for call in mock_logger.info.call_args_list
                 )
 
+                mock_db_session.assert_called_once_with()  # assert-no-args
+                mock_get_game.assert_awaited_once_with(mock_db, sample_game.id)
+
 
 class TestHandleJoinNotificationHelpers:
     """Test helper methods extracted from _handle_join_notification."""
@@ -234,6 +246,7 @@ class TestHandleJoinNotificationHelpers:
 
             assert game == sample_game
             assert part == participant
+            mock_get_game.assert_awaited_once_with(mock_db, str(event.game_id))
 
     @pytest.mark.asyncio
     async def test_fetch_join_notification_data_game_not_found(self, event_handlers):
@@ -256,7 +269,8 @@ class TestHandleJoinNotificationHelpers:
 
                 assert game is None
                 assert part is None
-                mock_logger.error.assert_called_once()
+                mock_get_game.assert_awaited_once_with(mock_db, str(event.game_id))
+                mock_logger.error.assert_called_once_with("Game not found: %s", event.game_id)
 
     @pytest.mark.asyncio
     async def test_fetch_join_notification_data_participant_not_found(
@@ -289,7 +303,12 @@ class TestHandleJoinNotificationHelpers:
 
                 assert game is None
                 assert part is None
-                mock_logger.info.assert_called_once()
+                mock_get_game.assert_awaited_once_with(mock_db, str(event.game_id))
+                mock_logger.info.assert_called_once_with(
+                    "Participant %s no longer active for game %s",
+                    event.participant_id,
+                    event.game_id,
+                )
 
     @pytest.mark.asyncio
     async def test_fetch_join_notification_data_participant_without_user(
@@ -326,7 +345,12 @@ class TestHandleJoinNotificationHelpers:
 
                 assert game is None
                 assert part is None
-                mock_logger.info.assert_called_once()
+                mock_get_game.assert_awaited_once_with(mock_db, str(event.game_id))
+                mock_logger.info.assert_called_once_with(
+                    "Participant %s no longer active for game %s",
+                    event.participant_id,
+                    event.game_id,
+                )
 
     def test_is_participant_confirmed_when_confirmed(self, event_handlers, sample_game):
         """Test participant is confirmed (not waitlisted)."""
@@ -359,7 +383,14 @@ class TestHandleJoinNotificationHelpers:
                 is_confirmed = event_handlers._is_participant_confirmed(participant, sample_game)
 
                 assert is_confirmed is False
-                mock_logger.info.assert_called_once()
+                mock_partition.assert_called_once_with(
+                    sample_game.participants, sample_game.max_players
+                )
+                mock_logger.info.assert_called_once_with(
+                    "Participant %s is waitlisted, skipping join notification for game %s",
+                    participant.id,
+                    sample_game.id,
+                )
 
     def test_format_join_notification_message_with_instructions(self, event_handlers, sample_game):
         """Test message formatting with signup instructions."""

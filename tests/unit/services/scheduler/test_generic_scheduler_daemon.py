@@ -27,7 +27,7 @@ Happy path scenarios are covered by integration tests.
 
 import logging
 from datetime import UTC, datetime, timedelta
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import ANY, MagicMock, Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -125,15 +125,15 @@ class TestSchedulerDaemonConnect:
 
         # Verify PostgreSQL listener setup
         mock_listener_class.assert_called_once_with(daemon.database_url)
-        mock_listener.connect.assert_called_once()
+        mock_listener.connect.assert_called_once_with()  # assert-no-args
         mock_listener.listen.assert_called_once_with("test_channel")
 
         # Verify RabbitMQ publisher setup
-        mock_publisher_class.assert_called_once()
-        mock_publisher.connect.assert_called_once()
+        mock_publisher_class.assert_called_once_with()  # assert-no-args
+        mock_publisher.connect.assert_called_once_with()  # assert-no-args
 
         # Verify database session created
-        mock_session_local.assert_called_once()
+        mock_session_local.assert_called_once_with()  # assert-no-args
 
         # Verify connections stored
         assert daemon.listener == mock_listener
@@ -196,8 +196,8 @@ class TestSchedulerDaemonGetNextDueItem:
         mock_db.query.assert_called_once_with(NotificationSchedule)
         assert mock_query.filter.call_count == 1
         assert mock_filter1.filter.call_count == 1
-        mock_filter2.order_by.assert_called_once()
-        mock_order.first.assert_called_once()
+        mock_filter2.order_by.assert_called_once_with(ANY)
+        mock_order.first.assert_called_once_with()  # assert-no-args
 
     def test_get_next_due_item_returns_record_when_found(self, daemon):
         """_get_next_due_item returns the record when one exists."""
@@ -262,6 +262,8 @@ class TestSchedulerDaemonMarkItemProcessed:
 
         # Should not raise
         daemon._mark_item_processed(str(uuid4()))
+
+        mock_db.commit.assert_not_called()
 
 
 class TestSchedulerDaemonProcessItem:
@@ -391,8 +393,8 @@ class TestSchedulerDaemonProcessLoopIteration:
         daemon.db = mock_db
         daemon.listener = mock_listener
 
-        current_time = datetime(2025, 1, 1, 12, 0, 0)
-        past_time = datetime(2025, 1, 1, 11, 59, 30)  # 30 seconds ago
+        current_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
+        past_time = datetime(2025, 1, 1, 11, 59, 30, tzinfo=UTC)  # 30 seconds ago
         mock_utc_now.return_value = current_time
 
         mock_item = MagicMock()
@@ -417,8 +419,8 @@ class TestSchedulerDaemonProcessLoopIteration:
         daemon.listener = mock_listener
         daemon.db = MagicMock()
 
-        current_time = datetime(2025, 1, 1, 12, 0, 0)
-        future_time = datetime(2025, 1, 1, 12, 0, 10)  # 10 seconds in future
+        current_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
+        future_time = datetime(2025, 1, 1, 12, 0, 10, tzinfo=UTC)  # 10 seconds in future
         mock_utc_now.return_value = current_time
 
         mock_item = MagicMock()
@@ -496,7 +498,7 @@ class TestSchedulerDaemonProcessLoopIteration:
 
         # Should close old session and create new one
         mock_db.close.assert_called_once()
-        mock_session_local.assert_called_once()
+        mock_session_local.assert_called_once_with()  # assert-no-args
         # New session should be assigned
         assert daemon.db == new_session
 
@@ -513,7 +515,7 @@ class TestSchedulerDaemonProcessLoopIteration:
 
         daemon._process_loop_iteration()
 
-        mock_listener.wait_for_notification.assert_called_once()
+        mock_listener.wait_for_notification.assert_called_once_with(timeout=60)
 
 
 class TestSchedulerDaemonRun:
@@ -534,9 +536,9 @@ class TestSchedulerDaemonRun:
 
         daemon.run(shutdown_after_three)
 
-        mock_connect.assert_called_once()
+        mock_connect.assert_called_once_with()  # assert-no-args
         assert mock_iteration.call_count == 3
-        mock_cleanup.assert_called_once()
+        mock_cleanup.assert_called_once_with()  # assert-no-args
 
     @patch.object(SchedulerDaemon, "connect")
     @patch.object(SchedulerDaemon, "_process_loop_iteration")
@@ -562,7 +564,7 @@ class TestSchedulerDaemonRun:
 
         # Should continue despite error
         assert mock_iteration.call_count == 3
-        mock_cleanup.assert_called_once()
+        mock_cleanup.assert_called_once_with()  # assert-no-args
 
     @patch.object(SchedulerDaemon, "connect")
     @patch.object(SchedulerDaemon, "_process_loop_iteration")
@@ -598,8 +600,8 @@ class TestSchedulerDaemonRun:
 
         daemon.run(lambda: False)
 
-        mock_connect.assert_called_once()
-        mock_cleanup.assert_called_once()
+        mock_connect.assert_called_once_with()  # assert-no-args
+        mock_cleanup.assert_called_once_with()  # assert-no-args
 
 
 class TestSchedulerDaemonCleanup:
@@ -629,6 +631,10 @@ class TestSchedulerDaemonCleanup:
 
         # Should not raise
         daemon._cleanup()
+
+        assert daemon.listener is None
+        assert daemon.publisher is None
+        assert daemon.db is None
 
     def test_cleanup_continues_if_close_raises(self, daemon):
         """_cleanup continues closing other connections if one fails."""
@@ -814,6 +820,7 @@ class TestSchedulerDaemonServiceName:
 
             daemon._process_item(mock_item)
 
+        mock_tracer.start_as_current_span.assert_called_once_with(ANY, attributes=ANY)
         call_kwargs = mock_tracer.start_as_current_span.call_args
         attributes = call_kwargs.kwargs.get("attributes", {})
         assert "scheduler.service_name" in attributes
