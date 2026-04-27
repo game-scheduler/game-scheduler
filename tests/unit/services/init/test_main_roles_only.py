@@ -65,8 +65,11 @@ class TestMainWithInitRolesOnly:
         result = main()
 
         assert result == 0
-        mock_wait.assert_called_once_with()  # assert-not-weak: predates reason requirement
-        mock_create_users.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        # assert-not-weak: wait_for_postgres() passes no args; max_retries/retry_delay use defaults
+        mock_wait.assert_called_once_with()
+        # assert-not-weak: create_database_users() has no parameters
+        mock_create_users.assert_called_once_with()
+        # assert-not-weak: start_time is datetime.now(UTC) — not verifiable without time mocking
         mock_complete.assert_called_once_with(ANY)
         mock_migrations.assert_not_called()
         mock_verify.assert_not_called()
@@ -151,11 +154,16 @@ class TestMainWithoutInitRolesOnly:
 
         main()
 
-        mock_wait.assert_called_once_with()  # assert-not-weak: predates reason requirement
-        mock_create_users.assert_called_once_with()  # assert-not-weak: predates reason requirement
-        mock_migrations.assert_called_once_with()  # assert-not-weak: predates reason requirement
-        mock_verify.assert_called_once_with()  # assert-not-weak: predates reason requirement
-        mock_rabbitmq.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        # assert-not-weak: wait_for_postgres() passes no args; max_retries/retry_delay use defaults
+        mock_wait.assert_called_once_with()
+        # assert-not-weak: create_database_users() has no parameters
+        mock_create_users.assert_called_once_with()
+        # assert-not-weak: run_migrations() has no parameters
+        mock_migrations.assert_called_once_with()
+        # assert-not-weak: verify_schema() has no parameters
+        mock_verify.assert_called_once_with()
+        # assert-not-weak: initialize_rabbitmq() has no parameters
+        mock_rabbitmq.assert_called_once_with()
 
     @patch("services.init.main.flush_telemetry")
     @patch("services.init.main.trace")
@@ -191,8 +199,13 @@ class TestMainWithoutInitRolesOnly:
 
         main()
 
-        mock_wait.assert_called_once_with()  # assert-not-weak: predates reason requirement
-        mock_create_users.assert_called_once_with()  # assert-not-weak: predates reason requirement
-        mock_migrations.assert_called_once_with()  # assert-not-weak: predates reason requirement
-        mock_verify.assert_called_once_with()  # assert-not-weak: predates reason requirement
-        mock_rabbitmq.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        # assert-not-weak: wait_for_postgres() passes no args; max_retries/retry_delay use defaults
+        mock_wait.assert_called_once_with()
+        # assert-not-weak: create_database_users() has no parameters
+        mock_create_users.assert_called_once_with()
+        # assert-not-weak: run_migrations() has no parameters
+        mock_migrations.assert_called_once_with()
+        # assert-not-weak: verify_schema() has no parameters
+        mock_verify.assert_called_once_with()
+        # assert-not-weak: initialize_rabbitmq() has no parameters
+        mock_rabbitmq.assert_called_once_with()

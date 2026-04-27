@@ -57,7 +57,7 @@ class TestRetryDaemon:
 
         daemon.connect()
 
-        # assert-not-weak: predates reason requirement
+        # assert-not-weak: SyncEventPublisher() passed no args; exchange_name uses default
         mock_publisher_class.assert_called_once_with()
         mock_publisher.connect.assert_called_once_with()
         assert daemon.publisher == mock_publisher
@@ -211,7 +211,7 @@ class TestRetryDaemon:
             assert mock_publisher.publish.call_count == 2
             mock_channel.basic_ack.assert_any_call(1)
             mock_channel.basic_ack.assert_any_call(2)
-            # assert-not-weak: predates reason requirement
+            # assert-not-weak: pika channel cancel() has no parameters
             mock_channel.cancel.assert_called_once_with()
             mock_connection.close.assert_called_once()
             mock_url_params.assert_called_once_with("amqp://guest:guest@localhost:5672/")

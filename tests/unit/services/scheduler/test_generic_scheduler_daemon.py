@@ -125,18 +125,19 @@ class TestSchedulerDaemonConnect:
 
         # Verify PostgreSQL listener setup
         mock_listener_class.assert_called_once_with(daemon.database_url)
-        # assert-not-weak: predates reason requirement
+        # assert-not-weak: PostgresNotificationListener.connect() has no parameters
         mock_listener.connect.assert_called_once_with()
         mock_listener.listen.assert_called_once_with("test_channel")
 
         # Verify RabbitMQ publisher setup
-        # assert-not-weak: predates reason requirement
+        # assert-not-weak: SyncEventPublisher() passed no args; exchange_name uses default
         mock_publisher_class.assert_called_once_with()
-        # assert-not-weak: predates reason requirement
+        # assert-not-weak: SyncEventPublisher.connect() has no parameters
         mock_publisher.connect.assert_called_once_with()
 
         # Verify database session created
-        mock_session_local.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        # assert-not-weak: SyncSessionLocal() is a sessionmaker called with no arguments
+        mock_session_local.assert_called_once_with()
 
         # Verify connections stored
         assert daemon.listener == mock_listener
@@ -202,7 +203,8 @@ class TestSchedulerDaemonGetNextDueItem:
         mock_filter2.order_by.assert_called_once()
         (order_by_arg,) = mock_filter2.order_by.call_args.args
         assert str(order_by_arg) == str(NotificationSchedule.notification_time.asc())
-        mock_order.first.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        # assert-not-weak: SQLAlchemy first() has no parameters
+        mock_order.first.assert_called_once_with()
 
     def test_get_next_due_item_returns_record_when_found(self, daemon):
         """_get_next_due_item returns the record when one exists."""
@@ -503,7 +505,8 @@ class TestSchedulerDaemonProcessLoopIteration:
 
         # Should close old session and create new one
         mock_db.close.assert_called_once()
-        mock_session_local.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        # assert-not-weak: SyncSessionLocal() is a sessionmaker called with no arguments
+        mock_session_local.assert_called_once_with()
         # New session should be assigned
         assert daemon.db == new_session
 
@@ -541,9 +544,11 @@ class TestSchedulerDaemonRun:
 
         daemon.run(shutdown_after_three)
 
-        mock_connect.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        # assert-not-weak: SchedulerDaemon.connect() has no parameters
+        mock_connect.assert_called_once_with()
         assert mock_iteration.call_count == 3
-        mock_cleanup.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        # assert-not-weak: SchedulerDaemon._cleanup() has no parameters
+        mock_cleanup.assert_called_once_with()
 
     @patch.object(SchedulerDaemon, "connect")
     @patch.object(SchedulerDaemon, "_process_loop_iteration")
@@ -569,7 +574,8 @@ class TestSchedulerDaemonRun:
 
         # Should continue despite error
         assert mock_iteration.call_count == 3
-        mock_cleanup.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        # assert-not-weak: SchedulerDaemon._cleanup() has no parameters
+        mock_cleanup.assert_called_once_with()
 
     @patch.object(SchedulerDaemon, "connect")
     @patch.object(SchedulerDaemon, "_process_loop_iteration")
@@ -605,8 +611,10 @@ class TestSchedulerDaemonRun:
 
         daemon.run(lambda: False)
 
-        mock_connect.assert_called_once_with()  # assert-not-weak: predates reason requirement
-        mock_cleanup.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        # assert-not-weak: SchedulerDaemon.connect() has no parameters
+        mock_connect.assert_called_once_with()
+        # assert-not-weak: SchedulerDaemon._cleanup() has no parameters
+        mock_cleanup.assert_called_once_with()
 
 
 class TestSchedulerDaemonCleanup:
