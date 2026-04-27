@@ -22,7 +22,7 @@
 """Unit tests for RetryDaemon class."""
 
 from collections import namedtuple
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 
@@ -57,8 +57,8 @@ class TestRetryDaemon:
 
         daemon.connect()
 
-        mock_publisher_class.assert_called_once()
-        mock_publisher.connect.assert_called_once()
+        mock_publisher_class.assert_called_once_with()  # assert-no-args
+        mock_publisher.connect.assert_called_once_with()  # assert-no-args
         assert daemon.publisher == mock_publisher
 
     def test_get_routing_key_from_x_death(self, daemon):
@@ -149,6 +149,7 @@ class TestRetryDaemon:
                     queue=QUEUE_BOT_EVENTS_DLQ, durable=True
                 )
                 mock_connection.close.assert_called_once()
+                mock_connection_class.assert_called_once_with(ANY)
                 assert "is empty, nothing to process" in caplog.text
 
     def test_process_dlq_with_messages(self, daemon):
@@ -202,8 +203,9 @@ class TestRetryDaemon:
             assert mock_publisher.publish.call_count == 2
             mock_channel.basic_ack.assert_any_call(1)
             mock_channel.basic_ack.assert_any_call(2)
-            mock_channel.cancel.assert_called_once()
+            mock_channel.cancel.assert_called_once_with()  # assert-no-args
             mock_connection.close.assert_called_once()
+            mock_connection_class.assert_called_once_with(ANY)
 
     def test_process_dlq_with_publish_error(self, daemon):
         """Test error handling when republish fails."""
@@ -247,6 +249,7 @@ class TestRetryDaemon:
             # Should NACK with requeue when publish fails
             mock_channel.basic_nack.assert_called_once_with(1, requeue=True)
             mock_connection.close.assert_called_once()
+            mock_connection_class.assert_called_once_with(ANY)
 
     def test_process_dlq_connection_error(self, daemon, caplog):
         """Test error handling when connection fails."""
@@ -256,6 +259,7 @@ class TestRetryDaemon:
             daemon._process_dlq(QUEUE_BOT_EVENTS_DLQ)
 
             assert "Error during DLQ processing" in caplog.text
+            mock_connection_class.assert_called_once_with(ANY)
 
     def test_cleanup(self, daemon):
         """Test cleanup closes publisher connection."""
@@ -281,6 +285,8 @@ class TestRetryDaemon:
         daemon.publisher = None
 
         daemon._cleanup()
+
+        assert daemon.publisher is None
 
     @patch("services.retry.retry_daemon.time")
     @patch("services.retry.retry_daemon.SyncEventPublisher")
@@ -352,7 +358,7 @@ class TestRetryDaemon:
 
             daemon.run(lambda: False)
 
-            mock_process.assert_called_once()
+            mock_process.assert_called_once_with(QUEUE_BOT_EVENTS_DLQ)
 
     def test_process_dlq_publisher_not_initialized(self, daemon):
         """Test _process_dlq raises error if publisher not initialized."""
@@ -386,6 +392,7 @@ class TestRetryDaemon:
 
             # Should NACK message due to RuntimeError
             mock_channel.basic_nack.assert_called_once_with(1, requeue=True)
+            mock_connection_class.assert_called_once_with(ANY)
 
 
 class TestRetryDaemonHelpers:
@@ -441,7 +448,7 @@ class TestRetryDaemonHelpers:
         )
 
         assert result is True
-        mock_publisher.publish.assert_called_once()
+        mock_publisher.publish.assert_called_once_with(ANY, routing_key=ANY, expiration_ms=None)
         mock_channel.basic_ack.assert_called_once_with(123)
 
     def test_process_single_message_with_retry_count(self, daemon):
@@ -631,6 +638,7 @@ class TestRetryDaemonHelpers:
 
         assert processed == 2
         assert failed == 1
+        assert mock_process.call_count == 3
 
     def test_consume_and_process_messages_stops_at_count(self, daemon):
         """Test _consume_and_process_messages stops at expected count."""

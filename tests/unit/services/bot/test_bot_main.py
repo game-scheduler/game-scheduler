@@ -22,7 +22,8 @@
 """Tests for bot main entry point."""
 
 import logging
-from unittest.mock import AsyncMock, MagicMock, patch
+import os
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -42,6 +43,7 @@ class TestSetupLogging:
                 setup_logging("INFO")
 
                 mock_basic_config.assert_called_once()
+                mock_get_logger.assert_called()
                 call_kwargs = mock_basic_config.call_args[1]
                 assert call_kwargs["level"] == logging.INFO
 
@@ -54,6 +56,7 @@ class TestSetupLogging:
 
                 setup_logging("DEBUG")
 
+                mock_get_logger.assert_called()
                 call_kwargs = mock_basic_config.call_args[1]
                 assert call_kwargs["level"] == logging.DEBUG
 
@@ -66,6 +69,7 @@ class TestSetupLogging:
 
                 setup_logging("WARNING")
 
+                mock_get_logger.assert_called()
                 call_kwargs = mock_basic_config.call_args[1]
                 assert call_kwargs["level"] == logging.WARNING
 
@@ -91,6 +95,7 @@ class TestSetupLogging:
 
             mock_discord_logger.setLevel.assert_called_once_with(logging.WARNING)
             mock_http_logger.setLevel.assert_called_once_with(logging.WARNING)
+            mock_get_logger.assert_called()
 
     def test_setup_logging_format(self) -> None:
         """Test that logging format is correctly configured."""
@@ -128,8 +133,8 @@ class TestMain:
             with patch("services.bot.main.setup_logging"):
                 with patch("services.bot.main.create_bot", return_value=mock_bot):
                     with patch("logging.getLogger"):
-                        with patch.dict("os.environ", {}, clear=False) as env:
-                            env.pop("PYTEST_RUNNING", None)
+                        with patch.dict("os.environ", {}, clear=False):
+                            os.environ.pop("PYTEST_RUNNING", None)
                             await main()
 
                             mock_bot.start.assert_awaited_once_with("test_token")
@@ -151,8 +156,8 @@ class TestMain:
             with patch("services.bot.main.setup_logging"):
                 with patch("services.bot.main.create_bot", return_value=mock_bot):
                     with patch("logging.getLogger") as mock_get_logger:
-                        with patch.dict("os.environ", {}, clear=False) as env:
-                            env.pop("PYTEST_RUNNING", None)
+                        with patch.dict("os.environ", {}, clear=False):
+                            os.environ.pop("PYTEST_RUNNING", None)
                             mock_logger = MagicMock()
                             mock_get_logger.return_value = mock_logger
 
@@ -161,6 +166,7 @@ class TestMain:
                             mock_logger.info.assert_any_call(
                                 "Received interrupt signal, shutting down"
                             )
+                            mock_get_logger.assert_called()
 
     @pytest.mark.asyncio
     async def test_main_exception_handling(self) -> None:
@@ -182,16 +188,19 @@ class TestMain:
                     with patch("logging.getLogger") as mock_get_logger:
                         with patch("sys.exit") as mock_exit:
                             with patch("services.bot.main.asyncio.sleep") as mock_sleep:
-                                with patch.dict("os.environ", {}, clear=False) as env:
-                                    env.pop("PYTEST_RUNNING", None)
+                                with patch.dict("os.environ", {}, clear=False):
+                                    os.environ.pop("PYTEST_RUNNING", None)
                                     mock_logger = MagicMock()
                                     mock_get_logger.return_value = mock_logger
 
                                     await main()
 
-                                    mock_logger.exception.assert_called_once()
+                                    mock_logger.exception.assert_called_once_with(
+                                        "Fatal error: %s", ANY
+                                    )
                                     mock_sleep.assert_called_once_with(30)
                                     mock_exit.assert_called_once_with(1)
+                                    mock_get_logger.assert_called()
 
     @pytest.mark.asyncio
     async def test_main_logs_startup_information(self) -> None:
@@ -210,8 +219,8 @@ class TestMain:
             with patch("services.bot.main.setup_logging"):
                 with patch("services.bot.main.create_bot", return_value=mock_bot):
                     with patch("logging.getLogger") as mock_get_logger:
-                        with patch.dict("os.environ", {}, clear=False) as env:
-                            env.pop("PYTEST_RUNNING", None)
+                        with patch.dict("os.environ", {}, clear=False):
+                            os.environ.pop("PYTEST_RUNNING", None)
                             mock_logger = MagicMock()
                             mock_get_logger.return_value = mock_logger
 
@@ -219,3 +228,4 @@ class TestMain:
 
                             mock_logger.info.assert_any_call("Starting Discord Game Scheduler Bot")
                             mock_logger.info.assert_any_call("Environment: %s", "production")
+                            mock_get_logger.assert_called()
