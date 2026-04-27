@@ -11,6 +11,21 @@ A unit test is only valuable if a wrong implementation would cause it to fail. A
 
 **Before writing a test, ask:** if I swap two arguments, delete a return value, or invert a condition, will this test catch it? If the answer is no, the test needs more assertions.
 
+## The Scanner Is a Floor, Not a Target
+
+The pre-commit checker flags common patterns of weak assertions. Satisfying the checker is the minimum bar — not the goal. The goal is tests that catch real bugs.
+
+**Do not write assertions whose only purpose is to silence the checker.** If the only way to satisfy a violation is to add an assertion that doesn't verify anything meaningful, the right response is to write a better test, not to add a hollow assertion.
+
+Examples of gaming the scanner that are explicitly prohibited:
+
+- Adding `assert True` to a test that has observable behavior that should be verified
+- Replacing `assert_called_once()` with `assert mock.call_count == 1` to avoid the weak-assert check
+- Using `assert_called_once_with(ANY, ANY)` when the actual arguments are available and verifiable
+- Adding `# assert-no-args` to avoid writing real argument assertions
+
+When you encounter a scanner violation, ask: **what is the code under test actually doing that I should be verifying?** Answer that question, then write the assertion. The scanner violation will resolve as a side effect.
+
 ## Required: Every Test Function Must Have at Least One Assertion
 
 Every `test_*` function must contain at least one of:
