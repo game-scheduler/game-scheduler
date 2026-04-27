@@ -312,7 +312,7 @@ def test_main_all_flag_uses_get_all_test_files(tmp_path: Path) -> None:
         with mock.patch.object(check_test_assertions, "get_staged_test_files") as mock_staged:
             with mock.patch.object(sys, "argv", ["check_test_assertions.py", "--all"]):
                 exit_code = check_test_assertions.main()
-    mock_all.assert_called_once_with()  # assert-no-args: get_all_test_files takes no arguments
+    mock_all.assert_called_once_with()  # assert-not-weak: get_all_test_files takes no arguments
     mock_staged.assert_not_called()
     assert exit_code == 0
 
@@ -367,7 +367,7 @@ def test_get_weak_assert_violations_close_is_exempt() -> None:
 
 
 def test_get_weak_assert_violations_inline_marker_exempts() -> None:
-    source = f"def test_foo():\n    mock_get_config.assert_called_once_with()  {_MARKER}\n"
+    source = f"def test_foo():\n    mock_get_config.assert_called_once_with()  {_MARKER}: no-args\n"
     func = _parse_func(source)
     result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
     assert result == []
@@ -389,7 +389,7 @@ def test_get_weak_assert_violations_empty_assert_called_once_with_is_violation()
 
 
 def test_get_weak_assert_violations_empty_with_marker_is_exempt() -> None:
-    source = f"def test_foo():\n    mock_get_client.assert_called_once_with()  {_MARKER}\n"
+    source = f"def test_foo():\n    mock_get_client.assert_called_once_with()  {_MARKER}: no-args\n"
     func = _parse_func(source)
     result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
     assert result == []
@@ -449,7 +449,7 @@ def test_get_weak_assert_violations_jedi_validates_no_arg_annotation_is_correct(
     source = (
         "def test_foo():\n"
         f"    with patch('services.bot.formatters.game_message.get_config') as mock_config:\n"
-        f"        mock_config.assert_called_once_with()  {_MARKER}\n"
+        f"        mock_config.assert_called_once_with()  {_MARKER}: no-args\n"
     )
     func = _parse_func(source)
     result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
@@ -461,12 +461,12 @@ def test_get_weak_assert_violations_jedi_flags_wrong_no_arg_annotation() -> None
         "def test_foo():\n"
         "    with patch("
         "'services.bot.formatters.game_message.format_game_announcement') as mock_fmt:\n"
-        f"        mock_fmt.assert_called_once_with()  {_MARKER}\n"
+        f"        mock_fmt.assert_called_once_with()  {_MARKER}: no-args\n"
     )
     func = _parse_func(source)
     result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
     assert len(result) == 1
-    assert "assert-no-args" in result[0][1]
+    assert "assert-not-weak" in result[0][1]
     assert "parameter" in result[0][1]
 
 
@@ -486,7 +486,7 @@ def test_check_file_weak_assert_called_once_reports_violation(tmp_path: Path) ->
 def test_check_file_weak_assert_with_marker_is_clean(tmp_path: Path) -> None:
     test_file = tmp_path / "test_example.py"
     test_file.write_text(
-        f"def test_foo():\n    mock_get_config.assert_called_once_with()  {_MARKER}\n"
+        f"def test_foo():\n    mock_get_config.assert_called_once_with()  {_MARKER}: no-args\n"
     )
     violations = check_test_assertions.check_file(test_file, diff_only=False)
     assert violations == []
@@ -578,7 +578,9 @@ def test_count_weak_assert_markers_empty_diff_returns_zero() -> None:
 
 
 def test_get_weak_assert_violations_bare_assert_called_once_with_marker_is_violation() -> None:
-    source = f"def test_foo():\n    mock_cfg.assert_called_once()  {_MARKER}\n    assert True\n"
+    source = (
+        f"def test_foo():\n    mock_cfg.assert_called_once()  {_MARKER}: no-args\n    assert True\n"
+    )
     func = _parse_func(source)
     result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
     assert len(result) == 1
@@ -589,7 +591,7 @@ def test_jedi_verifies_no_args_at_line_true_for_no_arg_patch_target() -> None:
     source = (
         "def test_foo():\n"
         "    with patch('services.bot.formatters.game_message.get_config') as mock_cfg:\n"
-        f"        mock_cfg.assert_called_once_with()  {_MARKER}\n"
+        f"        mock_cfg.assert_called_once_with()  {_MARKER}: no-args\n"
     )
     assert check_test_assertions._jedi_verifies_no_args_at_line(source, 3) is True
 
@@ -599,7 +601,7 @@ def test_jedi_verifies_no_args_at_line_false_for_function_with_args() -> None:
         "def test_foo():\n"
         "    with patch('services.bot.formatters.game_message.format_game_announcement')"
         " as mock_fmt:\n"
-        f"        mock_fmt.assert_called_once_with()  {_MARKER}\n"
+        f"        mock_fmt.assert_called_once_with()  {_MARKER}: no-args\n"
     )
     assert check_test_assertions._jedi_verifies_no_args_at_line(source, 3) is False
 
@@ -608,7 +610,7 @@ def test_jedi_verifies_no_args_at_line_true_for_optional_only_params() -> None:
     source = (
         "def test_foo():\n"
         "    with patch('shared.cache.client.RedisClient') as mock_cls:\n"
-        f"        mock_cls.assert_called_once_with()  {_MARKER}\n"
+        f"        mock_cls.assert_called_once_with()  {_MARKER}: no-args\n"
     )
     assert check_test_assertions._jedi_verifies_no_args_at_line(source, 3) is True
 
@@ -617,7 +619,7 @@ def test_jedi_verifies_no_args_at_line_false_when_no_patch_alias() -> None:
     source = (
         "def test_foo():\n"
         "    mock_cfg = MagicMock()\n"
-        f"    mock_cfg.assert_called_once_with()  {_MARKER}\n"
+        f"    mock_cfg.assert_called_once_with()  {_MARKER}: no-args\n"
     )
     assert check_test_assertions._jedi_verifies_no_args_at_line(source, 3) is False
 

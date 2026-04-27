@@ -79,22 +79,22 @@ This mirrors the `APPROVED_SKIP` mechanism for `SKIP`-based bypasses.
 
 ## `APPROVED_WEAK_ASSERTIONS` Environment Variable
 
-`# assert-no-args` annotations in test files are counted per commit. If the count
+`# assert-not-weak: <reason>` annotations in test files are counted per commit. If the count
 exceeds `APPROVED_WEAK_ASSERTIONS`, the commit is blocked.
 
-- **What it controls**: The number of `# assert-no-args` annotations permitted in a single commit
+- **What it controls**: The number of `# assert-not-weak: <reason>` annotations permitted in a single commit
 - **Resets per commit**: No banking across commits — each commit requires its own approval
 - **Usage**: `APPROVED_WEAK_ASSERTIONS=2 git commit -m "..."` to permit exactly two annotations
 
 **Before requesting any value of `APPROVED_WEAK_ASSERTIONS`, verify each annotation individually.**
-For each `# assert-no-args` you plan to add, answer:
+For each `# assert-not-weak: <reason>` you plan to add, answer:
 
 1. Does the function under test actually take no arguments?
 2. Are there arguments passed to this call in the code under test that, if wrong, would produce incorrect behavior?
 3. If there are arguments, can they be named in the assertion (or approximated with `ANY`)?
 
 If the answers to (2) and (3) are both yes, **the right fix is `assert_called_once_with(...)`,
-not `# assert-no-args`**.
+not `# assert-not-weak: <reason>`**.
 
 **Common false justification — "constructor args are internal/opaque":**
 
@@ -110,7 +110,7 @@ Claiming they are "internal/opaque" is factually wrong — a bug that passes the
 would not be caught by `assert_called_once()` but would be caught by
 `assert_called_once_with(title=expected_title, description=expected_description, color=expected_color)`.
 
-Before writing any `# assert-no-args` on a constructor call, look at the actual call site
+Before writing any `# assert-not-weak: <reason>` on a constructor call, look at the actual call site
 and ask: "Are named arguments passed here?" If yes, those arguments must be verified.
 
 ## Required Approval Process
@@ -118,7 +118,7 @@ and ask: "Are named arguments passed here?" If yes, those arguments must be veri
 **Your justification will be questioned.** The user will ask follow-up questions to test
 whether the bypass is genuinely necessary. Do the cross-examination yourself first:
 
-- For each `# assert-no-args`: Could I write `assert_called_once_with(...)` with real arguments
+- For each `# assert-not-weak: <reason>`: Could I write `assert_called_once_with(...)` with real arguments
   here? If yes, that is the right fix, not a marker.
 - For each `APPROVED_OVERRIDES`: Is this a genuine false positive, or is the check flagging
   real complexity I am avoiding?
@@ -132,7 +132,7 @@ Before implementing any override:
 
 1. **Self-verify first**: Run the cross-examination above before presenting the request.
    If you cannot answer "yes, the function genuinely takes no meaningful arguments" for
-   each `# assert-no-args`, stop and write real assertions instead.
+   each `# assert-not-weak: <reason>`, stop and write real assertions instead.
 
 2. **Explain the Need**: Clearly state why the override is necessary
    - What specific issue prevents passing the check?

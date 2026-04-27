@@ -385,7 +385,7 @@ class TestGameMessageFormatterHelpers:
 
         assert truncated == long_description
         assert calendar_url == "https://example.com/download-calendar/test-game-id"
-        mock_config.assert_called_once_with()  # assert-no-args
+        mock_config.assert_called_once_with()  # assert-not-weak: predates reason
 
     def test_prepare_description_and_urls_keeps_short_description(self):
         """Test that short descriptions are not truncated."""
@@ -645,7 +645,7 @@ class TestFormatGameAnnouncement:
                 assert call_kwargs["description"] == "Fun times"
                 assert call_kwargs["host_id"] == "host123"
                 assert call_kwargs["channel_id"] == "voice123"
-                mock_formatter_class.assert_called_once_with()  # assert-no-args
+                mock_formatter_class.assert_called_once_with()  # assert-not-weak: predates reason
 
     def test_embed_includes_url_when_game_id_provided(self):
         """Test that embed includes calendar download URL when game_id is provided."""
@@ -679,7 +679,7 @@ class TestFormatGameAnnouncement:
                 call_kwargs = mock_embed_class.call_args[1]
                 # Title is now plain text without URL
                 assert "url" not in call_kwargs
-                mock_get_config.assert_called_once_with()  # assert-no-args
+                mock_get_config.assert_called_once_with()  # assert-not-weak: predates reason
 
     def test_embed_excludes_url_when_game_id_not_provided(self):
         """Test that embed excludes URL when game_id is not provided."""

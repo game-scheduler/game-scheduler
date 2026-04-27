@@ -92,7 +92,7 @@ def test_foo():
 
 ### `test_foo: \`assert_called_once()\` — prefer assert_called_once_with()`
 
-### `test_foo: \`assert_called_once_with()\` — add arguments or add '# assert-no-args'`
+### `test_foo: \`assert_called_once_with()\` — add arguments or add '# assert-not-weak: <reason>'`
 
 Both violations mean the same thing: the mock's call count is verified but not
 what arguments it received. A bug that passes the wrong argument will not be
@@ -119,7 +119,7 @@ from unittest.mock import ANY
 mock_check.assert_called_once_with("user123", guild_config.guild_id, ANY)
 ```
 
-**The escape hatch — `# assert-no-args`:**
+**The escape hatch — `# assert-not-weak: <reason>`:**
 
 This marker suppresses the violation. It exists for the narrow case where the
 function under test genuinely takes no arguments and no `ANY`-based assertion
@@ -134,16 +134,20 @@ If the answer to (2) is "incidental," the right fix is to remove the `as` alias
 entirely, not to add a marker. If the answer to (1) is "it does take arguments
 but they are complex," use `ANY` for the parts you cannot easily reference.
 
+The marker **requires a reason** after the colon — `# assert-not-weak: <reason>`.
+A reason is mandatory; a bare `# assert-not-weak` is not recognized and will not
+suppress the violation.
+
 ```python
 # legitimate use: get_config takes no arguments; assert_called_once_with() verifies
 # both that it was called once and that no arguments were passed
-mock_get_config.assert_called_once_with()  # assert-no-args
+mock_get_config.assert_called_once_with()  # assert-not-weak: get_config takes no args
 
 # wrong use: bare assert_called_once() is weaker — use assert_called_once_with() instead
-mock_get_config.assert_called_once()  # assert-no-args  ← DO NOT DO THIS
+mock_get_config.assert_called_once()  # assert-not-weak: ...  ← DO NOT DO THIS
 
 # wrong use: the function takes real arguments but this is easier than writing them out
-mock_get_client.assert_called_once_with()  # assert-no-args  ← DO NOT DO THIS
+mock_get_client.assert_called_once_with()  # assert-not-weak: ...  ← DO NOT DO THIS
 ```
 
 **Auto-exempted methods:**
@@ -160,13 +164,13 @@ If a method in the codebase genuinely takes no arguments (e.g., a Discord color
 property accessor like `Color.green()`), add it to this list rather than
 annotating every call site.
 
-**The `# assert-no-args` marker is counted and gated:**
+**The `# assert-not-weak` marker is counted and gated:**
 
-Each use of `# assert-no-args` in a commit is counted. The commit is blocked if
+Each use of `# assert-not-weak: <reason>` in a commit is counted. The commit is blocked if
 the count exceeds `APPROVED_WEAK_ASSERTIONS`:
 
 ```bash
-# permits exactly 2 assert-no-args annotations in this commit
+# permits exactly 2 assert-not-weak annotations in this commit
 APPROVED_WEAK_ASSERTIONS=2 git commit -m "..."
 ```
 
@@ -189,20 +193,20 @@ and get explicit user confirmation.
 
 ```python
 # legitimate: coroutine is created internally; call count confirms the task was scheduled
-mock_create_task.assert_called_once()  # assert-no-args: coroutine is opaque internal detail
+mock_create_task.assert_called_once()  # assert-not-weak: coroutine is opaque internal detail
 
 # wrong: Embed takes title, description, color — those should be verified
-mock_embed_class.assert_called_once()  # assert-no-args  ← DO NOT DO THIS
+mock_embed_class.assert_called_once()  # assert-not-weak: ...  ← DO NOT DO THIS
 ```
 
 ## Choosing the Right Assertion
 
-| Situation                            | Preferred assertion                                     |
-| ------------------------------------ | ------------------------------------------------------- |
-| Return value exists                  | `assert result == expected`                             |
-| Side-effect only (void function)     | `mock.assert_called_once_with(args)`                    |
-| Mock must not be called              | `mock.assert_not_called()`                              |
-| Exception expected                   | `pytest.raises(ExceptionType)`                          |
-| No return value, no mock to verify   | `assert True  # verifies no exception raised`           |
-| Method is in `no-arg-methods` config | `mock.method.assert_called_once()` — auto-exempted      |
-| Args truly opaque (rare, gated)      | `mock.assert_called_once()  # assert-no-args: <reason>` |
+| Situation                            | Preferred assertion                                           |
+| ------------------------------------ | ------------------------------------------------------------- |
+| Return value exists                  | `assert result == expected`                                   |
+| Side-effect only (void function)     | `mock.assert_called_once_with(args)`                          |
+| Mock must not be called              | `mock.assert_not_called()`                                    |
+| Exception expected                   | `pytest.raises(ExceptionType)`                                |
+| No return value, no mock to verify   | `assert True  # verifies no exception raised`                 |
+| Method is in `no-arg-methods` config | `mock.method.assert_called_once()` — auto-exempted            |
+| Args truly opaque (rare, gated)      | `mock.assert_called_once_with()  # assert-not-weak: <reason>` |

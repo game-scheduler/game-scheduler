@@ -35,7 +35,8 @@ except ImportError:
     _jedi = None  # type: ignore[assignment]
 
 _ASSERT_PREFIXES = ("assert_",)
-_WEAK_ASSERT_MARKER = "# assert-no-args"
+_WEAK_ASSERT_MARKER = "# assert-not-weak"
+_VALID_WEAK_ASSERT_MARKER = "# assert-not-weak: "
 
 
 def _load_no_arg_methods() -> frozenset[str]:
@@ -288,7 +289,7 @@ def _jedi_annotation_violation(
     short_name = patch_target.rsplit(".", 1)[-1]
     return (
         lineno,
-        f"{func_name}: `{_WEAK_ASSERT_MARKER}` on `{root}` is wrong"
+        f"{func_name}: `{_VALID_WEAK_ASSERT_MARKER}<reason>` on `{root}` is wrong"
         f" — `{short_name}()` has {param_count} parameter(s); use"
         " assert_called_once_with(...)",
     )
@@ -299,7 +300,7 @@ def _is_weak_assert_exempt(method_name: str | None, lineno: int, source_lines: l
     if method_name in _NO_ARG_METHODS:
         return True
     line_text = source_lines[lineno - 1] if lineno <= len(source_lines) else ""
-    return _WEAK_ASSERT_MARKER in line_text
+    return _VALID_WEAK_ASSERT_MARKER in line_text
 
 
 def _weak_assert_violation(
@@ -321,11 +322,13 @@ def _weak_assert_violation(
     call_form = f"{method_name}.{attr}()" if method_name else f"{attr}()"
     if is_bare:
         suggestion = (
-            f"prefer assert_called_once_with(...) or add '{_WEAK_ASSERT_MARKER}' if args are opaque"
+            f"prefer assert_called_once_with(...) or add"
+            f" '{_VALID_WEAK_ASSERT_MARKER}<reason>' if args are opaque"
         )
     else:
         suggestion = (
-            f"add arguments or add '{_WEAK_ASSERT_MARKER}' if the function genuinely takes no args"
+            f"add arguments or add '{_VALID_WEAK_ASSERT_MARKER}<reason>'"
+            " if the function genuinely takes no args"
         )
     return (node.lineno, f"{func_name}: `{call_form}` — {suggestion}")
 
@@ -357,12 +360,12 @@ def _exempt_or_marker_violation(
         if patch_target and patch_target.rsplit(".", 1)[-1] in _NO_ARG_METHODS:
             return True, None
     line_text = source_lines[node.lineno - 1] if node.lineno <= len(source_lines) else ""
-    if _WEAK_ASSERT_MARKER not in line_text:
+    if _VALID_WEAK_ASSERT_MARKER not in line_text:
         return False, None
     if node.func.attr == "assert_called_once":
         return True, (
             node.lineno,
-            f"{func_node.name}: `assert_called_once()  {_WEAK_ASSERT_MARKER}` —"
+            f"{func_node.name}: `assert_called_once()  {_VALID_WEAK_ASSERT_MARKER}<reason>` —"
             " use `assert_called_once_with()` to verify no arguments were passed",
         )
     v = None
@@ -382,10 +385,10 @@ def get_weak_assert_violations(
     Flags:
     - assert_called_once() — no argument verification at all
     - assert_called_once_with() with no args — equivalent weakness
-    - '# assert-no-args' on a call whose patch target has parameters (via Jedi)
+    - '# assert-not-weak: <reason>' on a call whose patch target has parameters (via Jedi)
 
     Exempts calls on known no-arg methods (flush, commit, etc.), any line
-    carrying a '# assert-no-args' comment, and calls where the same receiver's
+    carrying a '# assert-not-weak: <reason>' comment, and calls where the same receiver's
     .call_args or .call_args_list is accessed elsewhere in the same test.
     """
     patch_aliases = _collect_patch_aliases(func_node)
@@ -498,7 +501,7 @@ def _count_unverified_markers(pending: list[tuple[str, int]]) -> int:
 
 
 def _count_weak_assert_markers_in_staged_diff() -> int:
-    """Count '# assert-no-args' added in staged diff that Jedi cannot verify as correct."""
+    """Count '# assert-not-weak' annotations added in staged diff that Jedi cannot verify."""
     git = shutil.which("git") or "git"
     result = subprocess.run(  # noqa: S603
         [git, "diff", "--cached", "-U0"],

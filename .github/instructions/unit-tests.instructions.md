@@ -22,7 +22,7 @@ Examples of gaming the scanner that are explicitly prohibited:
 - Adding `assert True` to a test that has observable behavior that should be verified
 - Replacing `assert_called_once()` with `assert mock.call_count == 1` to avoid the weak-assert check
 - Using `assert_called_once_with(ANY, ANY)` when the actual arguments are available and verifiable
-- Adding `# assert-no-args` to avoid writing real argument assertions
+- Adding `# assert-not-weak: <reason>` to avoid writing real argument assertions
 
 When you encounter a scanner violation, ask: **what is the code under test actually doing that I should be verifying?** Answer that question, then write the assertion. The scanner violation will resolve as a side effect.
 
