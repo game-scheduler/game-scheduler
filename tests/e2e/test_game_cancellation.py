@@ -131,3 +131,81 @@ async def test_game_cancellation_updates_message(
         message_id=original_message_id,
         timeout=test_timeouts[TimeoutType.MESSAGE_UPDATE],
     )
+
+
+@pytest.mark.asyncio
+async def test_game_cancellation_with_participant_updates_message(
+    authenticated_admin_client,
+    admin_db,
+    discord_helper,
+    discord_guild_id,
+    discord_channel_id,
+    discord_user_id,
+    synced_guild,
+    test_timeouts,
+):
+    """
+    E2E: Cancelling a game that has a participant via DELETE /games/{id} succeeds.
+
+    Reproduces the production bug where SQLAlchemy tried to SET game_session_id=NULL
+    on loaded participant rows, which was blocked by the RLS WITH CHECK policy.
+    """
+    result = await admin_db.execute(
+        text("SELECT id FROM guild_configurations WHERE guild_id = :guild_id"),
+        {"guild_id": discord_guild_id},
+    )
+    row = result.fetchone()
+    assert row, f"Test guild {discord_guild_id} not found"
+    test_guild_id = row[0]
+
+    result = await admin_db.execute(
+        text("SELECT id FROM game_templates WHERE guild_id = :guild_id AND is_default = true"),
+        {"guild_id": test_guild_id},
+    )
+    row = result.fetchone()
+    assert row, f"Default template not found for guild {test_guild_id}"
+    test_template_id = row[0]
+
+    scheduled_time = datetime.now(UTC) + timedelta(hours=2)
+    game_title = f"E2E Cancellation With Participant {uuid4().hex[:8]}"
+
+    game_data = {
+        "template_id": test_template_id,
+        "title": game_title,
+        "description": "This game has a participant and will be cancelled",
+        "scheduled_at": scheduled_time.isoformat(),
+        "max_players": "4",
+        "initial_participants": f'["<@{discord_user_id}>"]',
+    }
+
+    response = await authenticated_admin_client.post("/api/v1/games", data=game_data)
+    assert response.status_code == 201, f"Failed to create game: {response.text}"
+    game_id = response.json()["id"]
+
+    original_message_id = await wait_for_game_message_id(
+        admin_db, game_id, timeout=test_timeouts[TimeoutType.DB_WRITE]
+    )
+    assert original_message_id is not None, "message_id should be populated after announcement"
+
+    await discord_helper.wait_for_message(
+        channel_id=discord_channel_id,
+        message_id=original_message_id,
+        timeout=test_timeouts[TimeoutType.MESSAGE_CREATE],
+    )
+
+    delete_response = await authenticated_admin_client.delete(f"/api/v1/games/{game_id}")
+    assert delete_response.status_code == 204, f"Failed to cancel game: {delete_response.text}"
+
+    result = await admin_db.execute(
+        text("SELECT id FROM game_sessions WHERE id = :id"),
+        {"id": game_id},
+    )
+    assert result.scalar_one_or_none() is None, (
+        "Game row should be absent from DB after cancellation"
+    )
+
+    await discord_helper.wait_for_message_deleted(
+        channel_id=discord_channel_id,
+        message_id=original_message_id,
+        timeout=test_timeouts[TimeoutType.MESSAGE_UPDATE],
+    )

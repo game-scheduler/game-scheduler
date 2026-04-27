@@ -136,3 +136,75 @@ async def test_handle_embed_deleted_is_idempotent_when_game_missing(
 
     message_count = get_queue_message_count(rabbitmq_channel, game_cancelled_queue)
     assert message_count == 0, "No GAME_CANCELLED must be published when game was not found"
+
+
+@pytest.mark.asyncio
+async def test_handle_embed_deleted_with_participant_removes_game_and_publishes_cancelled(
+    admin_db_sync,
+    rabbitmq_channel,
+    game_cancelled_queue,
+    create_user,
+    create_guild,
+    create_channel,
+    create_game,
+):
+    """_handle_embed_deleted must delete game and participant rows and publish GAME_CANCELLED."""
+    guild = create_guild(discord_guild_id="551000000000000001")
+    channel = create_channel(guild_id=guild["id"], discord_channel_id="551000000000000002")
+    host = create_user(discord_user_id="551000000000000003")
+    game = create_game(
+        guild_id=guild["id"],
+        channel_id=channel["id"],
+        host_id=host["id"],
+        title="Embed Deletion With Participant Integration Test",
+    )
+    participant = create_user(discord_user_id="551000000000000004")
+    admin_db_sync.execute(
+        text(
+            "INSERT INTO game_participants (id, game_session_id, user_id, position_type, position) "
+            "VALUES (:id, :game_id, :user_id, 24000, 0)"
+        ),
+        {"id": str(uuid.uuid4()), "game_id": game["id"], "user_id": participant["id"]},
+    )
+    admin_db_sync.commit()
+
+    rows_before = admin_db_sync.execute(
+        text("SELECT id FROM game_sessions WHERE id = :id"),
+        {"id": game["id"]},
+    ).fetchall()
+    assert len(rows_before) == 1, "Game must exist before the handler runs"
+
+    participant_rows_before = admin_db_sync.execute(
+        text("SELECT id FROM game_participants WHERE game_session_id = :id"),
+        {"id": game["id"]},
+    ).fetchall()
+    assert len(participant_rows_before) == 1, "Participant must exist before the handler runs"
+
+    consumer = EmbedDeletionConsumer()
+    event = Event(
+        event_type=EventType.EMBED_DELETED,
+        data={"game_id": game["id"], "channel_id": "551000000000000002", "message_id": "1"},
+    )
+
+    await consumer._handle_embed_deleted(event)
+
+    await asyncio.sleep(0.5)
+
+    rows_after = admin_db_sync.execute(
+        text("SELECT id FROM game_sessions WHERE id = :id"),
+        {"id": game["id"]},
+    ).fetchall()
+    assert len(rows_after) == 0, "Game must be deleted after the handler runs"
+
+    participant_rows_after = admin_db_sync.execute(
+        text("SELECT id FROM game_participants WHERE game_session_id = :id"),
+        {"id": game["id"]},
+    ).fetchall()
+    assert len(participant_rows_after) == 0, "Participant rows must be deleted with the game"
+
+    message_count = get_queue_message_count(rabbitmq_channel, game_cancelled_queue)
+    assert message_count == 1, "Handler must publish GAME_CANCELLED to RabbitMQ"
+
+    _, _, body = consume_one_message(rabbitmq_channel, game_cancelled_queue)
+    payload = json.loads(body)
+    assert str(payload["data"]["game_id"]) == game["id"]

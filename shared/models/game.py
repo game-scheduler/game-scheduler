@@ -117,7 +117,7 @@ class GameSession(Base):
     )
     host: Mapped["User"] = relationship("User", back_populates="hosted_games")
     participants: Mapped[list["GameParticipant"]] = relationship(
-        "GameParticipant", back_populates="game"
+        "GameParticipant", back_populates="game", passive_deletes="all"
     )
     thumbnail: Mapped["GameImage | None"] = relationship(
         "GameImage", foreign_keys=[thumbnail_id], lazy="selectin"

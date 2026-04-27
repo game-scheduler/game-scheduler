@@ -156,3 +156,53 @@ async def test_case2_sweep_http_trigger(
         timeout=test_timeouts[TimeoutType.MESSAGE_UPDATE],
         description=f"game {game_id} removal after sweep",
     )
+
+
+@pytest.mark.asyncio
+async def test_case3_real_time_deletion_with_participant(
+    authenticated_admin_client,
+    admin_db: AsyncSession,
+    discord_helper,
+    discord_channel_id,
+    discord_user_id,
+    synced_guild: GuildContext,
+    test_timeouts,
+):
+    """
+    E2E Case 3: Deleting the Discord message removes a game that has a participant.
+
+    Reproduces the production bug where the embed deletion consumer tried to SET
+    game_session_id=NULL on loaded participant rows before deleting the game,
+    which was blocked by the NOT NULL constraint.
+    """
+    scheduled_time = datetime.now(UTC) + timedelta(hours=2)
+    game_title = f"E2E Embed Delete With Participant {uuid4().hex[:8]}"
+
+    game_data = {
+        "template_id": synced_guild.template_id,
+        "title": game_title,
+        "description": "Embed deletion with participant test",
+        "scheduled_at": scheduled_time.isoformat(),
+        "max_players": "4",
+        "initial_participants": f'["<@{discord_user_id}>"]',
+    }
+
+    response = await authenticated_admin_client.post("/api/v1/games", data=game_data)
+    assert response.status_code == 201, f"Failed to create game: {response.text}"
+    game_id = response.json()["id"]
+
+    message_id = await wait_for_game_message_id(
+        admin_db, game_id, timeout=test_timeouts[TimeoutType.DB_WRITE]
+    )
+    assert message_id is not None
+
+    await discord_helper.delete_message(discord_channel_id, message_id)
+
+    await wait_for_db_condition(
+        admin_db,
+        "SELECT COUNT(*) FROM game_sessions WHERE id = :id",
+        {"id": game_id},
+        lambda row: row[0] == 0,
+        timeout=test_timeouts[TimeoutType.MESSAGE_UPDATE],
+        description=f"game {game_id} removal after embed deletion with participant",
+    )

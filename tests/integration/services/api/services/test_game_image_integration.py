@@ -28,9 +28,11 @@ cleaning up images with reference counting.
 
 import datetime
 import hashlib
+import uuid
 from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -866,6 +868,110 @@ async def test_delete_game_cascades_participants_gone(
         select(GameParticipant).where(GameParticipant.game_session_id == game_id)
     )
     assert participants.scalars().all() == [], "Participant rows should be absent after deletion"
+
+
+@pytest.mark.asyncio
+async def test_delete_game_with_participant_succeeds(
+    admin_db: AsyncSession,
+    app_db: AsyncSession,
+    mock_discord_api_client,
+    mock_event_publisher,
+    mock_participant_resolver,
+    mock_role_service,
+    create_guild,
+    create_channel,
+    create_template,
+    create_user,
+    seed_redis_cache,
+) -> None:
+    """delete_game() via app_db (RLS-enforced session) succeeds when participants are present.
+
+    Uses app_db to match production: without passive_deletes="all", SQLAlchemy emits
+    UPDATE game_participants SET game_session_id=NULL which violates the RLS WITH CHECK policy.
+    """
+    guild = create_guild()
+    channel = create_channel(guild_id=guild["id"])
+    template = create_template(guild_id=guild["id"], channel_id=channel["id"])
+    host = create_user()
+    participant_user = create_user()
+
+    await seed_redis_cache(
+        user_discord_id=host["discord_id"],
+        guild_discord_id=guild["guild_id"],
+        channel_discord_id=channel["channel_id"],
+        user_roles=[],
+        session_token="test-session",
+        session_user_id=host["id"],
+        session_access_token="valid-test-token",
+    )
+
+    setup_service = GameService(
+        db=admin_db,
+        event_publisher=mock_event_publisher,
+        discord_client=mock_discord_api_client,
+        participant_resolver=mock_participant_resolver,
+        channel_resolver=MagicMock(),
+    )
+
+    game_data = GameCreateRequest(
+        title="Delete With Participant Test",
+        description="Has a participant — delete must not try to NULL the FK",
+        scheduled_at=datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1),
+        template_id=template["id"],
+    )
+    game = await setup_service.create_game(
+        game_data=game_data,
+        host_user_id=host["id"],
+    )
+    await admin_db.commit()
+    game_id = game.id
+
+    admin_db.add(
+        GameParticipant(
+            id=str(uuid.uuid4()),
+            game_session_id=game_id,
+            user_id=participant_user["id"],
+            position_type=24000,
+            position=0,
+        )
+    )
+    await admin_db.commit()
+
+    host_result = await admin_db.execute(select(User).where(User.id == host["id"]))
+    host_model = host_result.scalar_one()
+    current_user = CurrentUser(
+        user=host_model,
+        access_token="valid-test-token",
+        session_token="test-session",
+    )
+
+    # Set RLS guild context on app_db, matching what get_db_with_user_guilds() does in production.
+    await app_db.execute(
+        text("SELECT set_config('app.current_guild_ids', :guild_ids, false)"),
+        {"guild_ids": guild["id"]},
+    )
+    app_service = GameService(
+        db=app_db,
+        event_publisher=mock_event_publisher,
+        discord_client=mock_discord_api_client,
+        participant_resolver=mock_participant_resolver,
+        channel_resolver=MagicMock(),
+    )
+
+    await app_service.delete_game(
+        game_id=game_id,
+        current_user=current_user,
+        role_service=mock_role_service,
+    )
+    await app_db.commit()
+
+    game_row = await admin_db.execute(select(GameSession).where(GameSession.id == game_id))
+    assert game_row.scalar_one_or_none() is None, "Game row must be gone after deletion"
+
+    participant_rows = await admin_db.execute(
+        select(GameParticipant).where(GameParticipant.game_session_id == game_id)
+    )
+    assert participant_rows.scalars().all() == [], "Participant rows must be gone after deletion"
 
 
 @pytest.mark.asyncio
