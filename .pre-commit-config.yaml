@@ -128,10 +128,10 @@ repos:
         pass_filenames: false
         args: [shared/, services/]
 
-      # Block test functions with zero assertions in staged test files (diff-only for Phase 1 rollout)
+      # Block test functions with zero assertions in all staged test files
       - id: check-test-assertions
         name: Check test functions have assertions
-        entry: python scripts/check_test_assertions.py --diff-only
+        entry: python scripts/check_test_assertions.py
         language: python
         pass_filenames: false
         files: ^tests/.*\.py$
