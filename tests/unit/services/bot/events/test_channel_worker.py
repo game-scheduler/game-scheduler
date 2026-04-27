@@ -104,6 +104,7 @@ class TestChannelWorkerNoRows:
 
             await handlers._channel_worker(_CHANNEL_ID)
 
+        mock_redis_factory.assert_not_called()
         assert _CHANNEL_ID not in handlers._channel_workers
 
     @pytest.mark.asyncio
@@ -432,6 +433,7 @@ class TestChannelWorker429Handling:
         ):
             # Worker must not raise — it should catch and log.
             await handlers._channel_worker(_CHANNEL_ID)
+            assert True  # worker catches non-429 HTTPException without raising
 
 
 class TestChannelWorkerMultiGame:

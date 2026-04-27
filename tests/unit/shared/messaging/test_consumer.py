@@ -49,6 +49,7 @@ class TestEventConsumerConnectionFailures:
                 match="Queue connection failed: unable to bind routing key",
             ):
                 await consumer.bind("test.routing.key")
+            mock_connect.assert_awaited_once_with()
 
     @pytest.mark.asyncio
     async def test_start_consuming_connection_failure(self) -> None:
@@ -66,6 +67,7 @@ class TestEventConsumerConnectionFailures:
                 RuntimeError, match="Queue connection failed: unable to start consumer"
             ):
                 await consumer.start_consuming()
+            mock_connect.assert_awaited_once_with()
 
     @pytest.mark.asyncio
     async def test_bind_routing_key_succeeds_after_reconnect(self) -> None:

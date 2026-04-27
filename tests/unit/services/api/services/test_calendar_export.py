@@ -407,6 +407,8 @@ async def test_host_display_name_from_projection(
             )
 
     assert ical_data is not None
+    mock_redis_fn.assert_called_once_with()
+    mock_proj.get_member.assert_awaited_once_with("987654321", "123456789", redis=mock_redis)
     cal = Calendar.from_ical(ical_data)
     events = [c for c in cal.walk() if c.name == "VEVENT"]
     description = events[0].get("description")

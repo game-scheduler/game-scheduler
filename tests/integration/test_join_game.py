@@ -99,6 +99,7 @@ def test_game(create_guild, create_channel, create_user, create_game):
         title="Join Integration Test Game",
         status=GameStatus.SCHEDULED,
     )
+    assert game["title"] == "Join Integration Test Game"
     return {"guild": guild, "channel": channel, "host": host, "game": game}
 
 
@@ -232,7 +233,11 @@ async def test_successful_join_creates_new_user_when_not_in_db(
     ).fetchall()
     assert len(participants) == 1, "Participant row must be created"
 
-    mock_publisher.publish_game_updated.assert_called_once()
+    mock_publisher.publish_game_updated.assert_awaited_once_with(
+        game_id=game["id"],
+        guild_id=test_game["guild"]["id"],
+        updated_fields={"participants": True},
+    )
 
 
 @pytest.mark.asyncio

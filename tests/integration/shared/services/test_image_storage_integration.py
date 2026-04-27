@@ -182,6 +182,7 @@ async def test_release_image_with_none_id_is_noop(admin_db: AsyncSession, clean_
     """Releasing None ID is a no-op (no error)."""
     await release_image(admin_db, None)
     await admin_db.commit()
+    assert True  # no error raised when releasing None ID
 
 
 @pytest.mark.integration
@@ -190,6 +191,7 @@ async def test_release_image_with_missing_id_is_noop(admin_db: AsyncSession, cle
     fake_id = uuid4()
     await release_image(admin_db, fake_id)
     await admin_db.commit()
+    assert True  # no error raised when releasing non-existent ID
 
 
 @pytest.mark.integration

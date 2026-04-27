@@ -79,6 +79,7 @@ def test_publish_deferred_events_after_commit_with_events(mock_session):
             # Close the coroutine to prevent RuntimeWarning
             if hasattr(call_args[0], "close"):
                 call_args[0].close()
+        assert mock_publisher_class.call_count == 1
 
 
 def test_clear_deferred_events_after_rollback_empty(mock_session):

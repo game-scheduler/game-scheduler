@@ -169,6 +169,12 @@ class TestClaimChannelRateLimitSlot:
 
             assert client._client is not None
             assert result == 0
+            mock_pool_class.from_url.assert_called_once_with(
+                "redis://localhost:6379/0", max_connections=100, decode_responses=True
+            )
+            mock_redis_class.assert_called_once_with(
+                connection_pool=mock_pool_class.from_url.return_value
+            )
 
     async def test_eval_error_returns_jittered_backoff(self, client_and_mock: tuple) -> None:
         """On Redis error the method fails closed with a jittered 1000-1250ms backoff."""

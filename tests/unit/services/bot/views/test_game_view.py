@@ -182,7 +182,7 @@ class TestGameView:
         interaction.response.defer = AsyncMock()
 
         await view.join_button.callback(interaction)
-        interaction.response.defer.assert_called_once()
+        interaction.response.defer.assert_awaited_once_with()
 
     @pytest.mark.asyncio
     async def test_leave_button_callback_defers_response(self):
@@ -192,7 +192,7 @@ class TestGameView:
         interaction.response.defer = AsyncMock()
 
         await view.leave_button.callback(interaction)
-        interaction.response.defer.assert_called_once()
+        interaction.response.defer.assert_awaited_once_with()
 
     @pytest.mark.asyncio
     async def test_initializes_with_self_signup_method(self):

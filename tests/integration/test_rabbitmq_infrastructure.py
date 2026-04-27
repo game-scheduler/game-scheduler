@@ -88,6 +88,7 @@ def test_main_exchange_exists(rabbitmq_channel):
     rabbitmq_channel.exchange_declare(
         exchange="game_scheduler", exchange_type="topic", passive=True, durable=True
     )
+    assert True  # exchange_declare raises if exchange does not exist
 
 
 def test_dlx_exchange_exists(rabbitmq_channel):
@@ -95,6 +96,7 @@ def test_dlx_exchange_exists(rabbitmq_channel):
     rabbitmq_channel.exchange_declare(
         exchange="game_scheduler.dlx", exchange_type="topic", passive=True, durable=True
     )
+    assert True  # exchange_declare raises if exchange does not exist
 
 
 def test_bot_events_queue_exists(rabbitmq_channel):

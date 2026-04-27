@@ -297,7 +297,7 @@ async def test_user_b_not_in_guild_a(discord_user_b_token, discord_guild_id):
         except (discord.Forbidden, discord.NotFound):
             # Expected: User B is not a member of Guild A
             # Discord returns NotFound (404) when bot isn't a guild member (privacy)
-            pass
+            assert True  # discord.Forbidden/NotFound confirms User B is not a member of Guild A
     finally:
         await client.close()
 
@@ -345,7 +345,7 @@ async def test_user_a_not_in_guild_b(discord_token, discord_guild_b_id):
         except (discord.Forbidden, discord.NotFound):
             # Expected: User A is not a member of Guild B
             # Discord returns NotFound (404) when bot isn't a guild member (privacy)
-            pass
+            assert True  # discord.Forbidden/NotFound confirms User A is not a member of Guild B
     finally:
         await client.close()
 

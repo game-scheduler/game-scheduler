@@ -108,7 +108,7 @@ class TestPostgresNotificationListener:
 
         assert received is False
         assert payload is None
-        mock_select.assert_called_once()
+        mock_select.assert_called_once_with([mock_conn], [], [], 1.0)
 
     @patch("services.scheduler.postgres_listener.select.select")
     @patch("services.scheduler.postgres_listener.psycopg2.connect")
@@ -132,7 +132,7 @@ class TestPostgresNotificationListener:
 
         assert received is True
         assert payload == {"game_id": "test-id", "operation": "INSERT"}
-        mock_conn.poll.assert_called_once()
+        assert mock_conn.poll.call_count == 1
 
     @patch("services.scheduler.postgres_listener.select.select")
     @patch("services.scheduler.postgres_listener.psycopg2.connect")

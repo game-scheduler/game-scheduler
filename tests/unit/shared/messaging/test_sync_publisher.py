@@ -272,7 +272,10 @@ class TestSyncEventPublisherConnect:
 
         publisher.publish(sample_event)
 
-        mock_chan.basic_publish.assert_called_once()
+        call_kwargs = mock_chan.basic_publish.call_args.kwargs
+        assert call_kwargs["exchange"] == "game_scheduler"
+        assert call_kwargs["routing_key"] == sample_event.event_type.value
+        assert call_kwargs["body"] == sample_event.model_dump_json().encode()
 
     @patch("shared.messaging.sync_publisher.pika.BlockingConnection")
     def test_publish_reconnects_when_channel_closed(self, mock_connection_class, sample_event):
@@ -290,7 +293,10 @@ class TestSyncEventPublisherConnect:
 
         publisher.publish(sample_event)
 
-        mock_chan.basic_publish.assert_called_once()
+        call_kwargs = mock_chan.basic_publish.call_args.kwargs
+        assert call_kwargs["exchange"] == "game_scheduler"
+        assert call_kwargs["routing_key"] == sample_event.event_type.value
+        assert call_kwargs["body"] == sample_event.model_dump_json().encode()
 
 
 class TestSyncEventPublisherClose:

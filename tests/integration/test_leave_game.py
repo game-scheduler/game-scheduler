@@ -88,6 +88,7 @@ def test_game(create_guild, create_channel, create_user, create_game):
         title="Leave Integration Test Game",
         status=GameStatus.SCHEDULED,
     )
+    assert game["title"] == "Leave Integration Test Game"
     return {"guild": guild, "channel": channel, "host": host, "game": game}
 
 

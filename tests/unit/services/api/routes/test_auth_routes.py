@@ -121,6 +121,7 @@ class TestCallback:
         assert result["success"] is True
         mock_store.assert_called_once()
         assert mock_store.call_args.kwargs["can_be_maintainer"] is False
+        mock_config.assert_called_once_with()
 
     @pytest.mark.asyncio
     async def test_callback_passes_username_and_avatar_to_store_user_tokens(self):
@@ -176,6 +177,7 @@ class TestCallback:
 
         assert mock_store.call_args.kwargs.get("username") == "testuser"
         assert mock_store.call_args.kwargs.get("avatar") == "abc123"
+        mock_config.assert_called_once_with()
 
 
 class TestRefresh:
