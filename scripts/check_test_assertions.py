@@ -71,6 +71,11 @@ _MOCK_VERIFICATION_ATTRS: frozenset[str] = frozenset({
     "mock_calls",
 })
 
+_ALL_ANY_ATTRS: frozenset[str] = frozenset({
+    "assert_called_once_with",
+    "assert_awaited_once_with",
+})
+
 
 def get_staged_test_files() -> list[Path]:
     """Return staged test file paths matching tests/**/*.py."""
@@ -341,6 +346,29 @@ def _weak_assert_violation(
     return (node.lineno, f"{func_name}: `{call_form}` — {suggestion}")
 
 
+def _is_any_value(node: ast.expr) -> bool:
+    """Return True if node is ANY (bare or attribute form like mock.ANY)."""
+    if isinstance(node, ast.Name) and node.id == "ANY":
+        return True
+    return isinstance(node, ast.Attribute) and node.attr == "ANY"
+
+
+def _is_all_any_call(node: ast.Call) -> bool:
+    """Return True if node is assert_called_once_with or assert_awaited_once_with with all ANY args.
+
+    Detects calls like assert_called_once_with(ANY, ANY) where every argument is ANY.
+    """
+    if not isinstance(node.func, ast.Attribute):
+        return False
+    if node.func.attr not in _ALL_ANY_ATTRS:
+        return False
+    if not node.args and not node.keywords:
+        return False
+    return all(_is_any_value(a) for a in node.args) and all(
+        _is_any_value(kw.value) for kw in node.keywords
+    )
+
+
 def _is_weak_assert_call(node: ast.Call) -> bool:
     """Return True if node is assert_called_once() or assert_called_once_with() with no args."""
     if not isinstance(node.func, ast.Attribute):
@@ -383,6 +411,42 @@ def _exempt_or_marker_violation(
     return True, v
 
 
+def _dispatch_weak_assert(
+    node: ast.Call,
+    func_node: ast.FunctionDef | ast.AsyncFunctionDef,
+    patch_aliases: dict[str, str],
+    source_lines: list[str],
+) -> tuple[int, str] | None:
+    """Return a violation for a confirmed weak-assert node, or None if exempt/clean."""
+    skip, v = _exempt_or_marker_violation(node, func_node, patch_aliases, source_lines)
+    if skip:
+        return v
+    return _weak_assert_violation(node, func_node.name, source_lines)
+
+
+def _all_any_violation(
+    node: ast.Call,
+    func_node: ast.FunctionDef | ast.AsyncFunctionDef,
+    source_lines: list[str],
+) -> tuple[int, str] | None:
+    """Return a (lineno, message) violation if node is an all-ANY assert call not exempted."""
+    if not isinstance(node.func, ast.Attribute):
+        return None
+    receiver_dotted = _receiver_dotted_name(node.func.value)
+    if receiver_dotted and _has_call_args_check(func_node, receiver_dotted):
+        return None
+    if _marker_present(node.lineno, source_lines):
+        return None
+    method_name = _receiver_method_name(node)
+    attr = node.func.attr
+    call_form = f"{method_name}.{attr}(ALL ANY)" if method_name else f"{attr}(ALL ANY)"
+    hint = f"`{_VALID_WEAK_ASSERT_MARKER}<reason>` if arguments are genuinely opaque"
+    return (
+        node.lineno,
+        f"{func_node.name}: `{call_form}` — use concrete expected arguments or add {hint}",
+    )
+
+
 def get_weak_assert_violations(
     func_node: ast.FunctionDef | ast.AsyncFunctionDef,
     source_lines: list[str],
@@ -397,20 +461,21 @@ def get_weak_assert_violations(
     Exempts calls on known no-arg methods (flush, commit, etc.), any line
     carrying a '# assert-not-weak: <reason>' comment, and calls where the same receiver's
     .call_args or .call_args_list is accessed elsewhere in the same test.
+    Also flags assert_called_once_with/assert_awaited_once_with where every argument is ANY.
     """
     patch_aliases = _collect_patch_aliases(func_node)
     violations = []
     for node in ast.walk(func_node):
-        if not isinstance(node, ast.Call) or not _is_weak_assert_call(node):
+        if not isinstance(node, ast.Call):
             continue
-        skip, v = _exempt_or_marker_violation(node, func_node, patch_aliases, source_lines)
-        if skip:
-            if v is not None:
-                violations.append(v)
+        if _is_weak_assert_call(node):
+            v = _dispatch_weak_assert(node, func_node, patch_aliases, source_lines)
+        elif _is_all_any_call(node):
+            v = _all_any_violation(node, func_node, source_lines)
+        else:
             continue
-        violation = _weak_assert_violation(node, func_node.name, source_lines)
-        if violation is not None:
-            violations.append(violation)
+        if v is not None:
+            violations.append(v)
     return violations
 
 
@@ -554,17 +619,38 @@ def _count_weak_assert_markers_in_staged_diff() -> int:
     return _count_unverified_markers(pending)
 
 
+def _select_files(scan_all: bool, explicit_files: list[Path]) -> list[Path]:
+    if explicit_files:
+        return explicit_files
+    if scan_all:
+        return get_all_test_files()
+    return get_staged_test_files()
+
+
+def _check_marker_quota(scan_all: bool, explicit_files: list[Path]) -> bool:
+    if scan_all or explicit_files:
+        return False
+    marker_count = _count_weak_assert_markers_in_staged_diff()
+    approved = int(os.environ.get("APPROVED_WEAK_ASSERTIONS", "0"))
+    if marker_count > approved:
+        print(
+            f"\nERROR: {marker_count} '{_WEAK_ASSERT_MARKER}'"
+            " annotation(s) added in staged changes."
+        )
+        print(
+            "Ask the user for explicit permission if justified after reading"
+            " .github/instructions/quality-check-overrides.instructions.md"
+        )
+        return True
+    return False
+
+
 def main() -> int:
     """Entry point; returns 0 if clean, 1 if violations found."""
     scan_all = "--all" in sys.argv
     diff_only = "--diff-only" in sys.argv and not scan_all
     explicit_files = [Path(a) for a in sys.argv[1:] if not a.startswith("--")]
-    if explicit_files:
-        files = explicit_files
-    elif scan_all:
-        files = get_all_test_files()
-    else:
-        files = get_staged_test_files()
+    files = _select_files(scan_all, explicit_files)
     counts: dict[Path, int] = {}
     for filepath in files:
         try:
@@ -580,21 +666,7 @@ def main() -> int:
             print(f"  {count:>3}  {path}")
         print("\nSee docs/developer/fix-test-assertion-violations.md for fix patterns.")
 
-    marker_failed = False
-    if not scan_all and not explicit_files:
-        marker_count = _count_weak_assert_markers_in_staged_diff()
-        approved = int(os.environ.get("APPROVED_WEAK_ASSERTIONS", "0"))
-        if marker_count > approved:
-            print(
-                f"\nERROR: {marker_count} '{_WEAK_ASSERT_MARKER}'"
-                " annotation(s) added in staged changes."
-            )
-            print(
-                "Ask the user for explicit permission if justified after reading"
-                " .github/instructions/quality-check-overrides.instructions.md"
-            )
-            marker_failed = True
-
+    marker_failed = _check_marker_quota(scan_all, explicit_files)
     return 1 if (counts or marker_failed) else 0
 
 

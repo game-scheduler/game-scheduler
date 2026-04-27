@@ -611,6 +611,79 @@ def test_get_weak_assert_violations_preceding_line_marker_bare_is_violation() ->
     assert "assert_called_once_with()" in result[0][1]
 
 
+# ---------------------------------------------------------------------------
+# all-ANY detection
+# ---------------------------------------------------------------------------
+
+
+def test_get_weak_assert_violations_all_any_single_arg_is_violation() -> None:
+    source = "def test_foo():\n    mock_fn.assert_called_once_with(ANY)\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert len(result) == 1
+    assert "ALL ANY" in result[0][1]
+
+
+def test_get_weak_assert_violations_all_any_multiple_args_is_violation() -> None:
+    source = "def test_foo():\n    mock_fn.assert_called_once_with(ANY, ANY)\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert len(result) == 1
+    assert "ALL ANY" in result[0][1]
+
+
+def test_get_weak_assert_violations_all_any_with_kwarg_is_violation() -> None:
+    source = "def test_foo():\n    mock_fn.assert_called_once_with(ANY, key=ANY)\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert len(result) == 1
+    assert "ALL ANY" in result[0][1]
+
+
+def test_get_weak_assert_violations_all_any_mixed_concrete_not_flagged() -> None:
+    source = "def test_foo():\n    mock_fn.assert_called_once_with(concrete_val, ANY)\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_all_any_inline_marker_exempts() -> None:
+    source = f"def test_foo():\n    mock_fn.assert_called_once_with(ANY, ANY)  {_MARKER}: opaque\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_all_any_preceding_line_marker_exempts() -> None:
+    source = (
+        "def test_foo():\n"
+        f"    {_MARKER}: values are opaque\n"
+        "    mock_fn.assert_called_once_with(ANY, ANY)\n"
+    )
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
+def test_get_weak_assert_violations_all_any_awaited_is_violation() -> None:
+    source = "def test_foo():\n    mock_fn.assert_awaited_once_with(ANY, ANY)\n"
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert len(result) == 1
+    assert "ALL ANY" in result[0][1]
+
+
+def test_get_weak_assert_violations_all_any_call_args_access_exempts() -> None:
+    source = (
+        "def test_foo():\n"
+        "    mock_fn.assert_called_once_with(ANY, ANY)\n"
+        "    assert mock_fn.call_args[0][0] == expected\n"
+    )
+    func = _parse_func(source)
+    result = check_test_assertions.get_weak_assert_violations(func, source.splitlines())
+    assert result == []
+
+
 def test_jedi_verifies_no_args_at_line_true_for_no_arg_patch_target() -> None:
     source = (
         "def test_foo():\n"
