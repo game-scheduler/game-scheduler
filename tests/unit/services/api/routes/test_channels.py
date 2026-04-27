@@ -22,12 +22,13 @@
 """Unit tests for channel configuration endpoints."""
 
 import uuid
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
 from services.api.routes import channels
+from shared.models.channel import ChannelConfiguration
 from shared.schemas import channel as channel_schemas
 
 
@@ -45,8 +46,8 @@ def mock_channel_config():
     config.guild_id = str(uuid.uuid4())
     config.channel_id = "987654321"
     config.is_active = True
-    config.created_at = datetime(2024, 1, 1, 12, 0, 0)
-    config.updated_at = datetime(2024, 1, 1, 12, 0, 0)
+    config.created_at = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+    config.updated_at = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
 
     # Mock guild relationship
     mock_guild = MagicMock()
@@ -73,8 +74,8 @@ class TestBuildChannelConfigResponse:
             assert result.channel_id == mock_channel_config.channel_id
             assert result.channel_name == "test-channel"
             assert result.is_active is True
-            assert result.created_at == "2024-01-01T12:00:00"
-            assert result.updated_at == "2024-01-01T12:00:00"
+            assert result.created_at == "2024-01-01T12:00:00+00:00"
+            assert result.updated_at == "2024-01-01T12:00:00+00:00"
 
             mock_fetch_name.assert_called_once_with(mock_channel_config.channel_id)
 
@@ -89,20 +90,22 @@ class TestBuildChannelConfigResponse:
             result = await channels._build_channel_config_response(mock_channel_config)
 
             assert result.is_active is False
+            mock_fetch_name.assert_called_once_with(mock_channel_config.channel_id)
 
     @pytest.mark.asyncio
     async def test_build_response_timestamp_formatting(self, mock_channel_config):
         """Test that timestamps are properly formatted using isoformat()."""
-        mock_channel_config.created_at = datetime(2025, 12, 25, 15, 30, 45)
-        mock_channel_config.updated_at = datetime(2025, 12, 26, 16, 31, 46)
+        mock_channel_config.created_at = datetime(2025, 12, 25, 15, 30, 45, tzinfo=UTC)
+        mock_channel_config.updated_at = datetime(2025, 12, 26, 16, 31, 46, tzinfo=UTC)
 
         with patch("shared.discord.client.fetch_channel_name_safe") as mock_fetch_name:
             mock_fetch_name.return_value = "test-channel"
 
             result = await channels._build_channel_config_response(mock_channel_config)
 
-            assert result.created_at == "2025-12-25T15:30:45"
-            assert result.updated_at == "2025-12-26T16:31:46"
+            assert result.created_at == "2025-12-25T15:30:45+00:00"
+            assert result.updated_at == "2025-12-26T16:31:46+00:00"
+            mock_fetch_name.assert_called_once_with(mock_channel_config.channel_id)
 
     @pytest.mark.asyncio
     async def test_build_response_channel_name_resolution(self, mock_channel_config):
@@ -129,6 +132,7 @@ class TestBuildChannelConfigResponse:
             result = await channels._build_channel_config_response(mock_channel_config)
 
             assert result.guild_discord_id == expected_guild_discord_id
+            mock_fetch_name.assert_called_once_with(mock_channel_config.channel_id)
 
     @pytest.mark.asyncio
     async def test_build_response_returns_correct_schema_type(self, mock_channel_config):
@@ -139,6 +143,7 @@ class TestBuildChannelConfigResponse:
             result = await channels._build_channel_config_response(mock_channel_config)
 
             assert isinstance(result, channel_schemas.ChannelConfigResponse)
+            mock_fetch_name.assert_called_once_with(mock_channel_config.channel_id)
 
 
 class TestGetChannel:
@@ -169,7 +174,12 @@ class TestGetChannel:
 
             result = await channels.get_channel(mock_channel_config.id, mock_current_user, mock_db)
 
-            mock_db.get.assert_called_once()
+            mock_db.get.assert_called_once_with(
+                ChannelConfiguration,
+                mock_channel_config.id,
+                options=ANY,
+            )
+            mock_build_response.assert_awaited_once_with(mock_channel_config)
             assert result.id == mock_channel_config.id
 
 
@@ -215,8 +225,16 @@ class TestCreateChannelConfig:
             )
             result = await channels.create_channel_config(request, mock_current_user, mock_db)
 
-            mock_execute.assert_called_once()
-            mock_result.scalar_one.assert_called_once()
+            mock_execute.assert_called_once_with(ANY)
+            mock_result.scalar_one.assert_called_once_with()  # assert-no-args
+            mock_get_existing.assert_called_once_with(mock_db, mock_channel_config.channel_id)
+            mock_create.assert_called_once_with(
+                mock_db,
+                guild_id=mock_channel_config.guild_id,
+                channel_discord_id=mock_channel_config.channel_id,
+                is_active=True,
+            )
+            mock_build_response.assert_awaited_once_with(mock_channel_config)
             assert result.channel_id == mock_channel_config.channel_id
 
 
@@ -254,6 +272,11 @@ class TestUpdateChannelConfig:
                 mock_channel_config.id, request, mock_current_user, mock_db
             )
 
-            mock_db.get.assert_called_once()
+            mock_db.get.assert_called_once_with(
+                ChannelConfiguration,
+                mock_channel_config.id,
+                options=ANY,
+            )
             mock_update.assert_called_once_with(mock_channel_config, is_active=False)
+            mock_build_response.assert_awaited_once_with(mock_channel_config)
             assert result.is_active is False

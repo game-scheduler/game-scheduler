@@ -24,7 +24,7 @@
 import datetime
 import uuid
 from datetime import UTC
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -602,7 +602,7 @@ async def test_resolve_game_host_bot_manager_creates_new_user(
         )
 
     assert host_user == created_user
-    mock_db.add.assert_called_once()
+    mock_db.add.assert_called_once_with(ANY)
     mock_db.flush.assert_called_once()
 
 
@@ -1237,6 +1237,7 @@ async def test_setup_game_schedules_with_reminders_and_duration(
         mock_join_notifications.assert_called_once_with(game)
         mock_schedule_service.populate_schedule.assert_called_once_with(game, reminder_minutes)
         mock_status_schedules.assert_called_once_with(game, expected_duration_minutes)
+        mock_schedule_service_class.assert_called_once_with(game_service.db)
 
 
 @pytest.mark.asyncio
@@ -1278,6 +1279,7 @@ async def test_setup_game_schedules_without_reminders(
         mock_join_notifications.assert_called_once_with(game)
         mock_schedule_service.populate_schedule.assert_called_once_with(game, reminder_minutes)
         mock_status_schedules.assert_called_once_with(game, expected_duration_minutes)
+        mock_schedule_service_class.assert_called_once_with(game_service.db)
 
 
 @pytest.mark.asyncio
@@ -1319,6 +1321,7 @@ async def test_setup_game_schedules_without_duration(
         mock_join_notifications.assert_called_once_with(game)
         mock_schedule_service.populate_schedule.assert_called_once_with(game, reminder_minutes)
         mock_status_schedules.assert_called_once_with(game, None)
+        mock_schedule_service_class.assert_called_once_with(game_service.db)
 
 
 @pytest.mark.asyncio
@@ -1478,7 +1481,7 @@ async def test_create_game_without_participants(
     assert game.title == "Test Game"
     assert game.host_id == sample_user.id
     mock_db.add.assert_called()
-    mock_event_publisher.publish_deferred.assert_called_once()
+    mock_event_publisher.publish_deferred.assert_called_once_with(event=ANY)
 
 
 @pytest.mark.asyncio
@@ -1884,7 +1887,7 @@ async def test_create_game_with_valid_participants(
         )
 
     assert isinstance(game, game_model.GameSession)
-    mock_participant_resolver.resolve_initial_participants.assert_called_once()
+    mock_participant_resolver.resolve_initial_participants.assert_called_once_with(ANY, ANY)
 
 
 @pytest.mark.asyncio
@@ -3873,7 +3876,7 @@ async def test_update_image_fields_sets_thumbnail(game_service):
         )
 
     assert game.thumbnail_id == thumbnail_id
-    mock_store.assert_called_once()
+    mock_store.assert_called_once_with(game_service.db, b"thumbnail_bytes", "image/png")
     mock_release.assert_called_once_with(game_service.db, None)
 
 
@@ -3923,7 +3926,7 @@ async def test_update_image_fields_sets_banner(game_service):
         )
 
     assert game.banner_image_id == banner_id
-    mock_store.assert_called_once()
+    mock_store.assert_called_once_with(game_service.db, b"image_bytes", "image/jpeg")
     mock_release.assert_called_once_with(game_service.db, None)
 
 
@@ -4003,6 +4006,7 @@ async def test_process_game_update_schedules_both_flags(game_service, mock_db):
 
             mock_schedule_service.update_schedule.assert_called_once_with(game, [30, 10])
             mock_status.assert_called_once_with(game)
+            mock_schedule_service_class.assert_called_once_with(game_service.db)
 
 
 @pytest.mark.asyncio
@@ -4028,6 +4032,7 @@ async def test_process_game_update_schedules_only_notification(game_service, moc
 
             mock_schedule_service.update_schedule.assert_called_once_with(game, [60, 15])
             mock_status.assert_not_called()
+            mock_schedule_service_class.assert_called_once_with(game_service.db)
 
 
 @pytest.mark.asyncio
@@ -4052,6 +4057,7 @@ async def test_process_game_update_schedules_only_status(game_service, mock_db):
 
             mock_schedule_service.update_schedule.assert_not_called()
             mock_status.assert_called_once_with(game)
+            mock_schedule_service_class.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -4072,6 +4078,7 @@ async def test_process_game_update_schedules_neither(game_service, mock_db):
 
             mock_schedule_service.update_schedule.assert_not_called()
             mock_status.assert_not_called()
+            mock_schedule_service_class.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -4387,7 +4394,7 @@ async def test_get_or_create_user_by_discord_id_new(
 
     assert result.discord_id == discord_id
     assert result.id is not None
-    mock_db.add.assert_called_once()
+    mock_db.add.assert_called_once_with(result)
     mock_db.flush.assert_called_once()
 
 

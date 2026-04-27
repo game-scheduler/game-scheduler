@@ -26,7 +26,7 @@ Tests verify no behavior changes after migration from get_guild_by_id
 to require_guild_by_id helper function.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import ANY, AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -130,6 +130,12 @@ class TestVerifyTemplateAccess:
 
             assert exc_info.value.status_code == 404
             assert exc_info.value.detail == "Template not found"
+            mock_require.assert_called_once_with(
+                mock_db,
+                game_template.guild_id,
+                "user123",
+                not_found_detail="Template not found",
+            )
 
     @pytest.mark.asyncio
     async def test_verify_template_access_user_not_member(
@@ -156,6 +162,13 @@ class TestVerifyTemplateAccess:
 
             assert exc_info.value.status_code == 404
             assert exc_info.value.detail == "Template not found"
+            mock_require.assert_called_once_with(
+                mock_db,
+                game_template.guild_id,
+                "user123",
+                not_found_detail="Template not found",
+            )
+            mock_check.assert_called_once_with("user123", guild_config.guild_id, ANY)
 
 
 class TestVerifyGameAccess:
@@ -221,6 +234,12 @@ class TestVerifyGameAccess:
 
             assert exc_info.value.status_code == 404
             assert exc_info.value.detail == "Game not found"
+            mock_require.assert_called_once_with(
+                mock_db,
+                game_session.guild_id,
+                "user123",
+                not_found_detail="Game not found",
+            )
 
     @pytest.mark.asyncio
     async def test_verify_game_access_user_not_member(
@@ -249,6 +268,13 @@ class TestVerifyGameAccess:
 
             assert exc_info.value.status_code == 404
             assert exc_info.value.detail == "Game not found"
+            mock_require.assert_called_once_with(
+                mock_db,
+                game_session.guild_id,
+                "user123",
+                not_found_detail="Game not found",
+            )
+            mock_check.assert_called_once_with("user123", guild_config.guild_id, ANY)
 
     @pytest.mark.asyncio
     async def test_verify_game_access_user_lacks_player_role(
@@ -278,6 +304,13 @@ class TestVerifyGameAccess:
 
             assert exc_info.value.status_code == 403
             assert "required role" in exc_info.value.detail.lower()
+            mock_require.assert_called_once_with(
+                mock_db,
+                game_session.guild_id,
+                "user123",
+                not_found_detail="Game not found",
+            )
+            mock_check.assert_called_once_with("user123", guild_config.guild_id, ANY)
 
     @pytest.mark.asyncio
     async def test_verify_game_access_no_player_role_restriction(
@@ -311,6 +344,13 @@ class TestVerifyGameAccess:
             )
 
             assert result == game_no_roles
+            mock_require.assert_called_once_with(
+                mock_db,
+                game_no_roles.guild_id,
+                "user123",
+                not_found_detail="Game not found",
+            )
+            mock_check.assert_called_once_with("user123", guild_config.guild_id, ANY)
             mock_role_service.has_any_role.assert_not_called()
 
     @pytest.mark.asyncio
@@ -342,6 +382,13 @@ class TestVerifyGameAccess:
             )
 
             assert result == game_session
+            mock_require.assert_called_once_with(
+                "token123",
+                game_session.guild_id,
+                host_discord_id,
+                not_found_detail="Game not found",
+            )
+            mock_check.assert_called_once_with(host_discord_id, guild_config.guild_id, ANY)
             mock_role_service.has_any_role.assert_not_called()
 
 
@@ -384,3 +431,4 @@ class TestResolveGuildDiscordId:
 
             assert exc_info.value.status_code == 404
             assert exc_info.value.detail == "Guild not found"
+            mock_require.assert_called_once_with(mock_db, uuid_id, "user123")

@@ -22,7 +22,7 @@
 """Tests for INIT_ROLES_ONLY behavior in services/init/main.py."""
 
 import os
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 from services.init.main import main
 
@@ -65,9 +65,9 @@ class TestMainWithInitRolesOnly:
         result = main()
 
         assert result == 0
-        mock_wait.assert_called_once()
-        mock_create_users.assert_called_once()
-        mock_complete.assert_called_once()
+        mock_wait.assert_called_once_with()  # assert-no-args
+        mock_create_users.assert_called_once_with()  # assert-no-args
+        mock_complete.assert_called_once_with(ANY)
         mock_migrations.assert_not_called()
         mock_verify.assert_not_called()
         mock_rabbitmq.assert_not_called()
@@ -151,11 +151,11 @@ class TestMainWithoutInitRolesOnly:
 
         main()
 
-        mock_wait.assert_called_once()
-        mock_create_users.assert_called_once()
-        mock_migrations.assert_called_once()
-        mock_verify.assert_called_once()
-        mock_rabbitmq.assert_called_once()
+        mock_wait.assert_called_once_with()  # assert-no-args
+        mock_create_users.assert_called_once_with()  # assert-no-args
+        mock_migrations.assert_called_once_with()  # assert-no-args
+        mock_verify.assert_called_once_with()  # assert-no-args
+        mock_rabbitmq.assert_called_once_with()  # assert-no-args
 
     @patch("services.init.main.flush_telemetry")
     @patch("services.init.main.trace")
@@ -191,8 +191,8 @@ class TestMainWithoutInitRolesOnly:
 
         main()
 
-        mock_wait.assert_called_once()
-        mock_create_users.assert_called_once()
-        mock_migrations.assert_called_once()
-        mock_verify.assert_called_once()
-        mock_rabbitmq.assert_called_once()
+        mock_wait.assert_called_once_with()  # assert-no-args
+        mock_create_users.assert_called_once_with()  # assert-no-args
+        mock_migrations.assert_called_once_with()  # assert-no-args
+        mock_verify.assert_called_once_with()  # assert-no-args
+        mock_rabbitmq.assert_called_once_with()  # assert-no-args
