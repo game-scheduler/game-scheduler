@@ -125,6 +125,12 @@ def test_get_unasserted_named_mocks_pytest_raises_alias_excluded() -> None:
     assert result == []
 
 
+def test_get_unasserted_named_mocks_non_patch_context_manager_excluded() -> None:
+    source = "def test_foo():\n    with tempfile.NamedTemporaryFile() as f:\n        fn(f)\n"
+    func = _parse_func(source)
+    assert check_test_assertions.get_unasserted_named_mocks(func) == []
+
+
 def test_get_unasserted_named_mocks_pytest_raises_excluded_patch_still_checked() -> None:
     source = (
         "def test_foo():\n"
