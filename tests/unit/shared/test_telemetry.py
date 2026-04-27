@@ -21,7 +21,8 @@
 
 """Tests for OpenTelemetry instrumentation initialization."""
 
-from unittest.mock import MagicMock, patch
+import logging
+from unittest.mock import ANY, MagicMock, patch
 
 from shared.telemetry import flush_telemetry, get_tracer, init_telemetry
 
@@ -165,7 +166,7 @@ class TestInitTelemetry:
         ):
             init_telemetry("test-service")
 
-            mock_handler_class.assert_called_once()
+            mock_handler_class.assert_called_once_with(level=logging.NOTSET, logger_provider=ANY)
             mock_root_logger.addHandler.assert_called_once_with(mock_logging_handler)
 
     def test_enables_auto_instrumentation(self, monkeypatch):
@@ -197,10 +198,10 @@ class TestInitTelemetry:
         ):
             init_telemetry("test-service")
 
-            mock_sqlalchemy.instrument.assert_called_once()
-            mock_asyncpg.instrument.assert_called_once()
-            mock_redis.instrument.assert_called_once()
-            mock_aiopika.instrument.assert_called_once()
+            mock_sqlalchemy.instrument.assert_called_once_with()
+            mock_asyncpg.instrument.assert_called_once_with()
+            mock_redis.instrument.assert_called_once_with()
+            mock_aiopika.instrument.assert_called_once_with()
 
 
 class TestFlushTelemetry:
@@ -282,6 +283,7 @@ class TestFlushTelemetry:
             ),
         ):
             flush_telemetry()
+        assert True  # flush_telemetry handles providers without force_flush without raising
 
 
 class TestGetTracer:

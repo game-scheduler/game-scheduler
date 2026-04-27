@@ -22,7 +22,7 @@
 """Unit tests for OAuth2 flow implementation."""
 
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, patch
+from unittest.mock import ANY, AsyncMock, patch
 
 import pytest
 
@@ -54,7 +54,10 @@ class TestOAuth2Flow:
             assert "client_id=" in auth_url
             assert "scope=identify" in auth_url
             assert f"state={state}" in auth_url
-            mock_redis_instance.set_json.assert_called_once()
+            mock_redis.assert_called_once_with()
+            mock_redis_instance.set_json.assert_called_once_with(
+                ANY, "http://localhost:3000/callback", ttl=600
+            )
 
     @pytest.mark.asyncio
     async def test_validate_state_success(self):
@@ -73,7 +76,8 @@ class TestOAuth2Flow:
             redirect_uri = await validate_state("test_state")
 
             assert redirect_uri == "http://localhost:3000/callback"
-            mock_redis_instance.delete.assert_called_once()
+            mock_redis.assert_called_once_with()
+            mock_redis_instance.delete.assert_called_once_with("api:oauth:test_state")
 
     @pytest.mark.asyncio
     async def test_validate_state_invalid(self):
@@ -105,6 +109,7 @@ class TestOAuth2Flow:
 
             assert result["access_token"] == "test_token"
             assert result["refresh_token"] == "test_refresh"
+            mock_client.assert_called_once_with()
 
     @pytest.mark.asyncio
     async def test_refresh_access_token(self):
@@ -121,6 +126,7 @@ class TestOAuth2Flow:
             result = await refresh_access_token("old_refresh_token")
 
             assert result["access_token"] == "new_token"
+            mock_client.assert_called_once_with()
 
     @pytest.mark.asyncio
     async def test_get_user_from_token(self):
@@ -137,6 +143,7 @@ class TestOAuth2Flow:
 
             assert result["id"] == "123456789"
             assert result["username"] == "testuser"
+            mock_client.assert_called_once_with()
 
     def test_calculate_token_expiry(self):
         """Test token expiry calculation."""

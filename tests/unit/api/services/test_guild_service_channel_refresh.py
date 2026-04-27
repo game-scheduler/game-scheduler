@@ -123,6 +123,7 @@ async def test_refresh_creates_new_channels(
         result = await refresh_guild_channels(mock_db_unit, mock_guild.id)
 
     # Verify Discord client was called
+    mock_get_client.assert_called_once_with()
     mock_client.get_guild_channels.assert_called_once_with(mock_guild.guild_id)
 
     # Verify new channel was created
@@ -172,6 +173,7 @@ async def test_refresh_marks_deleted_channels_inactive(
         await refresh_guild_channels(mock_db_unit, mock_guild.id)
 
     # Verify channel 222222222 was marked inactive
+    mock_get_client.assert_called_once_with()
     assert mock_channels[1].is_active is False
 
 
@@ -216,6 +218,7 @@ async def test_refresh_reactivates_channels(
         await refresh_guild_channels(mock_db_unit, mock_guild.id)
 
     # Verify channel 333333333 was reactivated
+    mock_get_client.assert_called_once_with()
     assert mock_channels[2].is_active is True
 
 
@@ -266,6 +269,7 @@ async def test_refresh_filters_non_text_channels(
 
     # Verify only text channel 111111111 was in existing channels, no new channels created
     # Voice and category channels should not create new channels
+    mock_get_client.assert_called_once_with()
     mock_create.assert_not_called()
 
 
@@ -312,6 +316,7 @@ async def test_refresh_returns_channel_list(
     assert len(result) == 2
     assert all(isinstance(ch, dict) for ch in result)
     assert all("id" in ch and "channel_id" in ch and "is_active" in ch for ch in result)
+    mock_get_client.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -349,6 +354,7 @@ async def test_refresh_handles_discord_api_error(
 
         with pytest.raises(Exception, match="Discord API error"):
             await refresh_guild_channels(mock_db_unit, mock_guild.id)
+        mock_get_client.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -406,5 +412,6 @@ async def test_refresh_handles_guild_with_no_channels(
         result = await refresh_guild_channels(mock_db_unit, mock_guild.id)
 
     # Verify both channels were created
+    mock_get_client.assert_called_once_with()
     assert mock_create.call_count == 2
     assert len(result) == 2

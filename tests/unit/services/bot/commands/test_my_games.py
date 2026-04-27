@@ -94,6 +94,7 @@ async def test_my_games_no_games(mock_interaction, mock_user):
         await my_games_command(mock_interaction)
 
     mock_interaction.response.defer.assert_called_once_with(ephemeral=True)
+    mock_db.assert_called_once_with()
     mock_interaction.followup.send.assert_called_once()
     call_args = mock_interaction.followup.send.call_args
     assert "not hosting or participating" in call_args[0][0].lower()
@@ -127,6 +128,7 @@ async def test_my_games_with_hosted_games(mock_interaction, mock_user, sample_ga
         await my_games_command(mock_interaction)
 
     mock_interaction.followup.send.assert_called_once()
+    mock_db.assert_called_once_with()
     call_args = mock_interaction.followup.send.call_args
     embeds = call_args[1]["embeds"]
     assert len(embeds) == 1
@@ -160,6 +162,7 @@ async def test_my_games_with_participating_games(mock_interaction, mock_user, sa
         await my_games_command(mock_interaction)
 
     mock_interaction.followup.send.assert_called_once()
+    mock_db.assert_called_once_with()
     call_args = mock_interaction.followup.send.call_args
     embeds = call_args[1]["embeds"]
     assert len(embeds) == 1
@@ -193,6 +196,7 @@ async def test_my_games_with_both_types(mock_interaction, mock_user, sample_game
         await my_games_command(mock_interaction)
 
     mock_interaction.followup.send.assert_called_once()
+    mock_db.assert_called_once_with()
     call_args = mock_interaction.followup.send.call_args
     embeds = call_args[1]["embeds"]
     assert len(embeds) == 2
@@ -223,6 +227,7 @@ async def test_my_games_creates_new_user(mock_interaction):
         await my_games_command(mock_interaction)
 
     assert mock_session.add.called
+    mock_db.assert_called_once_with()
     assert mock_session.commit.called
 
 
@@ -235,6 +240,7 @@ async def test_my_games_error_handling(mock_interaction):
         await my_games_command(mock_interaction)
 
     mock_interaction.followup.send.assert_called_once()
+    mock_db.assert_called_once_with()
     call_args = mock_interaction.followup.send.call_args
     assert "error" in call_args[0][0].lower()
     assert call_args[1]["ephemeral"] is True

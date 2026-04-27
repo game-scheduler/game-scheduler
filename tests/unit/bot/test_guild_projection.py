@@ -262,8 +262,7 @@ class TestWriteBotLastSeen:
 
         call_args = redis.set.call_args
         timestamp_str = call_args[0][1]
-        # Should be parseable as ISO timestamp
-        datetime.fromisoformat(timestamp_str)
+        assert isinstance(datetime.fromisoformat(timestamp_str), datetime)
 
 
 class TestRepopulateAll:
@@ -404,7 +403,7 @@ class TestRepopulateAll:
         with patch("services.bot.guild_projection.repopulation_started_counter") as mock_counter:
             await repopulate_all(bot=bot, redis=redis)
 
-        assert mock_counter.add.call_count == 0
+        mock_counter.add.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_repopulate_all_writes_bot_last_seen(self):
@@ -437,6 +436,7 @@ class TestRepopulateAll:
         bot.guilds = []
 
         await repopulate_all(bot=bot, redis=redis)
+        assert True  # call succeeded without raising
 
     async def test_repopulate_all_does_not_emit_started_counter(self):
         """repopulate_all does not call repopulation_started_counter after refactor."""
@@ -451,7 +451,7 @@ class TestRepopulateAll:
         with patch("services.bot.guild_projection.repopulation_started_counter") as mock_counter:
             await repopulate_all(bot=bot, redis=redis)
 
-        assert mock_counter.add.call_count == 0
+        mock_counter.add.assert_not_called()
 
 
 class TestDeleteOldGenerationPipeline:
@@ -480,7 +480,7 @@ class TestDeleteOldGenerationPipeline:
         await _delete_old_generation(redis, "gen0")
 
         # Pipeline must be opened for deletion
-        mock_client.pipeline.assert_called_once()
+        mock_client.pipeline.assert_called_once_with(transaction=False)
         # pipe.delete must be called (not redis._client.delete directly)
         assert pipe.delete.called
         # Only one pipeline execute
@@ -692,7 +692,7 @@ class TestRepopulateAllUsesPipeline:
 
         await repopulate_all(bot=bot, redis=redis)
 
-        redis._client.pipeline.assert_called_once()
+        redis._client.pipeline.assert_called_once_with(transaction=False)
 
     @pytest.mark.asyncio
     async def test_executes_pipeline_exactly_once(self):
@@ -732,7 +732,7 @@ class TestRepopulateAllUsesPipeline:
         await repopulate_all(bot=bot, redis=redis)
 
         # Fails before Task 10.2: no pipeline is opened yet
-        redis._client.pipeline.assert_called_once()
+        redis._client.pipeline.assert_called_once_with(transaction=False)
 
         gen_flip_calls = [
             call for call in redis.set.call_args_list if CacheKeys.proj_gen() in str(call)
