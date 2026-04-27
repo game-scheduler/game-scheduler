@@ -30,7 +30,7 @@ Tests verify:
 """
 
 from datetime import UTC, datetime
-from unittest.mock import ANY, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -230,7 +230,7 @@ class TestCreateGame:
 
         assert result.guild_id == "guild-1"
         assert result.title == "New Game"
-        mock_db.add.assert_called_once_with(ANY)
+        mock_db.add.assert_called_once_with(result)
         mock_db.flush.assert_called_once()
 
     @pytest.mark.asyncio
@@ -382,7 +382,7 @@ class TestAddParticipant:
         assert isinstance(result, GameParticipant)
         assert result.game_session_id == "game-123"
         assert result.user_id == "user-2"
-        mock_db.add.assert_called_once_with(ANY)
+        mock_db.add.assert_called_once_with(result)
         mock_db.flush.assert_called_once()
 
     @pytest.mark.asyncio
@@ -700,7 +700,7 @@ class TestCreateTemplate:
         assert isinstance(result, GameTemplate)
         assert result.guild_id == "guild-1"
         assert result.name == "D&D Campaign"
-        mock_db.add.assert_called_once_with(ANY)
+        mock_db.add.assert_called_once_with(result)
         mock_db.flush.assert_called_once()
 
     @pytest.mark.asyncio
@@ -821,7 +821,10 @@ class TestGetChannelByDiscordId:
         result = await guild_queries.get_channel_by_discord_id(mock_db, "123456789")
 
         assert result == mock_channel
-        mock_db.execute.assert_called_once_with(ANY)
+        mock_db.execute.assert_called_once()
+        stmt = mock_db.execute.call_args[0][0]
+        compiled_sql = str(stmt.compile(compile_kwargs={"literal_binds": True}))
+        assert "123456789" in compiled_sql
 
     @pytest.mark.asyncio
     async def test_returns_none_when_not_found(self, mock_db):

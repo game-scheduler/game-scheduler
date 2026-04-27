@@ -131,7 +131,10 @@ class TestRetryDaemon:
     def test_process_dlq_empty_queue(self, daemon, caplog):
         """Test processing of empty DLQ."""
         with caplog.at_level("DEBUG"):
-            with patch("pika.BlockingConnection") as mock_connection_class:
+            with (
+                patch("pika.BlockingConnection") as mock_connection_class,
+                patch("pika.URLParameters") as mock_url_params,
+            ):
                 # Mock connection and channel
                 mock_connection = Mock()
                 mock_channel = Mock()
@@ -150,12 +153,16 @@ class TestRetryDaemon:
                     queue=QUEUE_BOT_EVENTS_DLQ, durable=True
                 )
                 mock_connection.close.assert_called_once()
-                mock_connection_class.assert_called_once_with(ANY)
+                mock_url_params.assert_called_once_with("amqp://guest:guest@localhost:5672/")
+                mock_connection_class.assert_called_once_with(mock_url_params.return_value)
                 assert "is empty, nothing to process" in caplog.text
 
     def test_process_dlq_with_messages(self, daemon):
         """Test processing DLQ with messages."""
-        with patch("pika.BlockingConnection") as mock_connection_class:
+        with (
+            patch("pika.BlockingConnection") as mock_connection_class,
+            patch("pika.URLParameters") as mock_url_params,
+        ):
             # Create mock publisher
             mock_publisher = Mock()
             daemon.publisher = mock_publisher
@@ -207,11 +214,15 @@ class TestRetryDaemon:
             # assert-not-weak: predates reason requirement
             mock_channel.cancel.assert_called_once_with()
             mock_connection.close.assert_called_once()
-            mock_connection_class.assert_called_once_with(ANY)
+            mock_url_params.assert_called_once_with("amqp://guest:guest@localhost:5672/")
+            mock_connection_class.assert_called_once_with(mock_url_params.return_value)
 
     def test_process_dlq_with_publish_error(self, daemon):
         """Test error handling when republish fails."""
-        with patch("pika.BlockingConnection") as mock_connection_class:
+        with (
+            patch("pika.BlockingConnection") as mock_connection_class,
+            patch("pika.URLParameters") as mock_url_params,
+        ):
             # Create mock publisher that raises error
             mock_publisher = Mock()
             mock_publisher.publish.side_effect = Exception("Publish failed")
@@ -251,17 +262,22 @@ class TestRetryDaemon:
             # Should NACK with requeue when publish fails
             mock_channel.basic_nack.assert_called_once_with(1, requeue=True)
             mock_connection.close.assert_called_once()
-            mock_connection_class.assert_called_once_with(ANY)
+            mock_url_params.assert_called_once_with("amqp://guest:guest@localhost:5672/")
+            mock_connection_class.assert_called_once_with(mock_url_params.return_value)
 
     def test_process_dlq_connection_error(self, daemon, caplog):
         """Test error handling when connection fails."""
-        with patch("pika.BlockingConnection") as mock_connection_class:
+        with (
+            patch("pika.BlockingConnection") as mock_connection_class,
+            patch("pika.URLParameters") as mock_url_params,
+        ):
             mock_connection_class.side_effect = Exception("Connection failed")
 
             daemon._process_dlq(QUEUE_BOT_EVENTS_DLQ)
 
             assert "Error during DLQ processing" in caplog.text
-            mock_connection_class.assert_called_once_with(ANY)
+            mock_url_params.assert_called_once_with("amqp://guest:guest@localhost:5672/")
+            mock_connection_class.assert_called_once_with(mock_url_params.return_value)
 
     def test_cleanup(self, daemon):
         """Test cleanup closes publisher connection."""
@@ -364,7 +380,10 @@ class TestRetryDaemon:
 
     def test_process_dlq_publisher_not_initialized(self, daemon):
         """Test _process_dlq raises error if publisher not initialized."""
-        with patch("pika.BlockingConnection") as mock_connection_class:
+        with (
+            patch("pika.BlockingConnection") as mock_connection_class,
+            patch("pika.URLParameters") as mock_url_params,
+        ):
             mock_connection = Mock()
             mock_channel = Mock()
             mock_connection_class.return_value = mock_connection
@@ -394,7 +413,8 @@ class TestRetryDaemon:
 
             # Should NACK message due to RuntimeError
             mock_channel.basic_nack.assert_called_once_with(1, requeue=True)
-            mock_connection_class.assert_called_once_with(ANY)
+            mock_url_params.assert_called_once_with("amqp://guest:guest@localhost:5672/")
+            mock_connection_class.assert_called_once_with(mock_url_params.return_value)
 
 
 class TestRetryDaemonHelpers:

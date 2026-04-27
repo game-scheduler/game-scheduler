@@ -29,7 +29,7 @@ Exception-path and pure-guard tests use minimal mocks where no DB is involved.
 """
 
 import uuid
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from sqlalchemy import text
@@ -133,7 +133,7 @@ async def test_join_game_custom_id_creates_participant(
     ).fetchall()
     assert len(rows) == 1, "Participant must be created via join_game_ dispatch"
     mock_publisher.publish_game_updated.assert_awaited_once_with(
-        game_id=ANY, guild_id=ANY, updated_fields=ANY
+        game_id=game["id"], guild_id=game["guild_id"], updated_fields={"participants": True}
     )
 
 
@@ -173,7 +173,7 @@ async def test_leave_game_custom_id_removes_participant(
     ).fetchall()
     assert len(rows) == 0, "Participant must be deleted via leave_game_ dispatch"
     mock_publisher.publish_game_updated.assert_awaited_once_with(
-        game_id=ANY, guild_id=ANY, updated_fields=ANY
+        game_id=game["id"], guild_id=game["guild_id"], updated_fields={"participants": True}
     )
 
 

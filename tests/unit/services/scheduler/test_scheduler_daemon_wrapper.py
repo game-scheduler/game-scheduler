@@ -22,7 +22,7 @@
 """Unit tests for the unified scheduler daemon wrapper."""
 
 import signal
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import services.scheduler.scheduler_daemon_wrapper as wrapper
 
@@ -136,8 +136,9 @@ class TestMainEdgeCases:
     @patch("services.scheduler.scheduler_daemon_wrapper.flush_telemetry")
     @patch("services.scheduler.scheduler_daemon_wrapper.init_telemetry")
     @patch("services.scheduler.scheduler_daemon_wrapper.SchedulerDaemon")
+    @patch("services.scheduler.scheduler_daemon_wrapper.register_shutdown_signals")
     def test_thread_crash_does_not_block_other_daemons(
-        self, mock_daemon_cls, mock_init_telemetry, mock_flush
+        self, mock_register, mock_daemon_cls, mock_init_telemetry, mock_flush
     ):
         """A crashing daemon thread does not prevent the others from running."""
         daemon_a, daemon_b, daemon_c = MagicMock(), MagicMock(), MagicMock()
@@ -148,9 +149,10 @@ class TestMainEdgeCases:
 
         wrapper.main()
 
-        daemon_a.run.assert_called_once_with(ANY)
-        daemon_b.run.assert_called_once_with(ANY)
-        daemon_c.run.assert_called_once_with(ANY)
+        mock_flag = mock_register.return_value
+        daemon_a.run.assert_called_once_with(mock_flag)
+        daemon_b.run.assert_called_once_with(mock_flag)
+        daemon_c.run.assert_called_once_with(mock_flag)
 
     @patch("services.scheduler.scheduler_daemon_wrapper.flush_telemetry")
     @patch("services.scheduler.scheduler_daemon_wrapper.init_telemetry")

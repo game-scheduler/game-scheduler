@@ -24,7 +24,7 @@
 import datetime
 import uuid
 from datetime import UTC
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -33,6 +33,7 @@ from services.api.services.games import (
     DEFAULT_GAME_DURATION_MINUTES,
     GameMediaAttachments,
 )
+from shared.messaging.events import EventType
 from shared.models import channel as channel_model
 from shared.models import game as game_model
 from shared.models import game_status_schedule as game_status_schedule_model
@@ -602,7 +603,10 @@ async def test_resolve_game_host_bot_manager_creates_new_user(
         )
 
     assert host_user == created_user
-    mock_db.add.assert_called_once_with(ANY)
+    mock_db.add.assert_called_once()
+    added_user = mock_db.add.call_args[0][0]
+    assert isinstance(added_user, user_model.User)
+    assert added_user.discord_id == "888"
     mock_db.flush.assert_called_once()
 
 
@@ -1481,7 +1485,9 @@ async def test_create_game_without_participants(
     assert game.title == "Test Game"
     assert game.host_id == sample_user.id
     mock_db.add.assert_called()
-    mock_event_publisher.publish_deferred.assert_called_once_with(event=ANY)
+    mock_event_publisher.publish_deferred.assert_called_once()
+    event_arg = mock_event_publisher.publish_deferred.call_args[1]["event"]
+    assert event_arg.event_type == EventType.GAME_CREATED
 
 
 @pytest.mark.asyncio
@@ -1887,7 +1893,10 @@ async def test_create_game_with_valid_participants(
         )
 
     assert isinstance(game, game_model.GameSession)
-    mock_participant_resolver.resolve_initial_participants.assert_called_once_with(ANY, ANY)
+    mock_participant_resolver.resolve_initial_participants.assert_called_once_with(
+        sample_guild.guild_id,
+        sample_game_data.initial_participants,
+    )
 
 
 @pytest.mark.asyncio
