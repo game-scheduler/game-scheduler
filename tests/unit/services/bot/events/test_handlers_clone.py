@@ -22,7 +22,7 @@
 """Unit tests for EventHandlers clone confirmation methods."""
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -77,10 +77,19 @@ async def test_handle_clone_confirmation_sends_dm_with_view(event_handlers, mock
         await event_handlers._handle_clone_confirmation(event)
 
     mock_bot.fetch_user.assert_not_called()
-    mock_view_cls.assert_called_once()
+    mock_view_cls.assert_called_once_with(
+        schedule_id=schedule.id,
+        game_id=str(sample_game.id),
+        participant_id=participant_id,
+        publisher=ANY,
+    )
     mock_user.send.assert_awaited_once()
     send_kwargs = mock_user.send.call_args
     assert send_kwargs[1]["view"] is mock_view_cls.return_value
+    mock_db.assert_called_once_with()
+    mock_fmt.clone_confirmation.assert_called_once_with(
+        sample_game.title, int(schedule.action_time.timestamp())
+    )
 
 
 @pytest.mark.asyncio
@@ -109,6 +118,7 @@ async def test_handle_clone_confirmation_skips_when_participant_not_found(event_
         await event_handlers._handle_clone_confirmation(event)
 
     mock_bot.fetch_user.assert_not_called()
+    mock_db.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -154,6 +164,7 @@ async def test_handle_clone_confirmation_falls_back_to_join_dm_when_no_schedule(
 
     mock_send_join.assert_awaited_once()
     mock_bot.fetch_user.assert_not_called()
+    mock_db.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -201,3 +212,7 @@ async def test_handle_clone_confirmation_user_not_in_cache(event_handlers, mock_
         await event_handlers._handle_clone_confirmation(event)
 
     mock_bot.fetch_user.assert_not_called()
+    mock_db.assert_called_once_with()
+    mock_fmt.clone_confirmation.assert_called_once_with(
+        sample_game.title, int(schedule.action_time.timestamp())
+    )

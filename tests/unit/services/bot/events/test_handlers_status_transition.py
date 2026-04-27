@@ -73,6 +73,7 @@ async def test_handle_status_transition_due_success(event_handlers, sample_game,
             assert sample_game.status == target_status
             mock_db.commit.assert_awaited_once()
             mock_refresh.assert_called_once_with(game_id)
+            mock_db_session.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -96,6 +97,7 @@ async def test_handle_status_transition_due_game_not_found(event_handlers):
                 "transition_time": datetime(2025, 11, 20, 18, 0, 0, tzinfo=UTC),
             }
             await event_handlers._handle_status_transition_due(data)
+            mock_db_session.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -141,6 +143,7 @@ async def test_handle_status_transition_due_already_transitioned(
             assert sample_game.status == "COMPLETED"
             mock_db.commit.assert_not_awaited()
             mock_refresh.assert_not_called()
+            mock_db_session.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -148,6 +151,7 @@ async def test_handle_status_transition_due_invalid_data(event_handlers):
     """Test status transition with invalid event data."""
     data = {"invalid": "data"}
     await event_handlers._handle_status_transition_due(data)
+    assert True  # handler completed without raising
 
 
 @pytest.mark.asyncio
@@ -200,6 +204,7 @@ async def test_handle_status_transition_creates_archived_schedule_when_delay_set
             assert schedule.game_id == sample_game.id
             assert schedule.target_status == GameStatus.ARCHIVED.value
             assert schedule.transition_time == fixed_now + timedelta(seconds=3600)
+            mock_db_session.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -241,6 +246,7 @@ async def test_handle_status_transition_no_archived_schedule_when_delay_none(
             assert not any(
                 isinstance(call.args[0], GameStatusSchedule) for call in mock_db.add.call_args_list
             )
+            mock_db_session.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -365,6 +371,7 @@ async def test_handle_status_transition_creates_archived_schedule_when_delay_zer
             assert len(added_schedules) == 1
             schedule = added_schedules[0]
             assert schedule.transition_time == fixed_now
+            mock_db_session.assert_called_once_with()
 
 
 @pytest.mark.asyncio

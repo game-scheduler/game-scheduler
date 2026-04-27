@@ -94,10 +94,10 @@ async def test_require_manage_guild_success(
     mock_interaction.user = mock_member_with_manage_guild
 
     @require_manage_guild()
-    async def test_command(interaction: Interaction):
+    async def cmd(interaction: Interaction):
         return "success"
 
-    result = await test_command(mock_interaction)
+    result = await cmd(mock_interaction)
     assert result == "success"
     mock_interaction.response.send_message.assert_not_called()
 
@@ -111,10 +111,10 @@ async def test_require_manage_guild_no_permission(
     mock_interaction.user = mock_member_no_permissions
 
     @require_manage_guild()
-    async def test_command(interaction: Interaction):
+    async def cmd(interaction: Interaction):
         return "success"
 
-    result = await test_command(mock_interaction)
+    result = await cmd(mock_interaction)
     assert result is None
     mock_interaction.response.send_message.assert_called_once()
     call_args = mock_interaction.response.send_message.call_args
@@ -129,10 +129,10 @@ async def test_require_manage_guild_no_guild(mock_interaction):
     mock_interaction.user = MagicMock()
 
     @require_manage_guild()
-    async def test_command(interaction: Interaction):
+    async def cmd(interaction: Interaction):
         return "success"
 
-    result = await test_command(mock_interaction)
+    result = await cmd(mock_interaction)
     assert result is None
     mock_interaction.response.send_message.assert_called_once()
     call_args = mock_interaction.response.send_message.call_args
@@ -147,10 +147,10 @@ async def test_require_manage_guild_not_member(mock_interaction, mock_guild):
     mock_interaction.user = MagicMock(spec=discord.User)
 
     @require_manage_guild()
-    async def test_command(interaction: Interaction):
+    async def cmd(interaction: Interaction):
         return "success"
 
-    result = await test_command(mock_interaction)
+    result = await cmd(mock_interaction)
     assert result is None
     mock_interaction.response.send_message.assert_called_once()
     call_args = mock_interaction.response.send_message.call_args
@@ -167,10 +167,10 @@ async def test_require_manage_channels_success(
     mock_interaction.user = mock_member_with_manage_channels
 
     @require_manage_channels()
-    async def test_command(interaction: Interaction):
+    async def cmd(interaction: Interaction):
         return "success"
 
-    result = await test_command(mock_interaction)
+    result = await cmd(mock_interaction)
     assert result == "success"
     mock_interaction.response.send_message.assert_not_called()
 
@@ -184,10 +184,10 @@ async def test_require_manage_channels_no_permission(
     mock_interaction.user = mock_member_no_permissions
 
     @require_manage_channels()
-    async def test_command(interaction: Interaction):
+    async def cmd(interaction: Interaction):
         return "success"
 
-    result = await test_command(mock_interaction)
+    result = await cmd(mock_interaction)
     assert result is None
     mock_interaction.response.send_message.assert_called_once()
     call_args = mock_interaction.response.send_message.call_args
@@ -202,10 +202,10 @@ async def test_require_manage_channels_no_guild(mock_interaction):
     mock_interaction.user = MagicMock()
 
     @require_manage_channels()
-    async def test_command(interaction: Interaction):
+    async def cmd(interaction: Interaction):
         return "success"
 
-    result = await test_command(mock_interaction)
+    result = await cmd(mock_interaction)
     assert result is None
     mock_interaction.response.send_message.assert_called_once()
     call_args = mock_interaction.response.send_message.call_args
@@ -220,10 +220,10 @@ async def test_require_manage_channels_not_member(mock_interaction, mock_guild):
     mock_interaction.user = MagicMock(spec=discord.User)
 
     @require_manage_channels()
-    async def test_command(interaction: Interaction):
+    async def cmd(interaction: Interaction):
         return "success"
 
-    result = await test_command(mock_interaction)
+    result = await cmd(mock_interaction)
     assert result is None
     mock_interaction.response.send_message.assert_called_once()
     call_args = mock_interaction.response.send_message.call_args
