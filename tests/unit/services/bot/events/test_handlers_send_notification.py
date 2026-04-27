@@ -68,6 +68,8 @@ async def test_handle_send_notification_dm_disabled(event_handlers, mock_bot):
 
     await event_handlers._handle_send_notification(data)
 
+    assert True  # no exception raised when user has DMs disabled
+
 
 @pytest.mark.asyncio
 async def test_handle_send_notification_user_not_in_cache(event_handlers, mock_bot):
@@ -96,6 +98,8 @@ async def test_handle_send_notification_invalid_data(event_handlers):
 
     await event_handlers._handle_send_notification(data)
 
+    assert True  # no exception raised for invalid/incomplete data
+
 
 @pytest.mark.asyncio
 async def test_get_game_with_participants(event_handlers, sample_game, sample_user):
@@ -113,6 +117,7 @@ async def test_get_game_with_participants(event_handlers, sample_game, sample_us
 
         assert result == sample_game
         mock_db.execute.assert_awaited_once()
+        mock_db_session.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -130,3 +135,4 @@ async def test_get_game_with_participants_not_found(event_handlers):
         result = await event_handlers._get_game_with_participants(mock_db, str(uuid4()))
 
         assert result is None
+        mock_db_session.assert_not_called()

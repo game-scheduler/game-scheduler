@@ -22,7 +22,7 @@
 """Unit tests for role verification service."""
 
 from typing import ClassVar
-from unittest.mock import AsyncMock, patch
+from unittest.mock import ANY, AsyncMock, patch
 
 import pytest
 
@@ -89,7 +89,7 @@ async def test_get_user_role_ids_from_api(role_service, mock_cache):
         role_ids = await role_service.get_user_role_ids("user123", "guild456")
 
     assert role_ids == ["role1", "role2", "role3", "guild456"]
-    mock_cache.set_json.assert_called_once()
+    mock_cache.set_json.assert_awaited_once_with(ANY, ANY, ttl=ANY)
     mock_get_roles.assert_awaited_once_with("guild456", "user123", redis=mock_cache)
 
 
@@ -170,7 +170,7 @@ async def test_check_game_host_permission_without_token(role_service):
         )
 
     assert has_perm is False
-    mock_check_manager.assert_called_once()
+    mock_check_manager.assert_called_once_with("user123", "guild456", mock_db)
 
 
 @pytest.mark.asyncio
@@ -192,7 +192,7 @@ async def test_check_game_host_permission_no_permission(role_service):
         )
 
     assert has_perm is False
-    mock_check_manager.assert_called_once()
+    mock_check_manager.assert_called_once_with("user123", "guild456", mock_db)
 
 
 @pytest.mark.asyncio
@@ -201,7 +201,7 @@ async def test_invalidate_user_roles(role_service, mock_cache):
     with patch.object(role_service, "_get_cache", return_value=mock_cache):
         await role_service.invalidate_user_roles("user123", "guild456")
 
-    mock_cache.delete.assert_called_once()
+    mock_cache.delete.assert_awaited_once_with(ANY)
 
 
 @pytest.mark.asyncio

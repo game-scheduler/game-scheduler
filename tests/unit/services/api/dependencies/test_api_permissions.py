@@ -22,7 +22,7 @@
 """Unit tests for permission check dependencies."""
 
 import logging
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -76,7 +76,7 @@ async def test_require_manage_guild_success(mock_current_user, mock_role_service
         )
 
     assert result == mock_current_user
-    mock_role_service.has_permissions.assert_called_once()
+    mock_role_service.has_permissions.assert_called_once_with("user123", "123456789012345678", ANY)
 
 
 @pytest.mark.asyncio
@@ -134,7 +134,7 @@ async def test_require_manage_channels_success(mock_current_user, mock_role_serv
         )
 
     assert result == mock_current_user
-    mock_role_service.has_permissions.assert_called_once()
+    mock_role_service.has_permissions.assert_called_once_with("user123", "123456789012345678", ANY)
 
 
 @pytest.mark.asyncio
@@ -237,7 +237,7 @@ async def test_require_administrator_success(mock_current_user, mock_role_servic
         )
 
     assert result == mock_current_user
-    mock_role_service.has_permissions.assert_called_once()
+    mock_role_service.has_permissions.assert_called_once_with("user123", "guild456", ANY)
 
 
 @pytest.mark.asyncio
@@ -274,7 +274,9 @@ async def test_require_bot_manager_success(mock_current_user, mock_role_service,
         )
 
     assert result == mock_current_user
-    mock_role_service.check_bot_manager_permission.assert_called_once()
+    mock_role_service.check_bot_manager_permission.assert_called_once_with(
+        "user123", "123456789012345678", ANY
+    )
 
 
 @pytest.mark.asyncio

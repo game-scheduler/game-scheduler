@@ -374,6 +374,7 @@ async def test_user_a(
     await admin_db.commit()
     await admin_db.refresh(user)
 
+    assert user.discord_id is not None
     yield user
 
     await admin_db.delete(user)
@@ -398,6 +399,7 @@ async def test_user_b(
     await admin_db.commit()
     await admin_db.refresh(user)
 
+    assert user.discord_id is not None
     yield user
 
     await admin_db.delete(user)
@@ -421,6 +423,7 @@ async def test_user_main_bot(
     await admin_db.commit()
     await admin_db.refresh(user)
 
+    assert user.discord_id is not None
     yield user
 
     await admin_db.delete(user)

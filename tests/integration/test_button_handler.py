@@ -29,7 +29,7 @@ Exception-path and pure-guard tests use minimal mocks where no DB is involved.
 """
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 from sqlalchemy import text
@@ -91,6 +91,7 @@ def test_game(create_guild, create_channel, create_user, create_game):
         title="Button Handler Integration Test Game",
         status=GameStatus.SCHEDULED,
     )
+    assert game
     return {"guild": guild, "channel": channel, "host": host, "game": game}
 
 
@@ -131,7 +132,9 @@ async def test_join_game_custom_id_creates_participant(
         {"game_id": game["id"], "user_id": player["id"]},
     ).fetchall()
     assert len(rows) == 1, "Participant must be created via join_game_ dispatch"
-    mock_publisher.publish_game_updated.assert_called_once()
+    mock_publisher.publish_game_updated.assert_awaited_once_with(
+        game_id=ANY, guild_id=ANY, updated_fields=ANY
+    )
 
 
 @pytest.mark.asyncio
@@ -169,7 +172,9 @@ async def test_leave_game_custom_id_removes_participant(
         text("SELECT id FROM game_participants WHERE id = :id"), {"id": participant_id}
     ).fetchall()
     assert len(rows) == 0, "Participant must be deleted via leave_game_ dispatch"
-    mock_publisher.publish_game_updated.assert_called_once()
+    mock_publisher.publish_game_updated.assert_awaited_once_with(
+        game_id=ANY, guild_id=ANY, updated_fields=ANY
+    )
 
 
 # -- Pure-logic guard tests (no DB; cover early-return branches) ---------------

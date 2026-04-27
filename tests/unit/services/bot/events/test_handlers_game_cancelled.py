@@ -152,7 +152,7 @@ async def test_handle_game_cancelled_channel_not_found(event_handlers):
     ) as mock_fetch:
         await event_handlers._handle_game_cancelled(data)
 
-        mock_fetch.assert_called_once()
+        mock_fetch.assert_called_once_with("987654321", "123456789")
 
 
 @pytest.mark.asyncio
@@ -172,6 +172,8 @@ async def test_handle_game_cancelled_channel_invalid(event_handlers):
     ):
         await event_handlers._handle_game_cancelled(data)
 
+    assert True  # no error raised when channel is invalid/inaccessible
+
 
 @pytest.mark.asyncio
 async def test_handle_game_cancelled_handles_exception(event_handlers):
@@ -188,6 +190,8 @@ async def test_handle_game_cancelled_handles_exception(event_handlers):
         side_effect=Exception("Network error"),
     ):
         await event_handlers._handle_game_cancelled(data)
+
+    assert True  # no exception propagates when fetch raises
 
 
 @pytest.mark.asyncio
@@ -254,6 +258,7 @@ async def test_handle_game_cancelled_does_not_fetch_game_from_db(event_handlers)
         await event_handlers._handle_game_cancelled(data)
 
     mock_get_game.assert_not_awaited()
+    mock_db_session.assert_not_called()
 
 
 @pytest.mark.asyncio

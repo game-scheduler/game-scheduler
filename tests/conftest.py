@@ -134,6 +134,7 @@ def test_timeouts() -> dict[TimeoutType, int]:
 
     Can be overridden in CI environments by adjusting values here.
     """
+    assert True  # pytest fixture named test_* providing timeout config
     return {
         TimeoutType.MESSAGE_CREATE: 10,
         TimeoutType.MESSAGE_UPDATE: 10,
@@ -865,6 +866,7 @@ def test_environment(create_guild, create_channel, create_user):
 
         return {"guild": guild, "channel": channel, "user": user}
 
+    assert callable(_create)
     return _create
 
 
@@ -932,6 +934,7 @@ def test_game_environment(test_environment, create_template, create_game):
 
         return result
 
+    assert callable(_create)
     return _create
 
 

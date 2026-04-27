@@ -21,7 +21,7 @@
 
 """Tests for error handler middleware."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI, Request
@@ -120,7 +120,7 @@ async def test_database_exception_handler_logs_error(mock_request):
     with patch("services.api.middleware.error_handler.logger") as mock_logger:
         await error_handler.database_exception_handler(mock_request, mock_exc)
 
-        mock_logger.error.assert_called_once()
+        mock_logger.error.assert_called_once_with(ANY, ANY, ANY)
 
 
 @pytest.mark.asyncio
@@ -141,6 +141,7 @@ async def test_database_exception_handler_returns_generic_message(mock_request):
     assert "Please create an issue" in body
     assert "UTC" in body
     assert "detail" not in body
+    mock_config.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -161,6 +162,7 @@ async def test_database_exception_handler_includes_details_in_debug_mode(mock_re
     assert "An internal error has occurred" in body
     assert "detail" in body
     assert "Test database error" in body
+    mock_config.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -182,7 +184,7 @@ async def test_general_exception_handler_logs_error(mock_request):
     with patch("services.api.middleware.error_handler.logger") as mock_logger:
         await error_handler.general_exception_handler(mock_request, mock_exc)
 
-        mock_logger.error.assert_called_once()
+        mock_logger.error.assert_called_once_with(ANY, ANY)
 
 
 @pytest.mark.asyncio
