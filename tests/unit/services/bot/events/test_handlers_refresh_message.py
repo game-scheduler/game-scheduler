@@ -21,7 +21,7 @@
 
 """Unit tests for EventHandlers refresh game message methods."""
 
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import discord
@@ -309,8 +309,13 @@ async def test_refresh_game_message_message_not_found(event_handlers, sample_gam
         mock_db.assert_called_once_with()
         mock_fetch.assert_called_once_with(mock_db_instance, sample_game.id)
         mock_validate.assert_called_once_with(str(sample_game.channel.channel_id))
-        mock_update.assert_called_once_with(ANY, ANY)
-        mock_logger.exception.assert_called_once_with(ANY, ANY)
+        mock_update.assert_called_once_with(
+            mock_channel.get_partial_message.return_value, sample_game
+        )
+        mock_logger.exception.assert_called_once()
+        exception_args = mock_logger.exception.call_args.args
+        assert exception_args[0] == "Failed to refresh game message: %s"
+        assert isinstance(exception_args[1], discord.NotFound)
 
 
 @pytest.mark.asyncio

@@ -22,7 +22,7 @@
 """Tests for API main entry point."""
 
 import logging
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -100,6 +100,6 @@ async def test_main_uses_config_values():
                         assert call_kwargs["host"] == "0.0.0.0"
                         assert call_kwargs["port"] == 8080
                         mock_config.assert_called_once_with()
-                        mock_server.assert_called_once_with(ANY)
+                        mock_server.assert_called_once_with(mock_uvicorn_config.return_value)
                         assert call_kwargs["log_level"] == "debug"
                         assert call_kwargs["access_log"] is False

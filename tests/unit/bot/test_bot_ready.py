@@ -22,7 +22,7 @@
 """Unit tests for GameSchedulerBot.on_ready."""
 
 from contextlib import ExitStack
-from unittest.mock import ANY, AsyncMock, MagicMock, PropertyMock, patch
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import discord
 import pytest
@@ -233,7 +233,7 @@ async def test_on_ready_starts_message_refresh_listener(bot, mock_redis, on_read
         mock_listener_cls.return_value.start = AsyncMock()
         await bot.on_ready()
 
-    mock_listener_cls.assert_called_once_with(ANY, ANY)
+    mock_listener_cls.assert_called_once_with(bot.config.database_url, bot._spawn_channel_worker)
 
 
 async def test_on_ready_does_not_restart_message_refresh_listener(

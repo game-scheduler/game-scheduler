@@ -21,7 +21,7 @@
 
 """Tests for error handler middleware."""
 
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import FastAPI, Request
@@ -120,7 +120,10 @@ async def test_database_exception_handler_logs_error(mock_request):
     with patch("services.api.middleware.error_handler.logger") as mock_logger:
         await error_handler.database_exception_handler(mock_request, mock_exc)
 
-        mock_logger.error.assert_called_once_with(ANY, ANY, ANY)
+        mock_logger.error.assert_called_once()
+        error_args = mock_logger.error.call_args.args
+        assert error_args[0] == "Database error at %s: %s"
+        assert error_args[2] is mock_exc
 
 
 @pytest.mark.asyncio
@@ -184,7 +187,7 @@ async def test_general_exception_handler_logs_error(mock_request):
     with patch("services.api.middleware.error_handler.logger") as mock_logger:
         await error_handler.general_exception_handler(mock_request, mock_exc)
 
-        mock_logger.error.assert_called_once_with(ANY, ANY)
+        mock_logger.error.assert_called_once_with("Unhandled exception: %s", mock_exc)
 
 
 @pytest.mark.asyncio

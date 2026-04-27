@@ -21,7 +21,7 @@
 
 """Unit tests for bot handler utilities."""
 
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import discord
@@ -179,7 +179,11 @@ class TestSendErrorMessage:
 
         with patch("services.bot.handlers.utils.logger") as mock_logger:
             await send_error_message(mock_interaction, "error message")
-            mock_logger.warning.assert_called_once_with(ANY, ANY, ANY)
+            mock_logger.warning.assert_called_once()
+            warning_args = mock_logger.warning.call_args.args
+            assert warning_args[0] == "Cannot send DM to user %s: %s"
+            assert warning_args[1] == 123456789
+            assert isinstance(warning_args[2], discord.Forbidden)
 
 
 class TestSendSuccessMessage:
@@ -205,4 +209,8 @@ class TestSendSuccessMessage:
 
         with patch("services.bot.handlers.utils.logger") as mock_logger:
             await send_success_message(mock_interaction, "success message")
-            mock_logger.warning.assert_called_once_with(ANY, ANY, ANY)
+            mock_logger.warning.assert_called_once()
+            warning_args = mock_logger.warning.call_args.args
+            assert warning_args[0] == "Cannot send DM to user %s: %s"
+            assert warning_args[1] == 123456789
+            assert isinstance(warning_args[2], discord.Forbidden)

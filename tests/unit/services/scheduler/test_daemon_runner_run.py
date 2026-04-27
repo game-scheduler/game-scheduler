@@ -22,19 +22,20 @@
 """Unit tests for the shared daemon runner."""
 
 import signal
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from services.scheduler.daemon_runner import run_daemon
 
 
 class TestRunDaemon:
+    @patch("services.scheduler.daemon_runner.register_shutdown_signals")
     @patch("services.scheduler.daemon_runner.flush_telemetry")
-    def test_calls_daemon_run(self, mock_flush):
+    def test_calls_daemon_run(self, mock_flush, mock_register_shutdown):
         mock_daemon = MagicMock()
 
         run_daemon(mock_daemon)
 
-        mock_daemon.run.assert_called_once_with(ANY)
+        mock_daemon.run.assert_called_once_with(mock_register_shutdown.return_value)
 
     @patch("services.scheduler.daemon_runner.flush_telemetry")
     def test_registers_sigterm_and_sigint(self, mock_flush):

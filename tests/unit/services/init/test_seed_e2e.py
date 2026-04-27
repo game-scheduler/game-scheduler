@@ -21,7 +21,7 @@
 
 """Unit tests for init service seed_e2e module helpers."""
 
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import Mock, patch
 
 from services.init.seed_e2e import (
     GuildConfig,
@@ -113,7 +113,10 @@ class TestGuildExists:
         result = _guild_exists(mock_session, "123456789")
 
         assert result is True
-        mock_session.execute.assert_called_once_with(ANY, ANY)
+        mock_session.execute.assert_called_once()
+        (sql_arg, params_arg) = mock_session.execute.call_args.args
+        assert str(sql_arg) == "SELECT id FROM guild_configurations WHERE guild_id = :guild_id"
+        assert params_arg == {"guild_id": "123456789"}
 
     def test_returns_false_when_guild_not_found(self):
         """Should return False when guild does not exist in database."""
@@ -125,7 +128,10 @@ class TestGuildExists:
         result = _guild_exists(mock_session, "987654321")
 
         assert result is False
-        mock_session.execute.assert_called_once_with(ANY, ANY)
+        mock_session.execute.assert_called_once()
+        (sql_arg, params_arg) = mock_session.execute.call_args.args
+        assert str(sql_arg) == "SELECT id FROM guild_configurations WHERE guild_id = :guild_id"
+        assert params_arg == {"guild_id": "987654321"}
 
 
 class TestCreateGuildEntities:

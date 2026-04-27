@@ -199,7 +199,9 @@ class TestSchedulerDaemonGetNextDueItem:
         mock_db.query.assert_called_once_with(NotificationSchedule)
         assert mock_query.filter.call_count == 1
         assert mock_filter1.filter.call_count == 1
-        mock_filter2.order_by.assert_called_once_with(ANY)
+        mock_filter2.order_by.assert_called_once()
+        (order_by_arg,) = mock_filter2.order_by.call_args.args
+        assert str(order_by_arg) == str(NotificationSchedule.notification_time.asc())
         mock_order.first.assert_called_once_with()  # assert-not-weak: predates reason requirement
 
     def test_get_next_due_item_returns_record_when_found(self, daemon):

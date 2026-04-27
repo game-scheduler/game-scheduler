@@ -23,7 +23,7 @@
 
 import asyncio
 from datetime import UTC, datetime
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
 import pytest
@@ -457,7 +457,7 @@ class TestGameSchedulerBot:
         with patch("services.bot.bot.asyncio.create_task", return_value=mock_task) as mock_ct:
             result = bot._spawn_channel_worker("channel-1")
 
-        mock_ct.assert_called_once_with(ANY)
+        mock_ct.assert_called_once_with(mock_handlers._channel_worker.return_value)
         assert result is mock_task
         assert mock_handlers._channel_workers["channel-1"] is mock_task
 
@@ -489,7 +489,7 @@ class TestGameSchedulerBot:
         with patch("services.bot.bot.asyncio.create_task", return_value=new_task) as mock_ct:
             result = bot._spawn_channel_worker("channel-1")
 
-        mock_ct.assert_called_once_with(ANY)
+        mock_ct.assert_called_once_with(mock_handlers._channel_worker.return_value)
         assert result is new_task
         assert mock_handlers._channel_workers["channel-1"] is new_task
 
