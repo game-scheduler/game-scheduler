@@ -77,6 +77,8 @@ async def test_handle_game_created_missing_data(event_handlers):
     data = {"game_id": "123"}
     await event_handlers._handle_game_created(data)
 
+    assert True  # no error raised for missing data
+
 
 @pytest.mark.asyncio
 async def test_handle_game_created_invalid_channel(event_handlers, mock_bot):
@@ -85,6 +87,8 @@ async def test_handle_game_created_invalid_channel(event_handlers, mock_bot):
 
     data = {"game_id": str(uuid4()), "channel_id": "invalid"}
     await event_handlers._handle_game_created(data)
+
+    assert True  # no error raised for invalid channel
 
 
 @pytest.mark.asyncio

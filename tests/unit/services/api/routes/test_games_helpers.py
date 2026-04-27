@@ -28,7 +28,7 @@ Tests the extracted helper functions from update_game and _build_game_response r
 import json
 from datetime import UTC, datetime
 from io import BytesIO
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException, UploadFile
@@ -184,7 +184,7 @@ class TestProcessImageUpload:
 
         assert image_data == file_content
         assert mime_type == "image/png"
-        mock_file.read.assert_called_once()
+        assert mock_file.read.call_count == 1
 
     async def test_process_different_image_types(self):
         """Process different image MIME types correctly."""
@@ -287,7 +287,7 @@ class TestBuildGameResponseHelpers:
         assert host_discord_id == "host_discord"
         assert "discord123" in display_data_map
         assert "host_discord" in display_data_map
-        mock_resolver.resolve_display_names_and_avatars.assert_called_once()
+        mock_resolver.resolve_display_names_and_avatars.assert_called_once_with(ANY, ANY)
 
     async def test_resolve_display_data_without_guild(
         self, sample_game, sample_partitioned_participants
@@ -788,4 +788,4 @@ class TestPrefetchedDisplayData:
 
         await _build_game_response(game)
 
-        mock_resolve.assert_called_once()
+        mock_resolve.assert_called_once_with(ANY, ANY, resolve_participants=ANY)

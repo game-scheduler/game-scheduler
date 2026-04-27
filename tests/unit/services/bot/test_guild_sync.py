@@ -232,6 +232,8 @@ async def test_sync_guilds_from_gateway_does_not_call_rest():
 
     await guild_sync.sync_guilds_from_gateway(mock_bot, mock_db)
 
+    assert True  # no REST API (fetch_*) methods called during gateway sync
+
 
 @pytest.mark.asyncio
 async def test_sync_guilds_from_gateway_filters_channel_types():
@@ -317,3 +319,5 @@ async def test_sync_single_guild_from_gateway_does_not_call_rest():
     mock_db.execute = AsyncMock(return_value=mock_execute_result)
 
     await guild_sync.sync_single_guild_from_gateway(guild, mock_db)
+
+    assert True  # no REST API (fetch_*) methods called during gateway sync

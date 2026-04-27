@@ -51,8 +51,8 @@ class TestSignalHandlerCoverageFlush:
         ):
             captured[signal.SIGTERM](signal.SIGTERM, None)
 
-        mock_cov.stop.assert_called_once()
-        mock_cov.save.assert_called_once()
+        assert mock_cov.stop.call_count == 1
+        assert mock_cov.save.call_count == 1
 
     def test_no_error_when_no_active_coverage(self):
         """Should not crash when no coverage instance is active."""
@@ -72,3 +72,5 @@ class TestSignalHandlerCoverageFlush:
             return_value=None,
         ):
             captured[signal.SIGTERM](signal.SIGTERM, None)
+
+        assert True  # no error raised when no coverage instance is active

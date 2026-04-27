@@ -22,7 +22,7 @@
 """Unit tests for the shared daemon runner."""
 
 import signal
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from services.scheduler.daemon_runner import run_daemon
 
@@ -34,7 +34,7 @@ class TestRunDaemon:
 
         run_daemon(mock_daemon)
 
-        mock_daemon.run.assert_called_once()
+        mock_daemon.run.assert_called_once_with(ANY)
 
     @patch("services.scheduler.daemon_runner.flush_telemetry")
     def test_registers_sigterm_and_sigint(self, mock_flush):
@@ -88,22 +88,22 @@ class TestRunDaemon:
 
         assert captured_handler["fn"]() is True
 
-    @patch("services.scheduler.daemon_runner.flush_telemetry")
-    def test_flush_telemetry_called_on_clean_exit(self, mock_flush):
+    def test_flush_telemetry_called_on_clean_exit(self):
         mock_daemon = MagicMock()
 
-        run_daemon(mock_daemon)
+        with patch("services.scheduler.daemon_runner.flush_telemetry") as mock_flush:
+            run_daemon(mock_daemon)
 
-        mock_flush.assert_called_once()
+        mock_flush.assert_called_once_with()
 
-    @patch("services.scheduler.daemon_runner.flush_telemetry")
-    def test_flush_telemetry_called_even_on_exception(self, mock_flush):
+    def test_flush_telemetry_called_even_on_exception(self):
         mock_daemon = MagicMock()
         mock_daemon.run.side_effect = RuntimeError("daemon failure")
 
-        try:
-            run_daemon(mock_daemon)
-        except RuntimeError:
-            pass
+        with patch("services.scheduler.daemon_runner.flush_telemetry") as mock_flush:
+            try:
+                run_daemon(mock_daemon)
+            except RuntimeError:
+                pass
 
-        mock_flush.assert_called_once()
+        mock_flush.assert_called_once_with()

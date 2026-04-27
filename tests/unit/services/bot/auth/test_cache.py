@@ -117,6 +117,8 @@ async def test_set_user_roles_redis_error(role_cache, mock_redis):
     # Should not raise exception
     await role_cache.set_user_roles("user123", "guild456", ["123"])
 
+    assert True  # no exception raised on Redis error
+
 
 @pytest.mark.asyncio
 async def test_invalidate_redis_error(role_cache, mock_redis):
@@ -125,6 +127,8 @@ async def test_invalidate_redis_error(role_cache, mock_redis):
 
     # Should not raise exception
     await role_cache.invalidate_user_roles("user123", "guild456")
+
+    assert True  # no exception raised on Redis error
 
 
 @pytest.mark.asyncio

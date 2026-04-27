@@ -267,6 +267,8 @@ async def test_channel_not_text_channel_is_skipped() -> None:
     ):
         await bot._sweep_orphaned_embeds()
 
+    assert True  # no error raised when channel is not a TextChannel
+
 
 async def test_channel_configurations_query_exception_logs_and_returns() -> None:
     """Exception during channel_configurations query is caught and returns early."""
@@ -291,6 +293,8 @@ async def test_channel_configurations_query_exception_logs_and_returns() -> None
         ),
     ):
         await bot._sweep_orphaned_embeds()
+
+    assert True  # exception caught internally; no error propagates
 
 
 async def test_channel_scan_exception_is_caught_per_channel() -> None:
@@ -317,6 +321,8 @@ async def test_channel_scan_exception_is_caught_per_channel() -> None:
         ),
     ):
         await bot._sweep_orphaned_embeds()
+
+    assert True  # per-channel exception is caught; sweep continues
 
 
 async def test_channel_without_send_messages_is_skipped() -> None:

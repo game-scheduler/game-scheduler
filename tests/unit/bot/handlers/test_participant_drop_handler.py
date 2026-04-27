@@ -25,7 +25,7 @@ Verifies the handler correctly removes the participant from the DB,
 sends a removal DM, and publishes GAME_UPDATED.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import discord
@@ -215,7 +215,9 @@ async def test_handler_drops_participant_from_cancelled_game(
 
     mock_db.delete.assert_called_once_with(participant)
     mock_db.commit.assert_called_once()
-    mock_publisher.publish_game_updated.assert_called_once()
+    mock_publisher.publish_game_updated.assert_awaited_once_with(
+        game_id=ANY, guild_id=ANY, updated_fields=ANY
+    )
 
 
 @pytest.mark.asyncio
@@ -232,7 +234,9 @@ async def test_handler_suppresses_removal_dm_when_welcome_not_sent(
 
     mock_db.delete.assert_called_once_with(mock_participant)
     mock_bot.get_user.assert_not_called()
-    mock_publisher.publish_game_updated.assert_called_once()
+    mock_publisher.publish_game_updated.assert_awaited_once_with(
+        game_id=ANY, guild_id=ANY, updated_fields=ANY
+    )
 
 
 @pytest.mark.asyncio
@@ -246,7 +250,9 @@ async def test_handler_sends_removal_dm_when_welcome_already_sent(
         await handle_participant_drop_due(drop_event_data, mock_bot, mock_publisher)
 
     mock_bot.get_user.assert_called_once_with(int(PARTICIPANT_DISCORD_ID))
-    mock_publisher.publish_game_updated.assert_called_once()
+    mock_publisher.publish_game_updated.assert_awaited_once_with(
+        game_id=ANY, guild_id=ANY, updated_fields=ANY
+    )
 
 
 def test_participant_drop_due_is_registered_in_event_handlers():
