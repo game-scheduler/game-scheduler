@@ -34,13 +34,14 @@ from services.api.dependencies.discord import get_discord_client
 
 def test_get_discord_client_singleton():
     """Test Discord client singleton pattern for API service."""
-    with patch("services.api.dependencies.discord.config.get_api_config") as mock_config:
-        mock_config.return_value = MagicMock(
+    with patch(
+        "services.api.dependencies.discord.config.get_api_config",
+        return_value=MagicMock(
             discord_client_id="test_id",
             discord_client_secret="test_secret",
             discord_bot_token="test_token",
-        )
-
+        ),
+    ):
         client1 = get_discord_client()
         client2 = get_discord_client()
 

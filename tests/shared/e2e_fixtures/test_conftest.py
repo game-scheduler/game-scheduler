@@ -52,7 +52,10 @@ class TestWaitForDbCondition:
         )
 
         assert result == mock_row
-        mock_session.execute.assert_called_once()
+        assert mock_session.execute.await_count == 1
+        called_with = mock_session.execute.call_args
+        assert str(called_with.args[0]) == "SELECT id, value FROM table WHERE id = :id"
+        assert called_with.args[1] == {"id": 1}
 
     @pytest.mark.asyncio
     async def test_success_after_retries(self):

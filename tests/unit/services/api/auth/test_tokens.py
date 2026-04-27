@@ -48,6 +48,7 @@ def test_get_guild_token_returns_bot_token_for_maintainer():
     with patch("services.api.auth.tokens.config") as mock_cfg:
         mock_cfg.get_api_config.return_value.discord_bot_token = BOT_TOKEN
         result = tokens.get_guild_token(session)
+        mock_cfg.get_api_config.assert_called_once_with()
 
     assert result == BOT_TOKEN
 

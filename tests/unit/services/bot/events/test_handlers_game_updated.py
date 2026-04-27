@@ -57,6 +57,7 @@ async def test_handle_game_updated_inserts_queue_row(
 
         await event_handlers._handle_game_updated({"game_id": sample_game.id})
 
+    mock_db_session.assert_called_once_with()
     # Write path uses execute() with an upsert statement (not session.add)
     mock_db.execute.assert_awaited_once()
     queue_rows_via_add = [

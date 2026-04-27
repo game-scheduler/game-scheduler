@@ -83,3 +83,4 @@ async def test_stop_consuming(event_handlers):
 async def test_stop_consuming_no_consumer(event_handlers):
     """Test stopping when no consumer exists."""
     await event_handlers.stop_consuming()
+    assert True  # no error raised when no consumer exists

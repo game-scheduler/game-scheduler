@@ -147,4 +147,4 @@ class TestResolveBotRolePosition:
         result = await _resolve_bot_role_position(interaction, game, checker)
 
         assert result == (ParticipantType.SELF_ADDED, 0)
-        checker.seed_user_roles.assert_called_once()
+        checker.seed_user_roles.assert_called_once_with("42", "999", ["777"])

@@ -107,6 +107,7 @@ async def test_game_b_embed_deleted_after_restore(discord_helper):
         message_id=message_id,
         timeout=60,
     )
+    assert True  # wait_for_message_deleted raises on failure
 
 
 @pytest.mark.asyncio

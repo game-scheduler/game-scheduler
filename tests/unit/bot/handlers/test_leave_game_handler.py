@@ -200,4 +200,6 @@ async def test_leave_publishes_game_updated_regardless_of_notification(
     with _patch_db(mock_db):
         await handle_leave_game(mock_interaction, game_id, mock_publisher)
 
-    mock_publisher.publish_game_updated.assert_called_once()
+    mock_publisher.publish_game_updated.assert_awaited_once_with(
+        game_id=game_id, guild_id="guild-db-uuid-42", updated_fields={"participants": True}
+    )

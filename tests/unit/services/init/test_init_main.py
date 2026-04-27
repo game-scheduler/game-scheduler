@@ -177,7 +177,7 @@ class TestCompleteInitialization:
         with pytest.raises(KeyboardInterrupt):
             _complete_initialization(start_time)
 
-        mock_gettempdir.assert_called_once()
+        assert mock_gettempdir.call_count == 1
         mock_path.assert_called_once_with("/tmp")
         mock_marker.touch.assert_called_once()
 

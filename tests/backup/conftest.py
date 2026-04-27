@@ -79,6 +79,7 @@ async def test_user_a(
         await admin_db.refresh(user)
     else:
         user = await admin_db.get(User, str(row[0]))
+    assert user is not None
     return user
 
 

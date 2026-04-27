@@ -25,6 +25,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from services.api.config import APIConfig
 from services.api.middleware import cors
@@ -51,7 +52,14 @@ def test_configure_cors_adds_middleware(mock_app, mock_config):
     """Test that configure_cors adds CORS middleware to the app."""
     cors.configure_cors(mock_app, mock_config)
 
-    mock_app.add_middleware.assert_called_once()
+    mock_app.add_middleware.assert_called_once_with(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://localhost:3000", "http://localhost:3001"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
 
 
 def test_configure_cors_includes_frontend_url(mock_app, mock_config):

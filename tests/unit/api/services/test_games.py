@@ -779,3 +779,6 @@ class TestUpdatePrefilledParticipants:
             await game_service._update_prefilled_participants(game, participant_data_list)
 
         mock_db.add.assert_called_once()
+        participant_added = mock_db.add.call_args[0][0]
+        assert participant_added.game_session_id == "game-uuid-1"
+        assert participant_added.user_id == "user-uuid"

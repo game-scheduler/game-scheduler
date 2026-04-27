@@ -204,4 +204,6 @@ async def test_decline_path_removes_participant_and_publishes_game_updated(
 
     mock_db.delete.assert_called_once_with(mock_participant)
     mock_db.commit.assert_called_once()
-    mock_publisher.publish_game_updated.assert_called_once()
+    mock_publisher.publish_game_updated.assert_awaited_once_with(
+        game_id=game_id, guild_id="guild-db-uuid-test", updated_fields={"participants": True}
+    )

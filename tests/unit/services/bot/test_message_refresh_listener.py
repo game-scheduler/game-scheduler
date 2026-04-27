@@ -157,7 +157,7 @@ class TestMessageRefreshListenerStartEdgeCases:
         ):
             await listener.start()
 
-        mock_logger.exception.assert_called_once()
+        mock_logger.exception.assert_called_once_with("MessageRefreshListener failed to start")
 
 
 class TestMessageRefreshListenerOnNotifyEdgeCases:

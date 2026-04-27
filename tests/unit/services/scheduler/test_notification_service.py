@@ -28,6 +28,7 @@ from services.scheduler.services.notification_service import (
     NotificationService,
     get_notification_service,
 )
+from shared.messaging import events
 
 
 class TestSendGameReminderDue:
@@ -39,11 +40,18 @@ class TestSendGameReminderDue:
         mock_publisher = MagicMock()
         service.event_publisher = mock_publisher
 
-        result = service.send_game_reminder_due(uuid.uuid4(), reminder_minutes=60)
+        game_id = uuid.uuid4()
+        result = service.send_game_reminder_due(game_id, reminder_minutes=60)
 
         assert result is True
         mock_publisher.connect.assert_called_once()
-        mock_publisher.publish.assert_called_once()
+        published_event = mock_publisher.publish.call_args[0][0]
+        assert published_event.event_type == events.EventType.NOTIFICATION_DUE
+        assert published_event.data == {
+            "game_id": game_id,
+            "notification_type": "reminder",
+            "participant_id": None,
+        }
         mock_publisher.close.assert_called_once()
 
     def test_exception_during_publish_returns_false_and_closes(self):

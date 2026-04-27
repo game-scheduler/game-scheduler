@@ -232,7 +232,7 @@ async def test_ensure_user_exists_creates_new(resolver, mock_db):
 
     assert isinstance(user, user_model.User)
     assert user.discord_id == "999"
-    mock_db.add.assert_called_once()
+    mock_db.add.assert_called_once_with(user)
     mock_db.flush.assert_called_once()
 
 

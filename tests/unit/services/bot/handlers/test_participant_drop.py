@@ -85,3 +85,4 @@ class TestHandleParticipantDropDue:
         bot.get_user.assert_called_once_with(111222333)
         bot.fetch_user.assert_not_awaited()
         mock_user.send.assert_awaited_once()
+        assert mock_ctx.call_count == 1

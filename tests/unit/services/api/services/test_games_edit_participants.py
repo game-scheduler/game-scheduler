@@ -221,7 +221,9 @@ async def test_update_game_preserves_discord_users_not_placeholders(
         )
 
     # Verify the resolver was called and recognized the Discord mention format
-    mock_participant_resolver.resolve_initial_participants.assert_called_once()
+    mock_participant_resolver.resolve_initial_participants.assert_called_once_with(
+        "123456789", ["<@123456789012345678>"]
+    )
     resolved = mock_participant_resolver.resolve_initial_participants.return_value
 
     # The key assertion: participant should be type "discord", not "placeholder"
