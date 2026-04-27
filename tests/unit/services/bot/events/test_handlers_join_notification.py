@@ -81,7 +81,8 @@ async def test_handle_join_notification_with_signup_instructions(event_handlers,
                 assert sample_game.title in sent_message
                 assert sample_game.signup_instructions in sent_message
 
-                mock_db_session.assert_called_once_with()  # assert-not-weak: predates reason
+                # assert-not-weak: predates reason requirement
+                mock_db_session.assert_called_once_with()
                 mock_get_game.assert_awaited_once_with(mock_db, sample_game.id)
 
 
@@ -135,7 +136,8 @@ async def test_handle_join_notification_without_signup_instructions(event_handle
                 assert sample_game.title in sent_message
                 assert "signup instructions" not in sent_message.lower()
 
-                mock_db_session.assert_called_once_with()  # assert-not-weak: predates reason
+                # assert-not-weak: predates reason requirement
+                mock_db_session.assert_called_once_with()
                 mock_get_game.assert_awaited_once_with(mock_db, sample_game.id)
 
 
@@ -169,7 +171,8 @@ async def test_handle_join_notification_missing_participant_id(event_handlers, s
             await event_handlers._handle_notification_due(data)
 
             mock_get_game.assert_awaited_once_with(mock_db, data["game_id"])
-            mock_db_session.assert_called_once_with()  # assert-not-weak: predates reason
+            # assert-not-weak: predates reason requirement
+            mock_db_session.assert_called_once_with()
 
 
 @pytest.mark.asyncio
@@ -207,7 +210,8 @@ async def test_handle_join_notification_user_not_found(event_handlers, sample_ga
                     "no longer active" in str(call) for call in mock_logger.info.call_args_list
                 )
 
-                mock_db_session.assert_called_once_with()  # assert-not-weak: predates reason
+                # assert-not-weak: predates reason requirement
+                mock_db_session.assert_called_once_with()
                 mock_get_game.assert_awaited_once_with(mock_db, sample_game.id)
 
 

@@ -125,15 +125,18 @@ class TestSchedulerDaemonConnect:
 
         # Verify PostgreSQL listener setup
         mock_listener_class.assert_called_once_with(daemon.database_url)
-        mock_listener.connect.assert_called_once_with()  # assert-not-weak: predates reason
+        # assert-not-weak: predates reason requirement
+        mock_listener.connect.assert_called_once_with()
         mock_listener.listen.assert_called_once_with("test_channel")
 
         # Verify RabbitMQ publisher setup
-        mock_publisher_class.assert_called_once_with()  # assert-not-weak: predates reason
-        mock_publisher.connect.assert_called_once_with()  # assert-not-weak: predates reason
+        # assert-not-weak: predates reason requirement
+        mock_publisher_class.assert_called_once_with()
+        # assert-not-weak: predates reason requirement
+        mock_publisher.connect.assert_called_once_with()
 
         # Verify database session created
-        mock_session_local.assert_called_once_with()  # assert-not-weak: predates reason
+        mock_session_local.assert_called_once_with()  # assert-not-weak: predates reason requirement
 
         # Verify connections stored
         assert daemon.listener == mock_listener
@@ -197,7 +200,7 @@ class TestSchedulerDaemonGetNextDueItem:
         assert mock_query.filter.call_count == 1
         assert mock_filter1.filter.call_count == 1
         mock_filter2.order_by.assert_called_once_with(ANY)
-        mock_order.first.assert_called_once_with()  # assert-not-weak: predates reason
+        mock_order.first.assert_called_once_with()  # assert-not-weak: predates reason requirement
 
     def test_get_next_due_item_returns_record_when_found(self, daemon):
         """_get_next_due_item returns the record when one exists."""
@@ -498,7 +501,7 @@ class TestSchedulerDaemonProcessLoopIteration:
 
         # Should close old session and create new one
         mock_db.close.assert_called_once()
-        mock_session_local.assert_called_once_with()  # assert-not-weak: predates reason
+        mock_session_local.assert_called_once_with()  # assert-not-weak: predates reason requirement
         # New session should be assigned
         assert daemon.db == new_session
 
@@ -536,9 +539,9 @@ class TestSchedulerDaemonRun:
 
         daemon.run(shutdown_after_three)
 
-        mock_connect.assert_called_once_with()  # assert-not-weak: predates reason
+        mock_connect.assert_called_once_with()  # assert-not-weak: predates reason requirement
         assert mock_iteration.call_count == 3
-        mock_cleanup.assert_called_once_with()  # assert-not-weak: predates reason
+        mock_cleanup.assert_called_once_with()  # assert-not-weak: predates reason requirement
 
     @patch.object(SchedulerDaemon, "connect")
     @patch.object(SchedulerDaemon, "_process_loop_iteration")
@@ -564,7 +567,7 @@ class TestSchedulerDaemonRun:
 
         # Should continue despite error
         assert mock_iteration.call_count == 3
-        mock_cleanup.assert_called_once_with()  # assert-not-weak: predates reason
+        mock_cleanup.assert_called_once_with()  # assert-not-weak: predates reason requirement
 
     @patch.object(SchedulerDaemon, "connect")
     @patch.object(SchedulerDaemon, "_process_loop_iteration")
@@ -600,8 +603,8 @@ class TestSchedulerDaemonRun:
 
         daemon.run(lambda: False)
 
-        mock_connect.assert_called_once_with()  # assert-not-weak: predates reason
-        mock_cleanup.assert_called_once_with()  # assert-not-weak: predates reason
+        mock_connect.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        mock_cleanup.assert_called_once_with()  # assert-not-weak: predates reason requirement
 
 
 class TestSchedulerDaemonCleanup:

@@ -65,8 +65,8 @@ class TestMainWithInitRolesOnly:
         result = main()
 
         assert result == 0
-        mock_wait.assert_called_once_with()  # assert-not-weak: predates reason
-        mock_create_users.assert_called_once_with()  # assert-not-weak: predates reason
+        mock_wait.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        mock_create_users.assert_called_once_with()  # assert-not-weak: predates reason requirement
         mock_complete.assert_called_once_with(ANY)
         mock_migrations.assert_not_called()
         mock_verify.assert_not_called()
@@ -151,11 +151,11 @@ class TestMainWithoutInitRolesOnly:
 
         main()
 
-        mock_wait.assert_called_once_with()  # assert-not-weak: predates reason
-        mock_create_users.assert_called_once_with()  # assert-not-weak: predates reason
-        mock_migrations.assert_called_once_with()  # assert-not-weak: predates reason
-        mock_verify.assert_called_once_with()  # assert-not-weak: predates reason
-        mock_rabbitmq.assert_called_once_with()  # assert-not-weak: predates reason
+        mock_wait.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        mock_create_users.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        mock_migrations.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        mock_verify.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        mock_rabbitmq.assert_called_once_with()  # assert-not-weak: predates reason requirement
 
     @patch("services.init.main.flush_telemetry")
     @patch("services.init.main.trace")
@@ -191,8 +191,8 @@ class TestMainWithoutInitRolesOnly:
 
         main()
 
-        mock_wait.assert_called_once_with()  # assert-not-weak: predates reason
-        mock_create_users.assert_called_once_with()  # assert-not-weak: predates reason
-        mock_migrations.assert_called_once_with()  # assert-not-weak: predates reason
-        mock_verify.assert_called_once_with()  # assert-not-weak: predates reason
-        mock_rabbitmq.assert_called_once_with()  # assert-not-weak: predates reason
+        mock_wait.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        mock_create_users.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        mock_migrations.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        mock_verify.assert_called_once_with()  # assert-not-weak: predates reason requirement
+        mock_rabbitmq.assert_called_once_with()  # assert-not-weak: predates reason requirement

@@ -585,5 +585,5 @@ class TestGetRedisClient:
             client2 = await get_redis_client()
 
             assert client1 is client2
-            mock_class.assert_called_once_with()  # assert-not-weak: predates reason
+            mock_class.assert_called_once_with()  # assert-not-weak: predates reason requirement
             mock_instance.connect.assert_awaited_once()

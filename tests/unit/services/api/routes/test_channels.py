@@ -226,7 +226,8 @@ class TestCreateChannelConfig:
             result = await channels.create_channel_config(request, mock_current_user, mock_db)
 
             mock_execute.assert_called_once_with(ANY)
-            mock_result.scalar_one.assert_called_once_with()  # assert-not-weak: predates reason
+            # assert-not-weak: predates reason requirement
+            mock_result.scalar_one.assert_called_once_with()
             mock_get_existing.assert_called_once_with(mock_db, mock_channel_config.channel_id)
             mock_create.assert_called_once_with(
                 mock_db,

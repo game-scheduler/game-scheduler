@@ -295,12 +295,20 @@ def _jedi_annotation_violation(
     )
 
 
+def _marker_present(lineno: int, source_lines: list[str]) -> bool:
+    """Return True if the weak-assert marker appears on lineno or the preceding line."""
+    current = source_lines[lineno - 1] if lineno <= len(source_lines) else ""
+    if _VALID_WEAK_ASSERT_MARKER in current:
+        return True
+    preceding = source_lines[lineno - 2] if lineno > 1 else ""
+    return _VALID_WEAK_ASSERT_MARKER in preceding
+
+
 def _is_weak_assert_exempt(method_name: str | None, lineno: int, source_lines: list[str]) -> bool:
     """Return True if this assert_called_once() should be exempted from the weak-assert check."""
     if method_name in _NO_ARG_METHODS:
         return True
-    line_text = source_lines[lineno - 1] if lineno <= len(source_lines) else ""
-    return _VALID_WEAK_ASSERT_MARKER in line_text
+    return _marker_present(lineno, source_lines)
 
 
 def _weak_assert_violation(
@@ -359,8 +367,7 @@ def _exempt_or_marker_violation(
         patch_target = patch_aliases.get(receiver_dotted)
         if patch_target and patch_target.rsplit(".", 1)[-1] in _NO_ARG_METHODS:
             return True, None
-    line_text = source_lines[node.lineno - 1] if node.lineno <= len(source_lines) else ""
-    if _VALID_WEAK_ASSERT_MARKER not in line_text:
+    if not _marker_present(node.lineno, source_lines):
         return False, None
     if node.func.attr == "assert_called_once":
         return True, (
@@ -453,11 +460,33 @@ def _patch_target_at_assert_call(
     return None
 
 
-def _jedi_verifies_no_args_at_line(source: str, lineno: int) -> bool:
-    """Return True if Jedi confirms the patched function on lineno takes no args.
+def _has_assert_call_at_line(node: ast.FunctionDef | ast.AsyncFunctionDef, line: int) -> bool:
+    """Return True if node contains an assert_called_once* call on the given line."""
+    return any(
+        isinstance(call, ast.Call)
+        and isinstance(call.func, ast.Attribute)
+        and call.func.attr in ("assert_called_once", "assert_called_once_with")
+        and call.lineno == line
+        for call in ast.walk(node)
+    )
 
-    Also returns True when lineno has no assert_called_once* call (marker is not
-    an annotation — e.g. inside a string literal in test data).
+
+def _resolve_assert_line(node: ast.FunctionDef | ast.AsyncFunctionDef, lineno: int) -> int | None:
+    """Return the line of an assert_called_once* call at lineno or lineno+1, or None."""
+    if _has_assert_call_at_line(node, lineno):
+        return lineno
+    if _has_assert_call_at_line(node, lineno + 1):
+        return lineno + 1
+    return None
+
+
+def _jedi_verifies_no_args_at_line(source: str, lineno: int) -> bool:
+    """Return True if Jedi confirms the patched function takes no args.
+
+    Accepts the marker inline on the assertion line or on the preceding line
+    (in which case lineno is the marker line and the assert is on lineno+1).
+    Returns True when neither lineno nor lineno+1 has an assert_called_once*
+    call — the marker is inside a string literal or other non-annotation context.
     """
     try:
         tree = ast.parse(source)
@@ -469,16 +498,10 @@ def _jedi_verifies_no_args_at_line(source: str, lineno: int) -> bool:
         end = getattr(node, "end_lineno", node.lineno)
         if not (node.lineno <= lineno <= end):
             continue
-        has_assert = any(
-            isinstance(call, ast.Call)
-            and isinstance(call.func, ast.Attribute)
-            and call.func.attr in ("assert_called_once", "assert_called_once_with")
-            and call.lineno == lineno
-            for call in ast.walk(node)
-        )
-        if not has_assert:
+        assert_line = _resolve_assert_line(node, lineno)
+        if assert_line is None:
             return True
-        patch_target = _patch_target_at_assert_call(node, lineno)
+        patch_target = _patch_target_at_assert_call(node, assert_line)
         if patch_target is None:
             return False
         param_count = _jedi_param_count(patch_target)

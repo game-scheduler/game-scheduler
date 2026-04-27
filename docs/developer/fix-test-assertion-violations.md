@@ -138,11 +138,20 @@ The marker **requires a reason** after the colon — `# assert-not-weak: <reason
 A reason is mandatory; a bare `# assert-not-weak` is not recognized and will not
 suppress the violation.
 
+The marker can appear **inline** on the assertion line or on the **preceding line**
+as a standalone comment. The preceding-line form is useful when the inline form
+would exceed the line length limit:
+
 ```python
-# legitimate use: get_config takes no arguments; assert_called_once_with() verifies
-# both that it was called once and that no arguments were passed
+# inline form — reason is bounded by line length
 mock_get_config.assert_called_once_with()  # assert-not-weak: get_config takes no args
 
+# preceding-line form — reason has no line length constraint
+# assert-not-weak: predates reason requirement — called with no arguments internally
+mock_db_session.assert_called_once_with()
+```
+
+```python
 # wrong use: bare assert_called_once() is weaker — use assert_called_once_with() instead
 mock_get_config.assert_called_once()  # assert-not-weak: ...  ← DO NOT DO THIS
 
