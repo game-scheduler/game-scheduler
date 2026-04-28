@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { GameDetails } from '../GameDetails';
@@ -178,5 +178,92 @@ describe('GameDetails - Rewards spoiler', () => {
 
     expect(screen.getByText('Gold and glory')).toBeInTheDocument();
     expect(screen.queryByText('Click to reveal rewards')).not.toBeInTheDocument();
+  });
+});
+
+describe('GameDetails - Cancel Game button visibility', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows Cancel Game button for host when game is SCHEDULED', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        ...baseGame,
+        can_manage: true,
+        host: { ...baseGame.host, user_id: mockUser.user_uuid },
+        status: 'SCHEDULED',
+      },
+    });
+
+    renderGameDetails();
+
+    await waitFor(() => {
+      expect(screen.getByText('Cancel Game')).toBeInTheDocument();
+    });
+  });
+
+  it('shows Cancel Game button for host when game is IN_PROGRESS', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        ...baseGame,
+        can_manage: true,
+        host: { ...baseGame.host, user_id: mockUser.user_uuid },
+        status: 'IN_PROGRESS',
+      },
+    });
+
+    renderGameDetails();
+
+    await waitFor(() => {
+      expect(screen.getByText('Cancel Game')).toBeInTheDocument();
+    });
+  });
+
+  it('hides Cancel Game button for host when game is COMPLETED', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        ...baseGame,
+        can_manage: true,
+        host: { ...baseGame.host, user_id: mockUser.user_uuid },
+        status: 'COMPLETED',
+      },
+    });
+
+    renderGameDetails();
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Game')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Cancel Game')).not.toBeInTheDocument();
+  });
+
+  it('shows Cancel Game button for manager (non-host) regardless of status', async () => {
+    for (const status of ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED']) {
+      vi.clearAllMocks();
+      cleanup();
+      vi.mocked(apiClient.get).mockResolvedValue({
+        data: { ...baseGame, can_manage: true, status },
+      });
+
+      renderGameDetails();
+
+      await waitFor(() => {
+        expect(screen.getByText('Cancel Game')).toBeInTheDocument();
+      });
+    }
+  });
+
+  it('hides Cancel Game button when can_manage is false', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: { ...baseGame, can_manage: false, status: 'SCHEDULED' },
+    });
+
+    renderGameDetails();
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Game')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Cancel Game')).not.toBeInTheDocument();
   });
 });

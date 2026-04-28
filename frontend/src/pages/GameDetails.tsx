@@ -463,7 +463,7 @@ export const GameDetails: FC = () => {
               >
                 Clone Game
               </Button>
-              {isHost && (game.status === 'SCHEDULED' || game.status === 'IN_PROGRESS') && (
+              {(!isHost || game.status === 'SCHEDULED' || game.status === 'IN_PROGRESS') && (
                 <Button
                   variant="outlined"
                   color="error"
