@@ -58,24 +58,25 @@ class TestMemberEventWorkerCoalescing:
             patch(
                 "services.bot.bot.guild_projection.repopulate_all",
                 new_callable=AsyncMock,
+                side_effect=asyncio.CancelledError,
             ) as mock_repopulate,
             patch(
                 "services.bot.bot.get_redis_client",
                 new_callable=AsyncMock,
                 return_value=AsyncMock(),
             ),
-            patch("asyncio.sleep", new_callable=AsyncMock, side_effect=asyncio.CancelledError),
+            patch("asyncio.sleep", new_callable=AsyncMock),
         ):
             await bot._member_event_worker()
 
         mock_repopulate.assert_awaited_once()
 
 
-class TestMemberEventWorkerCooldown:
-    """Worker sleeps 60 seconds after each rebuild, forming the coalescing window."""
+class TestMemberEventWorkerDebounce:
+    """Worker sleeps 60 seconds before clearing, forming the debounce window."""
 
-    async def test_worker_sleeps_60_seconds_after_rebuild(self) -> None:
-        """Worker calls asyncio.sleep(60) after each repopulate_all."""
+    async def test_worker_sleeps_60_seconds_before_repopulation(self) -> None:
+        """Worker calls asyncio.sleep(60) between wait() and repopulate_all."""
         bot = _make_bot()
         bot._member_event = asyncio.Event()
         bot._member_event.set()
@@ -98,31 +99,33 @@ class TestMemberEventWorkerCooldown:
 
         mock_sleep.assert_awaited_once_with(60)
 
-    async def test_event_set_during_sleep_does_not_trigger_extra_rebuild(self) -> None:
-        """Setting the event during the cooldown sleep does not cause an extra repopulate_all."""
+    async def test_event_set_during_debounce_window_does_not_trigger_extra_rebuild(self) -> None:
+        """Events arriving during the 60s sleep are absorbed by clear() and do not cause
+        a second repopulate_all — the paired-gateway-event case."""
         bot = _make_bot()
         bot._member_event = asyncio.Event()
         bot._member_event.set()
 
-        async def set_during_sleep(seconds: int) -> None:
-            bot._member_event.set()
-            raise asyncio.CancelledError
+        async def sleep_and_set(seconds: int) -> None:
+            bot._member_event.set()  # simulate second event of a Discord-paired dispatch
 
         with (
             patch(
                 "services.bot.bot.guild_projection.repopulate_all",
                 new_callable=AsyncMock,
+                side_effect=asyncio.CancelledError,
             ) as mock_repopulate,
             patch(
                 "services.bot.bot.get_redis_client",
                 new_callable=AsyncMock,
                 return_value=AsyncMock(),
             ),
-            patch("asyncio.sleep", side_effect=set_during_sleep),
+            patch("asyncio.sleep", side_effect=sleep_and_set),
         ):
             await bot._member_event_worker()
 
         mock_repopulate.assert_awaited_once()
+        assert not bot._member_event.is_set()
 
 
 class TestOnReadyUnaffected:

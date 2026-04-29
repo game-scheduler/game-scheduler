@@ -824,19 +824,21 @@ class GameSchedulerBot(commands.Bot):
                 logger.error("Error writing projection heartbeat: %s", e)
 
     async def _member_event_worker(self) -> None:
-        """Coalescing worker that rebuilds the member projection at most once per 60 seconds.
+        """Debouncing worker that rebuilds the member projection after a quiet window.
 
-        Any number of member-event signals (on_member_add/update/remove) that arrive
-        within the cooldown window collapse into a single repopulate_all call.
+        Sleeps 60 seconds after waking so that any additional events that arrive
+        during that window are absorbed by the clear() before repopulate_all runs.
+        This prevents a second repopulation when Discord sends paired gateway events
+        (e.g. two on_member_update dispatches for a single logical change).
         """
         while True:
             try:
                 await self._member_event.wait()
+                await asyncio.sleep(60)  # pragma: no cover — all tests mock asyncio.sleep
                 self._member_event.clear()
                 logger.info("Member event worker: running batched repopulation")
                 redis = await get_redis_client()
                 await guild_projection.repopulate_all(bot=self, redis=redis)
-                await asyncio.sleep(60)
             except asyncio.CancelledError:
                 logger.info("Member event worker cancelled")
                 return
