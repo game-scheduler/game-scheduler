@@ -136,6 +136,37 @@ class TestInitTelemetry:
             call_kwargs = mock_reader_class.call_args[1]
             assert call_kwargs["export_interval_millis"] == 60000
 
+    def test_passes_views_to_meter_provider(self, monkeypatch):
+        """Should forward views to MeterProvider when provided."""
+        monkeypatch.delenv("PYTEST_RUNNING", raising=False)
+        monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+
+        mock_view = MagicMock()
+
+        with (
+            patch("shared.telemetry.TracerProvider"),
+            patch("shared.telemetry.BatchSpanProcessor"),
+            patch("shared.telemetry.OTLPSpanExporter"),
+            patch("shared.telemetry.trace.set_tracer_provider"),
+            patch("shared.telemetry.PeriodicExportingMetricReader"),
+            patch("shared.telemetry.OTLPMetricExporter"),
+            patch("shared.telemetry.MeterProvider") as mock_meter_provider_class,
+            patch("shared.telemetry.metrics.set_meter_provider"),
+            patch("shared.telemetry.LoggerProvider"),
+            patch("shared.telemetry.BatchLogRecordProcessor"),
+            patch("shared.telemetry.OTLPLogExporter"),
+            patch("shared.telemetry.LoggingHandler"),
+            patch("shared.telemetry.logging.getLogger"),
+            patch("shared.telemetry.SQLAlchemyInstrumentor"),
+            patch("shared.telemetry.AsyncPGInstrumentor"),
+            patch("shared.telemetry.RedisInstrumentor"),
+            patch("shared.telemetry.AioPikaInstrumentor"),
+        ):
+            init_telemetry("test-service", views=[mock_view])
+
+            call_kwargs = mock_meter_provider_class.call_args.kwargs
+            assert call_kwargs["views"] == [mock_view]
+
     def test_initializes_logging_with_trace_correlation(self, monkeypatch):
         """Should initialize logging with OpenTelemetry handler for trace correlation."""
         monkeypatch.delenv("PYTEST_RUNNING", raising=False)

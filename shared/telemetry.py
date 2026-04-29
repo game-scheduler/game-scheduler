@@ -49,6 +49,7 @@ from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.metrics.view import View
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -57,7 +58,7 @@ from opentelemetry.trace import Tracer
 logger = logging.getLogger(__name__)
 
 
-def init_telemetry(service_name: str) -> None:
+def init_telemetry(service_name: str, views: list[View] | None = None) -> None:
     """
     Initialize OpenTelemetry instrumentation for a Python service.
 
@@ -100,7 +101,9 @@ def init_telemetry(service_name: str) -> None:
         ),
         export_interval_millis=60000,
     )
-    meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
+    meter_provider = MeterProvider(
+        resource=resource, metric_readers=[metric_reader], views=views or []
+    )
     metrics.set_meter_provider(meter_provider)
     logger.info(
         "OpenTelemetry metrics initialized: %s/v1/metrics (export every 60s)",

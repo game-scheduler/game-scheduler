@@ -60,14 +60,19 @@ repopulation_started_counter = meter.create_counter(
     description="Number of projection repopulation cycles started",
     unit="1",
 )
-repopulation_duration_histogram = meter.create_histogram(
+repopulation_duration_gauge = meter.create_gauge(
     name="bot.projection.repopulation.duration",
     description="Duration of projection repopulation in seconds",
     unit="s",
 )
-repopulation_members_written_histogram = meter.create_histogram(
+repopulation_members_written_gauge = meter.create_gauge(
     name="bot.projection.repopulation.members_written",
     description="Number of members written in projection repopulation",
+    unit="1",
+)
+repopulation_coalesced_counter = meter.create_counter(
+    name="bot.projection.repopulation.coalesced",
+    description="Number of repopulation triggers dropped because one was already pending",
     unit="1",
 )
 
@@ -218,8 +223,8 @@ async def repopulate_all(
     await write_bot_last_seen(redis=redis)
 
     write_duration = (datetime.now(UTC) - start_time).total_seconds()
-    repopulation_duration_histogram.record(write_duration)
-    repopulation_members_written_histogram.record(total_members_written)
+    repopulation_duration_gauge.set(write_duration)
+    repopulation_members_written_gauge.set(total_members_written)
 
     logger.info(
         "Projection repopulation complete: %d members, %.2fs",

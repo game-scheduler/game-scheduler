@@ -32,7 +32,7 @@
       "targets": [
         {
           "expr": "sum(increase(bot_projection_repopulation_started_total[1h]))",
-          "legendFormat": "Total",
+          "legendFormat": "Total this hour",
           "refId": "A"
         }
       ],
@@ -54,15 +54,15 @@
     },
     {
       "id": 2,
-      "title": "Repopulation Duration p50 (current)",
-      "description": "Median repopulation wall-clock time over the last 5 minutes",
+      "title": "Repopulation Duration (last)",
+      "description": "Wall-clock time of the most recent repopulation cycle",
       "type": "stat",
       "gridPos": { "h": 4, "w": 12, "x": 12, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum by (le) (rate(bot_projection_repopulation_duration_bucket[5m])))",
-          "legendFormat": "p50",
+          "expr": "bot_projection_repopulation_duration_seconds",
+          "legendFormat": "duration",
           "refId": "A"
         }
       ],
@@ -89,49 +89,50 @@
     {
       "id": 3,
       "title": "Repopulation Rate by Reason",
-      "description": "How often projection repopulations are triggered, broken down by the gateway event that caused them (on_ready, member_add, member_update, member_remove)",
+      "description": "Repopulation cycles per 2-minute window, broken down by the gateway event that caused them (on_ready, member_add, member_update, member_remove)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 4 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "sum by (reason) (rate(bot_projection_repopulation_started_total[5m]))",
+          "expr": "round(sum by (reason) (increase(bot_projection_repopulation_started_total[2m])))",
           "legendFormat": "{{reason}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "ops",
-          "custom": { "lineInterpolation": "linear", "spanNulls": false }
+          "unit": "short",
+          "custom": {
+            "lineInterpolation": "linear",
+            "spanNulls": false,
+            "axisLabel": "repops / 2 min"
+          }
         }
       },
       "options": {
+        "tooltip": { "mode": "multi" },
         "legend": { "displayMode": "list", "placement": "bottom" }
       }
     },
     {
       "id": 4,
-      "title": "Repopulation Duration by Reason",
-      "description": "p50 and p99 wall-clock time for each repopulation cycle, per trigger reason — high p99 indicates the Redis write is slow or the guild has many members",
+      "title": "Repopulation Duration",
+      "description": "Exact wall-clock time per repopulation cycle",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum by (le, reason) (rate(bot_projection_repopulation_duration_bucket[5m])))",
-          "legendFormat": "p99 {{reason}}",
+          "expr": "bot_projection_repopulation_duration_seconds",
+          "legendFormat": "duration",
           "refId": "A"
-        },
-        {
-          "expr": "histogram_quantile(0.50, sum by (le, reason) (rate(bot_projection_repopulation_duration_bucket[5m])))",
-          "legendFormat": "p50 {{reason}}",
-          "refId": "B"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "s",
+          "min": 0,
           "custom": { "lineInterpolation": "linear", "spanNulls": false }
         }
       },
@@ -142,20 +143,15 @@
     {
       "id": 5,
       "title": "Members Written per Repopulation",
-      "description": "p50 and p99 member count written per repopulation cycle — reflects guild size; a spike indicates a large guild was added or all members were re-fetched",
+      "description": "Exact member count written per repopulation cycle",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum by (le, reason) (rate(bot_projection_repopulation_members_written_bucket[5m])))",
-          "legendFormat": "p99 {{reason}}",
+          "expr": "bot_projection_repopulation_members_written",
+          "legendFormat": "members written",
           "refId": "A"
-        },
-        {
-          "expr": "histogram_quantile(0.50, sum by (le, reason) (rate(bot_projection_repopulation_members_written_bucket[5m])))",
-          "legendFormat": "p50 {{reason}}",
-          "refId": "B"
         }
       ],
       "fieldConfig": {

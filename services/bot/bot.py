@@ -219,6 +219,7 @@ class GameSchedulerBot(commands.Bot):
             # Populate member projection from gateway
 
             redis = await get_redis_client()
+            logger.info("Repopulation triggered: reason=on_ready")
             guild_projection.repopulation_started_counter.add(1, {"reason": "on_ready"})
             await guild_projection.repopulate_all(
                 bot=self,
@@ -398,20 +399,32 @@ class GameSchedulerBot(commands.Bot):
         await self._trigger_sweep("on_resumed")
         await self._sweep_orphaned_embeds()
 
+    def _signal_repopulation(self, reason: str) -> None:
+        """Emit telemetry and signal the coalescing worker to run a repopulation.
+
+        If a repopulation is already pending (event already set), the trigger is
+        counted as coalesced rather than starting a new cycle.
+        """
+        already_pending = self._member_event.is_set()
+        guild_projection.repopulation_started_counter.add(1, {"reason": reason})
+        if already_pending:
+            logger.info("Repopulation coalesced: reason=%s", reason)
+            guild_projection.repopulation_coalesced_counter.add(1, {"reason": reason})
+        else:
+            logger.info("Repopulation triggered: reason=%s", reason)
+        self._member_event.set()
+
     async def on_member_add(self, _member: discord.Member) -> None:
         """Handle member added to guild event."""
-        guild_projection.repopulation_started_counter.add(1, {"reason": "member_add"})
-        self._member_event.set()
+        self._signal_repopulation("member_add")
 
     async def on_member_update(self, _before: discord.Member, _after: discord.Member) -> None:
         """Handle member profile update event."""
-        guild_projection.repopulation_started_counter.add(1, {"reason": "member_update"})
-        self._member_event.set()
+        self._signal_repopulation("member_update")
 
     async def on_member_remove(self, _member: discord.Member) -> None:
         """Handle member removed from guild event."""
-        guild_projection.repopulation_started_counter.add(1, {"reason": "member_remove"})
-        self._member_event.set()
+        self._signal_repopulation("member_remove")
 
     async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent) -> None:
         """Handle raw message delete event to detect embed deletions.
@@ -820,6 +833,7 @@ class GameSchedulerBot(commands.Bot):
             try:
                 await self._member_event.wait()
                 self._member_event.clear()
+                logger.info("Member event worker: running batched repopulation")
                 redis = await get_redis_client()
                 await guild_projection.repopulate_all(bot=self, redis=redis)
                 await asyncio.sleep(60)

@@ -249,3 +249,45 @@ class TestMemberEventHandlers:
 
         mock_counter.add.assert_called_once_with(1, {"reason": "member_remove"})
         assert bot._member_event.is_set()
+
+
+class TestSignalRepopulation:
+    """_signal_repopulation centralises counter, log, and event-set logic."""
+
+    def _make_bot_with_event(self) -> GameSchedulerBot:
+        bot = _make_bot()
+        bot._member_event = asyncio.Event()
+        return bot
+
+    def test_when_event_not_set_emits_started_counter_and_sets_event(self) -> None:
+        """First trigger increments started counter and sets the event."""
+        bot = self._make_bot_with_event()
+
+        with (
+            patch("services.bot.bot.guild_projection.repopulation_started_counter") as mock_started,
+            patch(
+                "services.bot.bot.guild_projection.repopulation_coalesced_counter"
+            ) as mock_coalesced,
+        ):
+            bot._signal_repopulation("member_add")
+
+        mock_started.add.assert_called_once_with(1, {"reason": "member_add"})
+        mock_coalesced.add.assert_not_called()
+        assert bot._member_event.is_set()
+
+    def test_when_event_already_set_emits_both_counters(self) -> None:
+        """Subsequent trigger increments both started and coalesced counters."""
+        bot = self._make_bot_with_event()
+        bot._member_event.set()
+
+        with (
+            patch("services.bot.bot.guild_projection.repopulation_started_counter") as mock_started,
+            patch(
+                "services.bot.bot.guild_projection.repopulation_coalesced_counter"
+            ) as mock_coalesced,
+        ):
+            bot._signal_repopulation("member_update")
+
+        mock_started.add.assert_called_once_with(1, {"reason": "member_update"})
+        mock_coalesced.add.assert_called_once_with(1, {"reason": "member_update"})
+        assert bot._member_event.is_set()
