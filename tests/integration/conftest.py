@@ -33,6 +33,7 @@ from shared.cache import client as cache_module
 from shared.cache.keys import CacheKeys
 from shared.data_access.guild_isolation import clear_current_guild_ids
 from shared.database import engine
+from shared.messaging.config import close_rabbitmq_connection
 
 
 @pytest.fixture(scope="module")
@@ -167,3 +168,16 @@ async def cleanup_db_engine():
     """
     yield
     await engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+async def reset_rabbitmq_connection():
+    """
+    Reset global RabbitMQ connection singleton between integration tests.
+
+    Mirrors the pattern used by reset_redis_singleton. Prevents aiormq
+    from holding a reference to a closed event loop across tests when
+    asyncio_default_fixture_loop_scope is "function".
+    """
+    yield
+    await close_rabbitmq_connection()

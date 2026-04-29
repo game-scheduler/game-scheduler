@@ -27,6 +27,7 @@ and connection pooling for RabbitMQ.
 """
 
 import asyncio
+import contextlib
 import logging
 import os
 
@@ -109,7 +110,9 @@ async def close_rabbitmq_connection() -> None:
     """Close RabbitMQ connection gracefully."""
     global _connection  # noqa: PLW0603 - Singleton pattern for RabbitMQ connection cleanup
 
-    if _connection and not _connection.is_closed:
+    conn = _connection
+    _connection = None
+    if conn and not conn.is_closed:
         logger.info("Closing RabbitMQ connection")
-        await _connection.close()
-        _connection = None
+        with contextlib.suppress(Exception):
+            await conn.close()

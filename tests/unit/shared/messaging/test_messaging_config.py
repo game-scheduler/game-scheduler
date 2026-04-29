@@ -21,7 +21,12 @@
 
 """Unit tests for RabbitMQ messaging configuration."""
 
-from shared.messaging.config import RabbitMQConfig
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+import shared.messaging.config as config_module
+from shared.messaging.config import RabbitMQConfig, close_rabbitmq_connection
 
 
 class TestRabbitMQConfig:
@@ -88,3 +93,61 @@ class TestRabbitMQConfig:
 
         assert "user@domain" in config.url
         assert "p@ssw0rd!" in config.url
+
+
+class TestCloseRabbitmqConnection:
+    """Tests for close_rabbitmq_connection."""
+
+    @pytest.fixture(autouse=True)
+    def reset_connection_singleton(self):
+        """Restore _connection to None before and after each test."""
+        config_module._connection = None
+        yield
+        config_module._connection = None
+
+    @pytest.mark.asyncio
+    async def test_clears_singleton_when_connection_is_open(self):
+        """Should close the connection and reset the singleton to None."""
+        mock_conn = MagicMock()
+        mock_conn.is_closed = False
+        mock_conn.close = AsyncMock()
+        config_module._connection = mock_conn
+
+        await close_rabbitmq_connection()
+
+        mock_conn.close.assert_awaited_once()
+        assert config_module._connection is None
+
+    @pytest.mark.asyncio
+    async def test_skips_close_when_connection_already_closed(self):
+        """Should reset singleton without calling close on an already-closed connection."""
+        mock_conn = MagicMock()
+        mock_conn.is_closed = True
+        mock_conn.close = AsyncMock()
+        config_module._connection = mock_conn
+
+        await close_rabbitmq_connection()
+
+        mock_conn.close.assert_not_awaited()
+        assert config_module._connection is None
+
+    @pytest.mark.asyncio
+    async def test_is_noop_when_no_connection(self):
+        """Should complete without error when no connection exists."""
+        config_module._connection = None
+
+        await close_rabbitmq_connection()
+
+        assert config_module._connection is None
+
+    @pytest.mark.asyncio
+    async def test_clears_singleton_even_if_close_raises(self):
+        """Should reset singleton to None even when conn.close() raises an exception."""
+        mock_conn = MagicMock()
+        mock_conn.is_closed = False
+        mock_conn.close = AsyncMock(side_effect=RuntimeError("close failed"))
+        config_module._connection = mock_conn
+
+        await close_rabbitmq_connection()  # must not raise
+
+        assert config_module._connection is None
